@@ -9,11 +9,11 @@ const CALENDAR_ID       = "mattglavach@gmail.com";
 
 // ─── MEMBER KEYWORD MAP ───────────────────────────────────────────────────────
 const MEMBER_KEYWORDS = {
-  Emma:  ["emma","dance","recital","ballet","cheer","sat","psat","college","ap "],
-  Jake:  ["jake","baseball","little league"],
-  Ryan:  ["ryan","soccer","football"],
-  Wife:  ["wife","lauren","spa","girls"],
-  Matt:  ["matt","hoa","pickleball","work"],
+  Aubrey:  ["aubrey","dance","recital","ballet","cheer","sat","psat","college","ap ","audition"],
+  Blake:   ["blake","baseball","little league","batting"],
+  Brayden: ["brayden","soccer","football","futbol"],
+  Kalee:   ["kalee","spa","girls","salon"],
+  Matt:    ["matt","hoa","pickleball","dentist","doctor","pediatrician"],
 };
 
 function assignMember(title = "", description = "") {
@@ -161,7 +161,7 @@ const COLORS = {
   red: "#E05252", amber: "#F0A030", green: "#3DB87A", blue: "#4A90D9", purple: "#8B6FD4",
 };
 const MEMBER_COLORS = {
-  Matt: "#4A90D9", Wife: "#8B6FD4", Emma: "#E05252", Jake: "#3DB87A", Ryan: "#F0A030",
+  Matt: "#4A90D9", Kalee: "#8B6FD4", Aubrey: "#E05252", Blake: "#3DB87A", Brayden: "#F0A030",
 };
 
 // ─── SEED DATA ────────────────────────────────────────────────────────────────
@@ -506,14 +506,18 @@ function Dashboard({ onNavigate, gc }) {
 // ─── SCHEDULE ─────────────────────────────────────────────────────────────────
 function Schedule({ gc }) {
   const [filter, setFilter] = useState("All");
-  const members = ["All","Emma","Jake","Ryan","Matt","Wife"];
+  const [overrides, setOverrides] = useState({});
+  const [reassigning, setReassigning] = useState(null);
+  const members = ["All","Aubrey","Blake","Brayden","Matt","Kalee"];
 
   const days = Array.from({length:30},(_,i)=>{
     const d=new Date(todayReal); d.setDate(d.getDate()+i); return d.toISOString().split("T")[0];
   });
 
-  const allEvents = gc.token ? gc.events : [];
-  const filtered  = allEvents.filter(e=>filter==="All"||e.member===filter);
+  const allEvents = (gc.token ? gc.events : []).map(e => ({
+    ...e, member: overrides[e.id] || e.member
+  }));
+  const filtered = allEvents.filter(e=>filter==="All"||e.member===filter);
 
   return (
     <div style={S.screen}>
@@ -542,8 +546,23 @@ function Schedule({ gc }) {
                       <div style={{ fontSize:14, fontWeight:600 }}>{e.title}</div>
                       <div style={{ fontSize:12, color:COLORS.slate, marginTop:3 }}>{e.time||"All day"}{e.location?` · ${e.location}`:""}</div>
                     </div>
-                    <span style={S.badge(MEMBER_COLORS[e.member]||COLORS.slate)}>{e.member}</span>
+                    <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:4 }}>
+                      <span style={S.badge(MEMBER_COLORS[e.member]||COLORS.slate)}>{e.member}</span>
+                      <button style={{ ...S.btnSm, fontSize:10, padding:"3px 8px" }} onClick={()=>setReassigning(reassigning===e.id?null:e.id)}>
+                        reassign
+                      </button>
+                    </div>
                   </div>
+                  {reassigning===e.id && (
+                    <div style={{ marginTop:10, display:"flex", flexWrap:"wrap", gap:6 }}>
+                      {["Aubrey","Blake","Brayden","Matt","Kalee"].map(m=>(
+                        <span key={m} style={S.chip(e.member===m,MEMBER_COLORS[m])} onClick={()=>{
+                          setOverrides(prev=>({...prev,[e.id]:m}));
+                          setReassigning(null);
+                        }}>{m}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -591,8 +610,8 @@ function College() {
 
   return (
     <div style={S.screen}>
-      <div style={{ ...S.card, background:COLORS.navyLight, borderLeft:`3px solid ${MEMBER_COLORS.Emma}`, marginBottom:16 }}>
-        <div style={{ fontSize:11, color:COLORS.red, fontWeight:700, letterSpacing:"0.8px", textTransform:"uppercase" }}>Emma · Class of 2028</div>
+      <div style={{ ...S.card, background:COLORS.navyLight, borderLeft:`3px solid ${MEMBER_COLORS.Aubrey}`, marginBottom:16 }}>
+        <div style={{ fontSize:11, color:COLORS.red, fontWeight:700, letterSpacing:"0.8px", textTransform:"uppercase" }}>Aubrey · Class of 2028</div>
         <div style={{ fontSize:16, fontWeight:700, marginTop:2 }}>Junior Year — College Planning</div>
         <div style={{ fontSize:12, color:COLORS.slate, marginTop:4 }}>
           {schools.data.filter(s=>s.status==="target"||s.status==="applying").length} target schools · {pending.length} open deadlines
@@ -620,7 +639,10 @@ function College() {
                       </span>
                     </div>
                   </div>
-                  <button style={S.btnGreen} onClick={()=>deadlines.update(d.id,{completed:true})}>Done ✓</button>
+                  <div style={{ display:"flex", gap:6 }}>
+                    <button style={S.btnGreen} onClick={()=>deadlines.update(d.id,{completed:true})}>Done ✓</button>
+                    <button style={S.btnRed} onClick={()=>{ if(window.confirm("Delete this deadline?")) deadlines.remove(d.id); }}>✕</button>
+                  </div>
                 </div>
               </div>
             );
@@ -651,10 +673,13 @@ function College() {
                   <div key={s.id} style={S.statusCard(statusColors[s.status])}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                       <div style={{ fontSize:14, fontWeight:600 }}>{s.name}</div>
-                      <select value={s.status} onChange={e=>schools.update(s.id,{status:e.target.value})}
-                        style={{ background:COLORS.navyLight, color:COLORS.slateLight, border:"none", borderRadius:6, padding:"4px 8px", fontSize:11, cursor:"pointer" }}>
-                        {["researching","target","applying","applied","accepted","rejected"].map(st=><option key={st} value={st}>{st}</option>)}
-                      </select>
+                      <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+                        <select value={s.status} onChange={e=>schools.update(s.id,{status:e.target.value})}
+                          style={{ background:COLORS.navyLight, color:COLORS.slateLight, border:"none", borderRadius:6, padding:"4px 8px", fontSize:11, cursor:"pointer" }}>
+                          {["researching","target","applying","applied","accepted","rejected"].map(st=><option key={st} value={st}>{st}</option>)}
+                        </select>
+                        <button style={S.btnRed} onClick={()=>{ if(window.confirm("Remove this school?")) schools.remove(s.id); }}>✕</button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -680,8 +705,13 @@ function College() {
           )}
           {scores.data.map(s=>(
             <div key={s.id} style={S.card}>
-              <div style={{ fontSize:15, fontWeight:700 }}>{s.total} <span style={{ fontSize:11, color:COLORS.slate }}>({s.math}M / {s.verbal}V)</span></div>
-              <div style={{ fontSize:12, color:COLORS.slate, marginTop:2 }}>{formatDate(s.date)}{s.notes?` · ${s.notes}`:""}</div>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <div>
+                  <div style={{ fontSize:15, fontWeight:700 }}>{s.total} <span style={{ fontSize:11, color:COLORS.slate }}>({s.math}M / {s.verbal}V)</span></div>
+                  <div style={{ fontSize:12, color:COLORS.slate, marginTop:2 }}>{formatDate(s.date)}{s.notes?` · ${s.notes}`:""}</div>
+                </div>
+                <button style={S.btnRed} onClick={()=>{ if(window.confirm("Delete this score?")) scores.remove(s.id); }}>✕</button>
+              </div>
             </div>
           ))}
           <button style={S.btn} onClick={()=>{setForm({});setShowModal("score");}}>+ Log Score</button>
@@ -764,7 +794,10 @@ function HomeMgmt() {
                   </div>
                   <div style={S.progress}><div style={S.progressFill(pct,color)}/></div>
                 </div>
-                <button style={{...S.btnGreen,marginLeft:12}} onClick={()=>markDone(item)}>Done ✓</button>
+                <div style={{ display:"flex", gap:6, marginLeft:12 }}>
+                  <button style={S.btnGreen} onClick={()=>markDone(item)}>Done ✓</button>
+                  <button style={S.btnRed} onClick={()=>{ if(window.confirm("Delete this item?")) maint.remove(item.id); }}>✕</button>
+                </div>
               </div>
             </div>
           );
@@ -852,9 +885,12 @@ function Pool() {
       {tab==="log"&&<>
         {readings.loading?<Loading/>:readings.data.map(r=>(
           <div key={r.id} style={S.card}>
-            <div style={{ display:"flex", justifyContent:"space-between" }}>
-              <div style={{ fontSize:13, fontWeight:700 }}>{formatDate(r.date)}</div>
-              <div style={{ fontSize:12, color:COLORS.slate }}>{r.water_temp?`${r.water_temp}°F · `:""}SWG {r.swg_setting}%</div>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+              <div>
+                <div style={{ fontSize:13, fontWeight:700 }}>{formatDate(r.date)}</div>
+                <div style={{ fontSize:12, color:COLORS.slate }}>{r.water_temp?`${r.water_temp}°F · `:""}SWG {r.swg_setting}%</div>
+              </div>
+              <button style={S.btnRed} onClick={()=>{ if(window.confirm("Delete this reading?")) readings.remove(r.id); }}>✕</button>
             </div>
             <div style={{ display:"flex", gap:14, marginTop:8, flexWrap:"wrap" }}>
               {PARAMS.filter(p=>p.k!=="water_temp").map(p=>{
@@ -893,8 +929,13 @@ function Pool() {
       {tab==="maintenance"&&<>
         {maint.loading?<Loading/>:maint.data.map(m=>(
           <div key={m.id} style={S.card}>
-            <div style={{ fontSize:13, fontWeight:600 }}>{m.type}</div>
-            <div style={{ fontSize:12, color:COLORS.slate, marginTop:2 }}>{formatDate(m.date)}{m.notes?` · ${m.notes}`:""}</div>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <div>
+                <div style={{ fontSize:13, fontWeight:600 }}>{m.type}</div>
+                <div style={{ fontSize:12, color:COLORS.slate, marginTop:2 }}>{formatDate(m.date)}{m.notes?` · ${m.notes}`:""}</div>
+              </div>
+              <button style={S.btnRed} onClick={()=>{ if(window.confirm("Delete this entry?")) maint.remove(m.id); }}>✕</button>
+            </div>
           </div>
         ))}
         <button style={S.btn} onClick={()=>{setForm({date:TODAY_STR});setShowMaint(true);}}>+ Log Maintenance</button>
