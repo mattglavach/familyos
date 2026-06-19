@@ -164,6 +164,9 @@ const SEED={
   college_test_plan:[
     {id:"1",test_type:"SAT",target_date:"2026-08-23",target_score:"1400",attempt_number:1,registered:false,notes:"First official SAT attempt junior year"},
   ],
+  college_essays:[
+    {id:"1",title:"Common App Personal Statement",school:"",due_date:"2026-09-15",status:"not started",word_count:"650 max",notes:""},
+  ],
   college_deadlines:[
     {id:"1",title:"SAT Registration — August Test",due_date:"2026-06-20",school:"",category:"test",completed:false},
     {id:"2",title:"Common App Account Setup",due_date:"2026-07-01",school:"Common App",category:"application",completed:false},
@@ -282,25 +285,53 @@ function futureValue(presentValue, monthlyContribution, annualRatePct, years) {
   return fvPV + fvContrib;
 }
 
+// Effective monthly contribution from an account, converting biweekly to monthly equivalent
+function effectiveMonthlyContribution(account) {
+  const amount = account.monthly_contribution || 0;
+  const match = account.employer_match || 0;
+  if (account.contribution_frequency === "biweekly") {
+    return (amount * 26 / 12) + (match * 26 / 12);
+  }
+  return amount + match;
+}
+
+// Future value with contributions that grow by a fixed % each year (e.g. raises, auto-escalation)
+function futureValueWithGrowth(presentValue, monthlyContribution, annualRatePct, years, annualGrowthPct=0) {
+  const r = annualRatePct / 100 / 12;
+  let balance = presentValue;
+  let contrib = monthlyContribution;
+  const trajectory = [{ year: 0, balance: Math.round(balance) }];
+  for (let y = 1; y <= years; y++) {
+    for (let m = 0; m < 12; m++) {
+      balance = balance * (1+r) + contrib;
+    }
+    trajectory.push({ year: y, balance: Math.round(balance) });
+    contrib = contrib * (1 + annualGrowthPct/100);
+  }
+  return { finalBalance: balance, trajectory };
+}
+
 function calcRetirementProjection(accounts, assumptions) {
   if (!assumptions) return null;
   const totalBalance = accounts.reduce((s,a)=>s+(a.balance||0),0);
-  const totalMonthly = accounts.reduce((s,a)=>s+(a.monthly_contribution||0)+(a.employer_match||0),0);
+  const totalMonthly = accounts.reduce((s,a)=>s+effectiveMonthlyContribution(a),0);
   const years = Math.max(0, assumptions.retirement_age - assumptions.current_age);
+  const growthRate = assumptions.contribution_increase_pct || 0;
 
   const scenarios = [
     { label:"Conservative", rate:6, color:COLORS.slate },
     { label:"Moderate",     rate:8, color:COLORS.blue },
     { label:"Aggressive",   rate:10, color:COLORS.green },
-  ].map(s => ({
-    ...s,
-    projected: futureValue(totalBalance, totalMonthly, s.rate, years)
-  }));
+  ].map(s => {
+    const result = futureValueWithGrowth(totalBalance, totalMonthly, s.rate, years, growthRate);
+    return { ...s, projected: result.finalBalance, trajectory: result.trajectory };
+  });
 
   const netAnnualNeed = Math.max(0, assumptions.annual_retirement_spending - assumptions.social_security_estimate);
   const targetNumber = netAnnualNeed / (assumptions.withdrawal_rate_pct/100);
 
-  const moderateProjected = scenarios.find(s=>s.label==="Moderate").projected;
+  const moderate = scenarios.find(s=>s.label==="Moderate");
+  const moderateProjected = moderate.projected;
   const gap = targetNumber - moderateProjected;
 
   const r = 8/100/12;
@@ -311,7 +342,13 @@ function calcRetirementProjection(accounts, assumptions) {
     ? remaining / ((Math.pow(1+r,n)-1)/r)
     : 0;
 
-  return { totalBalance, totalMonthly, years, scenarios, targetNumber, gap, monthlyNeeded, netAnnualNeed };
+  // Early retirement bridge: gap years between retirement and Social Security/Medicare (default age 65)
+  const bridgeEndAge = assumptions.bridge_end_age || 65;
+  const bridgeYears = Math.max(0, bridgeEndAge - assumptions.retirement_age);
+  const bridgeAnnualCost = assumptions.annual_retirement_spending + (assumptions.healthcare_estimate||0);
+  const bridgeTotalNeeded = bridgeAnnualCost * bridgeYears;
+
+  return { totalBalance, totalMonthly, years, scenarios, targetNumber, gap, monthlyNeeded, netAnnualNeed, bridgeYears, bridgeTotalNeeded, bridgeEndAge, trajectory: moderate.trajectory };
 }
 
 function calcCollegeProjection(savings, goal) {
@@ -409,6 +446,26 @@ function calcTargetSWG(fc, cya, waterTemp, pumpHours) {
   if (fc > targetFC * 1.5) return Math.max(20, base - 20);
   if (fc < targetFC * 0.5) return Math.min(100, base + 25);
   return Math.min(100, base);
+}
+
+// Seasonal SWG guidance — month-aware, independent of any single reading
+function getSeasonalReminder() {
+  const month = new Date().getMonth(); // 0=Jan
+  const seasons = {
+    0:{label:"January",swg:"20-30%",note:"Cell barely runs below 60°F. Manual chlorine may be needed if temps spike."},
+    1:{label:"February",swg:"20-30%",note:"Still winter mode — minimal SWG output needed."},
+    2:{label:"March",swg:"30-40%",note:"Start ramping up as water warms. Watch CYA/algae risk as bather load returns."},
+    3:{label:"April",swg:"40-50%",note:"Spring ramp-up. Check salt cell after winter dormancy."},
+    4:{label:"May",swg:"50-60%",note:"Heading into summer demand. Verify CYA is 70-75 before heavy use season."},
+    5:{label:"June",swg:"60-70%",note:"Peak SC summer heat. FC burns fast — monitor closely."},
+    6:{label:"July",swg:"60-70%",note:"Hottest stretch. Consider split pump schedule for circulation + overnight FC rebuild."},
+    7:{label:"August",swg:"60-70%",note:"Still peak demand. Watch for storm-driven dilution."},
+    8:{label:"September",swg:"50-60%",note:"Early fall — demand starts easing as temps drop."},
+    9:{label:"October",swg:"40-50%",note:"Drop SWG as pump runs less and bather load fades. Watch for algae as people stop checking as often."},
+    10:{label:"November",swg:"30-40%",note:"Cell efficiency drops below 60°F water. Consider reducing pump hours."},
+    11:{label:"December",swg:"20-30%",note:"Cell stops producing chlorine below ~60°F. Switch to manual chlorine if pool stays open."},
+  };
+  return seasons[month];
 }
 
 function getChemRecommendations(last, readings) {
@@ -733,22 +790,31 @@ function CalendarBanner({gc}){
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 function Dashboard({onNavigate,gc}){
-  const{data:poolReadings}=useTable("pool_readings","date");
   const{data:homeMaint}   =useTable("home_maintenance","title",true);
   const{data:deadlines}   =useTable("college_deadlines","due_date",true);
 
-  const lastReading     =poolReadings[0];
-  const daysSincePool   =lastReading?daysAgo(lastReading.date):999;
+  const [showAttention,setShowAttention] = useState(false);
+  const [showFullSchedule,setShowFullSchedule] = useState(false);
+  const [filter,setFilter]   = useState("All");
+  const [overrides,setOverrides] = useState({});
+  const [reassigning,setReassigning] = useState(null);
+  const members=["All","Aubrey","Blake","Brayden","Matt","Kalee"];
+
   const overdueItems    =homeMaint.filter(m=>maintStatus(m)==="overdue");
   const urgentDeadlines =deadlines.filter(d=>!d.completed&&daysBetween(d.due_date)<=14);
-  const calEvents       =gc.token?gc.events:[];
-  const thisWeek        =calEvents.filter(e=>{const d=daysBetween(e.date);return d>=0&&d<=6;});
-  const todayEvts       =thisWeek.filter(e=>e.date===TODAY_STR);
-  const upcoming        =thisWeek.filter(e=>e.date!==TODAY_STR);
+
+  const allEvents=(gc.token?gc.events:[]).map(e=>({...e,member:overrides[e.id]||e.member}));
+  const filtered=allEvents.filter(e=>filter==="All"||e.member===filter);
+
+  const next3Days=Array.from({length:3},(_,i)=>{const d=new Date(todayReal);d.setDate(d.getDate()+i);return d.toISOString().split("T")[0];});
+  const next30Days=Array.from({length:30},(_,i)=>{const d=new Date(todayReal);d.setDate(d.getDate()+i);return d.toISOString().split("T")[0];});
+  const visibleDays = showFullSchedule ? next30Days : next3Days;
+
+  const eventsInWindow = filtered.filter(e=>visibleDays.includes(e.date));
+  const totalEventsNext3 = filtered.filter(e=>next3Days.includes(e.date)).length;
 
   const attention=[];
-  if(!gc.token)attention.push({color:COLORS.blue,icon:"📅",text:"Google Calendar not connected",action:"Connect",tab:"schedule"});
-  if(daysSincePool>=4)attention.push({color:COLORS.amber,icon:"🏊",text:`Pool not logged in ${daysSincePool} days`,action:"Log Now",tab:"pool"});
+  if(!gc.token)attention.push({color:COLORS.blue,icon:"📅",text:"Google Calendar not connected",action:"Connect"});
   overdueItems.forEach(m=>{
     const days=-daysBetween(nextDueDate(m.last_completed,m.interval_days));
     attention.push({color:COLORS.red,icon:"🏡",text:`${m.title} overdue by ${days} days`,action:"View",tab:"home-mgmt"});
@@ -760,90 +826,42 @@ function Dashboard({onNavigate,gc}){
 
   return(
     <div style={S.screen}>
-      <div style={{...S.card,background:COLORS.navyLight,borderColor:COLORS.blue+"44"}}>
+      <div onClick={()=>attention.length>0&&setShowAttention(p=>!p)} style={{...S.card,background:COLORS.navyLight,borderColor:COLORS.blue+"44",cursor:attention.length>0?"pointer":"default"}}>
         <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:6}}>{formatToday()}</div>
-        <div style={{fontSize:20,fontWeight:700,lineHeight:1.2}}>{attention.length} item{attention.length!==1?"s":""} need your attention</div>
-        <div style={{fontSize:13,color:COLORS.slate,marginTop:4}}>{thisWeek.length} events this week · {urgentDeadlines.length} deadline{urgentDeadlines.length!==1?"s":""} approaching</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{fontSize:20,fontWeight:700,lineHeight:1.2}}>{attention.length} item{attention.length!==1?"s":""} need your attention</div>
+          {attention.length>0&&<span style={{fontSize:18,color:COLORS.slate}}>{showAttention?"−":"+"}</span>}
+        </div>
+        <div style={{fontSize:13,color:COLORS.slate,marginTop:4}}>{totalEventsNext3} events in next 3 days · {urgentDeadlines.length} deadline{urgentDeadlines.length!==1?"s":""} approaching</div>
       </div>
 
-      {attention.length>0&&<>
+      {showAttention&&attention.length>0&&<>
         <div style={S.sectionLabel}>Needs Attention</div>
         {attention.map((a,i)=>(
           <div key={i} style={S.statusCard(a.color)}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{fontSize:13,fontWeight:600,flex:1,paddingRight:10}}>{a.icon} {a.text}</div>
-              <button style={S.btnSm} onClick={()=>onNavigate(a.tab)}>{a.action} →</button>
+              {a.tab?<button style={S.btnSm} onClick={()=>onNavigate(a.tab)}>{a.action} →</button>:<button style={S.btnSm} onClick={gc.signIn}>{a.action} →</button>}
             </div>
           </div>
         ))}
       </>}
 
-      {todayEvts.length>0&&<>
-        <div style={S.sectionLabel}>Today</div>
-        {todayEvts.map(e=>(
-          <div key={e.id} style={{...S.card,borderLeft:`3px solid ${MEMBER_COLORS[e.member]||COLORS.slate}`}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-              <div><span style={S.memberDot(e.member)}/><span style={{fontSize:14,fontWeight:600}}>{e.title}</span>
-                <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>{e.time||"All day"}{e.location?` · ${e.location}`:""}</div>
-              </div>
-              <span style={S.badge(MEMBER_COLORS[e.member]||COLORS.slate)}>{e.member}</span>
-            </div>
-          </div>
-        ))}
-      </>}
-
-      {upcoming.length>0&&<>
-        <div style={S.sectionLabel}>This Week</div>
-        {upcoming.map(e=>(
-          <div key={e.id} style={{...S.card,borderLeft:`3px solid ${MEMBER_COLORS[e.member]||COLORS.slate}`}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-              <div><span style={S.memberDot(e.member)}/><span style={{fontSize:14,fontWeight:600}}>{e.title}</span>
-                <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>{formatDateFull(e.date)}{e.time?` · ${e.time}`:""}</div>
-              </div>
-              <span style={S.badge(MEMBER_COLORS[e.member]||COLORS.slate)}>{e.member}</span>
-            </div>
-          </div>
-        ))}
-      </>}
-
-      {lastReading&&<>
-        <div style={S.sectionLabel}>Pool — Last Reading {formatDate(lastReading.date)}</div>
-        <div style={S.statGrid}>
-          {[{k:"ph",l:"pH"},{k:"free_chlorine",l:"Cl"},{k:"salt",l:"Salt"}].map(({k,l})=>{
-            const s=poolStatus(k,lastReading[k]);
-            return(<div key={k} style={S.statCell(statusColor(s))}><div style={S.statVal}>{lastReading[k]}</div><div style={S.statLbl}>{l}</div></div>);
-          })}
-        </div>
-      </>}
-    </div>
-  );
-}
-
-// ─── SCHEDULE ─────────────────────────────────────────────────────────────────
-function Schedule({gc}){
-  const [filter,setFilter]   = useState("All");
-  const [overrides,setOverrides] = useState({});
-  const [reassigning,setReassigning] = useState(null);
-  const members=["All","Aubrey","Blake","Brayden","Matt","Kalee"];
-  const days=Array.from({length:30},(_,i)=>{const d=new Date(todayReal);d.setDate(d.getDate()+i);return d.toISOString().split("T")[0];});
-  const allEvents=(gc.token?gc.events:[]).map(e=>({...e,member:overrides[e.id]||e.member}));
-  const filtered=allEvents.filter(e=>filter==="All"||e.member===filter);
-
-  return(
-    <div style={S.screen}>
       <CalendarBanner gc={gc}/>
+
       {gc.token&&<>
-        <div style={{marginBottom:16}}>
+        <div style={S.sectionLabel}>{showFullSchedule?"Next 30 Days":"Next 3 Days"}</div>
+        <div style={{marginBottom:12}}>
           {members.map(m=><span key={m} style={S.chip(filter===m,MEMBER_COLORS[m]||COLORS.blue)} onClick={()=>setFilter(m)}>{m}</span>)}
         </div>
         {gc.loading&&<Loading/>}
-        {!gc.loading&&days.map(day=>{
+        {!gc.loading&&visibleDays.map(day=>{
           const evs=filtered.filter(e=>e.date===day);
           if(!evs.length)return null;
           const isToday=day===TODAY_STR;
           return(
             <div key={day}>
-              <div style={{...S.sectionLabel,color:isToday?COLORS.blue:COLORS.slate}}>{isToday?"Today":formatDateFull(day)}</div>
+              <div style={{...S.sectionLabel,color:isToday?COLORS.blue:COLORS.slate,marginTop:12}}>{isToday?"Today":formatDateFull(day)}</div>
               {evs.map(e=>(
                 <div key={e.id} style={{...S.card,borderLeft:`3px solid ${MEMBER_COLORS[e.member]||COLORS.slate}`,marginBottom:10}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
@@ -868,7 +886,11 @@ function Schedule({gc}){
             </div>
           );
         })}
-        {!gc.loading&&filtered.length===0&&<div style={S.empty}>No events found for the next 30 days.</div>}
+        {!gc.loading&&eventsInWindow.length===0&&<div style={S.empty}>No events found.</div>}
+
+        <button style={S.btnSm} onClick={()=>setShowFullSchedule(p=>!p)}>
+          {showFullSchedule?"Show next 3 days only":"Show next 30 days →"}
+        </button>
       </>}
     </div>
   );
@@ -881,6 +903,7 @@ function College(){
   const schools                  = useTable("college_schools","name",true);
   const scores                   = useTable("sat_scores","date");
   const testPlan                 = useTable("college_test_plan","target_date",true);
+  const essays                   = useTable("college_essays","due_date",true);
   const [showModal,setShowModal] = useState(null);
   const [editItem,setEditItem]   = useState(null);
   const [form,setForm]           = useState({});
@@ -890,6 +913,7 @@ function College(){
   const statusColors={researching:COLORS.slate,target:COLORS.blue,applying:COLORS.amber,applied:COLORS.purple,accepted:COLORS.green,rejected:COLORS.red};
   const appTypeColors={ED:COLORS.red,EA:COLORS.amber,Regular:COLORS.blue,Rolling:COLORS.slate};
   const matchColors={Reach:COLORS.red,Target:COLORS.blue,Safety:COLORS.green};
+  const essayStatusColors={"not started":COLORS.slate,drafting:COLORS.amber,review:COLORS.blue,submitted:COLORS.green};
   const pending=deadlines.data.filter(d=>!d.completed).sort((a,b)=>new Date(a.due_date)-new Date(b.due_date));
   const done=deadlines.data.filter(d=>d.completed);
 
@@ -931,6 +955,13 @@ function College(){
     else await testPlan.insert(row);
     closeModal();
   }
+  async function saveEssay(){
+    if(!form.title)return;
+    const row={title:form.title,school:form.school||"",due_date:form.due_date||null,status:form.status||"not started",word_count:form.word_count||"",notes:form.notes||""};
+    if(editItem) await essays.update(editItem.id,row);
+    else await essays.insert(row);
+    closeModal();
+  }
 
   return(
     <div style={S.screen}>
@@ -941,7 +972,7 @@ function College(){
       </div>
 
       <div style={S.tabs}>
-        {["deadlines","schools","tests","scores"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
+        {["deadlines","schools","essays","tests","scores"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
       </div>
 
       {tab==="deadlines"&&<>
@@ -1019,6 +1050,48 @@ function College(){
             );
           })}
           <button style={S.btn} onClick={()=>{setForm({status:"researching",app_type:"Regular",match_level:"Target"});setShowModal("school");}}>+ Add School</button>
+        </>}
+      </>}
+
+      {tab==="essays"&&<>
+        {essays.loading?<Loading/>:<>
+          <div style={{fontSize:12,color:COLORS.slate,marginBottom:12,lineHeight:1.5}}>Track Common App and supplemental essays — status and due dates.</div>
+          <div style={S.swipeHint}>← swipe left to edit or delete</div>
+          {["not started","drafting","review","submitted"].map(status=>{
+            const group=essays.data.filter(e=>(e.status||"not started")===status);
+            if(!group.length)return null;
+            return(
+              <div key={status}>
+                <div style={S.sectionLabel}>{status.charAt(0).toUpperCase()+status.slice(1)}</div>
+                {group.map(e=>{
+                  const days = e.due_date ? daysBetween(e.due_date) : null;
+                  return(
+                    <SwipeCard key={e.id} id={e.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
+                      onEdit={()=>openEdit("essay",e)}
+                      onDelete={()=>{if(window.confirm("Delete this essay?"))essays.remove(e.id);setActiveSwipe(null);}}
+                      style={S.statusCard(essayStatusColors[e.status]||COLORS.slate)}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:14,fontWeight:600}}>{e.title}</div>
+                          {e.school&&<div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{e.school}</div>}
+                          <div style={{display:"flex",gap:8,marginTop:4,alignItems:"center"}}>
+                            {e.due_date&&<span style={{fontSize:11,color:days<0?COLORS.red:days<=7?COLORS.amber:COLORS.slate}}>Due {formatDate(e.due_date)}{days!==null?` (${days<0?`${-days}d overdue`:`${days}d`})`:""}</span>}
+                            {e.word_count&&<span style={{fontSize:11,color:COLORS.slate}}>{e.word_count} words</span>}
+                          </div>
+                          {e.notes&&<div style={{fontSize:11,color:COLORS.slateLight,marginTop:4,fontStyle:"italic"}}>{e.notes}</div>}
+                        </div>
+                        <select value={e.status||"not started"} onChange={ev=>essays.update(e.id,{status:ev.target.value})}
+                          style={{background:COLORS.navyLight,color:COLORS.slateLight,border:"none",borderRadius:6,padding:"4px 8px",fontSize:11,cursor:"pointer",flexShrink:0}}>
+                          {["not started","drafting","review","submitted"].map(st=><option key={st} value={st}>{st}</option>)}
+                        </select>
+                      </div>
+                    </SwipeCard>
+                  );
+                })}
+              </div>
+            );
+          })}
+          <button style={S.btn} onClick={()=>{setForm({status:"not started"});setShowModal("essay");}}>+ Add Essay</button>
         </>}
       </>}
 
@@ -1101,6 +1174,22 @@ function College(){
         <label style={S.label}>Visit Notes (optional)</label>
         <input style={S.input} placeholder="e.g. Loved the campus, felt right size" value={form.visit_notes||""} onChange={e=>setForm(p=>({...p,visit_notes:e.target.value}))}/>
         <button style={{...S.btn,marginTop:16}} onClick={saveSchool}>{editItem?"Save Changes":"Add School"}</button>
+      </Modal>}
+
+      {showModal==="essay"&&<Modal title={editItem?"Edit Essay":"Add Essay"} onClose={closeModal}>
+        <label style={S.label}>Title</label>
+        <input style={S.input} placeholder="e.g. Common App Personal Statement" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
+        <label style={S.label}>School (leave blank for Common App)</label>
+        <input style={S.input} placeholder="e.g. University of Virginia" value={form.school||""} onChange={e=>setForm(p=>({...p,school:e.target.value}))}/>
+        <label style={S.label}>Due Date</label>
+        <input type="date" style={S.input} value={form.due_date||""} onChange={e=>setForm(p=>({...p,due_date:e.target.value}))}/>
+        <label style={S.label}>Status</label>
+        <div>{["not started","drafting","review","submitted"].map(s=><span key={s} style={S.chip(form.status===s,essayStatusColors[s])} onClick={()=>setForm(p=>({...p,status:s}))}>{s}</span>)}</div>
+        <label style={S.label}>Word Count (optional)</label>
+        <input style={S.input} placeholder="e.g. 650 max" value={form.word_count||""} onChange={e=>setForm(p=>({...p,word_count:e.target.value}))}/>
+        <label style={S.label}>Notes</label>
+        <input style={S.input} placeholder="Prompt, ideas, feedback notes" value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
+        <button style={{...S.btn,marginTop:16}} onClick={saveEssay}>{editItem?"Save Changes":"Add Essay"}</button>
       </Modal>}
 
       {showModal==="test"&&<Modal title={editItem?"Edit Test Plan":"Add Test Plan"} onClose={closeModal}>
@@ -1619,6 +1708,16 @@ function Pool(){
   const lowRecs  = visibleRecs.filter(r=>r.priority==="low");
   const [showLow,setShowLow] = useState(false);
 
+  const season = getSeasonalReminder();
+  const seasonKey = `pool_season_dismissed_${new Date().getFullYear()}_${new Date().getMonth()}`;
+  const [seasonDismissed,setSeasonDismissed] = useState(()=>{
+    try{ return localStorage.getItem(seasonKey)==="true"; }catch{ return false; }
+  });
+  function dismissSeason(){
+    setSeasonDismissed(true);
+    try{ localStorage.setItem(seasonKey,"true"); }catch{}
+  }
+
   function openEditReading(r){setEditItem(r);setForm({...r});setShowLog(true);setActiveSwipe(null);}
   function openEditMaint(m){setEditItem(m);setForm({...m});setShowMaint(true);setActiveSwipe(null);}
   function closeLog(){setShowLog(false);setEditItem(null);setForm({});setUseDrops(false);}
@@ -1673,6 +1772,18 @@ function Pool(){
           ✓ Log Treatment
         </button>
       </div>
+
+      {!seasonDismissed&&season&&(
+        <div style={{...S.statusCard(COLORS.blue),marginBottom:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+            <div style={{flex:1,paddingRight:8}}>
+              <div style={{fontSize:12,fontWeight:700,marginBottom:3}}>🗓️ {season.label} — target SWG {season.swg}</div>
+              <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>{season.note}</div>
+            </div>
+            <button onClick={dismissSeason} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:14,padding:2,flexShrink:0}}>✕</button>
+          </div>
+        </div>
+      )}
 
       {last&&(
         <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
@@ -1944,6 +2055,223 @@ function Pool(){
 }
 
 // ─── FINANCE ──────────────────────────────────────────────────────────────────
+// ─── RETIREMENT BRIEF ─────────────────────────────────────────────────────────
+function RetirementBrief({accounts, assumptions, retProj, onClose}) {
+  const [brief, setBrief]     = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState(null);
+  const [history, setHistory] = useState([]);
+  const [viewingHistory, setViewingHistory] = useState(null);
+  const [hasRun, setHasRun]   = useState(false);
+  const [followUp, setFollowUp] = useState("");
+  const [chatMessages, setChatMessages] = useState([]);
+  const [askingFollowUp, setAskingFollowUp] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("retirementBriefHistory") || "[]");
+      setHistory(saved);
+    } catch {}
+  }, []);
+
+  function saveBriefToHistory(briefText) {
+    try {
+      const saved = JSON.parse(localStorage.getItem("retirementBriefHistory") || "[]");
+      const updated = [{ date: new Date().toISOString(), text: briefText }, ...saved].slice(0, 3);
+      localStorage.setItem("retirementBriefHistory", JSON.stringify(updated));
+      setHistory(updated);
+    } catch {}
+  }
+
+  async function generateBrief() {
+    setHasRun(true);
+    setLoading(true);
+    setViewingHistory(null);
+    try {
+      const accountSummary = accounts.map(a =>
+        `${a.name} (${a.account_type}, ${a.tax_treatment}): ${formatMoney(a.balance)}, contributing ${formatMoney(a.monthly_contribution)}${a.contribution_frequency==="biweekly"?"/paycheck":"/mo"}${a.employer_match?` + ${formatMoney(a.employer_match)} match`:""}, last updated ${a.last_updated}`
+      ).join(String.fromCharCode(10));
+
+      const today = new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
+
+      const prompt = `You are a knowledgeable, plain-spoken financial planning assistant helping a 44-year-old household in South Carolina targeting retirement at age ${assumptions.retirement_age}. You are not a licensed financial advisor — give analytical, educational perspective, not personalized investment advice or specific fund/allocation recommendations.
+
+Today is ${today}.
+
+Accounts:
+${accountSummary}
+
+Current totals:
+- Combined balance: ${formatMoney(retProj.totalBalance)}
+- Combined monthly contribution (incl. match): ${formatMoney(retProj.totalMonthly)}
+- Years to retirement: ${retProj.years}
+
+Projections at age ${assumptions.retirement_age}:
+- Conservative (6%): ${formatMoney(retProj.scenarios[0].projected)}
+- Moderate (8%): ${formatMoney(retProj.scenarios[1].projected)}
+- Aggressive (10%): ${formatMoney(retProj.scenarios[2].projected)}
+- Target number (4% rule style): ${formatMoney(retProj.targetNumber)}
+- Gap vs moderate scenario: ${formatMoney(retProj.gap)}
+- Contribution growth assumption: ${assumptions.contribution_increase_pct||0}%/year
+
+Early retirement bridge (age ${assumptions.retirement_age} to ${retProj.bridgeEndAge}):
+- ${retProj.bridgeYears} years before Social Security/Medicare eligibility
+- Estimated bridge cost: ${formatMoney(retProj.bridgeTotalNeeded)}
+
+Write a brief in this EXACT format. Every section must be 1-3 short bullet points, never paragraphs. Be specific with numbers. No fluff, no filler. Do not give specific investment, fund, or allocation advice — stick to savings rate, contribution, and gap analysis.
+
+Format:
+**WHERE YOU STAND**
+• [current balance, contribution rate, trajectory in plain terms]
+
+**ON TRACK OR NOT**
+• [gap analysis — are they ahead, behind, or on pace for the moderate scenario]
+
+**THE BRIDGE YEARS**
+• [comment specifically on the age ${assumptions.retirement_age}-${retProj.bridgeEndAge} gap and what it means practically]
+
+**WHAT WOULD HELP MOST**
+• [1-2 concrete, non-advisory levers — e.g. contribution increase, timeline, not specific funds]
+
+**WATCH FOR**
+• [what to revisit next month/update]
+
+Keep the ENTIRE brief under 150 words total. Bullets only, no exceptions.`;
+
+      const res = await fetch("/api/brief", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1000,
+          messages: [{ role: "user", content: prompt }]
+        })
+      });
+
+      const data = await res.json();
+      if(!res.ok || data.error) {
+        const msg = data.error?.message || data.error || `HTTP ${res.status}`;
+        setError(`API error: ${msg}`);
+        setLoading(false);
+        return;
+      }
+      const textBlocks = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join(String.fromCharCode(10));
+      const finalBrief = textBlocks || "Unable to generate brief.";
+      setBrief(finalBrief);
+      saveBriefToHistory(finalBrief);
+    } catch(e) {
+      setError("Could not generate brief: " + e.message);
+    }
+    setLoading(false);
+  }
+
+  async function askFollowUp() {
+    if (!followUp.trim() || !brief) return;
+    const question = followUp.trim();
+    setChatMessages(prev => [...prev, { role: "user", text: question }]);
+    setFollowUp("");
+    setAskingFollowUp(true);
+    try {
+      const followUpPrompt = `You already gave this retirement brief:\n\n${brief}\n\nAnswer this follow-up directly and concisely (2-4 sentences, no headers/bullets unless needed). You are not a licensed advisor — stay educational, not prescriptive about specific investments. Current balance ${formatMoney(retProj.totalBalance)}, target ${formatMoney(retProj.targetNumber)}, retiring at ${assumptions.retirement_age}.\n\nQuestion: ${question}`;
+      const res = await fetch("/api/brief", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: followUpPrompt }] })
+      });
+      const data = await res.json();
+      const textBlocks = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join(String.fromCharCode(10));
+      setChatMessages(prev => [...prev, { role: "assistant", text: textBlocks || "Could not get a response." }]);
+    } catch(e) {
+      setChatMessages(prev => [...prev, { role: "assistant", text: "Error: " + e.message }]);
+    }
+    setAskingFollowUp(false);
+  }
+
+  function renderBrief(text) {
+    if(!text) return null;
+    return text.split(String.fromCharCode(10)).map((line, i) => {
+      if(line.startsWith('**') && line.endsWith('**')) {
+        return <div key={i} style={{fontSize:11,fontWeight:700,color:COLORS.blue,letterSpacing:"0.8px",textTransform:"uppercase",marginTop:16,marginBottom:6}}>{line.replace(/\*\*/g,'')}</div>;
+      }
+      if(line.startsWith('•') || line.startsWith('-')) {
+        return <div key={i} style={{fontSize:13,color:COLORS.white,lineHeight:1.6,marginBottom:4,paddingLeft:8}}>• {line.replace(/^[•-]\s*/,'')}</div>;
+      }
+      if(line.trim()==='') return <div key={i} style={{height:4}}/>;
+      return <div key={i} style={{fontSize:13,color:COLORS.slateLight,lineHeight:1.6,marginBottom:4}}>{line}</div>;
+    });
+  }
+
+  const displayedBrief = viewingHistory !== null ? history[viewingHistory]?.text : brief;
+  const displayedIsHistory = viewingHistory !== null;
+
+  return (
+    <Modal title="🤖 Retirement Brief" onClose={onClose}>
+      {history.length > 0 && (
+        <>
+          <div style={{fontSize:10,color:COLORS.slate,marginBottom:6,letterSpacing:"0.5px"}}>PAST BRIEFS — tap to view without regenerating</div>
+          <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
+            <span style={S.chip(viewingHistory===null,COLORS.purple)} onClick={()=>setViewingHistory(null)}>Latest</span>
+            {history.map((h,i)=>(
+              <span key={i} style={S.chip(viewingHistory===i,COLORS.slate)} onClick={()=>setViewingHistory(i)}>
+                {new Date(h.date).toLocaleDateString("en-US",{month:"short",day:"numeric"})}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+
+      {loading && viewingHistory===null && (
+        <div style={{textAlign:"center",padding:"40px 20px"}}>
+          <div style={{fontSize:14,color:COLORS.slate}}>Analyzing your retirement trajectory…</div>
+        </div>
+      )}
+      {error && viewingHistory===null && <div style={{fontSize:13,color:COLORS.red,padding:"20px 0"}}>{error}</div>}
+
+      {!hasRun && !loading && viewingHistory===null && (
+        <div style={{textAlign:"center",padding:"30px 20px"}}>
+          <div style={{fontSize:13,color:COLORS.slate,marginBottom:16,lineHeight:1.5}}>
+            Run an analysis of your retirement trajectory, contribution rate, and bridge gap.
+          </div>
+          <button style={S.btn} onClick={generateBrief}>▶️ Run Analysis</button>
+        </div>
+      )}
+
+      {displayedBrief && (!loading || displayedIsHistory) && (
+        <>
+          <div style={{background:COLORS.navyLight,borderRadius:10,padding:"14px 16px",marginBottom:16}}>
+            {renderBrief(displayedBrief)}
+          </div>
+          {!displayedIsHistory && <button style={{...S.btn,marginTop:0,marginBottom:16}} onClick={generateBrief}>🔄 Regenerate</button>}
+
+          {!displayedIsHistory && (
+            <>
+              <div style={S.sectionLabel}>Ask a follow-up</div>
+              {chatMessages.map((m,i)=>(
+                <div key={i} style={{marginBottom:8,display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
+                  <div style={{maxWidth:"85%",background:m.role==="user"?COLORS.blue:COLORS.navyLight,color:m.role==="user"?"#fff":COLORS.white,borderRadius:10,padding:"8px 12px",fontSize:13,lineHeight:1.5}}>
+                    {m.text}
+                  </div>
+                </div>
+              ))}
+              {askingFollowUp && <div style={{fontSize:12,color:COLORS.slate,marginBottom:8}}>Thinking…</div>}
+              <div style={{display:"flex",gap:8}}>
+                <input
+                  style={{...S.input,marginBottom:0,flex:1}}
+                  placeholder="e.g. what if I retire at 62 instead?"
+                  value={followUp}
+                  onChange={e=>setFollowUp(e.target.value)}
+                  onKeyDown={e=>{if(e.key==="Enter")askFollowUp();}}
+                />
+                <button style={{...S.btnSm,flexShrink:0}} onClick={askFollowUp} disabled={askingFollowUp}>Ask</button>
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </Modal>
+  );
+}
+
 function Finance(){
   const accounts    = useTable("retirement_accounts","name",true);
   const assumptions = useTable("retirement_assumptions","id",true);
@@ -1959,6 +2287,7 @@ function Finance(){
   const [editItem,setEditItem]   = useState(null);
   const [form,setForm]           = useState({});
   const [activeSwipe,setActiveSwipe] = useState(null);
+  const [showRetBrief,setShowRetBrief] = useState(false);
 
   function openEdit(modal,item){ setEditItem(item); setForm({...item}); setShowModal(modal); setActiveSwipe(null); }
   function closeModal(){ setShowModal(null); setEditItem(null); setForm({}); }
@@ -1995,14 +2324,14 @@ function Finance(){
   async function saveAccount(){
     if(!form.name||!form.balance) return;
     try{
-      const row={name:form.name,account_type:form.account_type||"other",balance:+form.balance,monthly_contribution:+form.monthly_contribution||0,employer_match:+form.employer_match||0,tax_treatment:form.tax_treatment||"pre-tax",last_updated:form.last_updated||TODAY_STR,notes:form.notes||""};
+      const row={name:form.name,account_type:form.account_type||"other",balance:+form.balance,monthly_contribution:+form.monthly_contribution||0,employer_match:+form.employer_match||0,contribution_frequency:form.contribution_frequency||"monthly",tax_treatment:form.tax_treatment||"pre-tax",last_updated:form.last_updated||TODAY_STR,notes:form.notes||""};
       if(editItem) await accounts.update(editItem.id,row); else await accounts.insert(row);
     }catch(e){console.error("saveAccount failed",e);}
     closeModal();
   }
   async function saveAssumptions(){
     try{
-      const row={current_age:+form.current_age||0,retirement_age:+form.retirement_age||0,annual_return_pct:+form.annual_return_pct||0,withdrawal_rate_pct:+form.withdrawal_rate_pct||0,annual_retirement_spending:+form.annual_retirement_spending||0,social_security_estimate:+form.social_security_estimate||0,healthcare_estimate:+form.healthcare_estimate||0};
+      const row={current_age:+form.current_age||0,retirement_age:+form.retirement_age||0,annual_return_pct:+form.annual_return_pct||0,withdrawal_rate_pct:+form.withdrawal_rate_pct||0,annual_retirement_spending:+form.annual_retirement_spending||0,social_security_estimate:+form.social_security_estimate||0,healthcare_estimate:+form.healthcare_estimate||0,contribution_increase_pct:+form.contribution_increase_pct||0,bridge_end_age:+form.bridge_end_age||65};
       if(assump && assump.id) await assumptions.update(assump.id,row); else await assumptions.insert(row);
     }catch(e){console.error("saveAssumptions failed",e);}
     closeModal();
@@ -2140,9 +2469,29 @@ function Finance(){
       </>}
 
       {tab==="retirement"&&<>
+        <div style={{display:"flex",gap:8,marginBottom:12}}>
+          <button onClick={()=>setShowRetBrief(true)} style={{flex:1,background:COLORS.purple,color:"#fff",border:"none",borderRadius:10,padding:"12px 6px",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+            🤖 Retirement Brief
+          </button>
+        </div>
+
+        <div style={{display:"flex",gap:8,marginBottom:12}}>
+          <div style={{...S.card,flex:1,marginBottom:0,textAlign:"center"}}>
+            <div style={{fontSize:10,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.5px"}}>Total Balance</div>
+            <div style={{fontSize:18,fontWeight:800,marginTop:4}}>{formatMoneyShort(retProj?.totalBalance||0)}</div>
+          </div>
+          <div style={{...S.card,flex:1,marginBottom:0,textAlign:"center"}}>
+            <div style={{fontSize:10,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.5px"}}>Monthly Contribution</div>
+            <div style={{fontSize:18,fontWeight:800,marginTop:4}}>{formatMoney(retProj?.totalMonthly||0)}</div>
+          </div>
+        </div>
+
         {retProj&&<>
           <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
-            <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:8}}>Projection at Age {assump.retirement_age} ({retProj.years} years)</div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase"}}>Projection at Age {assump.retirement_age} ({retProj.years} years)</div>
+              <Sparkline data={retProj.trajectory.map(t=>t.balance)} color={COLORS.blue}/>
+            </div>
             {retProj.scenarios.map(s=>(
               <div key={s.label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${COLORS.navyLight}`}}>
                 <div style={{fontSize:12,color:COLORS.slateLight}}>{s.label} ({s.rate}%)</div>
@@ -2154,8 +2503,19 @@ function Finance(){
               <div style={{fontSize:12,color:retProj.gap>0?COLORS.amber:COLORS.green,marginTop:4,fontWeight:600}}>
                 {retProj.gap>0?`Gap: ${formatMoneyShort(retProj.gap)} — consider increasing contribution by ~${formatMoney(retProj.monthlyNeeded)}/mo`:`On track — projected surplus of ${formatMoneyShort(-retProj.gap)}`}
               </div>
+              {assump.contribution_increase_pct>0&&<div style={{fontSize:11,color:COLORS.slate,marginTop:4}}>Assumes contributions grow {assump.contribution_increase_pct}%/year</div>}
             </div>
           </div>
+
+          {retProj.bridgeYears>0&&(
+            <div style={{...S.statusCard(COLORS.amber),marginBottom:12}}>
+              <div style={{fontSize:12,fontWeight:700,marginBottom:4}}>🌉 Early Retirement Bridge — age {assump.retirement_age} to {retProj.bridgeEndAge}</div>
+              <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>
+                {retProj.bridgeYears} years before Social Security/Medicare eligibility. Estimated extra savings needed to cover this gap: <strong style={{color:COLORS.white}}>{formatMoneyShort(retProj.bridgeTotalNeeded)}</strong> (spending + healthcare, no outside income assumed).
+              </div>
+            </div>
+          )}
+
           <button style={{...S.btnSm,width:"100%",marginBottom:12}} onClick={()=>{setForm({...assump});setShowModal("assumptions");}}>⚙️ Edit Assumptions</button>
         </>}
 
@@ -2169,14 +2529,20 @@ function Finance(){
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
               <div>
                 <div style={{fontSize:14,fontWeight:600}}>{a.name}</div>
-                <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{formatMoney(a.monthly_contribution)}/mo{a.employer_match?` + ${formatMoney(a.employer_match)} match`:""}</div>
+                <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>
+                  {formatMoney(a.monthly_contribution)}{a.contribution_frequency==="biweekly"?"/paycheck":"/mo"}
+                  {a.employer_match?` + ${formatMoney(a.employer_match)} match`:""}
+                  {a.contribution_frequency==="biweekly"?` (≈${formatMoney(effectiveMonthlyContribution(a))}/mo)`:""}
+                </div>
                 {a.notes&&<div style={{fontSize:11,color:COLORS.slate,marginTop:2,fontStyle:"italic"}}>{a.notes}</div>}
               </div>
               <div style={{fontSize:16,fontWeight:700}}>{formatMoneyShort(a.balance)}</div>
             </div>
           </SwipeCard>
         ))}
-        <button style={S.btn} onClick={()=>{setForm({account_type:"401k",tax_treatment:"pre-tax",last_updated:TODAY_STR});setShowModal("account");}}>+ Add Account</button>
+        <button style={S.btn} onClick={()=>{setForm({account_type:"401k",contribution_frequency:"monthly",tax_treatment:"pre-tax",last_updated:TODAY_STR});setShowModal("account");}}>+ Add Account</button>
+
+        {showRetBrief&&<RetirementBrief accounts={accounts.data} assumptions={assump} retProj={retProj} onClose={()=>setShowRetBrief(false)}/>}
       </>}
 
       {tab==="college"&&<>
@@ -2249,10 +2615,28 @@ function Finance(){
         <div>{["403b","401k","IRA","HSA","brokerage","cash","other"].map(t=><span key={t} style={S.chip(form.account_type===t,accountTypeColors[t]||COLORS.slate)} onClick={()=>setForm(p=>({...p,account_type:t}))}>{t}</span>)}</div>
         <label style={S.label}>Current Balance</label>
         <input type="number" style={S.input} placeholder="" value={form.balance||""} onChange={e=>setForm(p=>({...p,balance:e.target.value}))}/>
-        <div style={S.row}>
-          <div style={S.col}><label style={S.label}>Monthly Contribution</label><input type="number" style={S.input} placeholder="" value={form.monthly_contribution||""} onChange={e=>setForm(p=>({...p,monthly_contribution:e.target.value}))}/></div>
-          <div style={S.col}><label style={S.label}>Employer Match</label><input type="number" style={S.input} placeholder="" value={form.employer_match||""} onChange={e=>setForm(p=>({...p,employer_match:e.target.value}))}/></div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+          <label style={{...S.label,marginBottom:0}}>Contribution Frequency</label>
+          <div style={{display:"flex",gap:6}}>
+            <span style={S.chip((form.contribution_frequency||"monthly")==="monthly",COLORS.blue)} onClick={()=>setForm(p=>({...p,contribution_frequency:"monthly"}))}>monthly</span>
+            <span style={S.chip(form.contribution_frequency==="biweekly",COLORS.purple)} onClick={()=>setForm(p=>({...p,contribution_frequency:"biweekly"}))}>biweekly</span>
+          </div>
         </div>
+        <div style={S.row}>
+          <div style={S.col}>
+            <label style={S.label}>{form.contribution_frequency==="biweekly"?"Per Paycheck":"Monthly"} Contribution</label>
+            <input type="number" style={S.input} placeholder="" value={form.monthly_contribution||""} onChange={e=>setForm(p=>({...p,monthly_contribution:e.target.value}))}/>
+          </div>
+          <div style={S.col}>
+            <label style={S.label}>{form.contribution_frequency==="biweekly"?"Per Paycheck":"Monthly"} Match</label>
+            <input type="number" style={S.input} placeholder="" value={form.employer_match||""} onChange={e=>setForm(p=>({...p,employer_match:e.target.value}))}/>
+          </div>
+        </div>
+        {form.contribution_frequency==="biweekly"&&form.monthly_contribution&&(
+          <div style={{fontSize:11,color:COLORS.purple,marginTop:-6,marginBottom:8}}>
+            ≈ {formatMoney((+form.monthly_contribution+(+form.employer_match||0))*26/12)}/mo equivalent
+          </div>
+        )}
         <label style={S.label}>Tax Treatment</label>
         <div>{["pre-tax","Roth","taxable","HSA"].map(t=><span key={t} style={S.chip(form.tax_treatment===t,COLORS.purple)} onClick={()=>setForm(p=>({...p,tax_treatment:t}))}>{t}</span>)}</div>
         <label style={S.label}>Last Updated</label>
@@ -2275,6 +2659,10 @@ function Finance(){
           <div style={S.col}><label style={S.label}>Social Security Est. (annual)</label><input type="number" style={S.input} value={form.social_security_estimate||""} onChange={e=>setForm(p=>({...p,social_security_estimate:e.target.value}))}/></div>
           <div style={S.col}><label style={S.label}>Healthcare Est. (annual)</label><input type="number" style={S.input} value={form.healthcare_estimate||""} onChange={e=>setForm(p=>({...p,healthcare_estimate:e.target.value}))}/></div>
         </div>
+        <label style={S.label}>Annual Contribution Increase (%)</label>
+        <input type="number" step="0.5" style={S.input} placeholder="e.g. 3 for typical raises/auto-escalation" value={form.contribution_increase_pct||""} onChange={e=>setForm(p=>({...p,contribution_increase_pct:e.target.value}))}/>
+        <label style={S.label}>Bridge End Age (Medicare/Social Security)</label>
+        <input type="number" style={S.input} placeholder="65" value={form.bridge_end_age||""} onChange={e=>setForm(p=>({...p,bridge_end_age:e.target.value}))}/>
         <div style={{fontSize:11,color:COLORS.slate,marginTop:8,lineHeight:1.5}}>Scenarios use fixed 6% / 8% / 10% annual return assumptions — conservative, moderate, aggressive.</div>
         <button style={{...S.btn,marginTop:16}} onClick={saveAssumptions}>Save Assumptions</button>
       </Modal>}
@@ -2364,13 +2752,12 @@ export default function App(){
 
   const TABS=[
     {id:"home",     label:"Home",     icon:I.home},
-    {id:"schedule", label:"Schedule", icon:I.cal},
     {id:"college",  label:"College",  icon:I.college},
     {id:"home-mgmt",label:"House",    icon:I.house},
     {id:"pool",     label:"Pool",     icon:I.pool},
     {id:"finance",  label:"Finance",  icon:I.finance},
   ];
-  const TITLES={home:"FamilyOS",schedule:"Schedule",college:"College Planning","home-mgmt":"Home",pool:"Pool",finance:"Finance"};
+  const TITLES={home:"FamilyOS",college:"College Planning","home-mgmt":"Home",pool:"Pool",finance:"Finance"};
 
   return(
     <div style={S.app}>
@@ -2390,14 +2777,13 @@ export default function App(){
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
             {gc.token
               ?<div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:8,height:8,borderRadius:"50%",background:COLORS.green}}/><span style={{fontSize:11,color:COLORS.slate}}>Synced</span></div>
-              :<button onClick={()=>setTab("schedule")} style={{background:COLORS.blue+"22",color:COLORS.blue,border:`1px solid ${COLORS.blue}44`,borderRadius:6,padding:"5px 10px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Connect Calendar</button>
+              :<button onClick={()=>setTab("home")} style={{background:COLORS.blue+"22",color:COLORS.blue,border:`1px solid ${COLORS.blue}44`,borderRadius:6,padding:"5px 10px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Connect Calendar</button>
             }
           </div>
         </div>
       </div>
 
       {tab==="home"     &&<Dashboard onNavigate={setTab} gc={gc}/>}
-      {tab==="schedule" &&<Schedule gc={gc}/>}
       {tab==="college"  &&<College/>}
       {tab==="home-mgmt"&&<HomeMgmt/>}
       {tab==="pool"     &&<Pool/>}
