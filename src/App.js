@@ -1390,17 +1390,73 @@ Keep the ENTIRE brief under 150 words total. Bullets only, no exceptions.`;
   const displayedBrief = viewingHistory !== null ? history[viewingHistory]?.text : brief;
   const displayedIsHistory = viewingHistory !== null;
 
+  const [followUp, setFollowUp] = useState("");
+  const [chatMessages, setChatMessages] = useState([]);
+  const [askingFollowUp, setAskingFollowUp] = useState(false);
+
+  async function askFollowUp() {
+    if (!followUp.trim() || !brief) return;
+    const question = followUp.trim();
+    setChatMessages(prev => [...prev, { role: "user", text: question }]);
+    setFollowUp("");
+    setAskingFollowUp(true);
+    try {
+      const last = readings[0];
+      const followUpPrompt = `You already gave this pool brief:\n\n${brief}\n\nThe homeowner has a follow-up question. Answer directly and concisely (2-4 sentences, no headers, no bullets unless genuinely needed). Stay grounded in the same pool context: 17,000 gal vinyl SWG pool, Pentair IntelliChlor, Taylor K-2006 kit, Summerville SC. Current reading: FC=${last?.free_chlorine} ppm, pH=${last?.ph}, Salt=${last?.salt} ppm, CYA=${last?.cya} ppm.\n\nFollow-up question: ${question}`;
+
+      const res = await fetch("/api/brief", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 500,
+          messages: [{ role: "user", content: followUpPrompt }]
+        })
+      });
+      const data = await res.json();
+      const textBlocks = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join(String.fromCharCode(10));
+      setChatMessages(prev => [...prev, { role: "assistant", text: textBlocks || "Could not get a response." }]);
+    } catch(e) {
+      setChatMessages(prev => [...prev, { role: "assistant", text: "Error: " + e.message }]);
+    }
+    setAskingFollowUp(false);
+  }
+
+  async function shareExport() {
+    const last = readings[0];
+    const recentSummary = readings.slice(0,5).map(r =>
+      `${r.date}: FC ${r.free_chlorine??'—'} ppm, pH ${r.ph??'—'}, Salt ${r.salt??'—'} ppm, CYA ${r.cya??'—'} ppm, TA ${r.alkalinity??'—'} ppm${r.notes?` — ${r.notes}`:''}`
+    ).join('\n');
+    const exportText = `FAMILYOS POOL BRIEF\n${new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}\n\n${displayedBrief}\n\n---\nRECENT READINGS\n${recentSummary}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Pool Brief", text: exportText });
+      } catch {}
+    } else {
+      try {
+        await navigator.clipboard.writeText(exportText);
+        alert("Copied to clipboard");
+      } catch {
+        alert("Could not share or copy");
+      }
+    }
+  }
+
   return (
     <Modal title="🤖 Pool Brief" onClose={onClose}>
       {history.length > 0 && (
-        <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
-          <span style={S.chip(viewingHistory===null,COLORS.purple)} onClick={()=>setViewingHistory(null)}>Latest</span>
-          {history.map((h,i)=>(
-            <span key={i} style={S.chip(viewingHistory===i,COLORS.slate)} onClick={()=>setViewingHistory(i)}>
-              {new Date(h.date).toLocaleDateString("en-US",{month:"short",day:"numeric"})}
-            </span>
-          ))}
-        </div>
+        <>
+          <div style={{fontSize:10,color:COLORS.slate,marginBottom:6,letterSpacing:"0.5px"}}>PAST BRIEFS — tap to view without regenerating</div>
+          <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
+            <span style={S.chip(viewingHistory===null,COLORS.purple)} onClick={()=>setViewingHistory(null)}>Latest</span>
+            {history.map((h,i)=>(
+              <span key={i} style={S.chip(viewingHistory===i,COLORS.slate)} onClick={()=>setViewingHistory(i)}>
+                {new Date(h.date).toLocaleDateString("en-US",{month:"short",day:"numeric"})}
+              </span>
+            ))}
+          </div>
+        </>
       )}
 
       {loading && viewingHistory===null && (
@@ -1415,7 +1471,34 @@ Keep the ENTIRE brief under 150 words total. Bullets only, no exceptions.`;
           <div style={{background:COLORS.navyLight,borderRadius:10,padding:"14px 16px",marginBottom:16}}>
             {renderBrief(displayedBrief)}
           </div>
-          {!displayedIsHistory && <button style={S.btn} onClick={generateBrief}>🔄 Regenerate</button>}
+          <div style={{display:"flex",gap:8,marginBottom:16}}>
+            {!displayedIsHistory && <button style={{...S.btn,marginTop:0,flex:1}} onClick={generateBrief}>🔄 Regenerate</button>}
+            <button style={{...S.btn,marginTop:0,flex:1,background:COLORS.navyLight,border:`1px solid ${COLORS.navyLight}`}} onClick={shareExport}>📤 Share</button>
+          </div>
+
+          {!displayedIsHistory && (
+            <>
+              <div style={S.sectionLabel}>Ask a follow-up</div>
+              {chatMessages.map((m,i)=>(
+                <div key={i} style={{marginBottom:8,display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
+                  <div style={{maxWidth:"85%",background:m.role==="user"?COLORS.blue:COLORS.navyLight,color:m.role==="user"?"#fff":COLORS.white,borderRadius:10,padding:"8px 12px",fontSize:13,lineHeight:1.5}}>
+                    {m.text}
+                  </div>
+                </div>
+              ))}
+              {askingFollowUp && <div style={{fontSize:12,color:COLORS.slate,marginBottom:8}}>Thinking…</div>}
+              <div style={{display:"flex",gap:8}}>
+                <input
+                  style={{...S.input,marginBottom:0,flex:1}}
+                  placeholder="e.g. why is my SWG running high?"
+                  value={followUp}
+                  onChange={e=>setFollowUp(e.target.value)}
+                  onKeyDown={e=>{if(e.key==="Enter")askFollowUp();}}
+                />
+                <button style={{...S.btnSm,flexShrink:0}} onClick={askFollowUp} disabled={askingFollowUp}>Ask</button>
+              </div>
+            </>
+          )}
         </>
       )}
     </Modal>
@@ -1516,14 +1599,15 @@ function Pool(){
   async function markScheduleDone(item){ await schedule.update(item.id,{last_completed:TODAY_STR}); }
 
   async function saveReading(){
-    let fc = form.free_chlorine ? +form.free_chlorine : null;
-    if(useDrops && fc) fc = Math.round(fc * 0.5 * 10) / 10;
+    function num(v){ return (v===undefined||v===null||v==='') ? null : +v; }
+    let fc = num(form.free_chlorine);
+    if(useDrops && fc!==null) fc = Math.round(fc * 0.5 * 10) / 10;
     const row={
       date:form.date||TODAY_STR,
-      ph:+form.ph||null, free_chlorine:fc, cc:form.cc!==undefined&&form.cc!==''?+form.cc:null,
-      salt:+form.salt||null, cya:+form.cya||null, alkalinity:+form.alkalinity||null,
-      water_temp:+form.water_temp||null, swg_setting:+form.swg_setting||null,
-      filter_pressure:+form.filter_pressure||null, pump_hours:+form.pump_hours||null,
+      ph:num(form.ph), free_chlorine:fc, cc:num(form.cc),
+      salt:num(form.salt), cya:num(form.cya), alkalinity:num(form.alkalinity),
+      water_temp:num(form.water_temp), swg_setting:num(form.swg_setting),
+      filter_pressure:num(form.filter_pressure), pump_hours:num(form.pump_hours),
       notes:form.notes||""
     };
     if(editItem) await readings.update(editItem.id,row);
@@ -1858,10 +1942,12 @@ function Finance(){
 
   const totalRetirement = accounts.data.reduce((s,a)=>s+(a.balance||0),0);
   const totalCollege = collegeS?.balance || 0;
+  const homeValue = mort?.home_value || 0;
   const totalMortgageDebt = mort?.current_balance || 0;
+  const homeEquity = homeValue - totalMortgageDebt;
   const totalOtherDebt = otherDebt.data.reduce((s,d)=>s+(d.balance||0),0);
-  const netWorth = totalRetirement + totalCollege - totalMortgageDebt - totalOtherDebt;
-  const totalAssets = totalRetirement + totalCollege;
+  const netWorth = totalRetirement + totalCollege + homeValue - totalMortgageDebt - totalOtherDebt;
+  const totalAssets = totalRetirement + totalCollege + homeValue;
   const totalLiabilities = totalMortgageDebt + totalOtherDebt;
 
   const retStale = accounts.data.length>0 ? staleness(accounts.data.sort((a,b)=>new Date(a.last_updated)-new Date(b.last_updated))[0]?.last_updated) : {stale:false};
@@ -1870,45 +1956,61 @@ function Finance(){
 
   async function saveAccount(){
     if(!form.name||!form.balance) return;
-    const row={name:form.name,account_type:form.account_type||"other",balance:+form.balance,monthly_contribution:+form.monthly_contribution||0,employer_match:+form.employer_match||0,tax_treatment:form.tax_treatment||"pre-tax",last_updated:form.last_updated||TODAY_STR,notes:form.notes||""};
-    if(editItem) await accounts.update(editItem.id,row); else await accounts.insert(row);
+    try{
+      const row={name:form.name,account_type:form.account_type||"other",balance:+form.balance,monthly_contribution:+form.monthly_contribution||0,employer_match:+form.employer_match||0,tax_treatment:form.tax_treatment||"pre-tax",last_updated:form.last_updated||TODAY_STR,notes:form.notes||""};
+      if(editItem) await accounts.update(editItem.id,row); else await accounts.insert(row);
+    }catch(e){console.error("saveAccount failed",e);}
     closeModal();
   }
   async function saveAssumptions(){
-    const row={current_age:+form.current_age,retirement_age:+form.retirement_age,annual_return_pct:+form.annual_return_pct,withdrawal_rate_pct:+form.withdrawal_rate_pct,annual_retirement_spending:+form.annual_retirement_spending,social_security_estimate:+form.social_security_estimate,healthcare_estimate:+form.healthcare_estimate};
-    if(assump) await assumptions.update(assump.id,row); else await assumptions.insert(row);
+    try{
+      const row={current_age:+form.current_age||0,retirement_age:+form.retirement_age||0,annual_return_pct:+form.annual_return_pct||0,withdrawal_rate_pct:+form.withdrawal_rate_pct||0,annual_retirement_spending:+form.annual_retirement_spending||0,social_security_estimate:+form.social_security_estimate||0,healthcare_estimate:+form.healthcare_estimate||0};
+      if(assump && assump.id) await assumptions.update(assump.id,row); else await assumptions.insert(row);
+    }catch(e){console.error("saveAssumptions failed",e);}
     closeModal();
   }
   async function saveCollegeSavings(){
-    const row={balance:+form.balance||0,monthly_contribution:+form.monthly_contribution||0,last_updated:form.last_updated||TODAY_STR,notes:form.notes||""};
-    if(collegeS) await collegeSav.update(collegeS.id,row); else await collegeSav.insert(row);
+    try{
+      const row={balance:+form.balance||0,monthly_contribution:+form.monthly_contribution||0,last_updated:form.last_updated||TODAY_STR,notes:form.notes||""};
+      if(collegeS && collegeS.id) await collegeSav.update(collegeS.id,row); else await collegeSav.insert(row);
+    }catch(e){console.error("saveCollegeSavings failed",e);}
     closeModal();
   }
   async function saveCollegeGoal(){
-    const row={target_amount:+form.target_amount||0,target_year:+form.target_year,notes:form.notes||""};
-    if(collegeG) await collegeGoal.update(collegeG.id,row); else await collegeGoal.insert(row);
+    try{
+      const row={target_amount:+form.target_amount||0,target_year:+form.target_year||new Date().getFullYear(),notes:form.notes||""};
+      if(collegeG && collegeG.id) await collegeGoal.update(collegeG.id,row); else await collegeGoal.insert(row);
+    }catch(e){console.error("saveCollegeGoal failed",e);}
     closeModal();
   }
   async function saveMortgage(){
-    const row={current_balance:+form.current_balance||0,interest_rate:+form.interest_rate||0,monthly_payment:+form.monthly_payment||0,term_years:+form.term_years||30,start_date:form.start_date||"",extra_payment_monthly:+form.extra_payment_monthly||0,last_updated:form.last_updated||TODAY_STR};
-    if(mort) await mortgage.update(mort.id,row); else await mortgage.insert(row);
+    try{
+      const row={current_balance:+form.current_balance||0,interest_rate:+form.interest_rate||0,monthly_payment:+form.monthly_payment||0,term_years:+form.term_years||30,start_date:form.start_date||"",extra_payment_monthly:+form.extra_payment_monthly||0,home_value:+form.home_value||0,last_updated:form.last_updated||TODAY_STR};
+      if(mort && mort.id) await mortgage.update(mort.id,row); else await mortgage.insert(row);
+    }catch(e){console.error("saveMortgage failed",e);}
     closeModal();
   }
   async function saveDebt(){
     if(!form.name||!form.balance) return;
-    const row={name:form.name,balance:+form.balance,interest_rate:+form.interest_rate||0,payment_amount:+form.payment_amount||0,payment_frequency:form.payment_frequency||"monthly",last_updated:form.last_updated||TODAY_STR,notes:form.notes||""};
-    if(editItem) await otherDebt.update(editItem.id,row); else await otherDebt.insert(row);
+    try{
+      const row={name:form.name,balance:+form.balance,interest_rate:+form.interest_rate||0,payment_amount:+form.payment_amount||0,payment_frequency:form.payment_frequency||"monthly",extra_payment:+form.extra_payment||0,last_updated:form.last_updated||TODAY_STR,notes:form.notes||""};
+      if(editItem) await otherDebt.update(editItem.id,row); else await otherDebt.insert(row);
+    }catch(e){console.error("saveDebt failed",e);}
     closeModal();
   }
   async function saveSnapshot(){
-    const row={date:form.date||TODAY_STR,total_assets:totalAssets,total_liabilities:totalLiabilities,net_worth:netWorth,notes:form.notes||""};
-    await snapshots.insert(row);
+    try{
+      const row={date:form.date||TODAY_STR,total_assets:totalAssets,total_liabilities:totalLiabilities,net_worth:netWorth,notes:form.notes||""};
+      await snapshots.insert(row);
+    }catch(e){console.error("saveSnapshot failed",e);}
     closeModal();
   }
   async function saveActionItem(){
     if(!form.title) return;
-    const row={title:form.title,category:form.category||"other",priority:form.priority||"med",completed:false,created_date:TODAY_STR};
-    await actionItems.insert(row);
+    try{
+      const row={title:form.title,category:form.category||"other",priority:form.priority||"med",completed:false,created_date:TODAY_STR};
+      await actionItems.insert(row);
+    }catch(e){console.error("saveActionItem failed",e);}
     closeModal();
   }
 
@@ -2068,6 +2170,12 @@ function Finance(){
             <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>{mort.interest_rate}% · {formatMoney(mort.monthly_payment)}/mo{mort.extra_payment_monthly>0?` + ${formatMoney(mort.extra_payment_monthly)} extra`:""}</div>
             {mortMonths&&<div style={{fontSize:12,color:COLORS.green,marginTop:8,fontWeight:600}}>Payoff: {monthsToDate(mortMonths)} ({mortMonths} months)</div>}
             {interestSaved>0&&<div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>Extra payments save ~{formatMoney(interestSaved)} in interest</div>}
+            {homeValue>0&&(
+              <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${COLORS.navyLight}`,display:"flex",justifyContent:"space-between"}}>
+                <div style={{fontSize:12,color:COLORS.slate}}>Home value {formatMoney(homeValue)}</div>
+                <div style={{fontSize:13,fontWeight:700,color:COLORS.green}}>{formatMoney(homeEquity)} equity</div>
+              </div>
+            )}
             <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={()=>{setForm({...mort,last_updated:TODAY_STR});setShowModal("mortgage");}}>Update Mortgage</button>
           </div>
         )}
@@ -2154,6 +2262,8 @@ function Finance(){
       </Modal>}
 
       {showModal==="mortgage"&&<Modal title="Update Mortgage" onClose={closeModal}>
+        <label style={S.label}>Home Value (estimated)</label>
+        <input type="number" style={S.input} placeholder="" value={form.home_value||""} onChange={e=>setForm(p=>({...p,home_value:e.target.value}))}/>
         <label style={S.label}>Current Balance</label>
         <input type="number" style={S.input} value={form.current_balance||""} onChange={e=>setForm(p=>({...p,current_balance:e.target.value}))}/>
         <div style={S.row}>
@@ -2178,6 +2288,8 @@ function Finance(){
         </div>
         <label style={S.label}>Payment Frequency</label>
         <div>{["weekly","biweekly","monthly"].map(f=><span key={f} style={S.chip(form.payment_frequency===f,COLORS.blue)} onClick={()=>setForm(p=>({...p,payment_frequency:f}))}>{f}</span>)}</div>
+        <label style={S.label}>Extra Payment (one-time or recurring)</label>
+        <input type="number" style={S.input} placeholder="" value={form.extra_payment||""} onChange={e=>setForm(p=>({...p,extra_payment:e.target.value}))}/>
         <label style={S.label}>Notes</label>
         <input style={S.input} placeholder="Optional" value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
         <button style={{...S.btn,marginTop:16}} onClick={saveDebt}>{editItem?"Save Changes":"Add Debt"}</button>
