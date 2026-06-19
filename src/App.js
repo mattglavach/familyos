@@ -1368,12 +1368,15 @@ function Pool(){
 
   return(
     <div style={S.screen}>
-      {/* AI Brief + Treatment buttons */}
+      {/* Quick action buttons */}
       <div style={{display:"flex",gap:8,marginBottom:12}}>
-        <button onClick={()=>setShowBrief(true)} style={{flex:1,background:COLORS.purple,color:"#fff",border:"none",borderRadius:10,padding:"12px 8px",fontSize:13,fontWeight:700,cursor:"pointer"}}>
+        <button onClick={()=>{setForm({date:TODAY_STR});setShowLog(true);}} style={{flex:1,background:COLORS.blue,color:"#fff",border:"none",borderRadius:10,padding:"12px 6px",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+          + Log Reading
+        </button>
+        <button onClick={()=>setShowBrief(true)} style={{flex:1,background:COLORS.purple,color:"#fff",border:"none",borderRadius:10,padding:"12px 6px",fontSize:12,fontWeight:700,cursor:"pointer"}}>
           🤖 Pool Brief
         </button>
-        <button onClick={()=>setShowTreatment(true)} style={{flex:1,background:COLORS.green,color:"#fff",border:"none",borderRadius:10,padding:"12px 8px",fontSize:13,fontWeight:700,cursor:"pointer"}}>
+        <button onClick={()=>setShowTreatment(true)} style={{flex:1,background:COLORS.green,color:"#fff",border:"none",borderRadius:10,padding:"12px 6px",fontSize:12,fontWeight:700,cursor:"pointer"}}>
           ✓ Log Treatment
         </button>
       </div>
