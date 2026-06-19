@@ -1168,7 +1168,14 @@ Format:
       });
 
       const data = await res.json();
-      // Extract text from response — may include tool use blocks
+
+      if(!res.ok || data.error) {
+        const msg = data.error?.message || data.error || `HTTP ${res.status}`;
+        setError(`API error: ${msg}`);
+        setLoading(false);
+        return;
+      }
+
       const textBlocks = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
       setBrief(textBlocks || "Unable to generate brief. Check your connection.");
     } catch(e) {
@@ -1180,7 +1187,8 @@ Format:
   // Parse bold headers and bullets for display
   function renderBrief(text) {
     if(!text) return null;
-    return text.split('\n').map((line, i) => {
+    return text.split('
+').map((line, i) => {
       if(line.startsWith('**') && line.endsWith('**')) {
         return <div key={i} style={{fontSize:11,fontWeight:700,color:COLORS.blue,letterSpacing:"0.8px",textTransform:"uppercase",marginTop:16,marginBottom:6}}>{line.replace(/\*\*/g,'')}</div>;
       }
