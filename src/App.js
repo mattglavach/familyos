@@ -1169,8 +1169,7 @@ Format:
 
       const data = await res.json();
       // Extract text from response — may include tool use blocks
-      const textBlocks = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("
-");
+      const textBlocks = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
       setBrief(textBlocks || "Unable to generate brief. Check your connection.");
     } catch(e) {
       setError("Could not generate pool brief: " + e.message);
