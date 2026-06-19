@@ -210,6 +210,27 @@ function nextTestDue(readings, paramKey, intervalDays) {
   return { lastDate, due, days: daysBetween(due) };
 }
 
+// Compare current value to the previous reading where this param was tested
+function trendDirection(readings, paramKey, currentValue) {
+  if (currentValue === null || currentValue === undefined) return null;
+  // skip the first (current) reading, find next one with a value
+  for (let i = 1; i < readings.length; i++) {
+    const v = readings[i][paramKey];
+    if (v !== null && v !== undefined) {
+      if (currentValue > v) return "up";
+      if (currentValue < v) return "down";
+      return "flat";
+    }
+  }
+  return null;
+}
+function trendArrow(dir) {
+  if (dir === "up") return "↑";
+  if (dir === "down") return "↓";
+  if (dir === "flat") return "→";
+  return "";
+}
+
 // ─── POOL CHEMISTRY ENGINE ────────────────────────────────────────────────────
 const POOL_GALLONS = 17000;
 const CALCIUM_HARDNESS = 200; // placeholder — vinyl pool, test and update
@@ -1110,78 +1131,141 @@ function HomeMgmt(){
 }
 
 // ─── AI POOL BRIEF ───────────────────────────────────────────────────────────
-function PoolBrief({readings, onClose}) {
-  const [brief, setBrief]   = useState(null);
+function PoolBrief({readings, maintLog, onClose}) {
+  const [brief, setBrief]     = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError]   = useState(null);
+  const [error, setError]     = useState(null);
+  const [history, setHistory] = useState([]);
+  const [viewingHistory, setViewingHistory] = useState(null);
 
-  useEffect(() => { generateBrief(); }, []);
+  useEffect(() => {
+    // Load saved brief history from localStorage
+    try {
+      const saved = JSON.parse(localStorage.getItem("poolBriefHistory") || "[]");
+      setHistory(saved);
+    } catch {}
+    generateBrief();
+  }, []);
+
+  function saveBriefToHistory(briefText) {
+    try {
+      const saved = JSON.parse(localStorage.getItem("poolBriefHistory") || "[]");
+      const updated = [{ date: new Date().toISOString(), text: briefText }, ...saved].slice(0, 3);
+      localStorage.setItem("poolBriefHistory", JSON.stringify(updated));
+      setHistory(updated);
+    } catch {}
+  }
 
   async function generateBrief() {
     setLoading(true);
+    setViewingHistory(null);
     try {
-      // Build readings summary for Claude
-      const readingsSummary = readings.slice(0,8).map(r =>
-        `${r.date}: FC=${r.free_chlorine} ppm, CC=${r.cc??0}, pH=${r.ph}, Salt=${r.salt} ppm, CYA=${r.cya??'not tested'} ppm, TA=${r.alkalinity??'not tested'} ppm, Temp=${r.water_temp??'not logged'}°F, SWG=${r.swg_setting??'not logged'}%, Pump=${r.pump_hours??'not logged'} hrs, Filter pressure=${r.filter_pressure??'not logged'} psi. Notes: ${r.notes||'none'}`
-      ).join('\n');
+      const recentReadings = readings.slice(0, 8);
+      const recentTreatments = (maintLog || []).filter(m => m.type === "Treatment applied").slice(0, 5);
 
+      // Flag stale CYA/TA data
+      const cyaDue = nextTestDue(readings, "cya", 30);
+      const taDue = nextTestDue(readings, "alkalinity", 14);
+      const cyaStale = cyaDue && cyaDue.days < 0;
+      const taStale = taDue && taDue.days < 0;
+
+      // Confidence flags for missing data
       const last = readings[0];
+      const missingFields = [];
+      if (!last?.water_temp) missingFields.push("water temp");
+      if (!last?.pump_hours) missingFields.push("pump hours");
+      if (!last?.filter_pressure) missingFields.push("filter pressure");
+
+      const readingsSummary = recentReadings.map(r =>
+        `${r.date}: FC=${r.free_chlorine} ppm, CC=${r.cc??0}, pH=${r.ph}, Salt=${r.salt} ppm, CYA=${r.cya??'not tested'} ppm, TA=${r.alkalinity??'not tested'} ppm, Temp=${r.water_temp??'not logged'}°F, SWG=${r.swg_setting??'not logged'}%, Pump=${r.pump_hours??'not logged'} hrs, Filter=${r.filter_pressure??'not logged'} psi. Notes: ${r.notes||'none'}`
+      ).join(String.fromCharCode(10));
+
+      const treatmentSummary = recentTreatments.length > 0
+        ? recentTreatments.map(t => `${t.date}: ${t.notes}`).join(String.fromCharCode(10))
+        : "No treatments logged yet.";
+
       const acidOz = calcAcidDose(last?.ph, 7.4, last?.alkalinity);
       const targetSWG = calcTargetSWG(last?.free_chlorine, last?.cya, last?.water_temp, last?.pump_hours);
       const shockMin = calcShockThreshold(last?.cya);
       const phEff = last?.ph ? fcEffectiveAtPH(last.ph) : null;
       const today = new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
 
+      const dataWindowNote = `Analyzing ${recentReadings.length} reading${recentReadings.length!==1?'s':''} (${recentReadings[recentReadings.length-1]?.date} to ${recentReadings[0]?.date}) and ${recentTreatments.length} logged treatment${recentTreatments.length!==1?'s':''}.`;
+
+      const staleDataNote = [
+        cyaStale ? `CYA was last tested ${cyaDue.lastDate} (${-cyaDue.days} days overdue) — treat current CYA value as approximate, not current.` : null,
+        taStale ? `TA was last tested ${taDue.lastDate} (${-taDue.days} days overdue) — treat current TA value as approximate, not current.` : null,
+      ].filter(Boolean).join(' ');
+
+      const missingDataNote = missingFields.length > 0
+        ? `Missing data this reading: ${missingFields.join(', ')}. Note this affects confidence of related recommendations (e.g. no temp logged means weather-based estimate used instead).`
+        : "";
+
       const prompt = `You are a knowledgeable pool advisor texting a homeowner in Summerville, South Carolina about their 17,000 gallon vinyl inground salt water pool with a Pentair IntelliChlor SWG and cartridge filter. They test with a Taylor K-2006 FAS-DPD kit (FC readings in drops × 0.5 = ppm).
 
-Today is ${today}. Here are all pool readings (most recent first):
+Today is ${today}. ${dataWindowNote}
+
+Recent readings (most recent first):
 ${readingsSummary}
+
+Recent treatments logged:
+${treatmentSummary}
 
 Chemistry context:
 - Current pH effectiveness: at pH ${last?.ph}, only ${phEff}% of chlorine is active
 - Shock threshold (CYA÷10): ${shockMin} ppm minimum FC
-- Acid needed to reach pH 7.4: ~${acidOz||'unknown'} oz muriatic acid  
+- Acid needed to reach pH 7.4: ~${acidOz||'unknown'} oz muriatic acid
 - Recommended SWG %: ~${targetSWG}%
-- Pool: vinyl, 17,000 gal, Pentair IntelliChlor, cartridge filter
-- Location: Summerville SC — hot humid summers, heavy UV exposure May-Sept
+${staleDataNote ? `- DATA QUALITY FLAG: ${staleDataNote}` : ''}
+${missingDataNote ? `- DATA QUALITY FLAG: ${missingDataNote}` : ''}
 
 Please search for current weather in Summerville SC and factor it into your advice.
 
-On pump scheduling: there is no universal rule that overnight is always correct. Daytime running maximizes circulation and chlorine production during peak bather load and algae risk. Overnight running avoids UV chlorine loss but produces chlorine when no one is swimming. Give balanced, situational advice based on this specific pool's FC trend and usage — do not default to recommending overnight running unless their data specifically supports it (e.g. FC crashing fast during sunny midday hours with heavy UV loss).
+On pump scheduling: there is no universal rule that overnight is always correct. Daytime running maximizes circulation and chlorine production during peak bather load and algae risk. Overnight running avoids UV chlorine loss but produces chlorine when no one is swimming. Give balanced, situational advice based on this specific pool's data — do not default to recommending overnight running unless the data specifically supports it.
 
-Write a pool brief in this EXACT format. Every section must be 1-3 short bullet points, never paragraphs. Be specific with numbers. No fluff, no filler sentences, no "I hope this helps" — just direct, scannable bullets like a text from a knowledgeable friend.
+If treatments were logged, compare readings before and after each treatment to assess whether it worked — call out specifically what changed (e.g. "pH dropped from 8.0 to 7.6 after the Jun 17 acid treatment, right on target").
+
+If a reading looks like a likely data entry error (wildly out of normal range), flag it briefly rather than treating it as fact.
+
+Write a pool brief in this EXACT format. Every section must be 1-3 short bullet points, never paragraphs. Be specific with numbers. No fluff, no filler sentences. If data is flagged as stale or missing, mention it briefly where relevant rather than ignoring it.
 
 Format:
+**DATA WINDOW**
+• [one bullet stating what readings/treatments this brief is based on, and any stale/missing data flags]
+
 **WHAT'S BEEN HAPPENING**
-• [one bullet on the trend]
-• [one bullet on likely cause]
+• [trend across the readings]
+• [likely cause]
+
+**TREATMENT RESULTS** (only include this section if treatments were logged)
+• [did the last treatment work — before/after comparison]
 
 **WEATHER**
-• [one bullet: current Summerville conditions + impact]
+• [current Summerville conditions + impact]
 
 **WATER RIGHT NOW**
-• [one bullet on what's good]
-• [one bullet on what needs attention]
+• [what's good]
+• [what needs attention]
 
 **TODAY'S TREATMENT PLAN**
 • [specific action with exact dose if chemical]
 • [next action, only if needed]
 
 **SWG & PUMP**
-• [one bullet: SWG % recommendation]
-• [one bullet: pump schedule recommendation, balanced — not automatically overnight]
+• [SWG % recommendation]
+• [pump schedule recommendation, balanced]
 
 **WATCH FOR**
-• [one bullet: what to check next reading and when]
+• [what to check next reading and when]
 
-Keep the ENTIRE brief under 120 words total. Bullets only, no exceptions.`;
+Keep the ENTIRE brief under 150 words total. Bullets only, no exceptions.`;
 
       const res = await fetch("/api/brief", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
-          max_tokens: 1000,
+          max_tokens: 1200,
           tools: [{ type: "web_search_20250305", name: "web_search" }],
           messages: [{ role: "user", content: prompt }]
         })
@@ -1196,8 +1280,10 @@ Keep the ENTIRE brief under 120 words total. Bullets only, no exceptions.`;
         return;
       }
 
-      const textBlocks = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
-      setBrief(textBlocks || "Unable to generate brief. Check your connection.");
+      const textBlocks = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join(String.fromCharCode(10));
+      const finalBrief = textBlocks || "Unable to generate brief. Check your connection.";
+      setBrief(finalBrief);
+      saveBriefToHistory(finalBrief);
     } catch(e) {
       setError("Could not generate pool brief: " + e.message);
     }
@@ -1219,26 +1305,38 @@ Keep the ENTIRE brief under 120 words total. Bullets only, no exceptions.`;
     });
   }
 
+  const displayedBrief = viewingHistory !== null ? history[viewingHistory]?.text : brief;
+  const displayedIsHistory = viewingHistory !== null;
+
   return (
     <Modal title="🤖 Pool Brief" onClose={onClose}>
-      {loading && (
+      {history.length > 0 && (
+        <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
+          <span style={S.chip(viewingHistory===null,COLORS.purple)} onClick={()=>setViewingHistory(null)}>Latest</span>
+          {history.map((h,i)=>(
+            <span key={i} style={S.chip(viewingHistory===i,COLORS.slate)} onClick={()=>setViewingHistory(i)}>
+              {new Date(h.date).toLocaleDateString("en-US",{month:"short",day:"numeric"})}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {loading && viewingHistory===null && (
         <div style={{textAlign:"center",padding:"40px 20px"}}>
           <div style={{fontSize:14,color:COLORS.slate,marginBottom:8}}>Analyzing your pool history + Summerville weather…</div>
           <div style={{fontSize:12,color:COLORS.slate}}>This takes about 10 seconds</div>
         </div>
       )}
-      {error && <div style={{fontSize:13,color:COLORS.red,padding:"20px 0"}}>{error}</div>}
-      {brief && !loading && (
+      {error && viewingHistory===null && <div style={{fontSize:13,color:COLORS.red,padding:"20px 0"}}>{error}</div>}
+      {displayedBrief && (!loading || displayedIsHistory) && (
         <>
           <div style={{background:COLORS.navyLight,borderRadius:10,padding:"14px 16px",marginBottom:16}}>
-            {renderBrief(brief)}
+            {renderBrief(displayedBrief)}
           </div>
-          <button style={S.btn} onClick={generateBrief}>🔄 Regenerate</button>
+          {!displayedIsHistory && <button style={S.btn} onClick={generateBrief}>🔄 Regenerate</button>}
         </>
       )}
     </Modal>
-  );
-}
 
 // ─── TREATMENT LOG MODAL ──────────────────────────────────────────────────────
 function TreatmentLogModal({last, recs, onSave, onClose}) {
@@ -1392,9 +1490,14 @@ function Pool(){
             {PARAMS.filter(p=>!["water_temp","filter_pressure","cc"].includes(p.k)).map(p=>{
               const v=last[p.k];
               const s=poolStatus(p.k,v);const col=statusColor(s);
+              const dir=trendDirection(readings.data,p.k,v);
+              const trendColor=dir==="up"?COLORS.amber:dir==="down"?COLORS.blue:COLORS.slate;
               return(
                 <div key={p.k} style={S.statCell(col)}>
-                  <div style={{...S.statVal,fontSize:15,color:s==="grey"?COLORS.slate:COLORS.white}}>{v!==null&&v!==undefined?v:"—"}</div>
+                  <div style={{...S.statVal,fontSize:15,color:s==="grey"?COLORS.slate:COLORS.white}}>
+                    {v!==null&&v!==undefined?v:"—"}
+                    {dir&&<span style={{fontSize:11,color:trendColor,marginLeft:3}}>{trendArrow(dir)}</span>}
+                  </div>
                   <div style={S.statLbl}>{p.l}</div>
                   <div style={S.statTarget}>{p.target}</div>
                 </div>
@@ -1581,23 +1684,45 @@ function Pool(){
         {useDrops&&form.free_chlorine&&<div style={{fontSize:11,color:COLORS.purple,marginTop:-6,marginBottom:8}}>= {(+form.free_chlorine*0.5).toFixed(1)} ppm FC</div>}
 
         <label style={S.label}>CC (Combined Chlorine)</label>
-        <input type="number" step="0.5" style={S.input} placeholder="e.g. 0 (K-2006 drops × 0.5)" value={form.cc!==undefined?form.cc:""} onChange={e=>setForm(p=>({...p,cc:e.target.value}))}/>
+        <input type="number" step="0.5" style={S.input} placeholder="" value={form.cc!==undefined?form.cc:""} onChange={e=>setForm(p=>({...p,cc:e.target.value}))}/>
 
         <div style={S.row}>
-          <div style={S.col}><label style={S.label}>pH</label><input type="number" step="0.1" style={S.input} placeholder="7.4" value={form.ph||""} onChange={e=>setForm(p=>({...p,ph:e.target.value}))}/></div>
-          <div style={S.col}><label style={S.label}>Salt (ppm)</label><input type="number" style={S.input} placeholder="3400" value={form.salt||""} onChange={e=>setForm(p=>({...p,salt:e.target.value}))}/></div>
+          <div style={S.col}><label style={S.label}>pH</label><input type="number" step="0.1" style={S.input} placeholder="" value={form.ph||""} onChange={e=>setForm(p=>({...p,ph:e.target.value}))}/></div>
+          <div style={S.col}><label style={S.label}>Salt (ppm)</label><input type="number" style={S.input} placeholder="" value={form.salt||""} onChange={e=>setForm(p=>({...p,salt:e.target.value}))}/></div>
         </div>
         <div style={S.row}>
-          <div style={S.col}><label style={S.label}>CYA (ppm)</label><input type="number" style={S.input} placeholder="70" value={form.cya||""} onChange={e=>setForm(p=>({...p,cya:e.target.value}))}/></div>
-          <div style={S.col}><label style={S.label}>TA (ppm)</label><input type="number" style={S.input} placeholder="90" value={form.alkalinity||""} onChange={e=>setForm(p=>({...p,alkalinity:e.target.value}))}/></div>
+          <div style={S.col}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <label style={{...S.label,marginBottom:0}}>CYA (ppm)</label>
+              {(()=>{
+                const d=nextTestDue(readings.data,"cya",30);
+                if(!d) return <span style={{fontSize:9,color:COLORS.slate}}>never tested</span>;
+                const overdue=d.days<0;
+                return <span style={{fontSize:9,color:overdue?COLORS.red:d.days<=3?COLORS.amber:COLORS.slate}}>{overdue?"overdue":`due ${formatDate(d.due)}`}</span>;
+              })()}
+            </div>
+            <input type="number" style={S.input} placeholder="" value={form.cya||""} onChange={e=>setForm(p=>({...p,cya:e.target.value}))}/>
+          </div>
+          <div style={S.col}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <label style={{...S.label,marginBottom:0}}>TA (ppm)</label>
+              {(()=>{
+                const d=nextTestDue(readings.data,"alkalinity",14);
+                if(!d) return <span style={{fontSize:9,color:COLORS.slate}}>never tested</span>;
+                const overdue=d.days<0;
+                return <span style={{fontSize:9,color:overdue?COLORS.red:d.days<=3?COLORS.amber:COLORS.slate}}>{overdue?"overdue":`due ${formatDate(d.due)}`}</span>;
+              })()}
+            </div>
+            <input type="number" style={S.input} placeholder="" value={form.alkalinity||""} onChange={e=>setForm(p=>({...p,alkalinity:e.target.value}))}/>
+          </div>
         </div>
         <div style={S.row}>
-          <div style={S.col}><label style={S.label}>Water Temp (°F)</label><input type="number" style={S.input} placeholder="86" value={form.water_temp||""} onChange={e=>setForm(p=>({...p,water_temp:e.target.value}))}/></div>
-          <div style={S.col}><label style={S.label}>Filter Pressure (psi)</label><input type="number" style={S.input} placeholder="12" value={form.filter_pressure||""} onChange={e=>setForm(p=>({...p,filter_pressure:e.target.value}))}/></div>
+          <div style={S.col}><label style={S.label}>Water Temp (°F)</label><input type="number" style={S.input} placeholder="" value={form.water_temp||""} onChange={e=>setForm(p=>({...p,water_temp:e.target.value}))}/></div>
+          <div style={S.col}><label style={S.label}>Filter Pressure (psi)</label><input type="number" style={S.input} placeholder="" value={form.filter_pressure||""} onChange={e=>setForm(p=>({...p,filter_pressure:e.target.value}))}/></div>
         </div>
         <div style={S.row}>
-          <div style={S.col}><label style={S.label}>SWG Setting (%)</label><input type="number" style={S.input} placeholder="60" value={form.swg_setting||""} onChange={e=>setForm(p=>({...p,swg_setting:e.target.value}))}/></div>
-          <div style={S.col}><label style={S.label}>Pump Hours/Day</label><input type="number" style={S.input} placeholder="8" value={form.pump_hours||""} onChange={e=>setForm(p=>({...p,pump_hours:e.target.value}))}/></div>
+          <div style={S.col}><label style={S.label}>SWG Setting (%)</label><input type="number" style={S.input} placeholder="" value={form.swg_setting||""} onChange={e=>setForm(p=>({...p,swg_setting:e.target.value}))}/></div>
+          <div style={S.col}><label style={S.label}>Pump Hours/Day</label><input type="number" style={S.input} placeholder="" value={form.pump_hours||""} onChange={e=>setForm(p=>({...p,pump_hours:e.target.value}))}/></div>
         </div>
         <label style={S.label}>Notes</label>
         <input style={S.input} placeholder="Optional" value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
@@ -1618,7 +1743,7 @@ function Pool(){
       </Modal>}
 
       {/* AI Brief Modal */}
-      {showBrief&&<PoolBrief readings={readings.data} onClose={()=>setShowBrief(false)}/>}
+      {showBrief&&<PoolBrief readings={readings.data} maintLog={maintLog.data} onClose={()=>setShowBrief(false)}/>}
 
       {/* Treatment Log Modal */}
       {showTreatment&&<TreatmentLogModal last={last} recs={chemRecs} onSave={logTreatment} onClose={()=>setShowTreatment(false)}/>}
