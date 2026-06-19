@@ -174,6 +174,35 @@ const SEED={
   sat_scores:[
     {id:"1",date:"2026-03-08",total:1280,math:640,verbal:640,notes:"PSAT — strong baseline"},
   ],
+  retirement_accounts:[
+    {id:"1",name:"Matt 403(b)",account_type:"403b",balance:520000,monthly_contribution:1200,employer_match:400,tax_treatment:"pre-tax",last_updated:"2026-06-01",notes:""},
+    {id:"2",name:"Kalee 401(k)",account_type:"401k",balance:180000,monthly_contribution:500,employer_match:250,tax_treatment:"pre-tax",last_updated:"2026-06-01",notes:"~$6k/yr contribution"},
+    {id:"3",name:"Traditional IRA",account_type:"IRA",balance:65000,monthly_contribution:0,employer_match:0,tax_treatment:"pre-tax",last_updated:"2026-06-01",notes:""},
+    {id:"4",name:"HSA",account_type:"HSA",balance:28000,monthly_contribution:300,employer_match:0,tax_treatment:"HSA",last_updated:"2026-06-01",notes:"Maxed, ~70% invested"},
+    {id:"5",name:"Brokerage",account_type:"brokerage",balance:85000,monthly_contribution:400,employer_match:0,tax_treatment:"taxable",last_updated:"2026-06-01",notes:""},
+  ],
+  retirement_assumptions:[
+    {id:"1",current_age:44,retirement_age:59,annual_return_pct:8,withdrawal_rate_pct:4,annual_retirement_spending:110000,social_security_estimate:30000,healthcare_estimate:18000},
+  ],
+  college_savings:[
+    {id:"1",balance:50000,monthly_contribution:200,last_updated:"2026-06-01",notes:"529 plan"},
+  ],
+  college_goal:[
+    {id:"1",target_amount:160000,target_year:2027,notes:"Blended estimate — Aubrey targeting USC Honors, Clemson, College of Charleston. In-state preferred."},
+  ],
+  mortgage:[
+    {id:"1",current_balance:310000,interest_rate:6.25,monthly_payment:2400,term_years:30,start_date:"2021-08-01",extra_payment_monthly:0,last_updated:"2026-06-01"},
+  ],
+  other_debt:[
+    {id:"1",name:"Personal Loan",balance:21000,interest_rate:8.5,payment_amount:480,payment_frequency:"biweekly",last_updated:"2026-06-01",notes:"Goal: payoff in ~7 months with extra payments"},
+  ],
+  net_worth_snapshots:[
+    {id:"1",date:"2026-06-01",total_assets:928000,total_liabilities:331000,net_worth:597000,notes:"Initial snapshot"},
+  ],
+  finance_action_items:[
+    {id:"1",title:"Review retirement contribution — currently below 15% target",category:"retirement",priority:"med",completed:false,created_date:"2026-06-01"},
+    {id:"2",title:"Evaluate extra payments toward 8.5% personal loan",category:"debt",priority:"high",completed:false,created_date:"2026-06-01"},
+  ],
 };
 
 // ─── UTILITIES ────────────────────────────────────────────────────────────────
@@ -229,6 +258,100 @@ function trendArrow(dir) {
   if (dir === "down") return "↓";
   if (dir === "flat") return "→";
   return "";
+}
+
+// ─── FINANCE ENGINE ───────────────────────────────────────────────────────────
+
+function formatMoney(n, decimals=0) {
+  if (n===null||n===undefined||isNaN(n)) return "—";
+  return "$" + Math.round(n).toLocaleString("en-US", {minimumFractionDigits:0, maximumFractionDigits:decimals});
+}
+function formatMoneyShort(n) {
+  if (n===null||n===undefined||isNaN(n)) return "—";
+  const abs = Math.abs(n);
+  if (abs >= 1000000) return (n<0?"-":"") + "$" + (abs/1000000).toFixed(2) + "M";
+  if (abs >= 1000) return (n<0?"-":"") + "$" + Math.round(abs/1000) + "k";
+  return formatMoney(n);
+}
+
+// Future value of current balance + monthly contributions compounding monthly
+function futureValue(presentValue, monthlyContribution, annualRatePct, years) {
+  const r = annualRatePct / 100 / 12;
+  const n = years * 12;
+  if (r === 0) return presentValue + monthlyContribution * n;
+  const fvPV = presentValue * Math.pow(1+r, n);
+  const fvContrib = monthlyContribution * ((Math.pow(1+r, n) - 1) / r);
+  return fvPV + fvContrib;
+}
+
+function calcRetirementProjection(accounts, assumptions) {
+  if (!assumptions) return null;
+  const totalBalance = accounts.reduce((s,a)=>s+(a.balance||0),0);
+  const totalMonthly = accounts.reduce((s,a)=>s+(a.monthly_contribution||0)+(a.employer_match||0),0);
+  const years = Math.max(0, assumptions.retirement_age - assumptions.current_age);
+
+  const scenarios = [
+    { label:"Conservative", rate:6, color:COLORS.slate },
+    { label:"Moderate",     rate:8, color:COLORS.blue },
+    { label:"Aggressive",   rate:10, color:COLORS.green },
+  ].map(s => ({
+    ...s,
+    projected: futureValue(totalBalance, totalMonthly, s.rate, years)
+  }));
+
+  // Target need: simplified 4%-rule style — spending minus SS/healthcare offset, divided by withdrawal rate
+  const netAnnualNeed = Math.max(0, assumptions.annual_retirement_spending - assumptions.social_security_estimate);
+  const targetNumber = netAnnualNeed / (assumptions.withdrawal_rate_pct/100);
+
+  const moderateProjected = scenarios.find(s=>s.label==="Moderate").projected;
+  const gap = targetNumber - moderateProjected;
+
+  // Monthly contribution needed to close gap at moderate return
+  const r = 8/100/12;
+  const n = years*12;
+  const fvOfCurrent = totalBalance * Math.pow(1+r, n);
+  const remaining = targetNumber - fvOfCurrent;
+  const monthlyNeeded = remaining > 0 && n > 0
+    ? remaining / ((Math.pow(1+r,n)-1)/r)
+    : 0;
+
+  return { totalBalance, totalMonthly, years, scenarios, targetNumber, gap, monthlyNeeded, netAnnualNeed };
+}
+
+function calcCollegeProjection(savings, goal) {
+  if (!savings || !goal) return null;
+  const currentYear = new Date().getFullYear();
+  const years = Math.max(0, goal.target_year - currentYear);
+  const projected = futureValue(savings.balance||0, savings.monthly_contribution||0, 6, years);
+  const gap = goal.target_amount - projected;
+  const monthlyNeeded = years > 0
+    ? Math.max(0, (goal.target_amount - (savings.balance||0)*Math.pow(1.06, years)) / (((Math.pow(1.06,years)-1)/(6/100))))
+    : 0;
+  return { projected, gap, years, monthlyNeeded };
+}
+
+// Standard amortization — months remaining given balance, rate, payment
+function calcPayoffMonths(balance, annualRatePct, monthlyPayment) {
+  const r = annualRatePct/100/12;
+  if (monthlyPayment <= balance*r) return null; // payment doesn't cover interest
+  if (r === 0) return Math.ceil(balance/monthlyPayment);
+  const months = Math.log(monthlyPayment/(monthlyPayment - balance*r)) / Math.log(1+r);
+  return Math.ceil(months);
+}
+function calcTotalInterest(balance, annualRatePct, monthlyPayment, months) {
+  if (!months) return null;
+  return Math.round(monthlyPayment*months - balance);
+}
+function monthsToDate(months) {
+  const d = new Date();
+  d.setMonth(d.getMonth() + months);
+  return d.toLocaleDateString("en-US",{month:"short",year:"numeric"});
+}
+
+function staleness(lastUpdated, thresholdDays=30) {
+  if (!lastUpdated) return { stale:true, days:null };
+  const days = -daysBetween(lastUpdated);
+  return { stale: days > thresholdDays, days };
 }
 
 // ─── POOL CHEMISTRY ENGINE ────────────────────────────────────────────────────
@@ -510,6 +633,7 @@ const I={
   college:(a)=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={a?2.5:2} strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>,
   house:(a)=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={a?2.5:2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/></svg>,
   pool:(a)=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={a?2.5:2} strokeLinecap="round" strokeLinejoin="round"><path d="M2 12c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M2 17c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><circle cx="12" cy="5" r="2"/><line x1="12" y1="7" x2="12" y2="10"/></svg>,
+  finance:(a)=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={a?2.5:2} strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>,
   close:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
   refresh:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.5 15a9 9 0 11-2.8-6.4L23 10"/></svg>,
   google:()=><svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>,
@@ -1337,8 +1461,6 @@ Keep the ENTIRE brief under 150 words total. Bullets only, no exceptions.`;
         </>
       )}
     </Modal>
-);
-}
 
 // ─── TREATMENT LOG MODAL ──────────────────────────────────────────────────────
 function TreatmentLogModal({last, recs, onSave, onClose}) {
@@ -1753,6 +1875,400 @@ function Pool(){
   );
 }
 
+
+// ─── FINANCE ──────────────────────────────────────────────────────────────────
+function Finance(){
+  const accounts    = useTable("retirement_accounts","name",true);
+  const assumptions = useTable("retirement_assumptions","id",true);
+  const collegeSav  = useTable("college_savings","id",true);
+  const collegeGoal = useTable("college_goal","id",true);
+  const mortgage    = useTable("mortgage","id",true);
+  const otherDebt   = useTable("other_debt","name",true);
+  const snapshots   = useTable("net_worth_snapshots","date",false);
+  const actionItems = useTable("finance_action_items","created_date",false);
+
+  const [tab,setTab]             = useState("overview");
+  const [showModal,setShowModal] = useState(null);
+  const [editItem,setEditItem]   = useState(null);
+  const [form,setForm]           = useState({});
+  const [activeSwipe,setActiveSwipe] = useState(null);
+
+  function openEdit(modal,item){ setEditItem(item); setForm({...item}); setShowModal(modal); setActiveSwipe(null); }
+  function closeModal(){ setShowModal(null); setEditItem(null); setForm({}); }
+
+  const assump = assumptions.data[0];
+  const collegeS = collegeSav.data[0];
+  const collegeG = collegeGoal.data[0];
+  const mort = mortgage.data[0];
+
+  const retProj = calcRetirementProjection(accounts.data, assump);
+  const collegeProj = calcCollegeProjection(collegeS, collegeG);
+
+  const mortMonths = mort ? calcPayoffMonths(mort.current_balance, mort.interest_rate, mort.monthly_payment + (mort.extra_payment_monthly||0)) : null;
+  const mortMonthsNoExtra = mort ? calcPayoffMonths(mort.current_balance, mort.interest_rate, mort.monthly_payment) : null;
+  const mortInterest = mort && mortMonths ? calcTotalInterest(mort.current_balance, mort.interest_rate, mort.monthly_payment+(mort.extra_payment_monthly||0), mortMonths) : null;
+  const interestSaved = mort && mortMonths && mortMonthsNoExtra && mort.extra_payment_monthly>0
+    ? calcTotalInterest(mort.current_balance, mort.interest_rate, mort.monthly_payment, mortMonthsNoExtra) - mortInterest
+    : null;
+
+  // Net worth calc
+  const totalRetirement = accounts.data.reduce((s,a)=>s+(a.balance||0),0);
+  const totalCollege = collegeS?.balance || 0;
+  const totalMortgageDebt = mort?.current_balance || 0;
+  const totalOtherDebt = otherDebt.data.reduce((s,d)=>s+(d.balance||0),0);
+  const netWorth = totalRetirement + totalCollege - totalMortgageDebt - totalOtherDebt;
+  const totalAssets = totalRetirement + totalCollege;
+  const totalLiabilities = totalMortgageDebt + totalOtherDebt;
+
+  // Staleness checks
+  const retStale = accounts.data.length>0 ? staleness(accounts.data.sort((a,b)=>new Date(a.last_updated)-new Date(b.last_updated))[0]?.last_updated) : {stale:false};
+  const collegeStale = collegeS ? staleness(collegeS.last_updated) : {stale:false};
+  const mortStale = mort ? staleness(mort.last_updated) : {stale:false};
+
+  async function saveAccount(){
+    if(!form.name||!form.balance) return;
+    const row={name:form.name,account_type:form.account_type||"other",balance:+form.balance,monthly_contribution:+form.monthly_contribution||0,employer_match:+form.employer_match||0,tax_treatment:form.tax_treatment||"pre-tax",last_updated:form.last_updated||TODAY_STR,notes:form.notes||""};
+    if(editItem) await accounts.update(editItem.id,row); else await accounts.insert(row);
+    closeModal();
+  }
+  async function saveAssumptions(){
+    const row={current_age:+form.current_age,retirement_age:+form.retirement_age,annual_return_pct:+form.annual_return_pct,withdrawal_rate_pct:+form.withdrawal_rate_pct,annual_retirement_spending:+form.annual_retirement_spending,social_security_estimate:+form.social_security_estimate,healthcare_estimate:+form.healthcare_estimate};
+    if(assump) await assumptions.update(assump.id,row); else await assumptions.insert(row);
+    closeModal();
+  }
+  async function saveCollegeSavings(){
+    const row={balance:+form.balance||0,monthly_contribution:+form.monthly_contribution||0,last_updated:form.last_updated||TODAY_STR,notes:form.notes||""};
+    if(collegeS) await collegeSav.update(collegeS.id,row); else await collegeSav.insert(row);
+    closeModal();
+  }
+  async function saveCollegeGoal(){
+    const row={target_amount:+form.target_amount||0,target_year:+form.target_year,notes:form.notes||""};
+    if(collegeG) await collegeGoal.update(collegeG.id,row); else await collegeGoal.insert(row);
+    closeModal();
+  }
+  async function saveMortgage(){
+    const row={current_balance:+form.current_balance||0,interest_rate:+form.interest_rate||0,monthly_payment:+form.monthly_payment||0,term_years:+form.term_years||30,start_date:form.start_date||"",extra_payment_monthly:+form.extra_payment_monthly||0,last_updated:form.last_updated||TODAY_STR};
+    if(mort) await mortgage.update(mort.id,row); else await mortgage.insert(row);
+    closeModal();
+  }
+  async function saveDebt(){
+    if(!form.name||!form.balance) return;
+    const row={name:form.name,balance:+form.balance,interest_rate:+form.interest_rate||0,payment_amount:+form.payment_amount||0,payment_frequency:form.payment_frequency||"monthly",last_updated:form.last_updated||TODAY_STR,notes:form.notes||""};
+    if(editItem) await otherDebt.update(editItem.id,row); else await otherDebt.insert(row);
+    closeModal();
+  }
+  async function saveSnapshot(){
+    const row={date:form.date||TODAY_STR,total_assets:totalAssets,total_liabilities:totalLiabilities,net_worth:netWorth,notes:form.notes||""};
+    await snapshots.insert(row);
+    closeModal();
+  }
+  async function saveActionItem(){
+    if(!form.title) return;
+    const row={title:form.title,category:form.category||"other",priority:form.priority||"med",completed:false,created_date:TODAY_STR};
+    await actionItems.insert(row);
+    closeModal();
+  }
+
+  const accountTypeColors={"403b":COLORS.blue,"401k":COLORS.blue,IRA:COLORS.purple,HSA:COLORS.green,brokerage:COLORS.amber,cash:COLORS.slate,other:COLORS.slate};
+  const priorityColors={high:COLORS.red,med:COLORS.amber,low:COLORS.slate};
+
+  return(
+    <div style={S.screen}>
+      <div style={{...S.card,background:COLORS.navyLight,borderLeft:`3px solid ${COLORS.green}`,marginBottom:16}}>
+        <div style={{fontSize:11,color:COLORS.green,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase"}}>Net Worth</div>
+        <div style={{fontSize:30,fontWeight:800,marginTop:2}}>{formatMoney(netWorth)}</div>
+        <div style={{fontSize:12,color:COLORS.slate,marginTop:4}}>{formatMoney(totalAssets)} assets · {formatMoney(totalLiabilities)} liabilities</div>
+      </div>
+
+      <div style={S.tabs}>
+        {["overview","retirement","college","debt"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
+      </div>
+
+      {/* OVERVIEW TAB */}
+      {tab==="overview"&&<>
+        {(retStale.stale||collegeStale.stale||mortStale.stale)&&<>
+          <div style={S.sectionLabel}>Needs Update</div>
+          {retStale.stale&&<div style={S.statusCard(COLORS.amber)}><div style={{fontSize:13,fontWeight:600}}>🏦 Retirement balances {retStale.days?`last updated ${retStale.days}d ago`:"never updated"}</div></div>}
+          {collegeStale.stale&&<div style={S.statusCard(COLORS.amber)}><div style={{fontSize:13,fontWeight:600}}>🎓 College savings {collegeStale.days?`last updated ${collegeStale.days}d ago`:"never updated"}</div></div>}
+          {mortStale.stale&&<div style={S.statusCard(COLORS.amber)}><div style={{fontSize:13,fontWeight:600}}>🏠 Mortgage {mortStale.days?`last updated ${mortStale.days}d ago`:"never updated"}</div></div>}
+        </>}
+
+        <div style={S.sectionLabel}>Goals at a Glance</div>
+        {retProj&&(
+          <div style={S.card}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{fontSize:13,fontWeight:600}}>🏦 Retirement (age {assump.retirement_age})</div>
+              <span style={{fontSize:12,color:retProj.gap>0?COLORS.amber:COLORS.green,fontWeight:700}}>{retProj.gap>0?`${formatMoneyShort(retProj.gap)} gap`:"On track ✓"}</span>
+            </div>
+            <div style={{fontSize:11,color:COLORS.slate,marginTop:4}}>Projected {formatMoneyShort(retProj.scenarios.find(s=>s.label==="Moderate").projected)} · Target {formatMoneyShort(retProj.targetNumber)}</div>
+          </div>
+        )}
+        {collegeProj&&(
+          <div style={S.card}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{fontSize:13,fontWeight:600}}>🎓 College Savings ({collegeG?.target_year})</div>
+              <span style={{fontSize:12,color:collegeProj.gap>0?COLORS.amber:COLORS.green,fontWeight:700}}>{collegeProj.gap>0?`${formatMoneyShort(collegeProj.gap)} gap`:"On track ✓"}</span>
+            </div>
+            <div style={{fontSize:11,color:COLORS.slate,marginTop:4}}>Projected {formatMoneyShort(collegeProj.projected)} · Target {formatMoneyShort(collegeG.target_amount)}</div>
+          </div>
+        )}
+        {mort&&mortMonths&&(
+          <div style={S.card}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{fontSize:13,fontWeight:600}}>🏠 Mortgage Payoff</div>
+              <span style={{fontSize:12,color:COLORS.blue,fontWeight:700}}>{monthsToDate(mortMonths)}</span>
+            </div>
+            <div style={{fontSize:11,color:COLORS.slate,marginTop:4}}>{formatMoney(mort.current_balance)} remaining at {mort.interest_rate}%</div>
+          </div>
+        )}
+        {otherDebt.data.map(d=>{
+          const months = calcPayoffMonths(d.balance, d.interest_rate, d.payment_frequency==="biweekly"?d.payment_amount*2.17:d.payment_amount);
+          return(
+            <div key={d.id} style={S.card}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{fontSize:13,fontWeight:600}}>💳 {d.name}</div>
+                <span style={{fontSize:12,color:COLORS.red,fontWeight:700}}>{months?monthsToDate(months):"—"}</span>
+              </div>
+              <div style={{fontSize:11,color:COLORS.slate,marginTop:4}}>{formatMoney(d.balance)} at {d.interest_rate}%</div>
+            </div>
+          );
+        })}
+
+        <div style={S.sectionLabel}>Action Items</div>
+        {actionItems.data.filter(a=>!a.completed).map(a=>(
+          <div key={a.id} style={S.statusCard(priorityColors[a.priority])}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{fontSize:13,fontWeight:600,flex:1,paddingRight:10}}>{a.title}</div>
+              <button style={S.btnGreen} onClick={()=>actionItems.update(a.id,{completed:true})}>Done ✓</button>
+            </div>
+          </div>
+        ))}
+        <button style={S.btn} onClick={()=>{setForm({priority:"med",category:"other"});setShowModal("action");}}>+ Add Action Item</button>
+
+        <div style={S.sectionLabel}>Snapshot History</div>
+        {snapshots.data.slice(0,5).map(s=>(
+          <div key={s.id} style={S.card}>
+            <div style={{display:"flex",justifyContent:"space-between"}}>
+              <div style={{fontSize:13,fontWeight:600}}>{formatDate(s.date)}</div>
+              <div style={{fontSize:13,fontWeight:700}}>{formatMoney(s.net_worth)}</div>
+            </div>
+          </div>
+        ))}
+        <button style={S.btn} onClick={()=>{setForm({date:TODAY_STR});setShowModal("snapshot");}}>📸 Save Net Worth Snapshot</button>
+      </>}
+
+      {/* RETIREMENT TAB */}
+      {tab==="retirement"&&<>
+        {retProj&&<>
+          <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
+            <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:8}}>Projection at Age {assump.retirement_age} ({retProj.years} years)</div>
+            {retProj.scenarios.map(s=>(
+              <div key={s.label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${COLORS.navyLight}`}}>
+                <div style={{fontSize:12,color:COLORS.slateLight}}>{s.label} ({s.rate}%)</div>
+                <div style={{fontSize:15,fontWeight:700,color:s.color}}>{formatMoneyShort(s.projected)}</div>
+              </div>
+            ))}
+            <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${COLORS.navyLight}`}}>
+              <div style={{fontSize:12,color:COLORS.slate}}>Target number (4% rule): <strong style={{color:COLORS.white}}>{formatMoneyShort(retProj.targetNumber)}</strong></div>
+              <div style={{fontSize:12,color:retProj.gap>0?COLORS.amber:COLORS.green,marginTop:4,fontWeight:600}}>
+                {retProj.gap>0?`Gap: ${formatMoneyShort(retProj.gap)} — consider increasing contribution by ~${formatMoney(retProj.monthlyNeeded)}/mo`:`On track — projected surplus of ${formatMoneyShort(-retProj.gap)}`}
+              </div>
+            </div>
+          </div>
+          <button style={{...S.btnSm,width:"100%",marginBottom:12}} onClick={()=>{setForm({...assump});setShowModal("assumptions");}}>⚙️ Edit Assumptions</button>
+        </>}
+
+        <div style={S.sectionLabel}>Accounts</div>
+        <div style={S.swipeHint}>← swipe left to edit or delete</div>
+        {accounts.data.map(a=>(
+          <SwipeCard key={a.id} id={a.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
+            onEdit={()=>openEdit("account",a)}
+            onDelete={()=>{if(window.confirm("Delete this account?"))accounts.remove(a.id);setActiveSwipe(null);}}
+            style={{...S.card,borderLeft:`3px solid ${accountTypeColors[a.account_type]||COLORS.slate}`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+              <div>
+                <div style={{fontSize:14,fontWeight:600}}>{a.name}</div>
+                <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{formatMoney(a.monthly_contribution)}/mo{a.employer_match?` + ${formatMoney(a.employer_match)} match`:""}</div>
+                {a.notes&&<div style={{fontSize:11,color:COLORS.slate,marginTop:2,fontStyle:"italic"}}>{a.notes}</div>}
+              </div>
+              <div style={{fontSize:16,fontWeight:700}}>{formatMoneyShort(a.balance)}</div>
+            </div>
+          </SwipeCard>
+        ))}
+        <button style={S.btn} onClick={()=>{setForm({account_type:"401k",tax_treatment:"pre-tax",last_updated:TODAY_STR});setShowModal("account");}}>+ Add Account</button>
+      </>}
+
+      {/* COLLEGE TAB */}
+      {tab==="college"&&<>
+        {collegeS&&collegeProj&&(
+          <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
+            <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:8}}>529 Plan — {collegeG?.target_year} target</div>
+            <div style={{fontSize:28,fontWeight:800}}>{formatMoneyShort(collegeS.balance)}</div>
+            <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>{formatMoney(collegeS.monthly_contribution)}/mo · Projected: {formatMoneyShort(collegeProj.projected)}</div>
+            <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${COLORS.navyLight}`}}>
+              <div style={{fontSize:12,color:COLORS.slate}}>Target: <strong style={{color:COLORS.white}}>{formatMoneyShort(collegeG.target_amount)}</strong></div>
+              <div style={{fontSize:12,color:collegeProj.gap>0?COLORS.amber:COLORS.green,marginTop:4,fontWeight:600}}>
+                {collegeProj.gap>0?`Gap: ${formatMoneyShort(collegeProj.gap)} — consider ~${formatMoney(collegeProj.monthlyNeeded)}/mo to close it`:`On track — projected surplus of ${formatMoneyShort(-collegeProj.gap)}`}
+              </div>
+            </div>
+            {collegeG?.notes&&<div style={{fontSize:11,color:COLORS.slate,marginTop:8,fontStyle:"italic"}}>{collegeG.notes}</div>}
+          </div>
+        )}
+        <div style={{display:"flex",gap:8}}>
+          <button style={{...S.btnSm,flex:1}} onClick={()=>{setForm({...collegeS,last_updated:TODAY_STR});setShowModal("college-savings");}}>Update Balance</button>
+          <button style={{...S.btnSm,flex:1}} onClick={()=>{setForm({...collegeG});setShowModal("college-goal");}}>Edit Goal</button>
+        </div>
+      </>}
+
+      {/* DEBT TAB */}
+      {tab==="debt"&&<>
+        {mort&&(
+          <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
+            <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:8}}>Mortgage</div>
+            <div style={{fontSize:26,fontWeight:800}}>{formatMoney(mort.current_balance)}</div>
+            <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>{mort.interest_rate}% · {formatMoney(mort.monthly_payment)}/mo{mort.extra_payment_monthly>0?` + ${formatMoney(mort.extra_payment_monthly)} extra`:""}</div>
+            {mortMonths&&<div style={{fontSize:12,color:COLORS.green,marginTop:8,fontWeight:600}}>Payoff: {monthsToDate(mortMonths)} ({mortMonths} months)</div>}
+            {interestSaved>0&&<div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>Extra payments save ~{formatMoney(interestSaved)} in interest</div>}
+            <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={()=>{setForm({...mort,last_updated:TODAY_STR});setShowModal("mortgage");}}>Update Mortgage</button>
+          </div>
+        )}
+
+        <div style={S.sectionLabel}>Other Debt</div>
+        <div style={S.swipeHint}>← swipe left to edit or delete</div>
+        {otherDebt.data.map(d=>{
+          const months = calcPayoffMonths(d.balance, d.interest_rate, d.payment_frequency==="biweekly"?d.payment_amount*2.17:d.payment_amount);
+          return(
+            <SwipeCard key={d.id} id={d.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
+              onEdit={()=>openEdit("debt",d)}
+              onDelete={()=>{if(window.confirm("Delete this debt?"))otherDebt.remove(d.id);setActiveSwipe(null);}}
+              style={S.statusCard(COLORS.red)}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                <div>
+                  <div style={{fontSize:14,fontWeight:600}}>{d.name}</div>
+                  <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{d.interest_rate}% · {formatMoney(d.payment_amount)} {d.payment_frequency}</div>
+                  {months&&<div style={{fontSize:11,color:COLORS.amber,marginTop:2,fontWeight:600}}>Payoff: {monthsToDate(months)}</div>}
+                  {d.notes&&<div style={{fontSize:11,color:COLORS.slate,marginTop:2,fontStyle:"italic"}}>{d.notes}</div>}
+                </div>
+                <div style={{fontSize:16,fontWeight:700,color:COLORS.red}}>{formatMoney(d.balance)}</div>
+              </div>
+            </SwipeCard>
+          );
+        })}
+        <button style={S.btn} onClick={()=>{setForm({payment_frequency:"monthly",last_updated:TODAY_STR});setShowModal("debt");}}>+ Add Debt</button>
+      </>}
+
+      {/* MODALS */}
+      {showModal==="account"&&<Modal title={editItem?"Edit Account":"Add Account"} onClose={closeModal}>
+        <label style={S.label}>Account Name</label>
+        <input style={S.input} placeholder="e.g. Matt 403(b)" value={form.name||""} onChange={e=>setForm(p=>({...p,name:e.target.value}))}/>
+        <label style={S.label}>Account Type</label>
+        <div>{["403b","401k","IRA","HSA","brokerage","cash","other"].map(t=><span key={t} style={S.chip(form.account_type===t,accountTypeColors[t]||COLORS.slate)} onClick={()=>setForm(p=>({...p,account_type:t}))}>{t}</span>)}</div>
+        <label style={S.label}>Current Balance</label>
+        <input type="number" style={S.input} placeholder="" value={form.balance||""} onChange={e=>setForm(p=>({...p,balance:e.target.value}))}/>
+        <div style={S.row}>
+          <div style={S.col}><label style={S.label}>Monthly Contribution</label><input type="number" style={S.input} placeholder="" value={form.monthly_contribution||""} onChange={e=>setForm(p=>({...p,monthly_contribution:e.target.value}))}/></div>
+          <div style={S.col}><label style={S.label}>Employer Match</label><input type="number" style={S.input} placeholder="" value={form.employer_match||""} onChange={e=>setForm(p=>({...p,employer_match:e.target.value}))}/></div>
+        </div>
+        <label style={S.label}>Tax Treatment</label>
+        <div>{["pre-tax","Roth","taxable","HSA"].map(t=><span key={t} style={S.chip(form.tax_treatment===t,COLORS.purple)} onClick={()=>setForm(p=>({...p,tax_treatment:t}))}>{t}</span>)}</div>
+        <label style={S.label}>Last Updated</label>
+        <input type="date" style={S.input} value={form.last_updated||""} onChange={e=>setForm(p=>({...p,last_updated:e.target.value}))}/>
+        <label style={S.label}>Notes</label>
+        <input style={S.input} placeholder="Optional" value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
+        <button style={{...S.btn,marginTop:16}} onClick={saveAccount}>{editItem?"Save Changes":"Add Account"}</button>
+      </Modal>}
+
+      {showModal==="assumptions"&&<Modal title="Retirement Assumptions" onClose={closeModal}>
+        <div style={S.row}>
+          <div style={S.col}><label style={S.label}>Current Age</label><input type="number" style={S.input} value={form.current_age||""} onChange={e=>setForm(p=>({...p,current_age:e.target.value}))}/></div>
+          <div style={S.col}><label style={S.label}>Retirement Age</label><input type="number" style={S.input} value={form.retirement_age||""} onChange={e=>setForm(p=>({...p,retirement_age:e.target.value}))}/></div>
+        </div>
+        <label style={S.label}>Withdrawal Rate (%)</label>
+        <input type="number" step="0.1" style={S.input} value={form.withdrawal_rate_pct||""} onChange={e=>setForm(p=>({...p,withdrawal_rate_pct:e.target.value}))}/>
+        <label style={S.label}>Expected Annual Retirement Spending</label>
+        <input type="number" style={S.input} value={form.annual_retirement_spending||""} onChange={e=>setForm(p=>({...p,annual_retirement_spending:e.target.value}))}/>
+        <div style={S.row}>
+          <div style={S.col}><label style={S.label}>Social Security Est. (annual)</label><input type="number" style={S.input} value={form.social_security_estimate||""} onChange={e=>setForm(p=>({...p,social_security_estimate:e.target.value}))}/></div>
+          <div style={S.col}><label style={S.label}>Healthcare Est. (annual)</label><input type="number" style={S.input} value={form.healthcare_estimate||""} onChange={e=>setForm(p=>({...p,healthcare_estimate:e.target.value}))}/></div>
+        </div>
+        <div style={{fontSize:11,color:COLORS.slate,marginTop:8,lineHeight:1.5}}>Scenarios use fixed 6% / 8% / 10% annual return assumptions — conservative, moderate, aggressive.</div>
+        <button style={{...S.btn,marginTop:16}} onClick={saveAssumptions}>Save Assumptions</button>
+      </Modal>}
+
+      {showModal==="college-savings"&&<Modal title="Update 529 Balance" onClose={closeModal}>
+        <label style={S.label}>Current Balance</label>
+        <input type="number" style={S.input} value={form.balance||""} onChange={e=>setForm(p=>({...p,balance:e.target.value}))}/>
+        <label style={S.label}>Monthly Contribution</label>
+        <input type="number" style={S.input} value={form.monthly_contribution||""} onChange={e=>setForm(p=>({...p,monthly_contribution:e.target.value}))}/>
+        <label style={S.label}>Last Updated</label>
+        <input type="date" style={S.input} value={form.last_updated||""} onChange={e=>setForm(p=>({...p,last_updated:e.target.value}))}/>
+        <button style={{...S.btn,marginTop:16}} onClick={saveCollegeSavings}>Save</button>
+      </Modal>}
+
+      {showModal==="college-goal"&&<Modal title="Edit College Goal" onClose={closeModal}>
+        <label style={S.label}>Target Amount</label>
+        <input type="number" style={S.input} value={form.target_amount||""} onChange={e=>setForm(p=>({...p,target_amount:e.target.value}))}/>
+        <label style={S.label}>Target Year</label>
+        <input type="number" style={S.input} value={form.target_year||""} onChange={e=>setForm(p=>({...p,target_year:e.target.value}))}/>
+        <label style={S.label}>Notes</label>
+        <input style={S.input} placeholder="School targets, in-state vs out-of-state, etc." value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
+        <button style={{...S.btn,marginTop:16}} onClick={saveCollegeGoal}>Save Goal</button>
+      </Modal>}
+
+      {showModal==="mortgage"&&<Modal title="Update Mortgage" onClose={closeModal}>
+        <label style={S.label}>Current Balance</label>
+        <input type="number" style={S.input} value={form.current_balance||""} onChange={e=>setForm(p=>({...p,current_balance:e.target.value}))}/>
+        <div style={S.row}>
+          <div style={S.col}><label style={S.label}>Interest Rate (%)</label><input type="number" step="0.01" style={S.input} value={form.interest_rate||""} onChange={e=>setForm(p=>({...p,interest_rate:e.target.value}))}/></div>
+          <div style={S.col}><label style={S.label}>Monthly Payment</label><input type="number" style={S.input} value={form.monthly_payment||""} onChange={e=>setForm(p=>({...p,monthly_payment:e.target.value}))}/></div>
+        </div>
+        <label style={S.label}>Extra Monthly Payment</label>
+        <input type="number" style={S.input} value={form.extra_payment_monthly||""} onChange={e=>setForm(p=>({...p,extra_payment_monthly:e.target.value}))}/>
+        <label style={S.label}>Last Updated</label>
+        <input type="date" style={S.input} value={form.last_updated||""} onChange={e=>setForm(p=>({...p,last_updated:e.target.value}))}/>
+        <button style={{...S.btn,marginTop:16}} onClick={saveMortgage}>Save</button>
+      </Modal>}
+
+      {showModal==="debt"&&<Modal title={editItem?"Edit Debt":"Add Debt"} onClose={closeModal}>
+        <label style={S.label}>Debt Name</label>
+        <input style={S.input} placeholder="e.g. Personal Loan" value={form.name||""} onChange={e=>setForm(p=>({...p,name:e.target.value}))}/>
+        <label style={S.label}>Balance</label>
+        <input type="number" style={S.input} value={form.balance||""} onChange={e=>setForm(p=>({...p,balance:e.target.value}))}/>
+        <div style={S.row}>
+          <div style={S.col}><label style={S.label}>Interest Rate (%)</label><input type="number" step="0.1" style={S.input} value={form.interest_rate||""} onChange={e=>setForm(p=>({...p,interest_rate:e.target.value}))}/></div>
+          <div style={S.col}><label style={S.label}>Payment Amount</label><input type="number" style={S.input} value={form.payment_amount||""} onChange={e=>setForm(p=>({...p,payment_amount:e.target.value}))}/></div>
+        </div>
+        <label style={S.label}>Payment Frequency</label>
+        <div>{["weekly","biweekly","monthly"].map(f=><span key={f} style={S.chip(form.payment_frequency===f,COLORS.blue)} onClick={()=>setForm(p=>({...p,payment_frequency:f}))}>{f}</span>)}</div>
+        <label style={S.label}>Notes</label>
+        <input style={S.input} placeholder="Optional" value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
+        <button style={{...S.btn,marginTop:16}} onClick={saveDebt}>{editItem?"Save Changes":"Add Debt"}</button>
+      </Modal>}
+
+      {showModal==="snapshot"&&<Modal title="Save Net Worth Snapshot" onClose={closeModal}>
+        <div style={{fontSize:13,color:COLORS.slateLight,marginBottom:12,lineHeight:1.5}}>
+          Captures current totals: {formatMoney(totalAssets)} assets, {formatMoney(totalLiabilities)} liabilities, {formatMoney(netWorth)} net worth.
+        </div>
+        <label style={S.label}>Date</label>
+        <input type="date" style={S.input} value={form.date||""} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/>
+        <label style={S.label}>Notes</label>
+        <input style={S.input} placeholder="What changed this month?" value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
+        <button style={{...S.btn,marginTop:16}} onClick={saveSnapshot}>Save Snapshot</button>
+      </Modal>}
+
+      {showModal==="action"&&<Modal title="Add Action Item" onClose={closeModal}>
+        <label style={S.label}>Title</label>
+        <input style={S.input} placeholder="e.g. Increase 401k contribution" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
+        <label style={S.label}>Category</label>
+        <div>{["retirement","college","debt","other"].map(c=><span key={c} style={S.chip(form.category===c,COLORS.blue)} onClick={()=>setForm(p=>({...p,category:c}))}>{c}</span>)}</div>
+        <label style={S.label}>Priority</label>
+        <div>{["high","med","low"].map(p=><span key={p} style={S.chip(form.priority===p,priorityColors[p])} onClick={()=>setForm(prev=>({...prev,priority:p}))}>{p}</span>)}</div>
+        <button style={{...S.btn,marginTop:16}} onClick={saveActionItem}>Add Item</button>
+      </Modal>}
+    </div>
+  );
+}
+
 // ─── ROOT APP ─────────────────────────────────────────────────────────────────
 export default function App(){
   const [tab,setTab] = useState("home");
@@ -1764,8 +2280,9 @@ export default function App(){
     {id:"college",  label:"College",  icon:I.college},
     {id:"home-mgmt",label:"House",    icon:I.house},
     {id:"pool",     label:"Pool",     icon:I.pool},
+    {id:"finance",  label:"Finance",  icon:I.finance},
   ];
-  const TITLES={home:"FamilyOS",schedule:"Schedule",college:"College Planning","home-mgmt":"Home",pool:"Pool"};
+  const TITLES={home:"FamilyOS",schedule:"Schedule",college:"College Planning","home-mgmt":"Home",pool:"Pool",finance:"Finance"};
 
   return(
     <div style={S.app}>
@@ -1796,6 +2313,7 @@ export default function App(){
       {tab==="college"  &&<College/>}
       {tab==="home-mgmt"&&<HomeMgmt/>}
       {tab==="pool"     &&<Pool/>}
+      {tab==="finance"  &&<Finance/>}
 
       <nav style={S.nav}>
         {TABS.map(t=>(
