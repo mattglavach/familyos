@@ -1180,8 +1180,7 @@ Format:
   // Parse bold headers and bullets for display
   function renderBrief(text) {
     if(!text) return null;
-    return text.split('
-').map((line, i) => {
+    return text.split('\n').map((line, i) => {
       if(line.startsWith('**') && line.endsWith('**')) {
         return <div key={i} style={{fontSize:11,fontWeight:700,color:COLORS.blue,letterSpacing:"0.8px",textTransform:"uppercase",marginTop:16,marginBottom:6}}>{line.replace(/\*\*/g,'')}</div>;
       }
