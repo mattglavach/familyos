@@ -1219,17 +1219,18 @@ function HomeMgmt(){
 // ─── AI POOL BRIEF ───────────────────────────────────────────────────────────
 function PoolBrief({readings, maintLog, onClose}) {
   const [brief, setBrief]     = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError]     = useState(null);
   const [history, setHistory] = useState([]);
   const [viewingHistory, setViewingHistory] = useState(null);
+  const [hasRun, setHasRun]   = useState(false);
 
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem("poolBriefHistory") || "[]");
       setHistory(saved);
     } catch {}
-    generateBrief();
+    // No auto-run — wait for the person to tap "Run Analysis"
   }, []);
 
   function saveBriefToHistory(briefText) {
@@ -1242,6 +1243,7 @@ function PoolBrief({readings, maintLog, onClose}) {
   }
 
   async function generateBrief() {
+    setHasRun(true);
     setLoading(true);
     setViewingHistory(null);
     try {
@@ -1466,6 +1468,16 @@ Keep the ENTIRE brief under 150 words total. Bullets only, no exceptions.`;
         </div>
       )}
       {error && viewingHistory===null && <div style={{fontSize:13,color:COLORS.red,padding:"20px 0"}}>{error}</div>}
+
+      {!hasRun && !loading && viewingHistory===null && (
+        <div style={{textAlign:"center",padding:"30px 20px"}}>
+          <div style={{fontSize:13,color:COLORS.slate,marginBottom:16,lineHeight:1.5}}>
+            Run a fresh analysis of your pool chemistry, recent treatments, and current Summerville weather.
+          </div>
+          <button style={S.btn} onClick={generateBrief}>▶️ Run Analysis</button>
+        </div>
+      )}
+
       {displayedBrief && (!loading || displayedIsHistory) && (
         <>
           <div style={{background:COLORS.navyLight,borderRadius:10,padding:"14px 16px",marginBottom:16}}>
@@ -1586,9 +1598,25 @@ function Pool(){
 
   const last     = readings.data[0];
   const chemRecs = getChemRecommendations(last, readings.data);
-  const highRecs = chemRecs.filter(r=>r.priority==="high");
-  const medRecs  = chemRecs.filter(r=>r.priority==="med");
-  const lowRecs  = chemRecs.filter(r=>r.priority==="low");
+
+  // Dismissed recs are keyed by reading id + recommendation param, so a new reading auto-clears them
+  const [dismissed,setDismissed] = useState(()=>{
+    try{ return JSON.parse(localStorage.getItem("poolDismissedRecs")||"{}"); }catch{ return {}; }
+  });
+  function dismissRec(param){
+    if(!last) return;
+    setDismissed(prev=>{
+      const updated = {...prev, [last.id]: [...(prev[last.id]||[]), param]};
+      try{ localStorage.setItem("poolDismissedRecs", JSON.stringify(updated)); }catch{}
+      return updated;
+    });
+  }
+  const dismissedForThisReading = (last && dismissed[last.id]) || [];
+  const visibleRecs = chemRecs.filter(r=>!dismissedForThisReading.includes(r.param));
+
+  const highRecs = visibleRecs.filter(r=>r.priority==="high");
+  const medRecs  = visibleRecs.filter(r=>r.priority==="med");
+  const lowRecs  = visibleRecs.filter(r=>r.priority==="low");
   const [showLow,setShowLow] = useState(false);
 
   function openEditReading(r){setEditItem(r);setForm({...r});setShowLog(true);setActiveSwipe(null);}
@@ -1698,15 +1726,25 @@ function Pool(){
 
       {highRecs.map((r,i)=>(
         <div key={i} style={{...S.statusCard(r.color),marginBottom:8}}>
-          <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>{r.icon} {r.action}</div>
-          <div style={{fontSize:12,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+            <div style={{flex:1,paddingRight:8}}>
+              <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>{r.icon} {r.action}</div>
+              <div style={{fontSize:12,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
+            </div>
+            <button onClick={()=>dismissRec(r.param)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:16,padding:2,flexShrink:0}}>✕</button>
+          </div>
         </div>
       ))}
 
       {medRecs.map((r,i)=>(
         <div key={i} style={{...S.statusCard(r.color),marginBottom:8}}>
-          <div style={{fontSize:12,fontWeight:700,marginBottom:3}}>{r.icon} {r.action}</div>
-          <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+            <div style={{flex:1,paddingRight:8}}>
+              <div style={{fontSize:12,fontWeight:700,marginBottom:3}}>{r.icon} {r.action}</div>
+              <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
+            </div>
+            <button onClick={()=>dismissRec(r.param)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:14,padding:2,flexShrink:0}}>✕</button>
+          </div>
         </div>
       ))}
 
