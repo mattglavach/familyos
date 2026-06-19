@@ -196,6 +196,20 @@ function statusColor(s){return s==="red"?COLORS.red:s==="amber"?COLORS.amber:s==
 function maintStatus(item){const days=daysBetween(nextDueDate(item.last_completed,item.interval_days));if(days<0)return"overdue";if(days<=7)return"due-soon";return"ok";}
 function maintColor(s){return s==="overdue"?COLORS.red:s==="due-soon"?COLORS.amber:COLORS.green;}
 
+// Find the most recent reading date where a given param was actually tested (not null)
+function lastTestedDate(readings, paramKey) {
+  for (const r of readings) {
+    if (r[paramKey] !== null && r[paramKey] !== undefined) return r.date;
+  }
+  return null;
+}
+function nextTestDue(readings, paramKey, intervalDays) {
+  const lastDate = lastTestedDate(readings, paramKey);
+  if (!lastDate) return null;
+  const due = nextDueDate(lastDate, intervalDays);
+  return { lastDate, due, days: daysBetween(due) };
+}
+
 // ─── POOL CHEMISTRY ENGINE ────────────────────────────────────────────────────
 const POOL_GALLONS = 17000;
 const CALCIUM_HARDNESS = 200; // placeholder — vinyl pool, test and update
@@ -339,10 +353,10 @@ function getChemRecommendations(last, readings) {
   }
 
   // Pump schedule
-  if(!last.pump_hours || last.pump_hours < 10) {
+  if(!last.pump_hours || last.pump_hours < 8) {
     recs.push({ priority:"med", param:"Pump", icon:"🕐",
-      action:"Switch to overnight pump schedule",
-      detail:`Running 8pm→8am (12 hrs) eliminates UV chlorine loss during peak SC sun hours. This alone can raise effective FC by 20-30% without changing SWG %. Set your timer: ON 8:00pm, OFF 8:00am.`,
+      action:"Increase pump run time to 8-10 hrs/day",
+      detail:`Less than 8 hrs/day limits SWG chlorine production and circulation. Consider a split schedule — some daytime hours for circulation during swim use, plus 3-4 overnight hours to rebuild FC without UV loss. There's no single correct schedule; match it to when the pool is used and how fast FC drops.`,
       color:COLORS.blue });
   }
 
@@ -1118,7 +1132,7 @@ function PoolBrief({readings, onClose}) {
       const phEff = last?.ph ? fcEffectiveAtPH(last.ph) : null;
       const today = new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
 
-      const prompt = `You are a friendly, knowledgeable pool advisor helping a homeowner in Summerville, South Carolina manage a 17,000 gallon vinyl inground salt water pool with a Pentair IntelliChlor SWG and cartridge filter. They test with a Taylor K-2006 FAS-DPD kit (FC readings in drops × 0.5 = ppm). Pump currently runs daytime.
+      const prompt = `You are a knowledgeable pool advisor texting a homeowner in Summerville, South Carolina about their 17,000 gallon vinyl inground salt water pool with a Pentair IntelliChlor SWG and cartridge filter. They test with a Taylor K-2006 FAS-DPD kit (FC readings in drops × 0.5 = ppm).
 
 Today is ${today}. Here are all pool readings (most recent first):
 ${readingsSummary}
@@ -1133,28 +1147,34 @@ Chemistry context:
 
 Please search for current weather in Summerville SC and factor it into your advice.
 
-Write a pool brief in this exact format — plain English, like a knowledgeable pool guy texting advice. Be specific with numbers. Be direct. No fluff.
+On pump scheduling: there is no universal rule that overnight is always correct. Daytime running maximizes circulation and chlorine production during peak bather load and algae risk. Overnight running avoids UV chlorine loss but produces chlorine when no one is swimming. Give balanced, situational advice based on this specific pool's FC trend and usage — do not default to recommending overnight running unless their data specifically supports it (e.g. FC crashing fast during sunny midday hours with heavy UV loss).
+
+Write a pool brief in this EXACT format. Every section must be 1-3 short bullet points, never paragraphs. Be specific with numbers. No fluff, no filler sentences, no "I hope this helps" — just direct, scannable bullets like a text from a knowledgeable friend.
 
 Format:
 **WHAT'S BEEN HAPPENING**
-[2-3 sentences analyzing the trend across all readings — what pattern do you see, what's causing it]
+• [one bullet on the trend]
+• [one bullet on likely cause]
 
-**WEATHER IMPACT**
-[1-2 sentences on current Summerville weather and how it affects the pool right now]
+**WEATHER**
+• [one bullet: current Summerville conditions + impact]
 
-**YOUR WATER RIGHT NOW**  
-[2-3 sentences on current chemistry status — be honest about what's good and what needs attention]
+**WATER RIGHT NOW**
+• [one bullet on what's good]
+• [one bullet on what needs attention]
 
 **TODAY'S TREATMENT PLAN**
 • [specific action with exact dose if chemical]
-• [next action]
-• [etc — only what actually needs doing]
+• [next action, only if needed]
 
 **SWG & PUMP**
-[1-2 sentences on recommended SWG % and pump schedule. Be specific about switching to overnight.]
+• [one bullet: SWG % recommendation]
+• [one bullet: pump schedule recommendation, balanced — not automatically overnight]
 
 **WATCH FOR**
-[1-2 sentences on what to check at next reading and when to test]`;
+• [one bullet: what to check next reading and when]
+
+Keep the ENTIRE brief under 120 words total. Bullets only, no exceptions.`;
 
       const res = await fetch("/api/brief", {
         method: "POST",
@@ -1187,7 +1207,7 @@ Format:
   // Parse bold headers and bullets for display
   function renderBrief(text) {
     if(!text) return null;
-    return text.split('\n').map((line, i) => {
+    return text.split(String.fromCharCode(10)).map((line, i) => {
       if(line.startsWith('**') && line.endsWith('**')) {
         return <div key={i} style={{fontSize:11,fontWeight:700,color:COLORS.blue,letterSpacing:"0.8px",textTransform:"uppercase",marginTop:16,marginBottom:6}}>{line.replace(/\*\*/g,'')}</div>;
       }
@@ -1382,6 +1402,24 @@ function Pool(){
             {last.cc!==null&&last.cc!==undefined&&<div style={{fontSize:12,color:last.cc>0.5?COLORS.red:COLORS.green}}>CC: {last.cc} ppm {last.cc===0?"✓":""}</div>}
             {last.filter_pressure&&<div style={{fontSize:12,color:last.filter_pressure>20?COLORS.amber:COLORS.slate}}>Filter: {last.filter_pressure} psi</div>}
             {last.swg_setting&&<div style={{fontSize:12,color:COLORS.slate}}>SWG: {last.swg_setting}%</div>}
+          </div>
+          <div style={{display:"flex",gap:14,marginTop:8,paddingTop:8,borderTop:`1px solid ${COLORS.navyLight}`,flexWrap:"wrap"}}>
+            {(()=>{
+              const cyaDue=nextTestDue(readings.data,"cya",30);
+              if(!cyaDue) return <div style={{fontSize:11,color:COLORS.slate}}>CYA never tested</div>;
+              const overdue=cyaDue.days<0;
+              return <div style={{fontSize:11,color:overdue?COLORS.red:cyaDue.days<=3?COLORS.amber:COLORS.slate}}>
+                CYA {overdue?`overdue — test now`:`not due until ${formatDate(cyaDue.due)}`}
+              </div>;
+            })()}
+            {(()=>{
+              const taDue=nextTestDue(readings.data,"alkalinity",14);
+              if(!taDue) return <div style={{fontSize:11,color:COLORS.slate}}>TA never tested</div>;
+              const overdue=taDue.days<0;
+              return <div style={{fontSize:11,color:overdue?COLORS.red:taDue.days<=3?COLORS.amber:COLORS.slate}}>
+                TA {overdue?`overdue — test now`:`not due until ${formatDate(taDue.due)}`}
+              </div>;
+            })()}
           </div>
         </div>
       )}
