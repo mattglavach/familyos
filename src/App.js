@@ -156,10 +156,13 @@ const SEED={
     {id:"6",title:"Dryer Vent Clean",last_completed:"2026-01-15",interval_days:180,notes:""},
   ],
   college_schools:[
-    {id:"1",name:"University of Virginia",status:"researching"},
-    {id:"2",name:"Wake Forest University",status:"researching"},
-    {id:"3",name:"University of Richmond",status:"target"},
-    {id:"4",name:"James Madison University",status:"target"},
+    {id:"1",name:"University of Virginia",status:"researching",match_level:"Reach",app_type:"ED",app_deadline:"2026-11-01",visit_notes:""},
+    {id:"2",name:"Wake Forest University",status:"researching",match_level:"Reach",app_type:"EA",app_deadline:"2026-11-15",visit_notes:""},
+    {id:"3",name:"University of Richmond",status:"target",match_level:"Target",app_type:"EA",app_deadline:"2026-11-15",visit_notes:""},
+    {id:"4",name:"James Madison University",status:"target",match_level:"Safety",app_type:"Regular",app_deadline:"2027-01-15",visit_notes:""},
+  ],
+  college_test_plan:[
+    {id:"1",test_type:"SAT",target_date:"2026-08-23",target_score:"1400",attempt_number:1,registered:false,notes:"First official SAT attempt junior year"},
   ],
   college_deadlines:[
     {id:"1",title:"SAT Registration — August Test",due_date:"2026-06-20",school:"",category:"test",completed:false},
@@ -756,6 +759,7 @@ function College(){
   const deadlines                = useTable("college_deadlines","due_date",true);
   const schools                  = useTable("college_schools","name",true);
   const scores                   = useTable("sat_scores","date");
+  const testPlan                 = useTable("college_test_plan","target_date",true);
   const [showModal,setShowModal] = useState(null);
   const [editItem,setEditItem]   = useState(null);
   const [form,setForm]           = useState({});
@@ -763,6 +767,8 @@ function College(){
 
   const catColor={test:COLORS.purple,application:COLORS.blue,visit:COLORS.green,other:COLORS.slate};
   const statusColors={researching:COLORS.slate,target:COLORS.blue,applying:COLORS.amber,applied:COLORS.purple,accepted:COLORS.green,rejected:COLORS.red};
+  const appTypeColors={ED:COLORS.red,EA:COLORS.amber,Regular:COLORS.blue,Rolling:COLORS.slate};
+  const matchColors={Reach:COLORS.red,Target:COLORS.blue,Safety:COLORS.green};
   const pending=deadlines.data.filter(d=>!d.completed).sort((a,b)=>new Date(a.due_date)-new Date(b.due_date));
   const done=deadlines.data.filter(d=>d.completed);
 
@@ -782,14 +788,26 @@ function College(){
   }
   async function saveSchool(){
     if(!form.name)return;
-    if(editItem) await schools.update(editItem.id,{name:form.name,status:form.status||"researching"});
-    else await schools.insert({name:form.name,status:form.status||"researching"});
+    const row={
+      name:form.name, status:form.status||"researching",
+      app_deadline:form.app_deadline||null, app_type:form.app_type||"Regular",
+      match_level:form.match_level||"Target", visit_notes:form.visit_notes||""
+    };
+    if(editItem) await schools.update(editItem.id,row);
+    else await schools.insert(row);
     closeModal();
   }
   async function saveScore(){
     if(!form.date||!form.total)return;
     if(editItem) await scores.update(editItem.id,{date:form.date,total:+form.total,math:+form.math||0,verbal:+form.verbal||0,notes:form.notes||""});
     else await scores.insert({date:form.date,total:+form.total,math:+form.math||0,verbal:+form.verbal||0,notes:form.notes||""});
+    closeModal();
+  }
+  async function saveTestPlan(){
+    if(!form.test_type||!form.target_date)return;
+    const row={test_type:form.test_type,target_date:form.target_date,target_score:form.target_score||"",attempt_number:form.attempt_number||1,registered:form.registered||false,notes:form.notes||""};
+    if(editItem) await testPlan.update(editItem.id,row);
+    else await testPlan.insert(row);
     closeModal();
   }
 
@@ -802,7 +820,7 @@ function College(){
       </div>
 
       <div style={S.tabs}>
-        {["deadlines","schools","scores"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
+        {["deadlines","schools","tests","scores"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
       </div>
 
       {tab==="deadlines"&&<>
@@ -868,12 +886,44 @@ function College(){
                         {["researching","target","applying","applied","accepted","rejected"].map(st=><option key={st} value={st}>{st}</option>)}
                       </select>
                     </div>
+                    <div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap",alignItems:"center"}}>
+                      {s.match_level&&<span style={S.badge(matchColors[s.match_level]||COLORS.slate)}>{s.match_level}</span>}
+                      {s.app_type&&<span style={S.badge(appTypeColors[s.app_type]||COLORS.slate)}>{s.app_type}</span>}
+                      {s.app_deadline&&<span style={{fontSize:11,color:COLORS.slate}}>Due {formatDate(s.app_deadline)}</span>}
+                    </div>
+                    {s.visit_notes&&<div style={{fontSize:11,color:COLORS.slateLight,marginTop:6,fontStyle:"italic",lineHeight:1.4}}>📝 {s.visit_notes}</div>}
                   </SwipeCard>
                 ))}
               </div>
             );
           })}
-          <button style={S.btn} onClick={()=>{setForm({status:"researching"});setShowModal("school");}}>+ Add School</button>
+          <button style={S.btn} onClick={()=>{setForm({status:"researching",app_type:"Regular",match_level:"Target"});setShowModal("school");}}>+ Add School</button>
+        </>}
+      </>}
+
+      {tab==="tests"&&<>
+        {testPlan.loading?<Loading/>:<>
+          <div style={{fontSize:12,color:COLORS.slate,marginBottom:12,lineHeight:1.5}}>Plan upcoming SAT/ACT attempts — registration deadlines and target scores.</div>
+          <div style={S.swipeHint}>← swipe left to edit or delete</div>
+          {testPlan.data.map(t=>{
+            const days=daysBetween(t.target_date);
+            return(
+              <SwipeCard key={t.id} id={t.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
+                onEdit={()=>openEdit("test",t)}
+                onDelete={()=>{if(window.confirm("Delete this test plan?"))testPlan.remove(t.id);setActiveSwipe(null);}}
+                style={S.statusCard(days<=14?COLORS.amber:COLORS.blue)}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:14,fontWeight:600}}>{t.test_type} — Attempt {t.attempt_number}</div>
+                    <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>{formatDate(t.target_date)} · {days<0?"Past":`${days}d away`}{t.target_score?` · Target: ${t.target_score}`:""}</div>
+                    {t.notes&&<div style={{fontSize:11,color:COLORS.slate,marginTop:4,fontStyle:"italic"}}>{t.notes}</div>}
+                  </div>
+                  <span style={S.badge(t.registered?COLORS.green:COLORS.amber)}>{t.registered?"Registered":"Not registered"}</span>
+                </div>
+              </SwipeCard>
+            );
+          })}
+          <button style={S.btn} onClick={()=>{setForm({test_type:"SAT",attempt_number:1,registered:false});setShowModal("test");}}>+ Add Test Plan</button>
         </>}
       </>}
 
@@ -921,7 +971,34 @@ function College(){
         <input style={S.input} placeholder="e.g. University of Virginia" value={form.name||""} onChange={e=>setForm(p=>({...p,name:e.target.value}))}/>
         <label style={S.label}>Status</label>
         <div>{["researching","target","applying","applied","accepted","rejected"].map(s=><span key={s} style={S.chip(form.status===s,statusColors[s])} onClick={()=>setForm(p=>({...p,status:s}))}>{s}</span>)}</div>
+        <label style={{...S.label,marginTop:10}}>Match Level</label>
+        <div>{["Reach","Target","Safety"].map(m=><span key={m} style={S.chip(form.match_level===m,matchColors[m])} onClick={()=>setForm(p=>({...p,match_level:m}))}>{m}</span>)}</div>
+        <label style={{...S.label,marginTop:10}}>Application Type</label>
+        <div>{["ED","EA","Regular","Rolling"].map(t=><span key={t} style={S.chip(form.app_type===t,appTypeColors[t])} onClick={()=>setForm(p=>({...p,app_type:t}))}>{t}</span>)}</div>
+        <label style={S.label}>Application Deadline</label>
+        <input type="date" style={S.input} value={form.app_deadline||""} onChange={e=>setForm(p=>({...p,app_deadline:e.target.value}))}/>
+        <label style={S.label}>Visit Notes (optional)</label>
+        <input style={S.input} placeholder="e.g. Loved the campus, felt right size" value={form.visit_notes||""} onChange={e=>setForm(p=>({...p,visit_notes:e.target.value}))}/>
         <button style={{...S.btn,marginTop:16}} onClick={saveSchool}>{editItem?"Save Changes":"Add School"}</button>
+      </Modal>}
+
+      {showModal==="test"&&<Modal title={editItem?"Edit Test Plan":"Add Test Plan"} onClose={closeModal}>
+        <label style={S.label}>Test Type</label>
+        <div>{["SAT","ACT","PSAT"].map(t=><span key={t} style={S.chip(form.test_type===t,COLORS.purple)} onClick={()=>setForm(p=>({...p,test_type:t}))}>{t}</span>)}</div>
+        <label style={S.label}>Target Test Date</label>
+        <input type="date" style={S.input} value={form.target_date||""} onChange={e=>setForm(p=>({...p,target_date:e.target.value}))}/>
+        <div style={S.row}>
+          <div style={S.col}><label style={S.label}>Attempt #</label><input type="number" style={S.input} placeholder="1" value={form.attempt_number||""} onChange={e=>setForm(p=>({...p,attempt_number:e.target.value}))}/></div>
+          <div style={S.col}><label style={S.label}>Target Score</label><input style={S.input} placeholder="e.g. 1400" value={form.target_score||""} onChange={e=>setForm(p=>({...p,target_score:e.target.value}))}/></div>
+        </div>
+        <label style={S.label}>Registration Status</label>
+        <div>
+          <span style={S.chip(form.registered===true,COLORS.green)} onClick={()=>setForm(p=>({...p,registered:true}))}>Registered</span>
+          <span style={S.chip(form.registered===false,COLORS.amber)} onClick={()=>setForm(p=>({...p,registered:false}))}>Not yet</span>
+        </div>
+        <label style={S.label}>Notes</label>
+        <input style={S.input} placeholder="Optional" value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
+        <button style={{...S.btn,marginTop:16}} onClick={saveTestPlan}>{editItem?"Save Changes":"Add Test Plan"}</button>
       </Modal>}
 
       {showModal==="score"&&<Modal title={editItem?"Edit Score":"Log SAT Score"} onClose={closeModal}>
@@ -1079,7 +1156,7 @@ Format:
 **WATCH FOR**
 [1-2 sentences on what to check at next reading and when to test]`;
 
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch("/api/brief", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1092,7 +1169,8 @@ Format:
 
       const data = await res.json();
       // Extract text from response — may include tool use blocks
-      const textBlocks = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
+      const textBlocks = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("
+");
       setBrief(textBlocks || "Unable to generate brief. Check your connection.");
     } catch(e) {
       setError("Could not generate pool brief: " + e.message);
@@ -1103,7 +1181,8 @@ Format:
   // Parse bold headers and bullets for display
   function renderBrief(text) {
     if(!text) return null;
-    return text.split('\n').map((line, i) => {
+    return text.split('
+').map((line, i) => {
       if(line.startsWith('**') && line.endsWith('**')) {
         return <div key={i} style={{fontSize:11,fontWeight:700,color:COLORS.blue,letterSpacing:"0.8px",textTransform:"uppercase",marginTop:16,marginBottom:6}}>{line.replace(/\*\*/g,'')}</div>;
       }
@@ -1532,14 +1611,9 @@ export default function App(){
           </div>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
             {gc.token
-              ?<div style={{width:8,height:8,borderRadius:"50%",background:COLORS.green}}/>
+              ?<div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:8,height:8,borderRadius:"50%",background:COLORS.green}}/><span style={{fontSize:11,color:COLORS.slate}}>Synced</span></div>
               :<button onClick={()=>setTab("schedule")} style={{background:COLORS.blue+"22",color:COLORS.blue,border:`1px solid ${COLORS.blue}44`,borderRadius:6,padding:"5px 10px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Connect Calendar</button>
             }
-            <div style={{display:"flex",gap:4}}>
-              {Object.entries(MEMBER_COLORS).slice(0,3).map(([name,color])=>(
-                <div key={name} style={{width:26,height:26,borderRadius:"50%",background:color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff"}}>{name[0]}</div>
-              ))}
-            </div>
           </div>
         </div>
       </div>
