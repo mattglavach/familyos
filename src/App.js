@@ -1337,6 +1337,8 @@ Keep the ENTIRE brief under 150 words total. Bullets only, no exceptions.`;
         </>
       )}
     </Modal>
+);
+}
 
 // ─── TREATMENT LOG MODAL ──────────────────────────────────────────────────────
 function TreatmentLogModal({last, recs, onSave, onClose}) {
