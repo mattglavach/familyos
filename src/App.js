@@ -126,16 +126,26 @@ const MEMBER_COLORS={
 // ─── SEED DATA ────────────────────────────────────────────────────────────────
 const SEED={
   pool_readings:[
-    {id:"7",date:"2026-06-17",ph:8.0,free_chlorine:11,salt:3350,cya:60,alkalinity:90,water_temp:null,swg_setting:null,notes:"Added chlorine and acid 2 days earlier. TA 90 ppm."},
-    {id:"6",date:"2026-06-15",ph:7.8,free_chlorine:3, salt:3450,cya:60,alkalinity:null,water_temp:null,swg_setting:null,notes:""},
-    {id:"5",date:"2026-06-12",ph:8.0,free_chlorine:4, salt:3450,cya:60,alkalinity:null,water_temp:null,swg_setting:null,notes:"CYA increased"},
-    {id:"4",date:"2026-06-10",ph:7.8,free_chlorine:2, salt:3300,cya:60,alkalinity:null,water_temp:null,swg_setting:null,notes:"Hot weather"},
-    {id:"3",date:"2026-06-04",ph:7.8,free_chlorine:5, salt:3450,cya:43,alkalinity:null,water_temp:null,swg_setting:54, notes:"SWG 54%"},
-    {id:"2",date:"2026-05-31",ph:8.0,free_chlorine:11,salt:3300,cya:null,alkalinity:null,water_temp:null,swg_setting:null,notes:"After party"},
+    {id:"7",date:"2026-06-17",ph:8.0,free_chlorine:5.5,cc:0,salt:3350,cya:60,alkalinity:90,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"K-2006: 11 drops FC. Acid added 2 days prior. TA 90 ppm (9 drops)."},
+    {id:"6",date:"2026-06-15",ph:7.8,free_chlorine:3.0,cc:0,salt:3450,cya:60,alkalinity:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:""},
+    {id:"5",date:"2026-06-12",ph:8.0,free_chlorine:4.0,cc:0,salt:3450,cya:60,alkalinity:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"CYA increased"},
+    {id:"4",date:"2026-06-10",ph:7.8,free_chlorine:2.0,cc:0,salt:3300,cya:60,alkalinity:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"Hot weather"},
+    {id:"3",date:"2026-06-04",ph:7.8,free_chlorine:5.0,cc:0,salt:3450,cya:43,alkalinity:null,water_temp:null,swg_setting:54,filter_pressure:null,pump_hours:null,notes:"SWG 54%"},
+    {id:"2",date:"2026-05-31",ph:8.0,free_chlorine:5.5,cc:0,salt:3300,cya:null,alkalinity:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"K-2006: 11 drops FC. After party."},
   ],
   pool_maintenance:[
     {id:"1",date:"2026-06-13",type:"Brushed walls & floor",notes:""},
     {id:"2",date:"2026-06-10",type:"Cleaned skimmer basket",notes:""},
+  ],
+  pool_schedule:[
+    {id:"1",title:"Check water level",last_completed:"2026-06-10",interval_days:7,notes:"SC evaporation heavy May–Sept"},
+    {id:"2",title:"Clean skimmer basket",last_completed:"2026-06-10",interval_days:7,notes:"Check same day after storms"},
+    {id:"3",title:"Brush walls & floor",last_completed:"2026-06-13",interval_days:7,notes:"Vinyl — prevents algae buildup"},
+    {id:"4",title:"Check cell flow switch",last_completed:"2026-05-15",interval_days:30,notes:"Pentair flow switch fails silently"},
+    {id:"5",title:"Inspect O-rings & lid",last_completed:"2026-05-15",interval_days:30,notes:"Salt accelerates O-ring wear"},
+    {id:"6",title:"Clean cartridge filter",last_completed:"2026-04-15",interval_days:60,notes:"Remove, hose off, reinstall"},
+    {id:"7",title:"Clean salt cell (IntelliChlor)",last_completed:"2026-03-01",interval_days:90,notes:"Inspect plates, soak in acid if scale"},
+    {id:"8",title:"Test calcium hardness",last_completed:"2026-01-01",interval_days:90,notes:"Vinyl target 150–250 ppm"},
   ],
   home_maintenance:[
     {id:"1",title:"HVAC Filter",last_completed:"2026-03-01",interval_days:90,notes:"16x25x1 filter"},
@@ -243,70 +253,173 @@ function calcLangelier(ph, alkalinity, calcium=CALCIUM_HARDNESS, waterTemp=82) {
   return Math.round(lsi * 100) / 100;
 }
 
+// FC effective at pH — chlorine effectiveness % by pH
+function fcEffectiveAtPH(ph) {
+  const effectiveness = {7.0:73, 7.2:63, 7.4:50, 7.6:37, 7.8:24, 8.0:14, 8.2:9};
+  const keys = Object.keys(effectiveness).map(Number).sort((a,b)=>a-b);
+  const nearest = keys.reduce((prev,curr) => Math.abs(curr-ph) < Math.abs(prev-ph) ? curr : prev);
+  return effectiveness[nearest] || 14;
+}
+
+// Recommended SWG % based on FC, CYA, temp, pump hours
+function calcTargetSWG(fc, cya, waterTemp, pumpHours) {
+  const targetFC = Math.max(3, (cya||60) * 0.075);
+  const hours = pumpHours || 8;
+  const tempBoost = (waterTemp && waterTemp > 85) ? 1.2 : 1.0;
+  // Base: 60% in SC summer, adjusted for pump hours
+  const base = Math.round(60 * tempBoost * (8 / hours));
+  if (fc > targetFC * 1.5) return Math.max(20, base - 20);
+  if (fc < targetFC * 0.5) return Math.min(100, base + 25);
+  return Math.min(100, base);
+}
+
 function getChemRecommendations(last, readings) {
   if(!last) return [];
   const recs = [];
   const shockMin = calcShockThreshold(last.cya);
   const burnRate = calcFCBurnRate(readings);
-  const swgRec = calcSWGRecommendation(last.free_chlorine, last.cya, last.water_temp);
   const acidOz = calcAcidDose(last.ph, 7.4, last.alkalinity);
   const lsi = calcLangelier(last.ph, last.alkalinity, CALCIUM_HARDNESS, last.water_temp);
+  const targetSWG = calcTargetSWG(last.free_chlorine, last.cya, last.water_temp, last.pump_hours);
+  const phEffective = last.ph ? fcEffectiveAtPH(last.ph) : null;
 
-  // pH
+  // pH — always first for SWG pools
   if(last.ph && last.ph > 7.6) {
     const oz = acidOz || "?";
-    recs.push({ priority:"high", param:"pH", icon:"🧪", action:`Add ~${oz} oz muriatic acid`, detail:`pH ${last.ph} → target 7.4. Pour slowly in front of return jets with pump running.`, color:COLORS.red });
+    const effNote = phEffective ? ` At pH ${last.ph} only ${phEffective}% of your chlorine is active.` : "";
+    recs.push({ priority:"high", param:"pH", icon:"🧪",
+      action:`Add ~${oz} oz muriatic acid`,
+      detail:`pH ${last.ph} → target 7.4. Pour slowly in front of return jets with pump running.${effNote} This is your #1 priority — fix pH before adjusting anything else.`,
+      color:COLORS.red });
   } else if(last.ph && last.ph < 7.2) {
-    recs.push({ priority:"high", param:"pH", icon:"🧪", action:"Add soda ash to raise pH", detail:`pH ${last.ph} is too low. Add ~12 oz soda ash per 0.2 pH rise per 10,000 gal.`, color:COLORS.red });
+    recs.push({ priority:"high", param:"pH", icon:"🧪",
+      action:"Add soda ash to raise pH",
+      detail:`pH ${last.ph} is too low. Add ~12 oz soda ash per 0.2 pH rise per 10,000 gal. Unusual for SWG pools — check for CO2 or acid overdose.`,
+      color:COLORS.red });
+  }
+
+  // CC — combined chlorine alert
+  if(last.cc !== null && last.cc !== undefined && last.cc > 0.5) {
+    recs.push({ priority:"high", param:"CC", icon:"⚠️",
+      action:`CC elevated at ${last.cc} ppm — raise FC to break point`,
+      detail:`Combined chlorine above 0.5 ppm means chloramines present. Raise SWG to 100% until FC reaches ${Math.round((last.cya||60)*0.4)} ppm (breakpoint). This is rare with SWG — check for algae or heavy bather load.`,
+      color:COLORS.red });
   }
 
   // FC shock threshold
   if(last.free_chlorine !== null && last.free_chlorine < shockMin) {
-    recs.push({ priority:"high", param:"FC", icon:"⚡", action:`FC below shock threshold — raise immediately`, detail:`FC ${last.free_chlorine} ppm is below minimum ${shockMin} ppm (CYA÷10). Chlorine is ineffective. Raise SWG to 100% or add liquid chlorine.`, color:COLORS.red });
-  } else if(last.free_chlorine > 10) {
-    recs.push({ priority:"med", param:"FC", icon:"🏊", action:"FC very high — lower SWG output", detail:`FC ${last.free_chlorine} ppm. Lower SWG to 30-40% and retest in 2 days. Safe to swim above 4 ppm.`, color:COLORS.amber });
+    recs.push({ priority:"high", param:"FC", icon:"⚡",
+      action:`FC ${last.free_chlorine} ppm — below minimum. Raise SWG to 90%`,
+      detail:`Minimum effective FC with CYA ${last.cya||60} ppm is ${shockMin} ppm (CYA÷10). Chlorine is not protecting your pool. Raise SWG to 90% immediately. If needed in <4 hours, add 1 gallon liquid chlorine as backup.`,
+      color:COLORS.red });
+  } else if(last.free_chlorine > 8) {
+    recs.push({ priority:"med", param:"FC", icon:"🏊",
+      action:`FC high at ${last.free_chlorine} ppm — lower SWG to ${Math.max(20,targetSWG-20)}%`,
+      detail:`Target FC is 4–5 ppm. Lower SWG output and retest in 48 hours. Safe to swim — FC above 4 ppm is fine.`,
+      color:COLORS.amber });
+  }
+
+  // SWG % recommendation
+  if(last.swg_setting) {
+    if(Math.abs(last.swg_setting - targetSWG) > 10) {
+      const dir = last.swg_setting > targetSWG ? "lower" : "raise";
+      recs.push({ priority:"med", param:"SWG", icon:"⚙️",
+        action:`${dir === "lower" ? "Lower" : "Raise"} SWG from ${last.swg_setting}% to ${targetSWG}%`,
+        detail:`Based on FC ${last.free_chlorine} ppm, CYA ${last.cya||60} ppm, and ${last.pump_hours||8} pump hours. ${last.pump_hours && last.pump_hours < 10 ? "Running pump overnight (8pm–8am) would improve FC production significantly." : ""}`,
+        color:COLORS.amber });
+    }
+  } else {
+    recs.push({ priority:"med", param:"SWG", icon:"⚙️",
+      action:`Set SWG to ~${targetSWG}% for current conditions`,
+      detail:`Recommended for FC ${last.free_chlorine} ppm, CYA ${last.cya||60} ppm in SC summer. Log your SWG setting each reading to improve this recommendation.`,
+      color:COLORS.blue });
+  }
+
+  // Pump schedule
+  if(!last.pump_hours || last.pump_hours < 10) {
+    recs.push({ priority:"med", param:"Pump", icon:"🕐",
+      action:"Switch to overnight pump schedule",
+      detail:`Running 8pm→8am (12 hrs) eliminates UV chlorine loss during peak SC sun hours. This alone can raise effective FC by 20-30% without changing SWG %. Set your timer: ON 8:00pm, OFF 8:00am.`,
+      color:COLORS.blue });
   }
 
   // CYA
-  if(last.cya && last.cya < 50) {
-    recs.push({ priority:"med", param:"CYA", icon:"☀️", action:"Add stabilizer (CYA)", detail:`CYA ${last.cya} ppm is low. Add ~${Math.round((70-last.cya)*17000/10000*1.3)} oz cyanuric acid to reach 70 ppm. Dissolve in bucket first.`, color:COLORS.amber });
+  if(last.cya && last.cya < 60) {
+    const ozNeeded = Math.round((70-last.cya)*POOL_GALLONS/1000000*10*134);
+    recs.push({ priority:"med", param:"CYA", icon:"☀️",
+      action:`Add stabilizer — CYA ${last.cya} ppm, target 70–75`,
+      detail:`Low CYA means UV burns your chlorine fast. Add ~${ozNeeded} oz (${Math.round(ozNeeded/16)} lbs) cyanuric acid. Dissolve in bucket of warm water first, pour in front of return jet. Retest in 48 hrs.`,
+      color:COLORS.amber });
   } else if(last.cya && last.cya > 80) {
-    recs.push({ priority:"med", param:"CYA", icon:"☀️", action:"CYA high — partial drain recommended", detail:`CYA ${last.cya} ppm. Above 80 ppm chlorine effectiveness drops. Drain 20% and refill to dilute.`, color:COLORS.amber });
+    recs.push({ priority:"med", param:"CYA", icon:"☀️",
+      action:`CYA ${last.cya} ppm — dilute by draining 15-20%`,
+      detail:`Above 80 ppm CYA locks up chlorine. Drain ~2,500 gallons and refill. Do not add more stabilizer.`,
+      color:COLORS.amber });
   }
 
   // Salt
   if(last.salt && last.salt < 3200) {
-    const bagsNeeded = Math.round((3400 - last.salt) * POOL_GALLONS / 1000000 / 8.34 * 1000 / 40);
-    recs.push({ priority:"med", param:"Salt", icon:"🧂", action:`Add ~${bagsNeeded} x 40lb bags of salt`, detail:`Salt ${last.salt} ppm is below Pentair minimum 3200 ppm. SWG efficiency dropping.`, color:COLORS.amber });
+    const lbsNeeded = Math.round((3400 - last.salt) * POOL_GALLONS / 1000000 * 8.34);
+    const bags = Math.ceil(lbsNeeded / 40);
+    recs.push({ priority:"med", param:"Salt", icon:"🧂",
+      action:`Add ${bags} x 40lb bag${bags!==1?"s":""} of salt`,
+      detail:`Salt ${last.salt} ppm is below Pentair IntelliChlor minimum 3200 ppm. Cell efficiency drops and may shut down. Use pool-grade NaCl only.`,
+      color:COLORS.amber });
+  } else if(last.salt && last.salt > 3800) {
+    recs.push({ priority:"med", param:"Salt", icon:"🧂",
+      action:`Salt high at ${last.salt} ppm — dilute by draining`,
+      detail:`Above 3800 ppm can damage Pentair cell. Drain 10% and refill with fresh water.`,
+      color:COLORS.amber });
   }
 
   // Alkalinity
   if(last.alkalinity && last.alkalinity < 80) {
-    recs.push({ priority:"med", param:"TA", icon:"⚗️", action:"Add sodium bicarbonate to raise TA", detail:`TA ${last.alkalinity} ppm is low. Add ~${Math.round((100-last.alkalinity)*17*0.6)} oz baking soda to reach 100 ppm.`, color:COLORS.amber });
+    const ozNeeded = Math.round((100-last.alkalinity)*POOL_GALLONS/1000000*1.5*128);
+    recs.push({ priority:"med", param:"TA", icon:"⚗️",
+      action:`Add ~${ozNeeded} oz baking soda to raise TA`,
+      detail:`TA ${last.alkalinity} ppm is low — pH will be unstable. Add sodium bicarbonate in front of return jets. Low TA is unusual for SWG pools; check for acid overdose.`,
+      color:COLORS.amber });
   } else if(last.alkalinity && last.alkalinity > 120) {
-    recs.push({ priority:"low", param:"TA", icon:"⚗️", action:"TA slightly high — aerate to lower", detail:`TA ${last.alkalinity} ppm. Run fountain or aerate to lower naturally, or add small muriatic acid doses.`, color:COLORS.blue });
+    recs.push({ priority:"low", param:"TA", icon:"⚗️",
+      action:"TA slightly high — add acid in small doses",
+      detail:`TA ${last.alkalinity} ppm. Your pH corrections will naturally lower TA over time. Don't chase TA independently.`,
+      color:COLORS.blue });
+  }
+
+  // Filter pressure
+  if(last.filter_pressure && last.filter_pressure > 20) {
+    recs.push({ priority:"med", param:"Filter", icon:"🔧",
+      action:`Filter pressure ${last.filter_pressure} psi — clean cartridge`,
+      detail:`Pressure above 20 psi indicates dirty filter. Remove cartridge, hose off thoroughly, reinstall. Clean filter improves SWG flow switch reliability.`,
+      color:COLORS.amber });
   }
 
   // Calcium — flag for testing
-  recs.push({ priority:"low", param:"Ca", icon:"🔬", action:"Test calcium hardness", detail:`Using estimated 200 ppm. Vinyl pools target 150-250 ppm. Test and update for accurate Langelier index.`, color:COLORS.slate });
+  recs.push({ priority:"low", param:"Ca", icon:"🔬",
+    action:"Test calcium hardness",
+    detail:`Using estimated 200 ppm. Vinyl pools target 150-250 ppm. Low calcium is corrosive to your Pentair cell over time.`,
+    color:COLORS.slate });
 
   // LSI
   if(lsi !== null) {
     const lsiStatus = lsi < -0.3 ? "corrosive" : lsi > 0.3 ? "scaling" : "balanced";
-    const lsiColor = lsi < -0.3 ? COLORS.amber : lsi > 0.3 ? COLORS.amber : COLORS.green;
     if(lsiStatus !== "balanced") {
-      recs.push({ priority:"low", param:"LSI", icon:"📊", action:`LSI ${lsi} — water is ${lsiStatus}`, detail:`Langelier index outside ±0.3. ${lsiStatus==="corrosive"?"Corrosive water may damage pump and vinyl.":"Scaling water may cloud and clog equipment."} Adjust pH and alkalinity.`, color:lsiColor });
+      recs.push({ priority:"low", param:"LSI", icon:"📊",
+        action:`LSI ${lsi} — water is ${lsiStatus}`,
+        detail:`${lsiStatus==="corrosive"?"Slightly corrosive water — monitor vinyl and equipment.":"Scaling tendency — watch for cloudiness or equipment deposits."} Adjust pH to 7.4 first.`,
+        color:COLORS.amber });
     }
   }
 
   // Burn rate
-  if(burnRate && Math.abs(burnRate.perDay) > 1.5) {
-    recs.push({ priority:"low", param:"FC", icon:"📉", action:`FC dropping ${Math.abs(burnRate.perDay)} ppm/day`, detail:`Lost ${Math.abs(burnRate.from - burnRate.to)} ppm over ${burnRate.days} days. High burn rate — check for algae, high bather load, or UV exposure.`, color:COLORS.slate });
-  }
-
-  // SWG
-  if(swgRec && swgRec.action !== "ok") {
-    recs.push({ priority:"low", param:"SWG", icon:"⚙️", action:swgRec.msg, detail:`Pentair IntelliChlor — adjust % output on controller.`, color:COLORS.slate });
+  if(burnRate) {
+    const dailyDrop = parseFloat(burnRate.perDay);
+    if(dailyDrop < -0.8) {
+      recs.push({ priority:"low", param:"FC", icon:"📉",
+        action:`FC dropping ${Math.abs(dailyDrop)} ppm/day — high demand`,
+        detail:`Lost ${Math.abs(burnRate.from-burnRate.to).toFixed(1)} ppm over ${burnRate.days} days. SC summer heat and UV are likely cause. Consider overnight pump schedule and CYA at 70-75 ppm.`,
+        color:COLORS.slate });
+    }
   }
 
   return recs;
@@ -905,103 +1018,327 @@ function HomeMgmt(){
   );
 }
 
+// ─── AI POOL BRIEF ───────────────────────────────────────────────────────────
+function PoolBrief({readings, onClose}) {
+  const [brief, setBrief]   = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]   = useState(null);
+
+  useEffect(() => { generateBrief(); }, []);
+
+  async function generateBrief() {
+    setLoading(true);
+    try {
+      // Build readings summary for Claude
+      const readingsSummary = readings.slice(0,8).map(r =>
+        `${r.date}: FC=${r.free_chlorine} ppm, CC=${r.cc??0}, pH=${r.ph}, Salt=${r.salt} ppm, CYA=${r.cya??'not tested'} ppm, TA=${r.alkalinity??'not tested'} ppm, Temp=${r.water_temp??'not logged'}°F, SWG=${r.swg_setting??'not logged'}%, Pump=${r.pump_hours??'not logged'} hrs, Filter pressure=${r.filter_pressure??'not logged'} psi. Notes: ${r.notes||'none'}`
+      ).join('\n');
+
+      const last = readings[0];
+      const acidOz = calcAcidDose(last?.ph, 7.4, last?.alkalinity);
+      const targetSWG = calcTargetSWG(last?.free_chlorine, last?.cya, last?.water_temp, last?.pump_hours);
+      const shockMin = calcShockThreshold(last?.cya);
+      const phEff = last?.ph ? fcEffectiveAtPH(last.ph) : null;
+      const today = new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
+
+      const prompt = `You are a friendly, knowledgeable pool advisor helping a homeowner in Summerville, South Carolina manage a 17,000 gallon vinyl inground salt water pool with a Pentair IntelliChlor SWG and cartridge filter. They test with a Taylor K-2006 FAS-DPD kit (FC readings in drops × 0.5 = ppm). Pump currently runs daytime.
+
+Today is ${today}. Here are all pool readings (most recent first):
+${readingsSummary}
+
+Chemistry context:
+- Current pH effectiveness: at pH ${last?.ph}, only ${phEff}% of chlorine is active
+- Shock threshold (CYA÷10): ${shockMin} ppm minimum FC
+- Acid needed to reach pH 7.4: ~${acidOz||'unknown'} oz muriatic acid  
+- Recommended SWG %: ~${targetSWG}%
+- Pool: vinyl, 17,000 gal, Pentair IntelliChlor, cartridge filter
+- Location: Summerville SC — hot humid summers, heavy UV exposure May-Sept
+
+Please search for current weather in Summerville SC and factor it into your advice.
+
+Write a pool brief in this exact format — plain English, like a knowledgeable pool guy texting advice. Be specific with numbers. Be direct. No fluff.
+
+Format:
+**WHAT'S BEEN HAPPENING**
+[2-3 sentences analyzing the trend across all readings — what pattern do you see, what's causing it]
+
+**WEATHER IMPACT**
+[1-2 sentences on current Summerville weather and how it affects the pool right now]
+
+**YOUR WATER RIGHT NOW**  
+[2-3 sentences on current chemistry status — be honest about what's good and what needs attention]
+
+**TODAY'S TREATMENT PLAN**
+• [specific action with exact dose if chemical]
+• [next action]
+• [etc — only what actually needs doing]
+
+**SWG & PUMP**
+[1-2 sentences on recommended SWG % and pump schedule. Be specific about switching to overnight.]
+
+**WATCH FOR**
+[1-2 sentences on what to check at next reading and when to test]`;
+
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1000,
+          tools: [{ type: "web_search_20250305", name: "web_search" }],
+          messages: [{ role: "user", content: prompt }]
+        })
+      });
+
+      const data = await res.json();
+      // Extract text from response — may include tool use blocks
+      const textBlocks = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("
+");
+      setBrief(textBlocks || "Unable to generate brief. Check your connection.");
+    } catch(e) {
+      setError("Could not generate pool brief: " + e.message);
+    }
+    setLoading(false);
+  }
+
+  // Parse bold headers and bullets for display
+  function renderBrief(text) {
+    if(!text) return null;
+    return text.split('
+').map((line, i) => {
+      if(line.startsWith('**') && line.endsWith('**')) {
+        return <div key={i} style={{fontSize:11,fontWeight:700,color:COLORS.blue,letterSpacing:"0.8px",textTransform:"uppercase",marginTop:16,marginBottom:6}}>{line.replace(/\*\*/g,'')}</div>;
+      }
+      if(line.startsWith('•') || line.startsWith('-')) {
+        return <div key={i} style={{fontSize:13,color:COLORS.white,lineHeight:1.6,marginBottom:4,paddingLeft:8}}>• {line.replace(/^[•-]\s*/,'')}</div>;
+      }
+      if(line.trim()==='') return <div key={i} style={{height:4}}/>;
+      return <div key={i} style={{fontSize:13,color:COLORS.slateLight,lineHeight:1.6,marginBottom:4}}>{line}</div>;
+    });
+  }
+
+  return (
+    <Modal title="🤖 Pool Brief" onClose={onClose}>
+      {loading && (
+        <div style={{textAlign:"center",padding:"40px 20px"}}>
+          <div style={{fontSize:14,color:COLORS.slate,marginBottom:8}}>Analyzing your pool history + Summerville weather…</div>
+          <div style={{fontSize:12,color:COLORS.slate}}>This takes about 10 seconds</div>
+        </div>
+      )}
+      {error && <div style={{fontSize:13,color:COLORS.red,padding:"20px 0"}}>{error}</div>}
+      {brief && !loading && (
+        <>
+          <div style={{background:COLORS.navyLight,borderRadius:10,padding:"14px 16px",marginBottom:16}}>
+            {renderBrief(brief)}
+          </div>
+          <button style={S.btn} onClick={generateBrief}>🔄 Regenerate</button>
+        </>
+      )}
+    </Modal>
+  );
+}
+
+// ─── TREATMENT LOG MODAL ──────────────────────────────────────────────────────
+function TreatmentLogModal({last, recs, onSave, onClose}) {
+  const [checked, setChecked] = useState({});
+  const [notes, setNotes]     = useState("");
+  const [saving, setSaving]   = useState(false);
+
+  const actionItems = recs.filter(r=>r.priority==="high"||r.priority==="med");
+
+  function toggle(i) { setChecked(p=>({...p,[i]:!p[i]})); }
+
+  async function save() {
+    setSaving(true);
+    const completedItems = actionItems.filter((_,i)=>checked[i]).map(r=>`${r.param}: ${r.action}`);
+    if(completedItems.length===0){setSaving(false);return;}
+    const treatmentNote = [
+      `Treatment applied — ${new Date().toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})}`,
+      `Starting chemistry: FC=${last?.free_chlorine} ppm, pH=${last?.ph}, Salt=${last?.salt} ppm, CYA=${last?.cya??'unknown'} ppm`,
+      ...completedItems,
+      notes ? `Notes: ${notes}` : null
+    ].filter(Boolean).join(' | ');
+    await onSave(treatmentNote);
+    setSaving(false);
+    onClose();
+  }
+
+  return (
+    <Modal title="Log Treatment" onClose={onClose}>
+      <div style={{fontSize:12,color:COLORS.slate,marginBottom:16,lineHeight:1.5}}>
+        Check off what you're doing today. This logs your treatment with starting chemistry values.
+      </div>
+      {actionItems.map((r,i)=>(
+        <div key={i} onClick={()=>toggle(i)} style={{...S.card,cursor:"pointer",borderLeft:`3px solid ${checked[i]?COLORS.green:r.color}`,marginBottom:8}}>
+          <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+            <div style={{width:20,height:20,borderRadius:6,border:`2px solid ${checked[i]?COLORS.green:COLORS.slate}`,background:checked[i]?COLORS.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:2}}>
+              {checked[i]&&<span style={{color:"#fff",fontSize:12}}>✓</span>}
+            </div>
+            <div>
+              <div style={{fontSize:13,fontWeight:600}}>{r.icon} {r.action}</div>
+              <div style={{fontSize:11,color:COLORS.slate,marginTop:3,lineHeight:1.5}}>{r.detail}</div>
+            </div>
+          </div>
+        </div>
+      ))}
+      <label style={{...S.label,marginTop:12}}>Additional notes</label>
+      <input style={S.input} placeholder="e.g. Added 1 quart muriatic acid, lowered SWG to 45%" value={notes} onChange={e=>setNotes(e.target.value)}/>
+      <button style={{...S.btn,marginTop:8,background:Object.values(checked).some(Boolean)?COLORS.green:COLORS.slate}} onClick={save} disabled={saving||!Object.values(checked).some(Boolean)}>
+        {saving?"Saving…":"Log Completed Treatment"}
+      </button>
+      {!Object.values(checked).some(Boolean) && <div style={{fontSize:11,color:COLORS.slate,textAlign:"center",marginTop:8}}>Check at least one item to log</div>}
+    </Modal>
+  );
+}
+
 // ─── POOL ─────────────────────────────────────────────────────────────────────
 function Pool(){
-  const readings                 = useTable("pool_readings","date");
-  const maint                    = useTable("pool_maintenance","date");
-  const [tab,setTab]             = useState("log");
+  const readings   = useTable("pool_readings","date");
+  const maintLog   = useTable("pool_maintenance","date");
+  const schedule   = useTable("pool_schedule","title",true);
+  const [tab,setTab]             = useState("dashboard");
   const [showLog,setShowLog]     = useState(false);
   const [showMaint,setShowMaint] = useState(false);
+  const [showBrief,setShowBrief] = useState(false);
+  const [showTreatment,setShowTreatment] = useState(false);
   const [editItem,setEditItem]   = useState(null);
   const [form,setForm]           = useState({});
+  const [useDrops,setUseDrops]   = useState(false);
   const [activeSwipe,setActiveSwipe] = useState(null);
 
   const PARAMS=[
     {k:"ph",           l:"pH",         unit:"",    target:"7.2–7.6"},
-    {k:"free_chlorine",l:"Free Cl",    unit:"ppm", target:"2–4"},
+    {k:"free_chlorine",l:"FC",         unit:"ppm", target:"4–6"},
+    {k:"cc",           l:"CC",         unit:"ppm", target:"0"},
     {k:"salt",         l:"Salt",       unit:"ppm", target:"3200–3600"},
-    {k:"cya",          l:"CYA",        unit:"ppm", target:"50–80"},
-    {k:"alkalinity",   l:"Alkalinity", unit:"ppm", target:"80–120"},
+    {k:"cya",          l:"CYA",        unit:"ppm", target:"70–75"},
+    {k:"alkalinity",   l:"TA",         unit:"ppm", target:"80–120"},
     {k:"water_temp",   l:"Temp",       unit:"°F",  target:"—"},
+    {k:"filter_pressure",l:"PSI",      unit:"psi", target:"<20"},
   ];
-  const last=readings.data[0];
-  const chemRecs=getChemRecommendations(last, readings.data);
-  const highPriorityRecs=chemRecs.filter(r=>r.priority==="high");
-  const otherRecs=chemRecs.filter(r=>r.priority!=="high");
-  const [showAllRecs,setShowAllRecs]=useState(false);
-  const [recTab,setRecTab]=useState("recs");
 
-  function openEditReading(r){setEditItem(r);setForm(r);setShowLog(true);setActiveSwipe(null);}
-  function openEditMaint(m){setEditItem(m);setForm(m);setShowMaint(true);setActiveSwipe(null);}
-  function closeLog(){setShowLog(false);setEditItem(null);setForm({});}
+  const last     = readings.data[0];
+  const chemRecs = getChemRecommendations(last, readings.data);
+  const highRecs = chemRecs.filter(r=>r.priority==="high");
+  const medRecs  = chemRecs.filter(r=>r.priority==="med");
+  const lowRecs  = chemRecs.filter(r=>r.priority==="low");
+  const [showLow,setShowLow] = useState(false);
+
+  function openEditReading(r){setEditItem(r);setForm({...r});setShowLog(true);setActiveSwipe(null);}
+  function openEditMaint(m){setEditItem(m);setForm({...m});setShowMaint(true);setActiveSwipe(null);}
+  function closeLog(){setShowLog(false);setEditItem(null);setForm({});setUseDrops(false);}
   function closeMaint(){setShowMaint(false);setEditItem(null);setForm({});}
 
+  async function markScheduleDone(item){ await schedule.update(item.id,{last_completed:TODAY_STR}); }
+
   async function saveReading(){
-    const row={date:form.date||TODAY_STR,ph:+form.ph||null,free_chlorine:+form.free_chlorine||null,salt:+form.salt||null,cya:+form.cya||null,alkalinity:+form.alkalinity||null,water_temp:+form.water_temp||null,swg_setting:+form.swg_setting||null,notes:form.notes||""};
+    let fc = form.free_chlorine ? +form.free_chlorine : null;
+    if(useDrops && fc) fc = Math.round(fc * 0.5 * 10) / 10;
+    const row={
+      date:form.date||TODAY_STR,
+      ph:+form.ph||null, free_chlorine:fc, cc:form.cc!==undefined&&form.cc!==''?+form.cc:null,
+      salt:+form.salt||null, cya:+form.cya||null, alkalinity:+form.alkalinity||null,
+      water_temp:+form.water_temp||null, swg_setting:+form.swg_setting||null,
+      filter_pressure:+form.filter_pressure||null, pump_hours:+form.pump_hours||null,
+      notes:form.notes||""
+    };
     if(editItem) await readings.update(editItem.id,row);
     else await readings.insert(row);
     closeLog();
   }
+
   async function saveMaint(){
     if(!form.type)return;
     const row={date:form.date||TODAY_STR,type:form.type,notes:form.notes||""};
-    if(editItem) await maint.update(editItem.id,row);
-    else await maint.insert(row);
+    if(editItem) await maintLog.update(editItem.id,row);
+    else await maintLog.insert(row);
     closeMaint();
   }
 
+  async function logTreatment(note){
+    await maintLog.insert({date:TODAY_STR,type:"Treatment applied",notes:note});
+  }
+
+  const schedSorted=[...schedule.data].sort((a,b)=>{
+    const o={overdue:0,"due-soon":1,ok:2};
+    return o[maintStatus(a)]-o[maintStatus(b)];
+  });
+
   return(
     <div style={S.screen}>
+      {/* AI Brief + Treatment buttons */}
+      <div style={{display:"flex",gap:8,marginBottom:12}}>
+        <button onClick={()=>setShowBrief(true)} style={{flex:1,background:COLORS.purple,color:"#fff",border:"none",borderRadius:10,padding:"12px 8px",fontSize:13,fontWeight:700,cursor:"pointer"}}>
+          🤖 Pool Brief
+        </button>
+        <button onClick={()=>setShowTreatment(true)} style={{flex:1,background:COLORS.green,color:"#fff",border:"none",borderRadius:10,padding:"12px 8px",fontSize:13,fontWeight:700,cursor:"pointer"}}>
+          ✓ Log Treatment
+        </button>
+      </div>
+
+      {/* Current status */}
       {last&&(
         <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
           <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:8}}>
             Last Reading — {formatDate(last.date)}{last.water_temp?` · ${last.water_temp}°F`:""}
+            {last.pump_hours?` · Pump ${last.pump_hours}h`:""}
           </div>
-          <div style={S.statGrid}>
-            {PARAMS.filter(p=>p.k!=="water_temp").map(p=>{
-              const s=poolStatus(p.k,last[p.k]);const c=statusColor(s);
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
+            {PARAMS.filter(p=>!["water_temp","filter_pressure","cc"].includes(p.k)).map(p=>{
+              const v=last[p.k];
+              const s=poolStatus(p.k,v);const col=statusColor(s);
               return(
-                <div key={p.k} style={S.statCell(c)}>
-                  <div style={{...S.statVal,color:s==="grey"?COLORS.slate:COLORS.white}}>{last[p.k]!==null&&last[p.k]!==undefined?last[p.k]:"—"}</div>
+                <div key={p.k} style={S.statCell(col)}>
+                  <div style={{...S.statVal,fontSize:15,color:s==="grey"?COLORS.slate:COLORS.white}}>{v!==null&&v!==undefined?v:"—"}</div>
                   <div style={S.statLbl}>{p.l}</div>
                   <div style={S.statTarget}>{p.target}</div>
                 </div>
               );
             })}
           </div>
-          {last.swg_setting&&<div style={{fontSize:12,color:COLORS.slate,marginTop:8}}>SWG: {last.swg_setting}% · Pentair IntelliChlor</div>}
+          <div style={{display:"flex",gap:12,marginTop:10,flexWrap:"wrap"}}>
+            {last.cc!==null&&last.cc!==undefined&&<div style={{fontSize:12,color:last.cc>0.5?COLORS.red:COLORS.green}}>CC: {last.cc} ppm {last.cc===0?"✓":""}</div>}
+            {last.filter_pressure&&<div style={{fontSize:12,color:last.filter_pressure>20?COLORS.amber:COLORS.slate}}>Filter: {last.filter_pressure} psi</div>}
+            {last.swg_setting&&<div style={{fontSize:12,color:COLORS.slate}}>SWG: {last.swg_setting}%</div>}
+          </div>
         </div>
       )}
 
-      {/* Chemistry Recommendations */}
-      {chemRecs.length>0&&(
-        <div style={{marginBottom:12}}>
-          {highPriorityRecs.map((r,i)=>(
-            <div key={i} style={{...S.statusCard(r.color),marginBottom:8}}>
-              <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>{r.icon} {r.action}</div>
-              <div style={{fontSize:12,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
-            </div>
-          ))}
-          {otherRecs.length>0&&(
-            <>
-              <button onClick={()=>setShowAllRecs(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"center",marginBottom:6}}>
-                {showAllRecs?"Hide":"Show"} {otherRecs.length} additional recommendation{otherRecs.length!==1?"s":""}
-              </button>
-              {showAllRecs&&otherRecs.map((r,i)=>(
-                <div key={i} style={{...S.statusCard(r.color),marginBottom:8}}>
-                  <div style={{fontSize:12,fontWeight:700,marginBottom:3}}>{r.icon} {r.action}</div>
-                  <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
-                </div>
-              ))}
-            </>
-          )}
+      {/* High priority recommendations */}
+      {highRecs.map((r,i)=>(
+        <div key={i} style={{...S.statusCard(r.color),marginBottom:8}}>
+          <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>{r.icon} {r.action}</div>
+          <div style={{fontSize:12,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
         </div>
-      )}
+      ))}
 
-      <div style={S.tabs}>
-        {["log","trends","maintenance"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
+      {/* Medium recommendations */}
+      {medRecs.map((r,i)=>(
+        <div key={i} style={{...S.statusCard(r.color),marginBottom:8}}>
+          <div style={{fontSize:12,fontWeight:700,marginBottom:3}}>{r.icon} {r.action}</div>
+          <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
+        </div>
+      ))}
+
+      {/* Low priority — expandable */}
+      {lowRecs.length>0&&(
+        <button onClick={()=>setShowLow(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"center",marginBottom:8}}>
+          {showLow?"Hide":"Show"} {lowRecs.length} additional note{lowRecs.length!==1?"s":""}
+        </button>
+      )}
+      {showLow&&lowRecs.map((r,i)=>(
+        <div key={i} style={{...S.statusCard(r.color),marginBottom:8}}>
+          <div style={{fontSize:11,fontWeight:700,marginBottom:3}}>{r.icon} {r.action}</div>
+          <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
+        </div>
+      ))}
+
+      {/* Tabs */}
+      <div style={{...S.tabs,marginTop:16}}>
+        {["log","trends","schedule","history"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
       </div>
 
+      {/* Log tab */}
       {tab==="log"&&<>
         {readings.loading?<Loading/>:<>
           <div style={S.swipeHint}>← swipe left to edit or delete</div>
@@ -1010,14 +1347,19 @@ function Pool(){
               onEdit={()=>openEditReading(r)}
               onDelete={()=>{if(window.confirm("Delete this reading?"))readings.remove(r.id);setActiveSwipe(null);}}
               style={S.card}>
-              <div style={{display:"flex",justifyContent:"space-between"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                 <div style={{fontSize:13,fontWeight:700}}>{formatDate(r.date)}</div>
-                <div style={{fontSize:12,color:COLORS.slate}}>{r.water_temp?`${r.water_temp}°F · `:""}SWG {r.swg_setting}%</div>
+                <div style={{fontSize:11,color:COLORS.slate,textAlign:"right"}}>
+                  {r.water_temp?`${r.water_temp}°F`:""}
+                  {r.swg_setting?` · SWG ${r.swg_setting}%`:""}
+                  {r.pump_hours?` · ${r.pump_hours}h`:""}
+                </div>
               </div>
-              <div style={{display:"flex",gap:14,marginTop:8,flexWrap:"wrap"}}>
-                {PARAMS.filter(p=>p.k!=="water_temp").map(p=>{
-                  const s=poolStatus(p.k,r[p.k]);
-                  return <div key={p.k}><div style={{fontSize:13,fontWeight:600,color:statusColor(s)}}>{r[p.k]}</div><div style={{fontSize:10,color:COLORS.slate}}>{p.l}</div></div>;
+              <div style={{display:"flex",gap:10,marginTop:8,flexWrap:"wrap"}}>
+                {PARAMS.filter(p=>!["water_temp","filter_pressure"].includes(p.k)).map(p=>{
+                  const v=r[p.k];
+                  const s=poolStatus(p.k,v);
+                  return <div key={p.k}><div style={{fontSize:13,fontWeight:600,color:v!==null&&v!==undefined?statusColor(s):COLORS.slate}}>{v!==null&&v!==undefined?v:"—"}</div><div style={{fontSize:10,color:COLORS.slate}}>{p.l}</div></div>;
                 })}
               </div>
               {r.notes&&<div style={{fontSize:11,color:COLORS.slate,marginTop:6,fontStyle:"italic"}}>{r.notes}</div>}
@@ -1027,76 +1369,136 @@ function Pool(){
         </>}
       </>}
 
+      {/* Trends tab */}
       {tab==="trends"&&<>
-        {PARAMS.filter(p=>p.k!=="water_temp").map(p=>{
-          const vals=[...readings.data].reverse().map(r=>r[p.k]);
+        {PARAMS.filter(p=>!["water_temp","filter_pressure","cc"].includes(p.k)).map(p=>{
+          const vals=[...readings.data].reverse().map(r=>r[p.k]).filter(v=>v!==null&&v!==undefined);
+          if(vals.length<2)return null;
           const latest=vals[vals.length-1];
-          const s=poolStatus(p.k,latest);const c=statusColor(s);
+          const s=poolStatus(p.k,latest);const col=statusColor(s);
           return(
             <div key={p.k} style={{...S.card,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
                 <div style={{fontSize:14,fontWeight:600}}>{p.l}</div>
                 <div style={{fontSize:11,color:COLORS.slate}}>Target: {p.target}{p.unit?" "+p.unit:""}</div>
-                <div style={{fontSize:20,fontWeight:700,color:c,marginTop:4}}>{latest}{p.unit&&p.k!=="salt"&&p.k!=="cya"&&p.k!=="alkalinity"?p.unit:p.unit?" ppm":""}</div>
+                <div style={{fontSize:20,fontWeight:700,color:col,marginTop:4}}>{latest}{p.unit&&p.unit!=="ppm"?p.unit:p.unit?" ppm":""}</div>
               </div>
               <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6}}>
-                <Sparkline data={vals} color={c}/>
-                <span style={{...S.badge(c),fontSize:10}}>{s==="green"?"OK":s==="amber"?"Watch":"Adjust"}</span>
+                <Sparkline data={vals} color={col}/>
+                <span style={{...S.badge(col),fontSize:10}}>{s==="green"?"OK":s==="amber"?"Watch":"Adjust"}</span>
               </div>
             </div>
           );
         })}
       </>}
 
-      {tab==="maintenance"&&<>
-        {maint.loading?<Loading/>:<>
+      {/* Schedule tab */}
+      {tab==="schedule"&&<>
+        {schedule.loading?<Loading/>:<>
           <div style={S.swipeHint}>← swipe left to edit or delete</div>
-          {maint.data.map(m=>(
-            <SwipeCard key={m.id} id={m.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
-              onEdit={()=>openEditMaint(m)}
-              onDelete={()=>{if(window.confirm("Delete this entry?"))maint.remove(m.id);setActiveSwipe(null);}}
-              style={S.card}>
-              <div style={{fontSize:13,fontWeight:600}}>{m.type}</div>
-              <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>{formatDate(m.date)}{m.notes?` · ${m.notes}`:""}</div>
-            </SwipeCard>
-          ))}
-          <button style={S.btn} onClick={()=>{setForm({date:TODAY_STR});setShowMaint(true);}}>+ Log Maintenance</button>
+          {schedSorted.map(item=>{
+            const st=maintStatus(item);const color=maintColor(st);
+            const nd=nextDueDate(item.last_completed,item.interval_days);
+            const days=daysBetween(nd);
+            const pct=Math.max(0,100-(days/item.interval_days)*100);
+            return(
+              <SwipeCard key={item.id} id={item.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
+                onEdit={()=>{setEditItem(item);setForm(item);setShowMaint(true);}}
+                onDelete={()=>{if(window.confirm("Remove this item?"))schedule.remove(item.id);setActiveSwipe(null);}}
+                style={S.statusCard(color)}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:14,fontWeight:600}}>{item.title}</div>
+                    <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>
+                      {st==="overdue"?`Overdue by ${-days}d`:st==="due-soon"?`Due in ${days}d`:`Due ${formatDate(nd)}`}
+                      {item.notes?` · ${item.notes}`:""}
+                    </div>
+                    <div style={S.progress}><div style={S.progressFill(pct,color)}/></div>
+                  </div>
+                  <button style={{...S.btnGreen,marginLeft:12}} onClick={()=>markScheduleDone(item)}>Done ✓</button>
+                </div>
+              </SwipeCard>
+            );
+          })}
+          <button style={S.btn} onClick={()=>{setForm({});setShowMaint(true);}}>+ Add Item</button>
         </>}
       </>}
 
+      {/* History tab — maintenance log */}
+      {tab==="history"&&<>
+        {maintLog.loading?<Loading/>:<>
+          <div style={S.swipeHint}>← swipe left to edit or delete</div>
+          {maintLog.data.map(m=>(
+            <SwipeCard key={m.id} id={m.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
+              onEdit={()=>openEditMaint(m)}
+              onDelete={()=>{if(window.confirm("Delete entry?"))maintLog.remove(m.id);setActiveSwipe(null);}}
+              style={S.card}>
+              <div style={{fontSize:12,fontWeight:700,color:m.type==="Treatment applied"?COLORS.green:COLORS.white}}>{m.type}</div>
+              <div style={{fontSize:11,color:COLORS.slate,marginTop:3}}>{formatDate(m.date)}</div>
+              {m.notes&&<div style={{fontSize:11,color:COLORS.slate,marginTop:4,lineHeight:1.5,fontStyle:"italic"}}>{m.notes}</div>}
+            </SwipeCard>
+          ))}
+          <button style={S.btn} onClick={()=>{setForm({date:TODAY_STR});setShowMaint(true);}}>+ Log Entry</button>
+        </>}
+      </>}
+
+      {/* Log Reading Modal */}
       {showLog&&<Modal title={editItem?"Edit Reading":"Log Pool Reading"} onClose={closeLog}>
         <label style={S.label}>Date</label>
         <input type="date" style={S.input} value={form.date||""} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/>
+
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+          <label style={{...S.label,marginBottom:0}}>Free Chlorine</label>
+          <div style={{display:"flex",gap:6}}>
+            <span style={S.chip(!useDrops,COLORS.blue)} onClick={()=>setUseDrops(false)}>ppm</span>
+            <span style={S.chip(useDrops,COLORS.purple)} onClick={()=>setUseDrops(true)}>K-2006 drops</span>
+          </div>
+        </div>
+        <input type="number" step="0.5" style={S.input} placeholder={useDrops?"e.g. 11 drops (= 5.5 ppm)":"e.g. 5.5"} value={form.free_chlorine||""} onChange={e=>setForm(p=>({...p,free_chlorine:e.target.value}))}/>
+        {useDrops&&form.free_chlorine&&<div style={{fontSize:11,color:COLORS.purple,marginTop:-6,marginBottom:8}}>= {(+form.free_chlorine*0.5).toFixed(1)} ppm FC</div>}
+
+        <label style={S.label}>CC (Combined Chlorine)</label>
+        <input type="number" step="0.5" style={S.input} placeholder="e.g. 0 (K-2006 drops × 0.5)" value={form.cc!==undefined?form.cc:""} onChange={e=>setForm(p=>({...p,cc:e.target.value}))}/>
+
         <div style={S.row}>
           <div style={S.col}><label style={S.label}>pH</label><input type="number" step="0.1" style={S.input} placeholder="7.4" value={form.ph||""} onChange={e=>setForm(p=>({...p,ph:e.target.value}))}/></div>
-          <div style={S.col}><label style={S.label}>Free Cl (ppm)</label><input type="number" step="0.1" style={S.input} placeholder="3.0" value={form.free_chlorine||""} onChange={e=>setForm(p=>({...p,free_chlorine:e.target.value}))}/></div>
-        </div>
-        <div style={S.row}>
           <div style={S.col}><label style={S.label}>Salt (ppm)</label><input type="number" style={S.input} placeholder="3400" value={form.salt||""} onChange={e=>setForm(p=>({...p,salt:e.target.value}))}/></div>
-          <div style={S.col}><label style={S.label}>CYA (ppm)</label><input type="number" style={S.input} placeholder="70" value={form.cya||""} onChange={e=>setForm(p=>({...p,cya:e.target.value}))}/></div>
         </div>
         <div style={S.row}>
-          <div style={S.col}><label style={S.label}>Alkalinity (ppm)</label><input type="number" style={S.input} placeholder="95" value={form.alkalinity||""} onChange={e=>setForm(p=>({...p,alkalinity:e.target.value}))}/></div>
-          <div style={S.col}><label style={S.label}>Water Temp (°F)</label><input type="number" style={S.input} placeholder="84" value={form.water_temp||""} onChange={e=>setForm(p=>({...p,water_temp:e.target.value}))}/></div>
+          <div style={S.col}><label style={S.label}>CYA (ppm)</label><input type="number" style={S.input} placeholder="70" value={form.cya||""} onChange={e=>setForm(p=>({...p,cya:e.target.value}))}/></div>
+          <div style={S.col}><label style={S.label}>TA (ppm)</label><input type="number" style={S.input} placeholder="90" value={form.alkalinity||""} onChange={e=>setForm(p=>({...p,alkalinity:e.target.value}))}/></div>
         </div>
-        <label style={S.label}>SWG Setting (%)</label>
-        <input type="number" style={S.input} placeholder="60" value={form.swg_setting||""} onChange={e=>setForm(p=>({...p,swg_setting:e.target.value}))}/>
+        <div style={S.row}>
+          <div style={S.col}><label style={S.label}>Water Temp (°F)</label><input type="number" style={S.input} placeholder="86" value={form.water_temp||""} onChange={e=>setForm(p=>({...p,water_temp:e.target.value}))}/></div>
+          <div style={S.col}><label style={S.label}>Filter Pressure (psi)</label><input type="number" style={S.input} placeholder="12" value={form.filter_pressure||""} onChange={e=>setForm(p=>({...p,filter_pressure:e.target.value}))}/></div>
+        </div>
+        <div style={S.row}>
+          <div style={S.col}><label style={S.label}>SWG Setting (%)</label><input type="number" style={S.input} placeholder="60" value={form.swg_setting||""} onChange={e=>setForm(p=>({...p,swg_setting:e.target.value}))}/></div>
+          <div style={S.col}><label style={S.label}>Pump Hours/Day</label><input type="number" style={S.input} placeholder="8" value={form.pump_hours||""} onChange={e=>setForm(p=>({...p,pump_hours:e.target.value}))}/></div>
+        </div>
         <label style={S.label}>Notes</label>
         <input style={S.input} placeholder="Optional" value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
         <button style={{...S.btn,marginTop:8}} onClick={saveReading}>{editItem?"Save Changes":"Save Reading"}</button>
       </Modal>}
 
-      {showMaint&&<Modal title={editItem?"Edit Entry":"Log Pool Maintenance"} onClose={closeMaint}>
+      {/* Maintenance log / schedule modal */}
+      {showMaint&&<Modal title={editItem?"Edit Entry":"Log Pool Entry"} onClose={closeMaint}>
         <label style={S.label}>Date</label>
-        <input type="date" style={S.input} value={form.date||""} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/>
+        <input type="date" style={S.input} value={form.date||form.last_completed||""} onChange={e=>setForm(p=>({...p,date:e.target.value,last_completed:e.target.value}))}/>
         <label style={S.label}>Type</label>
-        {["Brushed walls & floor","Cleaned skimmer basket","Backwashed filter","Added salt","Shocked pool","Cleaned filter cartridge","Other"].map(t=>(
+        {["Check water level","Clean skimmer basket","Brushed walls & floor","Added salt","Cleaned cartridge filter","Cleaned salt cell","Checked flow switch","Inspected O-rings","Rain event","Other"].map(t=>(
           <span key={t} style={S.chip(form.type===t,COLORS.blue)} onClick={()=>setForm(p=>({...p,type:t}))}>{t}</span>
         ))}
         <label style={{...S.label,marginTop:8}}>Notes (optional)</label>
         <input style={S.input} placeholder="Any details" value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
         <button style={{...S.btn,marginTop:8}} onClick={saveMaint}>{editItem?"Save Changes":"Save"}</button>
       </Modal>}
+
+      {/* AI Brief Modal */}
+      {showBrief&&<PoolBrief readings={readings.data} onClose={()=>setShowBrief(false)}/>}
+
+      {/* Treatment Log Modal */}
+      {showTreatment&&<TreatmentLogModal last={last} recs={chemRecs} onSave={logTreatment} onClose={()=>setShowTreatment(false)}/>}
     </div>
   );
 }
