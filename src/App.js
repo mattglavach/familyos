@@ -173,14 +173,144 @@ function formatDate(s){return new Date(s+"T12:00:00").toLocaleDateString("en-US"
 function formatDateFull(s){return new Date(s+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});}
 function formatToday(){return new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});}
 function poolStatus(param,value){
+  if(value===null||value===undefined||isNaN(value))return"grey";
   const ranges={ph:{low:7.2,goodHigh:7.6,high:7.8},free_chlorine:{low:1.5,goodHigh:4.0,high:5.0},salt:{low:3200,goodHigh:3600,high:3800},cya:{low:50,goodHigh:80,high:90},alkalinity:{low:80,goodHigh:120,high:140}};
   const r=ranges[param];if(!r)return"green";
   if(value<r.low||value>r.high)return"red";
   if(value<=r.goodHigh)return"green";return"amber";
 }
-function statusColor(s){return s==="red"?COLORS.red:s==="amber"?COLORS.amber:COLORS.green;}
+function statusColor(s){return s==="red"?COLORS.red:s==="amber"?COLORS.amber:s==="grey"?COLORS.slate:COLORS.green;}
 function maintStatus(item){const days=daysBetween(nextDueDate(item.last_completed,item.interval_days));if(days<0)return"overdue";if(days<=7)return"due-soon";return"ok";}
 function maintColor(s){return s==="overdue"?COLORS.red:s==="due-soon"?COLORS.amber:COLORS.green;}
+
+// ─── POOL CHEMISTRY ENGINE ────────────────────────────────────────────────────
+const POOL_GALLONS = 17000;
+const CALCIUM_HARDNESS = 200; // placeholder — vinyl pool, test and update
+
+function calcAcidDose(currentPH, targetPH=7.4, alkalinity=90, gallons=POOL_GALLONS) {
+  // Muriatic acid (31.45%) dose in oz for 17,000 gal vinyl pool
+  // Each oz of 31.45% muriatic acid lowers pH by ~0.1 in 10,000 gal at alk 100
+  if(!currentPH || currentPH <= targetPH) return null;
+  const phDrop = currentPH - targetPH;
+  const alkFactor = (alkalinity || 90) / 100; // higher alk = more acid needed
+  const baseOzPer10k = phDrop * 12 * alkFactor;
+  const oz = Math.round(baseOzPer10k * (gallons / 10000));
+  return oz;
+}
+
+function calcSWGRecommendation(fc, cya, waterTemp) {
+  // Target FC for SWG = 7.5% of CYA (TFPC method)
+  const effectiveCYA = cya || 60;
+  const targetFC = Math.max(2, effectiveCYA * 0.075);
+  if(fc === null || fc === undefined) return null;
+  // Adjust for temp: above 85°F increase by 10-20%
+  const tempMultiplier = (waterTemp && waterTemp > 85) ? 1.15 : 1.0;
+  if(fc > targetFC * 1.5) return { action:"lower", pct: null, msg:`FC is high (${fc} ppm). Lower SWG output or let it come down naturally. Target: ${targetFC.toFixed(1)} ppm` };
+  if(fc < targetFC * 0.5) return { action:"raise", pct: null, msg:`FC critically low (${fc} ppm). Raise SWG to 100% temporarily. Minimum safe FC: ${targetFC.toFixed(1)} ppm` };
+  return { action:"ok", pct: null, msg:`FC is in range. Maintain current SWG setting.` };
+}
+
+function calcShockThreshold(cya) {
+  // TFPC: minimum FC = CYA / 10 to maintain effectiveness
+  const effectiveCYA = cya || 60;
+  return Math.round(effectiveCYA / 10);
+}
+
+function calcFCBurnRate(readings) {
+  // FC drop per day between last two readings
+  if(!readings || readings.length < 2) return null;
+  const r1 = readings[0], r2 = readings[1];
+  if(r1.free_chlorine === null || r2.free_chlorine === null) return null;
+  const days = Math.abs(daysBetween(r2.date) - daysBetween(r1.date));
+  if(days === 0) return null;
+  const drop = r2.free_chlorine - r1.free_chlorine;
+  return { perDay: (drop / days).toFixed(1), days, from: r2.free_chlorine, to: r1.free_chlorine };
+}
+
+function calcLangelier(ph, alkalinity, calcium=CALCIUM_HARDNESS, waterTemp=82) {
+  // Langelier Saturation Index = pH - pHs
+  // pHs = pK2 - pKs + p[Ca] + p[Alk]
+  if(!ph || !alkalinity) return null;
+  const tempF = waterTemp || 82;
+  const tempC = (tempF - 32) * 5/9;
+  // Temperature factor
+  const tf = Math.log10(tempC + 273) * 2.5 - 0.655;
+  const pCa = -Math.log10(calcium / 100000);
+  const pAlk = -Math.log10(alkalinity / 1000000 / (6.17e-11 / 6.17e-8));
+  const pHs = tf + pCa + (-Math.log10(alkalinity * 1e-6));
+  // Simplified LSI
+  const lsi = ph - (12.1 - Math.log10(calcium) - Math.log10(alkalinity) + (0.009 * tempF));
+  return Math.round(lsi * 100) / 100;
+}
+
+function getChemRecommendations(last, readings) {
+  if(!last) return [];
+  const recs = [];
+  const shockMin = calcShockThreshold(last.cya);
+  const burnRate = calcFCBurnRate(readings);
+  const swgRec = calcSWGRecommendation(last.free_chlorine, last.cya, last.water_temp);
+  const acidOz = calcAcidDose(last.ph, 7.4, last.alkalinity);
+  const lsi = calcLangelier(last.ph, last.alkalinity, CALCIUM_HARDNESS, last.water_temp);
+
+  // pH
+  if(last.ph && last.ph > 7.6) {
+    const oz = acidOz || "?";
+    recs.push({ priority:"high", param:"pH", icon:"🧪", action:`Add ~${oz} oz muriatic acid`, detail:`pH ${last.ph} → target 7.4. Pour slowly in front of return jets with pump running.`, color:COLORS.red });
+  } else if(last.ph && last.ph < 7.2) {
+    recs.push({ priority:"high", param:"pH", icon:"🧪", action:"Add soda ash to raise pH", detail:`pH ${last.ph} is too low. Add ~12 oz soda ash per 0.2 pH rise per 10,000 gal.`, color:COLORS.red });
+  }
+
+  // FC shock threshold
+  if(last.free_chlorine !== null && last.free_chlorine < shockMin) {
+    recs.push({ priority:"high", param:"FC", icon:"⚡", action:`FC below shock threshold — raise immediately`, detail:`FC ${last.free_chlorine} ppm is below minimum ${shockMin} ppm (CYA÷10). Chlorine is ineffective. Raise SWG to 100% or add liquid chlorine.`, color:COLORS.red });
+  } else if(last.free_chlorine > 10) {
+    recs.push({ priority:"med", param:"FC", icon:"🏊", action:"FC very high — lower SWG output", detail:`FC ${last.free_chlorine} ppm. Lower SWG to 30-40% and retest in 2 days. Safe to swim above 4 ppm.`, color:COLORS.amber });
+  }
+
+  // CYA
+  if(last.cya && last.cya < 50) {
+    recs.push({ priority:"med", param:"CYA", icon:"☀️", action:"Add stabilizer (CYA)", detail:`CYA ${last.cya} ppm is low. Add ~${Math.round((70-last.cya)*17000/10000*1.3)} oz cyanuric acid to reach 70 ppm. Dissolve in bucket first.`, color:COLORS.amber });
+  } else if(last.cya && last.cya > 80) {
+    recs.push({ priority:"med", param:"CYA", icon:"☀️", action:"CYA high — partial drain recommended", detail:`CYA ${last.cya} ppm. Above 80 ppm chlorine effectiveness drops. Drain 20% and refill to dilute.`, color:COLORS.amber });
+  }
+
+  // Salt
+  if(last.salt && last.salt < 3200) {
+    const bagsNeeded = Math.round((3400 - last.salt) * POOL_GALLONS / 1000000 / 8.34 * 1000 / 40);
+    recs.push({ priority:"med", param:"Salt", icon:"🧂", action:`Add ~${bagsNeeded} x 40lb bags of salt`, detail:`Salt ${last.salt} ppm is below Pentair minimum 3200 ppm. SWG efficiency dropping.`, color:COLORS.amber });
+  }
+
+  // Alkalinity
+  if(last.alkalinity && last.alkalinity < 80) {
+    recs.push({ priority:"med", param:"TA", icon:"⚗️", action:"Add sodium bicarbonate to raise TA", detail:`TA ${last.alkalinity} ppm is low. Add ~${Math.round((100-last.alkalinity)*17*0.6)} oz baking soda to reach 100 ppm.`, color:COLORS.amber });
+  } else if(last.alkalinity && last.alkalinity > 120) {
+    recs.push({ priority:"low", param:"TA", icon:"⚗️", action:"TA slightly high — aerate to lower", detail:`TA ${last.alkalinity} ppm. Run fountain or aerate to lower naturally, or add small muriatic acid doses.`, color:COLORS.blue });
+  }
+
+  // Calcium — flag for testing
+  recs.push({ priority:"low", param:"Ca", icon:"🔬", action:"Test calcium hardness", detail:`Using estimated 200 ppm. Vinyl pools target 150-250 ppm. Test and update for accurate Langelier index.`, color:COLORS.slate });
+
+  // LSI
+  if(lsi !== null) {
+    const lsiStatus = lsi < -0.3 ? "corrosive" : lsi > 0.3 ? "scaling" : "balanced";
+    const lsiColor = lsi < -0.3 ? COLORS.amber : lsi > 0.3 ? COLORS.amber : COLORS.green;
+    if(lsiStatus !== "balanced") {
+      recs.push({ priority:"low", param:"LSI", icon:"📊", action:`LSI ${lsi} — water is ${lsiStatus}`, detail:`Langelier index outside ±0.3. ${lsiStatus==="corrosive"?"Corrosive water may damage pump and vinyl.":"Scaling water may cloud and clog equipment."} Adjust pH and alkalinity.`, color:lsiColor });
+    }
+  }
+
+  // Burn rate
+  if(burnRate && Math.abs(burnRate.perDay) > 1.5) {
+    recs.push({ priority:"low", param:"FC", icon:"📉", action:`FC dropping ${Math.abs(burnRate.perDay)} ppm/day`, detail:`Lost ${Math.abs(burnRate.from - burnRate.to)} ppm over ${burnRate.days} days. High burn rate — check for algae, high bather load, or UV exposure.`, color:COLORS.slate });
+  }
+
+  // SWG
+  if(swgRec && swgRec.action !== "ok") {
+    recs.push({ priority:"low", param:"SWG", icon:"⚙️", action:swgRec.msg, detail:`Pentair IntelliChlor — adjust % output on controller.`, color:COLORS.slate });
+  }
+
+  return recs;
+}
 
 // ─── STYLES ───────────────────────────────────────────────────────────────────
 const S={
@@ -795,6 +925,11 @@ function Pool(){
     {k:"water_temp",   l:"Temp",       unit:"°F",  target:"—"},
   ];
   const last=readings.data[0];
+  const chemRecs=getChemRecommendations(last, readings.data);
+  const highPriorityRecs=chemRecs.filter(r=>r.priority==="high");
+  const otherRecs=chemRecs.filter(r=>r.priority!=="high");
+  const [showAllRecs,setShowAllRecs]=useState(false);
+  const [recTab,setRecTab]=useState("recs");
 
   function openEditReading(r){setEditItem(r);setForm(r);setShowLog(true);setActiveSwipe(null);}
   function openEditMaint(m){setEditItem(m);setForm(m);setShowMaint(true);setActiveSwipe(null);}
@@ -802,7 +937,7 @@ function Pool(){
   function closeMaint(){setShowMaint(false);setEditItem(null);setForm({});}
 
   async function saveReading(){
-    const row={date:form.date||TODAY_STR,ph:+form.ph,free_chlorine:+form.free_chlorine,salt:+form.salt,cya:+form.cya,alkalinity:+form.alkalinity,water_temp:+form.water_temp||null,swg_setting:+form.swg_setting||null,notes:form.notes||""};
+    const row={date:form.date||TODAY_STR,ph:+form.ph||null,free_chlorine:+form.free_chlorine||null,salt:+form.salt||null,cya:+form.cya||null,alkalinity:+form.alkalinity||null,water_temp:+form.water_temp||null,swg_setting:+form.swg_setting||null,notes:form.notes||""};
     if(editItem) await readings.update(editItem.id,row);
     else await readings.insert(row);
     closeLog();
@@ -818,17 +953,48 @@ function Pool(){
   return(
     <div style={S.screen}>
       {last&&(
-        <div style={{...S.card,background:COLORS.navyLight,marginBottom:16}}>
+        <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
           <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:8}}>
             Last Reading — {formatDate(last.date)}{last.water_temp?` · ${last.water_temp}°F`:""}
           </div>
           <div style={S.statGrid}>
             {PARAMS.filter(p=>p.k!=="water_temp").map(p=>{
               const s=poolStatus(p.k,last[p.k]);const c=statusColor(s);
-              return(<div key={p.k} style={S.statCell(c)}><div style={S.statVal}>{last[p.k]}</div><div style={S.statLbl}>{p.l}</div><div style={S.statTarget}>{p.target}</div></div>);
+              return(
+                <div key={p.k} style={S.statCell(c)}>
+                  <div style={{...S.statVal,color:s==="grey"?COLORS.slate:COLORS.white}}>{last[p.k]!==null&&last[p.k]!==undefined?last[p.k]:"—"}</div>
+                  <div style={S.statLbl}>{p.l}</div>
+                  <div style={S.statTarget}>{p.target}</div>
+                </div>
+              );
             })}
           </div>
           {last.swg_setting&&<div style={{fontSize:12,color:COLORS.slate,marginTop:8}}>SWG: {last.swg_setting}% · Pentair IntelliChlor</div>}
+        </div>
+      )}
+
+      {/* Chemistry Recommendations */}
+      {chemRecs.length>0&&(
+        <div style={{marginBottom:12}}>
+          {highPriorityRecs.map((r,i)=>(
+            <div key={i} style={{...S.statusCard(r.color),marginBottom:8}}>
+              <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>{r.icon} {r.action}</div>
+              <div style={{fontSize:12,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
+            </div>
+          ))}
+          {otherRecs.length>0&&(
+            <>
+              <button onClick={()=>setShowAllRecs(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"center",marginBottom:6}}>
+                {showAllRecs?"Hide":"Show"} {otherRecs.length} additional recommendation{otherRecs.length!==1?"s":""}
+              </button>
+              {showAllRecs&&otherRecs.map((r,i)=>(
+                <div key={i} style={{...S.statusCard(r.color),marginBottom:8}}>
+                  <div style={{fontSize:12,fontWeight:700,marginBottom:3}}>{r.icon} {r.action}</div>
+                  <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
+                </div>
+              ))}
+            </>
+          )}
         </div>
       )}
 
