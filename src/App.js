@@ -242,7 +242,6 @@ function nextTestDue(readings, paramKey, intervalDays) {
 // Compare current value to the previous reading where this param was tested
 function trendDirection(readings, paramKey, currentValue) {
   if (currentValue === null || currentValue === undefined) return null;
-  // skip the first (current) reading, find next one with a value
   for (let i = 1; i < readings.length; i++) {
     const v = readings[i][paramKey];
     if (v !== null && v !== undefined) {
@@ -274,7 +273,6 @@ function formatMoneyShort(n) {
   return formatMoney(n);
 }
 
-// Future value of current balance + monthly contributions compounding monthly
 function futureValue(presentValue, monthlyContribution, annualRatePct, years) {
   const r = annualRatePct / 100 / 12;
   const n = years * 12;
@@ -299,14 +297,12 @@ function calcRetirementProjection(accounts, assumptions) {
     projected: futureValue(totalBalance, totalMonthly, s.rate, years)
   }));
 
-  // Target need: simplified 4%-rule style — spending minus SS/healthcare offset, divided by withdrawal rate
   const netAnnualNeed = Math.max(0, assumptions.annual_retirement_spending - assumptions.social_security_estimate);
   const targetNumber = netAnnualNeed / (assumptions.withdrawal_rate_pct/100);
 
   const moderateProjected = scenarios.find(s=>s.label==="Moderate").projected;
   const gap = targetNumber - moderateProjected;
 
-  // Monthly contribution needed to close gap at moderate return
   const r = 8/100/12;
   const n = years*12;
   const fvOfCurrent = totalBalance * Math.pow(1+r, n);
@@ -330,10 +326,9 @@ function calcCollegeProjection(savings, goal) {
   return { projected, gap, years, monthlyNeeded };
 }
 
-// Standard amortization — months remaining given balance, rate, payment
 function calcPayoffMonths(balance, annualRatePct, monthlyPayment) {
   const r = annualRatePct/100/12;
-  if (monthlyPayment <= balance*r) return null; // payment doesn't cover interest
+  if (monthlyPayment <= balance*r) return null;
   if (r === 0) return Math.ceil(balance/monthlyPayment);
   const months = Math.log(monthlyPayment/(monthlyPayment - balance*r)) / Math.log(1+r);
   return Math.ceil(months);
@@ -356,25 +351,21 @@ function staleness(lastUpdated, thresholdDays=30) {
 
 // ─── POOL CHEMISTRY ENGINE ────────────────────────────────────────────────────
 const POOL_GALLONS = 17000;
-const CALCIUM_HARDNESS = 200; // placeholder — vinyl pool, test and update
+const CALCIUM_HARDNESS = 200;
 
 function calcAcidDose(currentPH, targetPH=7.4, alkalinity=90, gallons=POOL_GALLONS) {
-  // Muriatic acid (31.45%) dose in oz for 17,000 gal vinyl pool
-  // Each oz of 31.45% muriatic acid lowers pH by ~0.1 in 10,000 gal at alk 100
   if(!currentPH || currentPH <= targetPH) return null;
   const phDrop = currentPH - targetPH;
-  const alkFactor = (alkalinity || 90) / 100; // higher alk = more acid needed
+  const alkFactor = (alkalinity || 90) / 100;
   const baseOzPer10k = phDrop * 12 * alkFactor;
   const oz = Math.round(baseOzPer10k * (gallons / 10000));
   return oz;
 }
 
 function calcSWGRecommendation(fc, cya, waterTemp) {
-  // Target FC for SWG = 7.5% of CYA (TFPC method)
   const effectiveCYA = cya || 60;
   const targetFC = Math.max(2, effectiveCYA * 0.075);
   if(fc === null || fc === undefined) return null;
-  // Adjust for temp: above 85°F increase by 10-20%
   const tempMultiplier = (waterTemp && waterTemp > 85) ? 1.15 : 1.0;
   if(fc > targetFC * 1.5) return { action:"lower", pct: null, msg:`FC is high (${fc} ppm). Lower SWG output or let it come down naturally. Target: ${targetFC.toFixed(1)} ppm` };
   if(fc < targetFC * 0.5) return { action:"raise", pct: null, msg:`FC critically low (${fc} ppm). Raise SWG to 100% temporarily. Minimum safe FC: ${targetFC.toFixed(1)} ppm` };
@@ -382,13 +373,11 @@ function calcSWGRecommendation(fc, cya, waterTemp) {
 }
 
 function calcShockThreshold(cya) {
-  // TFPC: minimum FC = CYA / 10 to maintain effectiveness
   const effectiveCYA = cya || 60;
   return Math.round(effectiveCYA / 10);
 }
 
 function calcFCBurnRate(readings) {
-  // FC drop per day between last two readings
   if(!readings || readings.length < 2) return null;
   const r1 = readings[0], r2 = readings[1];
   if(r1.free_chlorine === null || r2.free_chlorine === null) return null;
@@ -399,22 +388,12 @@ function calcFCBurnRate(readings) {
 }
 
 function calcLangelier(ph, alkalinity, calcium=CALCIUM_HARDNESS, waterTemp=82) {
-  // Langelier Saturation Index = pH - pHs
-  // pHs = pK2 - pKs + p[Ca] + p[Alk]
   if(!ph || !alkalinity) return null;
   const tempF = waterTemp || 82;
-  const tempC = (tempF - 32) * 5/9;
-  // Temperature factor
-  const tf = Math.log10(tempC + 273) * 2.5 - 0.655;
-  const pCa = -Math.log10(calcium / 100000);
-  const pAlk = -Math.log10(alkalinity / 1000000 / (6.17e-11 / 6.17e-8));
-  const pHs = tf + pCa + (-Math.log10(alkalinity * 1e-6));
-  // Simplified LSI
   const lsi = ph - (12.1 - Math.log10(calcium) - Math.log10(alkalinity) + (0.009 * tempF));
   return Math.round(lsi * 100) / 100;
 }
 
-// FC effective at pH — chlorine effectiveness % by pH
 function fcEffectiveAtPH(ph) {
   const effectiveness = {7.0:73, 7.2:63, 7.4:50, 7.6:37, 7.8:24, 8.0:14, 8.2:9};
   const keys = Object.keys(effectiveness).map(Number).sort((a,b)=>a-b);
@@ -422,12 +401,10 @@ function fcEffectiveAtPH(ph) {
   return effectiveness[nearest] || 14;
 }
 
-// Recommended SWG % based on FC, CYA, temp, pump hours
 function calcTargetSWG(fc, cya, waterTemp, pumpHours) {
   const targetFC = Math.max(3, (cya||60) * 0.075);
   const hours = pumpHours || 8;
   const tempBoost = (waterTemp && waterTemp > 85) ? 1.2 : 1.0;
-  // Base: 60% in SC summer, adjusted for pump hours
   const base = Math.round(60 * tempBoost * (8 / hours));
   if (fc > targetFC * 1.5) return Math.max(20, base - 20);
   if (fc < targetFC * 0.5) return Math.min(100, base + 25);
@@ -444,7 +421,6 @@ function getChemRecommendations(last, readings) {
   const targetSWG = calcTargetSWG(last.free_chlorine, last.cya, last.water_temp, last.pump_hours);
   const phEffective = last.ph ? fcEffectiveAtPH(last.ph) : null;
 
-  // pH — always first for SWG pools
   if(last.ph && last.ph > 7.6) {
     const oz = acidOz || "?";
     const effNote = phEffective ? ` At pH ${last.ph} only ${phEffective}% of your chlorine is active.` : "";
@@ -459,7 +435,6 @@ function getChemRecommendations(last, readings) {
       color:COLORS.red });
   }
 
-  // CC — combined chlorine alert
   if(last.cc !== null && last.cc !== undefined && last.cc > 0.5) {
     recs.push({ priority:"high", param:"CC", icon:"⚠️",
       action:`CC elevated at ${last.cc} ppm — raise FC to break point`,
@@ -467,7 +442,6 @@ function getChemRecommendations(last, readings) {
       color:COLORS.red });
   }
 
-  // FC shock threshold
   if(last.free_chlorine !== null && last.free_chlorine < shockMin) {
     recs.push({ priority:"high", param:"FC", icon:"⚡",
       action:`FC ${last.free_chlorine} ppm — below minimum. Raise SWG to 90%`,
@@ -480,7 +454,6 @@ function getChemRecommendations(last, readings) {
       color:COLORS.amber });
   }
 
-  // SWG % recommendation
   if(last.swg_setting) {
     if(Math.abs(last.swg_setting - targetSWG) > 10) {
       const dir = last.swg_setting > targetSWG ? "lower" : "raise";
@@ -496,7 +469,6 @@ function getChemRecommendations(last, readings) {
       color:COLORS.blue });
   }
 
-  // Pump schedule
   if(!last.pump_hours || last.pump_hours < 8) {
     recs.push({ priority:"med", param:"Pump", icon:"🕐",
       action:"Increase pump run time to 8-10 hrs/day",
@@ -504,7 +476,6 @@ function getChemRecommendations(last, readings) {
       color:COLORS.blue });
   }
 
-  // CYA
   if(last.cya && last.cya < 60) {
     const ozNeeded = Math.round((70-last.cya)*POOL_GALLONS/1000000*10*134);
     recs.push({ priority:"med", param:"CYA", icon:"☀️",
@@ -518,7 +489,6 @@ function getChemRecommendations(last, readings) {
       color:COLORS.amber });
   }
 
-  // Salt
   if(last.salt && last.salt < 3200) {
     const lbsNeeded = Math.round((3400 - last.salt) * POOL_GALLONS / 1000000 * 8.34);
     const bags = Math.ceil(lbsNeeded / 40);
@@ -533,7 +503,6 @@ function getChemRecommendations(last, readings) {
       color:COLORS.amber });
   }
 
-  // Alkalinity
   if(last.alkalinity && last.alkalinity < 80) {
     const ozNeeded = Math.round((100-last.alkalinity)*POOL_GALLONS/1000000*1.5*128);
     recs.push({ priority:"med", param:"TA", icon:"⚗️",
@@ -547,7 +516,6 @@ function getChemRecommendations(last, readings) {
       color:COLORS.blue });
   }
 
-  // Filter pressure
   if(last.filter_pressure && last.filter_pressure > 20) {
     recs.push({ priority:"med", param:"Filter", icon:"🔧",
       action:`Filter pressure ${last.filter_pressure} psi — clean cartridge`,
@@ -555,13 +523,11 @@ function getChemRecommendations(last, readings) {
       color:COLORS.amber });
   }
 
-  // Calcium — flag for testing
   recs.push({ priority:"low", param:"Ca", icon:"🔬",
     action:"Test calcium hardness",
     detail:`Using estimated 200 ppm. Vinyl pools target 150-250 ppm. Low calcium is corrosive to your Pentair cell over time.`,
     color:COLORS.slate });
 
-  // LSI
   if(lsi !== null) {
     const lsiStatus = lsi < -0.3 ? "corrosive" : lsi > 0.3 ? "scaling" : "balanced";
     if(lsiStatus !== "balanced") {
@@ -572,7 +538,6 @@ function getChemRecommendations(last, readings) {
     }
   }
 
-  // Burn rate
   if(burnRate) {
     const dailyDrop = parseFloat(burnRate.perDay);
     if(dailyDrop < -0.8) {
@@ -648,7 +613,6 @@ function Sparkline({data,color}){
 }
 
 // ─── SWIPE CARD ───────────────────────────────────────────────────────────────
-// Swipe left to reveal Edit + Delete actions. Tap anywhere else to close.
 function SwipeCard({children, onEdit, onDelete, style={}, activeId, setActiveId, id}){
   const ref      = useRef(null);
   const startX   = useRef(null);
@@ -667,7 +631,6 @@ function SwipeCard({children, onEdit, onDelete, style={}, activeId, setActiveId,
 
   return (
     <div style={{position:"relative",marginBottom:10,borderRadius:12,overflow:"hidden"}}>
-      {/* Action buttons behind the card */}
       <div style={{position:"absolute",right:0,top:0,bottom:0,display:"flex",alignItems:"stretch",borderRadius:"0 12px 12px 0"}}>
         <button onClick={onEdit} style={{width:65,background:COLORS.amber,color:"#fff",border:"none",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3}}>
           <span style={{fontSize:16}}>✏️</span>Edit
@@ -676,7 +639,6 @@ function SwipeCard({children, onEdit, onDelete, style={}, activeId, setActiveId,
           <span style={{fontSize:16}}>🗑️</span>Delete
         </button>
       </div>
-      {/* Card face — slides left */}
       <div
         ref={ref}
         onTouchStart={onTouchStart}
@@ -1263,7 +1225,6 @@ function PoolBrief({readings, maintLog, onClose}) {
   const [viewingHistory, setViewingHistory] = useState(null);
 
   useEffect(() => {
-    // Load saved brief history from localStorage
     try {
       const saved = JSON.parse(localStorage.getItem("poolBriefHistory") || "[]");
       setHistory(saved);
@@ -1287,13 +1248,11 @@ function PoolBrief({readings, maintLog, onClose}) {
       const recentReadings = readings.slice(0, 8);
       const recentTreatments = (maintLog || []).filter(m => m.type === "Treatment applied").slice(0, 5);
 
-      // Flag stale CYA/TA data
       const cyaDue = nextTestDue(readings, "cya", 30);
       const taDue = nextTestDue(readings, "alkalinity", 14);
       const cyaStale = cyaDue && cyaDue.days < 0;
       const taStale = taDue && taDue.days < 0;
 
-      // Confidence flags for missing data
       const last = readings[0];
       const missingFields = [];
       if (!last?.water_temp) missingFields.push("water temp");
@@ -1414,7 +1373,6 @@ Keep the ENTIRE brief under 150 words total. Bullets only, no exceptions.`;
     setLoading(false);
   }
 
-  // Parse bold headers and bullets for display
   function renderBrief(text) {
     if(!text) return null;
     return text.split(String.fromCharCode(10)).map((line, i) => {
@@ -1461,6 +1419,8 @@ Keep the ENTIRE brief under 150 words total. Bullets only, no exceptions.`;
         </>
       )}
     </Modal>
+  );
+}
 
 // ─── TREATMENT LOG MODAL ──────────────────────────────────────────────────────
 function TreatmentLogModal({last, recs, onSave, onClose}) {
@@ -1590,7 +1550,6 @@ function Pool(){
 
   return(
     <div style={S.screen}>
-      {/* Quick action buttons */}
       <div style={{display:"flex",gap:8,marginBottom:12}}>
         <button onClick={()=>{setForm({date:TODAY_STR});setShowLog(true);}} style={{flex:1,background:COLORS.blue,color:"#fff",border:"none",borderRadius:10,padding:"12px 6px",fontSize:12,fontWeight:700,cursor:"pointer"}}>
           + Log Reading
@@ -1603,7 +1562,6 @@ function Pool(){
         </button>
       </div>
 
-      {/* Current status */}
       {last&&(
         <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
           <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:8}}>
@@ -1654,7 +1612,6 @@ function Pool(){
         </div>
       )}
 
-      {/* High priority recommendations */}
       {highRecs.map((r,i)=>(
         <div key={i} style={{...S.statusCard(r.color),marginBottom:8}}>
           <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>{r.icon} {r.action}</div>
@@ -1662,7 +1619,6 @@ function Pool(){
         </div>
       ))}
 
-      {/* Medium recommendations */}
       {medRecs.map((r,i)=>(
         <div key={i} style={{...S.statusCard(r.color),marginBottom:8}}>
           <div style={{fontSize:12,fontWeight:700,marginBottom:3}}>{r.icon} {r.action}</div>
@@ -1670,7 +1626,6 @@ function Pool(){
         </div>
       ))}
 
-      {/* Low priority — expandable */}
       {lowRecs.length>0&&(
         <button onClick={()=>setShowLow(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"center",marginBottom:8}}>
           {showLow?"Hide":"Show"} {lowRecs.length} additional note{lowRecs.length!==1?"s":""}
@@ -1683,12 +1638,10 @@ function Pool(){
         </div>
       ))}
 
-      {/* Tabs */}
       <div style={{...S.tabs,marginTop:16}}>
         {["log","trends","schedule","history"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
       </div>
 
-      {/* Log tab */}
       {tab==="log"&&<>
         {readings.loading?<Loading/>:<>
           <div style={S.swipeHint}>← swipe left to edit or delete</div>
@@ -1719,7 +1672,6 @@ function Pool(){
         </>}
       </>}
 
-      {/* Trends tab */}
       {tab==="trends"&&<>
         {PARAMS.filter(p=>!["water_temp","filter_pressure","cc"].includes(p.k)).map(p=>{
           const vals=[...readings.data].reverse().map(r=>r[p.k]).filter(v=>v!==null&&v!==undefined);
@@ -1742,7 +1694,6 @@ function Pool(){
         })}
       </>}
 
-      {/* Schedule tab */}
       {tab==="schedule"&&<>
         {schedule.loading?<Loading/>:<>
           <div style={S.swipeHint}>← swipe left to edit or delete</div>
@@ -1774,7 +1725,6 @@ function Pool(){
         </>}
       </>}
 
-      {/* History tab — maintenance log */}
       {tab==="history"&&<>
         {maintLog.loading?<Loading/>:<>
           <div style={S.swipeHint}>← swipe left to edit or delete</div>
@@ -1792,7 +1742,6 @@ function Pool(){
         </>}
       </>}
 
-      {/* Log Reading Modal */}
       {showLog&&<Modal title={editItem?"Edit Reading":"Log Pool Reading"} onClose={closeLog}>
         <label style={S.label}>Date</label>
         <input type="date" style={S.input} value={form.date||""} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/>
@@ -1853,7 +1802,6 @@ function Pool(){
         <button style={{...S.btn,marginTop:8}} onClick={saveReading}>{editItem?"Save Changes":"Save Reading"}</button>
       </Modal>}
 
-      {/* Maintenance log / schedule modal */}
       {showMaint&&<Modal title={editItem?"Edit Entry":"Log Pool Entry"} onClose={closeMaint}>
         <label style={S.label}>Date</label>
         <input type="date" style={S.input} value={form.date||form.last_completed||""} onChange={e=>setForm(p=>({...p,date:e.target.value,last_completed:e.target.value}))}/>
@@ -1866,15 +1814,12 @@ function Pool(){
         <button style={{...S.btn,marginTop:8}} onClick={saveMaint}>{editItem?"Save Changes":"Save"}</button>
       </Modal>}
 
-      {/* AI Brief Modal */}
       {showBrief&&<PoolBrief readings={readings.data} maintLog={maintLog.data} onClose={()=>setShowBrief(false)}/>}
 
-      {/* Treatment Log Modal */}
       {showTreatment&&<TreatmentLogModal last={last} recs={chemRecs} onSave={logTreatment} onClose={()=>setShowTreatment(false)}/>}
     </div>
   );
 }
-
 
 // ─── FINANCE ──────────────────────────────────────────────────────────────────
 function Finance(){
@@ -1911,7 +1856,6 @@ function Finance(){
     ? calcTotalInterest(mort.current_balance, mort.interest_rate, mort.monthly_payment, mortMonthsNoExtra) - mortInterest
     : null;
 
-  // Net worth calc
   const totalRetirement = accounts.data.reduce((s,a)=>s+(a.balance||0),0);
   const totalCollege = collegeS?.balance || 0;
   const totalMortgageDebt = mort?.current_balance || 0;
@@ -1920,7 +1864,6 @@ function Finance(){
   const totalAssets = totalRetirement + totalCollege;
   const totalLiabilities = totalMortgageDebt + totalOtherDebt;
 
-  // Staleness checks
   const retStale = accounts.data.length>0 ? staleness(accounts.data.sort((a,b)=>new Date(a.last_updated)-new Date(b.last_updated))[0]?.last_updated) : {stale:false};
   const collegeStale = collegeS ? staleness(collegeS.last_updated) : {stale:false};
   const mortStale = mort ? staleness(mort.last_updated) : {stale:false};
@@ -1984,7 +1927,6 @@ function Finance(){
         {["overview","retirement","college","debt"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
       </div>
 
-      {/* OVERVIEW TAB */}
       {tab==="overview"&&<>
         {(retStale.stale||collegeStale.stale||mortStale.stale)&&<>
           <div style={S.sectionLabel}>Needs Update</div>
@@ -2057,7 +1999,6 @@ function Finance(){
         <button style={S.btn} onClick={()=>{setForm({date:TODAY_STR});setShowModal("snapshot");}}>📸 Save Net Worth Snapshot</button>
       </>}
 
-      {/* RETIREMENT TAB */}
       {tab==="retirement"&&<>
         {retProj&&<>
           <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
@@ -2098,7 +2039,6 @@ function Finance(){
         <button style={S.btn} onClick={()=>{setForm({account_type:"401k",tax_treatment:"pre-tax",last_updated:TODAY_STR});setShowModal("account");}}>+ Add Account</button>
       </>}
 
-      {/* COLLEGE TAB */}
       {tab==="college"&&<>
         {collegeS&&collegeProj&&(
           <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
@@ -2120,7 +2060,6 @@ function Finance(){
         </div>
       </>}
 
-      {/* DEBT TAB */}
       {tab==="debt"&&<>
         {mort&&(
           <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
@@ -2157,7 +2096,6 @@ function Finance(){
         <button style={S.btn} onClick={()=>{setForm({payment_frequency:"monthly",last_updated:TODAY_STR});setShowModal("debt");}}>+ Add Debt</button>
       </>}
 
-      {/* MODALS */}
       {showModal==="account"&&<Modal title={editItem?"Edit Account":"Add Account"} onClose={closeModal}>
         <label style={S.label}>Account Name</label>
         <input style={S.input} placeholder="e.g. Matt 403(b)" value={form.name||""} onChange={e=>setForm(p=>({...p,name:e.target.value}))}/>
