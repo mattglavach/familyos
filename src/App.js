@@ -677,6 +677,7 @@ const S={
   btn:{background:COLORS.blue,color:"#fff",border:"none",borderRadius:8,padding:"11px 18px",fontSize:14,fontWeight:600,cursor:"pointer",width:"100%",marginTop:12},
   btnSm:{background:COLORS.navyLight,color:COLORS.slateLight,border:"none",borderRadius:6,padding:"6px 12px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0},
   btnGreen:{background:COLORS.green+"22",color:COLORS.green,border:`1px solid ${COLORS.green}44`,borderRadius:6,padding:"6px 12px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0},
+  btnCheck:{background:COLORS.green+"22",color:COLORS.green,border:`1px solid ${COLORS.green}44`,borderRadius:6,padding:"5px 9px",fontSize:13,fontWeight:700,cursor:"pointer",flexShrink:0,lineHeight:1,minWidth:28,textAlign:"center"},
   btnRed:{background:COLORS.red+"22",color:COLORS.red,border:`1px solid ${COLORS.red}44`,borderRadius:6,padding:"6px 12px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0},
   btnAmber:{background:COLORS.amber+"22",color:COLORS.amber,border:`1px solid ${COLORS.amber}44`,borderRadius:6,padding:"6px 12px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0},
   input:{background:COLORS.navyLight,border:`1px solid ${COLORS.navyLight}`,borderRadius:8,padding:"10px 12px",fontSize:14,color:COLORS.white,width:"100%",boxSizing:"border-box",outline:"none",marginBottom:10},
@@ -845,7 +846,7 @@ function Dashboard({onNavigate,gc}){
   const{data:homeMaint}   =useTable("home_maintenance","title",true);
   const{data:deadlines}   =useTable("college_deadlines","due_date",true);
 
-  const [showAttention,setShowAttention] = useState(false);
+  const [showAttention,setShowAttention] = useState(true);
   const [showFullSchedule,setShowFullSchedule] = useState(false);
   const [filter,setFilter]   = useState("All");
   const [overrides,setOverrides] = useState({});
@@ -899,7 +900,14 @@ function Dashboard({onNavigate,gc}){
         ))}
       </>}
 
-      <CalendarBanner gc={gc}/>
+      {!gc.token&&(
+        <div style={{...S.statusCard(COLORS.blue),marginBottom:8}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div style={{fontSize:12,color:COLORS.slateLight}}>Calendar not connected — tap Connect in the header to see your schedule here.</div>
+            <button style={S.btnSm} onClick={gc.signIn}>Connect</button>
+          </div>
+        </div>
+      )}
 
       {gc.token&&<>
         <div style={S.sectionLabel}>{showFullSchedule?"Next 30 Days":"Next 3 Days"}</div>
@@ -1046,7 +1054,7 @@ function College(){
                       <span style={{fontSize:11,color:days<=7?COLORS.red:COLORS.slate,fontWeight:600}}>{days===0?"Today":days<0?`${-days}d overdue`:`${days}d`}</span>
                     </div>
                   </div>
-                  <button style={S.btnGreen} onClick={()=>deadlines.update(d.id,{completed:true})}>Done ✓</button>
+                  <button style={S.btnCheck} onClick={()=>deadlines.update(d.id,{completed:true})}>✓</button>
                 </div>
               </SwipeCard>
             );
@@ -1330,7 +1338,7 @@ function HomeMgmt(){
                   </div>
                   <div style={S.progress}><div style={S.progressFill(pct,color)}/></div>
                 </div>
-                <button style={{...S.btnGreen,marginLeft:12}} onClick={()=>markDone(item)}>Done ✓</button>
+                <button style={{...S.btnCheck,marginLeft:12}} onClick={()=>markDone(item)}>✓</button>
               </div>
             </SwipeCard>
           );
@@ -2001,7 +2009,7 @@ function Pool(){
                     </div>
                     <div style={S.progress}><div style={S.progressFill(pct,color)}/></div>
                   </div>
-                  <button style={{...S.btnGreen,marginLeft:12}} onClick={()=>markScheduleDone(item)}>Done ✓</button>
+                  <button style={{...S.btnCheck,marginLeft:12}} onClick={()=>markScheduleDone(item)}>✓</button>
                 </div>
               </SwipeCard>
             );
@@ -2512,7 +2520,7 @@ function Finance(){
           <div key={a.id} style={S.statusCard(priorityColors[a.priority])}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{fontSize:13,fontWeight:600,flex:1,paddingRight:10}}>{a.title}</div>
-              <button style={S.btnGreen} onClick={()=>actionItems.update(a.id,{completed:true})}>Done ✓</button>
+              <button style={S.btnCheck} onClick={()=>actionItems.update(a.id,{completed:true})}>✓</button>
             </div>
           </div>
         ))}
@@ -2826,10 +2834,10 @@ export default function App(){
 
   const TABS=[
     {id:"home",     label:"Home",     icon:I.home},
-    {id:"college",  label:"College",  icon:I.college},
-    {id:"home-mgmt",label:"House",    icon:I.house},
-    {id:"pool",     label:"Pool",     icon:I.pool},
     {id:"finance",  label:"Finance",  icon:I.finance},
+    {id:"pool",     label:"Pool",     icon:I.pool},
+    {id:"home-mgmt",label:"House",    icon:I.house},
+    {id:"college",  label:"College",  icon:I.college},
   ];
   const TITLES={home:"FamilyOS",college:"College Planning","home-mgmt":"Home",pool:"Pool",finance:"Finance"};
 
@@ -2850,8 +2858,8 @@ export default function App(){
           </div>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
             {gc.token
-              ?<div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:8,height:8,borderRadius:"50%",background:COLORS.green}}/><span style={{fontSize:11,color:COLORS.slate}}>Synced</span></div>
-              :<button onClick={()=>setTab("home")} style={{background:COLORS.blue+"22",color:COLORS.blue,border:`1px solid ${COLORS.blue}44`,borderRadius:6,padding:"5px 10px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Connect Calendar</button>
+              ?<div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:6,height:6,borderRadius:"50%",background:COLORS.green}}/><span style={{fontSize:10,color:COLORS.slate}}>Synced</span></div>
+              :<button onClick={gc.signIn} style={{background:COLORS.blue+"22",color:COLORS.blue,border:`1px solid ${COLORS.blue}44`,borderRadius:6,padding:"3px 8px",fontSize:10,fontWeight:700,cursor:"pointer"}}>Connect</button>
             }
           </div>
         </div>
