@@ -178,14 +178,14 @@ const SEED={
     {id:"1",date:"2026-03-08",total:1280,math:640,verbal:640,notes:"PSAT — strong baseline"},
   ],
   retirement_accounts:[
-    {id:"1",name:"Matt 403(b)",account_type:"403b",balance:520000,monthly_contribution:1200,employer_match:400,tax_treatment:"pre-tax",last_updated:"2026-06-01",notes:""},
-    {id:"2",name:"Kalee 401(k)",account_type:"401k",balance:180000,monthly_contribution:500,employer_match:250,tax_treatment:"pre-tax",last_updated:"2026-06-01",notes:"~$6k/yr contribution"},
-    {id:"3",name:"Traditional IRA",account_type:"IRA",balance:65000,monthly_contribution:0,employer_match:0,tax_treatment:"pre-tax",last_updated:"2026-06-01",notes:""},
-    {id:"4",name:"HSA",account_type:"HSA",balance:28000,monthly_contribution:300,employer_match:0,tax_treatment:"HSA",last_updated:"2026-06-01",notes:"Maxed, ~70% invested"},
-    {id:"5",name:"Brokerage",account_type:"brokerage",balance:85000,monthly_contribution:400,employer_match:0,tax_treatment:"taxable",last_updated:"2026-06-01",notes:""},
+    {id:"1",name:"Matt 403(b)",account_type:"403b",balance:520000,monthly_contribution:1200,employer_match:400,contribution_frequency:"monthly",tax_treatment:"pre-tax",last_updated:"2026-06-01",notes:""},
+    {id:"2",name:"Kalee 401(k)",account_type:"401k",balance:180000,monthly_contribution:500,employer_match:250,contribution_frequency:"monthly",tax_treatment:"pre-tax",last_updated:"2026-06-01",notes:"~$6k/yr contribution"},
+    {id:"3",name:"Traditional IRA",account_type:"IRA",balance:65000,monthly_contribution:0,employer_match:0,contribution_frequency:"monthly",tax_treatment:"pre-tax",last_updated:"2026-06-01",notes:""},
+    {id:"4",name:"HSA",account_type:"HSA",balance:28000,monthly_contribution:300,employer_match:0,contribution_frequency:"monthly",tax_treatment:"HSA",last_updated:"2026-06-01",notes:"Maxed, ~70% invested"},
+    {id:"5",name:"Brokerage",account_type:"brokerage",balance:85000,monthly_contribution:400,employer_match:0,contribution_frequency:"monthly",tax_treatment:"taxable",last_updated:"2026-06-01",notes:""},
   ],
   retirement_assumptions:[
-    {id:"1",current_age:44,retirement_age:59,annual_return_pct:8,withdrawal_rate_pct:4,annual_retirement_spending:110000,social_security_estimate:30000,healthcare_estimate:18000},
+    {id:"1",current_age:44,retirement_age:59,annual_return_pct:8,withdrawal_rate_pct:4,annual_retirement_spending:110000,social_security_estimate:30000,healthcare_estimate:18000,contribution_increase_pct:3,bridge_end_age:65,inflation_pct:3},
   ],
   college_savings:[
     {id:"1",balance:50000,monthly_contribution:200,last_updated:"2026-06-01",notes:"529 plan"},
@@ -311,12 +311,35 @@ function futureValueWithGrowth(presentValue, monthlyContribution, annualRatePct,
   return { finalBalance: balance, trajectory };
 }
 
+// Healthcare cost compounds faster than general inflation — default 5.5%/year
+function futureHealthcareCost(annualEstimate, years, growthPct=5.5) {
+  return annualEstimate * Math.pow(1 + growthPct/100, years);
+}
+
+// Rough effective tax treatment by account tax_treatment type
+// pre-tax (403b/401k/IRA): taxed as ordinary income on withdrawal — assume ~18% effective rate
+// Roth: tax-free
+// taxable (brokerage): assume ~15% effective on growth portion only, simplified to flat ~10% blended
+// HSA: tax-free for qualified medical expenses
+function taxAdjustedValue(balance, taxTreatment, effectiveRate=18) {
+  if (taxTreatment === "Roth" || taxTreatment === "HSA") return balance;
+  if (taxTreatment === "taxable") return balance * (1 - 0.10);
+  return balance * (1 - effectiveRate/100); // pre-tax default
+}
+
+// Rule of 55: 403b/401k from current employer accessible penalty-free starting the year you turn 55
+// if separating from service. IRAs and prior-employer plans still subject to 59.5 penalty rule.
+function ruleOf55Eligible(account) {
+  return account.account_type === "403b" || account.account_type === "401k";
+}
+
 function calcRetirementProjection(accounts, assumptions) {
   if (!assumptions) return null;
   const totalBalance = accounts.reduce((s,a)=>s+(a.balance||0),0);
   const totalMonthly = accounts.reduce((s,a)=>s+effectiveMonthlyContribution(a),0);
   const years = Math.max(0, assumptions.retirement_age - assumptions.current_age);
   const growthRate = assumptions.contribution_increase_pct || 0;
+  const inflationPct = assumptions.inflation_pct || 3;
 
   const scenarios = [
     { label:"Conservative", rate:6, color:COLORS.slate },
@@ -327,28 +350,57 @@ function calcRetirementProjection(accounts, assumptions) {
     return { ...s, projected: result.finalBalance, trajectory: result.trajectory };
   });
 
-  const netAnnualNeed = Math.max(0, assumptions.annual_retirement_spending - assumptions.social_security_estimate);
-  const targetNumber = netAnnualNeed / (assumptions.withdrawal_rate_pct/100);
-
   const moderate = scenarios.find(s=>s.label==="Moderate");
   const moderateProjected = moderate.projected;
-  const gap = targetNumber - moderateProjected;
+
+  // Tax-adjusted spendable estimate — apply blended rate based on account mix proportions
+  const taxableMix = accounts.reduce((acc,a)=>{
+    const share = totalBalance>0 ? (a.balance||0)/totalBalance : 0;
+    return acc + share * (a.tax_treatment==="Roth"||a.tax_treatment==="HSA" ? 0 : a.tax_treatment==="taxable" ? 0.10 : 0.18);
+  },0);
+  const spendableProjected = moderateProjected * (1 - taxableMix);
+
+  // Target number — gross (pre-tax) and inflation-adjusted versions
+  const netAnnualNeed = Math.max(0, assumptions.annual_retirement_spending - assumptions.social_security_estimate);
+  const targetNumberToday = netAnnualNeed / (assumptions.withdrawal_rate_pct/100);
+  const targetNumberInflated = targetNumberToday * Math.pow(1 + inflationPct/100, years);
+
+  const gap = targetNumberInflated - spendableProjected;
 
   const r = 8/100/12;
   const n = years*12;
   const fvOfCurrent = totalBalance * Math.pow(1+r, n);
-  const remaining = targetNumber - fvOfCurrent;
+  const remaining = targetNumberInflated - fvOfCurrent;
   const monthlyNeeded = remaining > 0 && n > 0
     ? remaining / ((Math.pow(1+r,n)-1)/r)
     : 0;
 
-  // Early retirement bridge: gap years between retirement and Social Security/Medicare (default age 65)
+  // Early retirement bridge — healthcare grows faster than general spending
   const bridgeEndAge = assumptions.bridge_end_age || 65;
   const bridgeYears = Math.max(0, bridgeEndAge - assumptions.retirement_age);
-  const bridgeAnnualCost = assumptions.annual_retirement_spending + (assumptions.healthcare_estimate||0);
-  const bridgeTotalNeeded = bridgeAnnualCost * bridgeYears;
+  const healthcareAtRetirement = futureHealthcareCost(assumptions.healthcare_estimate||0, years, 5.5);
+  const spendingAtRetirement = assumptions.annual_retirement_spending * Math.pow(1+inflationPct/100, years);
+  let bridgeTotalNeeded = 0;
+  for (let y=0; y<bridgeYears; y++) {
+    const hcYear = healthcareAtRetirement * Math.pow(1.055, y);
+    const spendYear = spendingAtRetirement * Math.pow(1+inflationPct/100, y);
+    bridgeTotalNeeded += hcYear + spendYear;
+  }
 
-  return { totalBalance, totalMonthly, years, scenarios, targetNumber, gap, monthlyNeeded, netAnnualNeed, bridgeYears, bridgeTotalNeeded, bridgeEndAge, trajectory: moderate.trajectory };
+  // Rule of 55 — which balance is accessible penalty-free during bridge years
+  const ruleOf55Balance = accounts.filter(ruleOf55Eligible).reduce((s,a)=>s+(a.balance||0),0);
+  const ruleOf55Share = totalBalance>0 ? ruleOf55Balance/totalBalance : 0;
+  const nonRuleOf55Balance = totalBalance - ruleOf55Balance;
+
+  return {
+    totalBalance, totalMonthly, years, scenarios, growthRate,
+    targetNumberToday, targetNumberInflated, inflationPct,
+    spendableProjected, taxableMix,
+    gap, monthlyNeeded, netAnnualNeed,
+    bridgeYears, bridgeTotalNeeded, bridgeEndAge,
+    ruleOf55Balance, ruleOf55Share, nonRuleOf55Balance,
+    trajectory: moderate.trajectory
+  };
 }
 
 function calcCollegeProjection(savings, goal) {
@@ -2105,38 +2157,48 @@ Current totals:
 - Combined balance: ${formatMoney(retProj.totalBalance)}
 - Combined monthly contribution (incl. match): ${formatMoney(retProj.totalMonthly)}
 - Years to retirement: ${retProj.years}
+- Contribution growth assumption: ${assumptions.contribution_increase_pct||0}%/year
+- Inflation assumption: ${retProj.inflationPct}%/year
 
-Projections at age ${assumptions.retirement_age}:
+Projections at age ${assumptions.retirement_age} (gross, pre-tax):
 - Conservative (6%): ${formatMoney(retProj.scenarios[0].projected)}
 - Moderate (8%): ${formatMoney(retProj.scenarios[1].projected)}
 - Aggressive (10%): ${formatMoney(retProj.scenarios[2].projected)}
-- Target number (4% rule style): ${formatMoney(retProj.targetNumber)}
-- Gap vs moderate scenario: ${formatMoney(retProj.gap)}
-- Contribution growth assumption: ${assumptions.contribution_increase_pct||0}%/year
+
+Tax and inflation adjusted reality:
+- Spendable after tax (moderate scenario, blended ~${Math.round(retProj.taxableMix*100)}% effective rate across pre-tax/Roth/taxable mix): ${formatMoney(retProj.spendableProjected)}
+- Target in today's dollars: ${formatMoney(retProj.targetNumberToday)}
+- Target inflation-adjusted to retirement year: ${formatMoney(retProj.targetNumberInflated)}
+- Gap (spendable vs inflation-adjusted target): ${formatMoney(retProj.gap)}
 
 Early retirement bridge (age ${assumptions.retirement_age} to ${retProj.bridgeEndAge}):
 - ${retProj.bridgeYears} years before Social Security/Medicare eligibility
-- Estimated bridge cost: ${formatMoney(retProj.bridgeTotalNeeded)}
+- Healthcare costs modeled growing ~5.5%/year (faster than general inflation) during this gap
+- Estimated total bridge cost: ${formatMoney(retProj.bridgeTotalNeeded)}
+- Rule of 55: ${formatMoney(retProj.ruleOf55Balance)} (${Math.round(retProj.ruleOf55Share*100)}%) sits in 403(b)/401(k) accounts, penalty-free to access starting the year of separation from service at 55+, even before age 59½
+- ${formatMoney(retProj.nonRuleOf55Balance)} sits in IRA/brokerage/HSA — these still face standard early withdrawal rules (IRA penalty before 59½; brokerage/HSA have their own rules)
 
-Write a brief in this EXACT format. Every section must be 1-3 short bullet points, never paragraphs. Be specific with numbers. No fluff, no filler. Do not give specific investment, fund, or allocation advice — stick to savings rate, contribution, and gap analysis.
+Known model limitation to mention briefly: these scenarios assume a flat average annual return every year. Real markets vary, and a downturn in the first few years of retirement specifically (sequence-of-returns risk) can hurt more than the average return suggests — this model doesn't capture that.
+
+Write a brief in this EXACT format. Every section must be 1-3 short bullet points, never paragraphs. Be specific with numbers. No fluff, no filler. Do not give specific investment, fund, or allocation advice — stick to savings rate, contribution, tax/timing mechanics, and gap analysis.
 
 Format:
 **WHERE YOU STAND**
 • [current balance, contribution rate, trajectory in plain terms]
 
-**ON TRACK OR NOT**
-• [gap analysis — are they ahead, behind, or on pace for the moderate scenario]
+**THE REAL NUMBER**
+• [tax-adjusted, inflation-adjusted gap — not the gross projection]
 
 **THE BRIDGE YEARS**
-• [comment specifically on the age ${assumptions.retirement_age}-${retProj.bridgeEndAge} gap and what it means practically]
+• [comment on the age ${assumptions.retirement_age}-${retProj.bridgeEndAge} gap, healthcare growth, and which accounts (Rule of 55) can fund it without penalty]
 
 **WHAT WOULD HELP MOST**
-• [1-2 concrete, non-advisory levers — e.g. contribution increase, timeline, not specific funds]
+• [1-2 concrete, non-advisory levers]
 
-**WATCH FOR**
-• [what to revisit next month/update]
+**KNOWN LIMITATION**
+• [brief honest note on sequence-of-returns risk not being modeled]
 
-Keep the ENTIRE brief under 150 words total. Bullets only, no exceptions.`;
+Keep the ENTIRE brief under 170 words total. Bullets only, no exceptions.`;
 
       const res = await fetch("/api/brief", {
         method: "POST",
@@ -2172,7 +2234,7 @@ Keep the ENTIRE brief under 150 words total. Bullets only, no exceptions.`;
     setFollowUp("");
     setAskingFollowUp(true);
     try {
-      const followUpPrompt = `You already gave this retirement brief:\n\n${brief}\n\nAnswer this follow-up directly and concisely (2-4 sentences, no headers/bullets unless needed). You are not a licensed advisor — stay educational, not prescriptive about specific investments. Current balance ${formatMoney(retProj.totalBalance)}, target ${formatMoney(retProj.targetNumber)}, retiring at ${assumptions.retirement_age}.\n\nQuestion: ${question}`;
+      const followUpPrompt = `You already gave this retirement brief:\n\n${brief}\n\nAnswer this follow-up directly and concisely (2-4 sentences, no headers/bullets unless needed). You are not a licensed advisor — stay educational, not prescriptive about specific investments. Current balance ${formatMoney(retProj.totalBalance)}, inflation-adjusted target ${formatMoney(retProj.targetNumberInflated)}, retiring at ${assumptions.retirement_age}, Rule of 55 eligible balance ${formatMoney(retProj.ruleOf55Balance)}.\n\nQuestion: ${question}`;
       const res = await fetch("/api/brief", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -2331,7 +2393,7 @@ function Finance(){
   }
   async function saveAssumptions(){
     try{
-      const row={current_age:+form.current_age||0,retirement_age:+form.retirement_age||0,annual_return_pct:+form.annual_return_pct||0,withdrawal_rate_pct:+form.withdrawal_rate_pct||0,annual_retirement_spending:+form.annual_retirement_spending||0,social_security_estimate:+form.social_security_estimate||0,healthcare_estimate:+form.healthcare_estimate||0,contribution_increase_pct:+form.contribution_increase_pct||0,bridge_end_age:+form.bridge_end_age||65};
+      const row={current_age:+form.current_age||0,retirement_age:+form.retirement_age||0,annual_return_pct:+form.annual_return_pct||0,withdrawal_rate_pct:+form.withdrawal_rate_pct||0,annual_retirement_spending:+form.annual_retirement_spending||0,social_security_estimate:+form.social_security_estimate||0,healthcare_estimate:+form.healthcare_estimate||0,contribution_increase_pct:+form.contribution_increase_pct||0,bridge_end_age:+form.bridge_end_age||65,inflation_pct:+form.inflation_pct||3};
       if(assump && assump.id) await assumptions.update(assump.id,row); else await assumptions.insert(row);
     }catch(e){console.error("saveAssumptions failed",e);}
     closeModal();
@@ -2411,7 +2473,7 @@ function Finance(){
               <div style={{fontSize:13,fontWeight:600}}>🏦 Retirement (age {assump.retirement_age})</div>
               <span style={{fontSize:12,color:retProj.gap>0?COLORS.amber:COLORS.green,fontWeight:700}}>{retProj.gap>0?`${formatMoneyShort(retProj.gap)} gap`:"On track ✓"}</span>
             </div>
-            <div style={{fontSize:11,color:COLORS.slate,marginTop:4}}>Projected {formatMoneyShort(retProj.scenarios.find(s=>s.label==="Moderate").projected)} · Target {formatMoneyShort(retProj.targetNumber)}</div>
+            <div style={{fontSize:11,color:COLORS.slate,marginTop:4}}>Spendable (after tax) {formatMoneyShort(retProj.spendableProjected)} · Target (inflation-adj.) {formatMoneyShort(retProj.targetNumberInflated)}</div>
           </div>
         )}
         {collegeProj&&(
@@ -2499,11 +2561,14 @@ function Finance(){
               </div>
             ))}
             <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${COLORS.navyLight}`}}>
-              <div style={{fontSize:12,color:COLORS.slate}}>Target number (4% rule): <strong style={{color:COLORS.white}}>{formatMoneyShort(retProj.targetNumber)}</strong></div>
-              <div style={{fontSize:12,color:retProj.gap>0?COLORS.amber:COLORS.green,marginTop:4,fontWeight:600}}>
+              <div style={{fontSize:12,color:COLORS.slate}}>Target (today's $): <strong style={{color:COLORS.white}}>{formatMoneyShort(retProj.targetNumberToday)}</strong></div>
+              <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>Target (inflation-adj. at {retProj.inflationPct}%/yr): <strong style={{color:COLORS.white}}>{formatMoneyShort(retProj.targetNumberInflated)}</strong></div>
+              <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>Spendable after tax (~{Math.round(retProj.taxableMix*100)}% blended rate): <strong style={{color:COLORS.white}}>{formatMoneyShort(retProj.spendableProjected)}</strong></div>
+              <div style={{fontSize:12,color:retProj.gap>0?COLORS.amber:COLORS.green,marginTop:6,fontWeight:600}}>
                 {retProj.gap>0?`Gap: ${formatMoneyShort(retProj.gap)} — consider increasing contribution by ~${formatMoney(retProj.monthlyNeeded)}/mo`:`On track — projected surplus of ${formatMoneyShort(-retProj.gap)}`}
               </div>
-              {assump.contribution_increase_pct>0&&<div style={{fontSize:11,color:COLORS.slate,marginTop:4}}>Assumes contributions grow {assump.contribution_increase_pct}%/year</div>}
+              {assump.contribution_increase_pct>0&&<div style={{fontSize:11,color:COLORS.slate,marginTop:6}}>Assumes contributions grow {assump.contribution_increase_pct}%/year</div>}
+              <div style={{fontSize:10,color:COLORS.slate,marginTop:6,fontStyle:"italic"}}>Note: scenarios assume flat annual returns. Real markets vary year to year — a downturn early in retirement (sequence-of-returns risk) can affect outcomes more than the average return suggests.</div>
             </div>
           </div>
 
@@ -2511,7 +2576,14 @@ function Finance(){
             <div style={{...S.statusCard(COLORS.amber),marginBottom:12}}>
               <div style={{fontSize:12,fontWeight:700,marginBottom:4}}>🌉 Early Retirement Bridge — age {assump.retirement_age} to {retProj.bridgeEndAge}</div>
               <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>
-                {retProj.bridgeYears} years before Social Security/Medicare eligibility. Estimated extra savings needed to cover this gap: <strong style={{color:COLORS.white}}>{formatMoneyShort(retProj.bridgeTotalNeeded)}</strong> (spending + healthcare, no outside income assumed).
+                {retProj.bridgeYears} years before Social Security/Medicare eligibility. Estimated cost (healthcare grows ~5.5%/yr, spending grows with inflation): <strong style={{color:COLORS.white}}>{formatMoneyShort(retProj.bridgeTotalNeeded)}</strong>.
+              </div>
+              <div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${COLORS.navyLight}`}}>
+                <div style={{fontSize:11,fontWeight:700,color:COLORS.white,marginBottom:2}}>Rule of 55</div>
+                <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>
+                  {formatMoneyShort(retProj.ruleOf55Balance)} ({Math.round(retProj.ruleOf55Share*100)}%) is in 403(b)/401(k) accounts — penalty-free to access at separation from service, even before 59½.
+                  {retProj.nonRuleOf55Balance>0&&` ${formatMoneyShort(retProj.nonRuleOf55Balance)} in IRA/brokerage/HSA still follows standard 59½ rules — IRA withdrawals before then face penalties.`}
+                </div>
               </div>
             </div>
           )}
@@ -2661,9 +2733,11 @@ function Finance(){
         </div>
         <label style={S.label}>Annual Contribution Increase (%)</label>
         <input type="number" step="0.5" style={S.input} placeholder="e.g. 3 for typical raises/auto-escalation" value={form.contribution_increase_pct||""} onChange={e=>setForm(p=>({...p,contribution_increase_pct:e.target.value}))}/>
-        <label style={S.label}>Bridge End Age (Medicare/Social Security)</label>
-        <input type="number" style={S.input} placeholder="65" value={form.bridge_end_age||""} onChange={e=>setForm(p=>({...p,bridge_end_age:e.target.value}))}/>
-        <div style={{fontSize:11,color:COLORS.slate,marginTop:8,lineHeight:1.5}}>Scenarios use fixed 6% / 8% / 10% annual return assumptions — conservative, moderate, aggressive.</div>
+        <div style={S.row}>
+          <div style={S.col}><label style={S.label}>Inflation Rate (%)</label><input type="number" step="0.5" style={S.input} placeholder="3" value={form.inflation_pct||""} onChange={e=>setForm(p=>({...p,inflation_pct:e.target.value}))}/></div>
+          <div style={S.col}><label style={S.label}>Bridge End Age</label><input type="number" style={S.input} placeholder="65" value={form.bridge_end_age||""} onChange={e=>setForm(p=>({...p,bridge_end_age:e.target.value}))}/></div>
+        </div>
+        <div style={{fontSize:11,color:COLORS.slate,marginTop:8,lineHeight:1.5}}>Scenarios use fixed 6% / 8% / 10% annual return assumptions — conservative, moderate, aggressive. Healthcare costs are modeled at ~5.5%/year growth, faster than general inflation.</div>
         <button style={{...S.btn,marginTop:16}} onClick={saveAssumptions}>Save Assumptions</button>
       </Modal>}
 
