@@ -340,6 +340,7 @@ function calcRetirementProjection(accounts, assumptions) {
   const years = Math.max(0, assumptions.retirement_age - assumptions.current_age);
   const growthRate = assumptions.contribution_increase_pct || 0;
   const inflationPct = assumptions.inflation_pct || 3;
+  const deflator = Math.pow(1 + inflationPct/100, years); // converts future $ back to today's purchasing power
 
   const scenarios = [
     { label:"Conservative", rate:6, color:COLORS.slate },
@@ -347,7 +348,7 @@ function calcRetirementProjection(accounts, assumptions) {
     { label:"Aggressive",   rate:10, color:COLORS.green },
   ].map(s => {
     const result = futureValueWithGrowth(totalBalance, totalMonthly, s.rate, years, growthRate);
-    return { ...s, projected: result.finalBalance, trajectory: result.trajectory };
+    return { ...s, projected: result.finalBalance, trajectory: result.trajectory, projectedTodaysDollars: result.finalBalance / deflator };
   });
 
   const moderate = scenarios.find(s=>s.label==="Moderate");
@@ -359,12 +360,14 @@ function calcRetirementProjection(accounts, assumptions) {
     return acc + share * (a.tax_treatment==="Roth"||a.tax_treatment==="HSA" ? 0 : a.tax_treatment==="taxable" ? 0.10 : 0.18);
   },0);
   const spendableProjected = moderateProjected * (1 - taxableMix);
+  const spendableTodaysDollars = spendableProjected / deflator;
 
   // Target number — gross (pre-tax) and inflation-adjusted versions
   const netAnnualNeed = Math.max(0, assumptions.annual_retirement_spending - assumptions.social_security_estimate);
   const targetNumberToday = netAnnualNeed / (assumptions.withdrawal_rate_pct/100);
-  const targetNumberInflated = targetNumberToday * Math.pow(1 + inflationPct/100, years);
+  const targetNumberInflated = targetNumberToday * deflator;
 
+  // Gap: both sides expressed in nominal dollars at the retirement year — apples to apples
   const gap = targetNumberInflated - spendableProjected;
 
   const r = 8/100/12;
@@ -394,8 +397,8 @@ function calcRetirementProjection(accounts, assumptions) {
 
   return {
     totalBalance, totalMonthly, years, scenarios, growthRate,
-    targetNumberToday, targetNumberInflated, inflationPct,
-    spendableProjected, taxableMix,
+    targetNumberToday, targetNumberInflated, inflationPct, deflator,
+    spendableProjected, spendableTodaysDollars, taxableMix,
     gap, monthlyNeeded, netAnnualNeed,
     bridgeYears, bridgeTotalNeeded, bridgeEndAge,
     ruleOf55Balance, ruleOf55Share, nonRuleOf55Balance,
@@ -2168,16 +2171,17 @@ Current totals:
 - Contribution growth assumption: ${assumptions.contribution_increase_pct||0}%/year
 - Inflation assumption: ${retProj.inflationPct}%/year
 
-Projections at age ${assumptions.retirement_age} (gross, pre-tax):
-- Conservative (6%): ${formatMoney(retProj.scenarios[0].projected)}
-- Moderate (8%): ${formatMoney(retProj.scenarios[1].projected)}
-- Aggressive (10%): ${formatMoney(retProj.scenarios[2].projected)}
+Projections at age ${assumptions.retirement_age} (nominal future dollars):
+- Conservative (6%): ${formatMoney(retProj.scenarios[0].projected)} (≈${formatMoney(retProj.scenarios[0].projectedTodaysDollars)} in today's purchasing power)
+- Moderate (8%): ${formatMoney(retProj.scenarios[1].projected)} (≈${formatMoney(retProj.scenarios[1].projectedTodaysDollars)} in today's purchasing power)
+- Aggressive (10%): ${formatMoney(retProj.scenarios[2].projected)} (≈${formatMoney(retProj.scenarios[2].projectedTodaysDollars)} in today's purchasing power)
 
 Tax and inflation adjusted reality:
-- Spendable after tax (moderate scenario, blended ~${Math.round(retProj.taxableMix*100)}% effective rate across pre-tax/Roth/taxable mix): ${formatMoney(retProj.spendableProjected)}
+- Spendable after tax (moderate scenario, blended ~${Math.round(retProj.taxableMix*100)}% effective rate across pre-tax/Roth/taxable mix): ${formatMoney(retProj.spendableProjected)} (≈${formatMoney(retProj.spendableTodaysDollars)} in today's purchasing power)
 - Target in today's dollars: ${formatMoney(retProj.targetNumberToday)}
 - Target inflation-adjusted to retirement year: ${formatMoney(retProj.targetNumberInflated)}
-- Gap (spendable vs inflation-adjusted target): ${formatMoney(retProj.gap)}
+- Gap (both figures in nominal dollars at the retirement year — apples to apples): ${formatMoney(retProj.gap)}
+- Note: the "today's purchasing power" figures are for intuition only; the Gap above is the real comparison, calculated entirely in future dollars at the retirement year
 
 Early retirement bridge (age ${assumptions.retirement_age} to ${retProj.bridgeEndAge}):
 - ${retProj.bridgeYears} years before Social Security/Medicare eligibility
@@ -2565,18 +2569,21 @@ function Finance(){
             {retProj.scenarios.map(s=>(
               <div key={s.label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${COLORS.navyLight}`}}>
                 <div style={{fontSize:12,color:COLORS.slateLight}}>{s.label} ({s.rate}%)</div>
-                <div style={{fontSize:15,fontWeight:700,color:s.color}}>{formatMoneyShort(s.projected)}</div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontSize:15,fontWeight:700,color:s.color}}>{formatMoneyShort(s.projected)}</div>
+                  <div style={{fontSize:10,color:COLORS.slate}}>≈ {formatMoneyShort(s.projectedTodaysDollars)} in today's $</div>
+                </div>
               </div>
             ))}
             <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${COLORS.navyLight}`}}>
               <div style={{fontSize:12,color:COLORS.slate}}>Target (today's $): <strong style={{color:COLORS.white}}>{formatMoneyShort(retProj.targetNumberToday)}</strong></div>
               <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>Target (inflation-adj. at {retProj.inflationPct}%/yr): <strong style={{color:COLORS.white}}>{formatMoneyShort(retProj.targetNumberInflated)}</strong></div>
-              <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>Spendable after tax (~{Math.round(retProj.taxableMix*100)}% blended rate): <strong style={{color:COLORS.white}}>{formatMoneyShort(retProj.spendableProjected)}</strong></div>
+              <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>Spendable after tax (~{Math.round(retProj.taxableMix*100)}% blended rate): <strong style={{color:COLORS.white}}>{formatMoneyShort(retProj.spendableProjected)}</strong> <span style={{color:COLORS.slate}}>(≈{formatMoneyShort(retProj.spendableTodaysDollars)} today's $)</span></div>
               <div style={{fontSize:12,color:retProj.gap>0?COLORS.amber:COLORS.green,marginTop:6,fontWeight:600}}>
                 {retProj.gap>0?`Gap: ${formatMoneyShort(retProj.gap)} — consider increasing contribution by ~${formatMoney(retProj.monthlyNeeded)}/mo`:`On track — projected surplus of ${formatMoneyShort(-retProj.gap)}`}
               </div>
               {assump.contribution_increase_pct>0&&<div style={{fontSize:11,color:COLORS.slate,marginTop:6}}>Assumes contributions grow {assump.contribution_increase_pct}%/year</div>}
-              <div style={{fontSize:10,color:COLORS.slate,marginTop:6,fontStyle:"italic"}}>Note: scenarios assume flat annual returns. Real markets vary year to year — a downturn early in retirement (sequence-of-returns risk) can affect outcomes more than the average return suggests.</div>
+              <div style={{fontSize:10,color:COLORS.slate,marginTop:6,fontStyle:"italic"}}>Note: scenarios assume flat annual returns. Real markets vary year to year — a downturn early in retirement (sequence-of-returns risk) can affect outcomes more than the average return suggests. "Today's $" figures show purchasing power for intuition only — the Gap above uses actual future dollars at retirement.</div>
             </div>
           </div>
 
