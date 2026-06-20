@@ -185,7 +185,7 @@ const SEED={
     {id:"5",name:"Brokerage",account_type:"brokerage",balance:85000,monthly_contribution:400,employer_match:0,contribution_frequency:"monthly",tax_treatment:"taxable",last_updated:"2026-06-01",notes:""},
   ],
   retirement_assumptions:[
-    {id:"1",current_age:44,retirement_age:59,annual_return_pct:8,withdrawal_rate_pct:4,annual_retirement_spending:110000,social_security_estimate:30000,healthcare_estimate:18000,contribution_increase_pct:3,bridge_end_age:65,inflation_pct:3},
+    {id:"1",current_age:44,retirement_age:59,annual_return_pct:8,withdrawal_rate_pct:4,annual_retirement_spending:110000,social_security_estimate:30000,healthcare_estimate:18000,contribution_increase_pct:3,bridge_end_age:65,medicare_age:65,ss_claim_age:67,plan_end_age:90,inflation_pct:3},
   ],
   college_savings:[
     {id:"1",balance:50000,monthly_contribution:200,last_updated:"2026-06-01",notes:"529 plan"},
@@ -333,6 +333,134 @@ function ruleOf55Eligible(account) {
   return account.account_type === "403b" || account.account_type === "401k";
 }
 
+// ─── FULL RETIREMENT DRAWDOWN SIMULATION ───────────────────────────────────────
+// Three phases: accumulate to retirement_age, draw down Rule-of-55 funds through
+// the bridge (retirement_age → bridge_end_age), then draw down combined balance
+// through full retirement (bridge_end_age → planEndAge) to see if money lasts.
+function simulateRetirementDrawdown(accounts, assumptions) {
+  if (!assumptions) return null;
+
+  const totalBalance = accounts.reduce((s,a)=>s+(a.balance||0),0);
+  const totalMonthly = accounts.reduce((s,a)=>s+effectiveMonthlyContribution(a),0);
+  const accumYears = Math.max(0, assumptions.retirement_age - assumptions.current_age);
+  const contribGrowth = assumptions.contribution_increase_pct || 0;
+  const inflationPct = assumptions.inflation_pct || 3;
+  const moderateRate = 8;
+  const r = moderateRate/100;
+  const planEndAge = assumptions.plan_end_age || 90;
+
+  // Medicare eligibility (drives bridge length) and Social Security claiming age (drives when SS offset begins)
+  // are separate — most people claim SS later than Medicare eligibility at 65
+  const medicareAge = assumptions.medicare_age || assumptions.bridge_end_age || 65;
+  const ssClaimAge = assumptions.ss_claim_age || 67;
+
+  // Split current balance proportionally between Rule-of-55-eligible and not
+  const ruleOf55Share = totalBalance>0
+    ? accounts.filter(ruleOf55Eligible).reduce((s,a)=>s+(a.balance||0),0) / totalBalance
+    : 0;
+
+  // ── Phase 1: Accumulation (now → retirement_age) — track year by year for the full timeline ──
+  const accumSchedule = [];
+  {
+    let bal = totalBalance;
+    let contrib = totalMonthly;
+    const rMonthly = moderateRate/100/12;
+    accumSchedule.push({ age: assumptions.current_age, balance: Math.round(bal) });
+    for (let y=1; y<=accumYears; y++) {
+      for (let m=0; m<12; m++) bal = bal*(1+rMonthly) + contrib;
+      accumSchedule.push({ age: assumptions.current_age+y, balance: Math.round(bal) });
+      contrib = contrib * (1 + contribGrowth/100);
+    }
+  }
+  const balanceAtRetirement = accumSchedule.length ? accumSchedule[accumSchedule.length-1].balance : totalBalance;
+
+  // Tax-adjust the accumulated balance the same way the simple model does
+  const taxableMix = accounts.reduce((acc,a)=>{
+    const share = totalBalance>0 ? (a.balance||0)/totalBalance : 0;
+    return acc + share * (a.tax_treatment==="Roth"||a.tax_treatment==="HSA" ? 0 : a.tax_treatment==="taxable" ? 0.10 : 0.18);
+  },0);
+  const spendableAtRetirement = balanceAtRetirement * (1 - taxableMix);
+
+  let ruleOf55Pool = spendableAtRetirement * ruleOf55Share;
+  let otherPool = spendableAtRetirement * (1 - ruleOf55Share);
+
+  // ── Phase 2: Bridge (retirement_age → medicare_age) — draw from Rule of 55 pool first ──
+  const bridgeYears = Math.max(0, medicareAge - assumptions.retirement_age);
+  const healthcareAtRetirement = futureHealthcareCost(assumptions.healthcare_estimate||0, accumYears, 5.5);
+  const spendingAtRetirement = assumptions.annual_retirement_spending * Math.pow(1+inflationPct/100, accumYears);
+
+  const bridgeSchedule = [];
+  let bridgeShortfall = 0;
+  for (let y=0; y<bridgeYears; y++) {
+    const hcYear = healthcareAtRetirement * Math.pow(1.055, y);
+    const spendYear = spendingAtRetirement * Math.pow(1+inflationPct/100, y);
+    const needYear = hcYear + spendYear;
+
+    ruleOf55Pool = ruleOf55Pool * (1+r);
+    otherPool = otherPool * (1+r);
+
+    if (ruleOf55Pool >= needYear) {
+      ruleOf55Pool -= needYear;
+    } else {
+      const shortfall = needYear - ruleOf55Pool;
+      bridgeShortfall += shortfall;
+      ruleOf55Pool = 0;
+      otherPool = Math.max(0, otherPool - shortfall);
+    }
+    bridgeSchedule.push({ age: assumptions.retirement_age+y, balance: Math.round(ruleOf55Pool+otherPool), ruleOf55Pool: Math.round(ruleOf55Pool), otherPool: Math.round(otherPool), needYear: Math.round(needYear) });
+  }
+
+  const balanceAtBridgeEnd = ruleOf55Pool + otherPool;
+
+  // ── Phase 3: Full retirement drawdown (medicare_age → plan_end_age) ──
+  // Healthcare keeps growing at ~5.5%/yr the WHOLE plan, not just the bridge —
+  // Medicare reduces but doesn't eliminate above-inflation healthcare cost growth.
+  // Social Security only kicks in once ssClaimAge is reached, and is itself COLA-adjusted.
+  const postBridgeYears = Math.max(0, planEndAge - medicareAge);
+  let runningBalance = balanceAtBridgeEnd;
+  let healthcareRunning = healthcareAtRetirement * Math.pow(1.055, bridgeYears); // continue from where Phase 2 left off
+  const drawdownSchedule = [];
+  let ranOutAtAge = null;
+
+  for (let y=0; y<postBridgeYears; y++) {
+    const age = medicareAge + y;
+    const yearsFromRetirement = age - assumptions.retirement_age;
+
+    const spendingThisYear = assumptions.annual_retirement_spending * Math.pow(1+inflationPct/100, yearsFromRetirement);
+    healthcareRunning = healthcareRunning * 1.055;
+    const hasClaimedSS = age >= ssClaimAge;
+    const ssThisYear = hasClaimedSS
+      ? (assumptions.social_security_estimate||0) * Math.pow(1+inflationPct/100, age - ssClaimAge)
+      : 0;
+
+    const spendYear = Math.max(0, spendingThisYear + healthcareRunning - ssThisYear);
+
+    runningBalance = runningBalance * (1+r);
+    runningBalance -= spendYear;
+
+    if (runningBalance < 0 && ranOutAtAge===null) {
+      ranOutAtAge = age;
+    }
+    if (runningBalance < 0) runningBalance = 0;
+    drawdownSchedule.push({ age, balance: Math.round(runningBalance) });
+  }
+
+  const finalBalance = Math.max(0, runningBalance);
+  const lastsFullPlan = ranOutAtAge === null;
+
+  // ── Unified full-life timeline: current age → plan end age, combining all three phases ──
+  const fullTimeline = [...accumSchedule, ...bridgeSchedule, ...drawdownSchedule];
+
+  return {
+    totalBalance, totalMonthly, accumYears,
+    balanceAtRetirement, spendableAtRetirement, taxableMix,
+    ruleOf55Share, bridgeYears, medicareAge, ssClaimAge, bridgeShortfall, bridgeSchedule,
+    balanceAtBridgeEnd, postBridgeYears, planEndAge,
+    drawdownSchedule, ranOutAtAge, lastsFullPlan, finalBalance,
+    fullTimeline
+  };
+}
+
 function calcRetirementProjection(accounts, assumptions) {
   if (!assumptions) return null;
   const totalBalance = accounts.reduce((s,a)=>s+(a.balance||0),0);
@@ -379,8 +507,9 @@ function calcRetirementProjection(accounts, assumptions) {
     : 0;
 
   // Early retirement bridge — healthcare grows faster than general spending
-  const bridgeEndAge = assumptions.bridge_end_age || 65;
-  const bridgeYears = Math.max(0, bridgeEndAge - assumptions.retirement_age);
+  const medicareAge = assumptions.medicare_age || assumptions.bridge_end_age || 65;
+  const bridgeEndAge = medicareAge; // kept for backward-compat display naming
+  const bridgeYears = Math.max(0, medicareAge - assumptions.retirement_age);
   const healthcareAtRetirement = futureHealthcareCost(assumptions.healthcare_estimate||0, years, 5.5);
   const spendingAtRetirement = assumptions.annual_retirement_spending * Math.pow(1+inflationPct/100, years);
   let bridgeTotalNeeded = 0;
@@ -395,34 +524,38 @@ function calcRetirementProjection(accounts, assumptions) {
   const ruleOf55Share = totalBalance>0 ? ruleOf55Balance/totalBalance : 0;
   const nonRuleOf55Balance = totalBalance - ruleOf55Balance;
 
-  // Status: green/yellow/red based on gap size relative to target, and bridge coverage
+  // ── PRIMARY STATUS: driven by the full drawdown simulation, not just accumulation ──
+  const drawdown = simulateRetirementDrawdown(accounts, assumptions);
   const gapPctOfTarget = targetNumberInflated>0 ? (gap/targetNumberInflated)*100 : 0;
-  // Contribution increase needed to close the gap, as a % of current monthly contribution
-  const contributionIncreasePctNeeded = totalMonthly>0 ? ((monthlyNeeded - totalMonthly)/totalMonthly)*100 : (monthlyNeeded>0?999:0);
-  const bridgeCovered = ruleOf55Balance >= bridgeTotalNeeded;
 
   let status, statusLabel, statusColor;
-  if (gap<=0 || gapPctOfTarget<=5) {
-    status="green"; statusLabel="On Track"; statusColor=COLORS.green;
-  } else if (contributionIncreasePctNeeded<=50 && bridgeCovered) {
-    status="yellow"; statusLabel="Closeable Gap"; statusColor=COLORS.amber;
+  if (drawdown.lastsFullPlan && drawdown.bridgeShortfall<=0) {
+    status="green"; statusLabel="On Track Through Age 90"; statusColor=COLORS.green;
+  } else if (drawdown.lastsFullPlan || (drawdown.ranOutAtAge && drawdown.ranOutAtAge>=80)) {
+    status="yellow"; statusLabel="Tight — Money May Run Low"; statusColor=COLORS.amber;
   } else {
-    status="red"; statusLabel="Needs Attention"; statusColor=COLORS.red;
+    status="red"; statusLabel="Shortfall Before Age 90"; statusColor=COLORS.red;
   }
 
-  // Quick, non-AI recommendations based on what's actually driving the status
+  // Contribution increase needed to close the gap, as a % of current monthly contribution
+  const contributionIncreasePctNeeded = totalMonthly>0 ? ((monthlyNeeded - totalMonthly)/totalMonthly)*100 : (monthlyNeeded>0?999:0);
+  const bridgeCovered = drawdown.bridgeShortfall<=0;
+
+  // Quick, non-AI recommendations based on the full drawdown picture
   const quickRecs = [];
-  if (gap>0) {
-    quickRecs.push(`Increase monthly contributions by ~${formatMoney(Math.max(0,monthlyNeeded-totalMonthly))} to close the gap at a moderate return.`);
+  if (drawdown.bridgeShortfall>0) {
+    quickRecs.push(`Bridge years (age ${assumptions.retirement_age}-${drawdown.medicareAge}) come up ~${formatMoneyShort(drawdown.bridgeShortfall)} short even after using Rule of 55 funds — consider increasing contributions or building extra taxable savings earmarked for this window.`);
   }
-  if (!bridgeCovered && bridgeYears>0) {
-    quickRecs.push(`Rule of 55 balance (${formatMoneyShort(ruleOf55Balance)}) doesn't fully cover the ${formatMoneyShort(bridgeTotalNeeded)} bridge cost — consider building taxable/brokerage savings specifically earmarked for ages ${assumptions.retirement_age}-${bridgeEndAge}.`);
+  if (!drawdown.lastsFullPlan) {
+    quickRecs.push(`At current trajectory, savings are projected to run low around age ${drawdown.ranOutAtAge} — well before ${drawdown.planEndAge}. Consider increasing contributions, reducing planned spending, or delaying retirement age.`);
+  } else if (drawdown.finalBalance>0 && status==="green") {
+    quickRecs.push(`Projected to last through age ${drawdown.planEndAge} with ${formatMoneyShort(drawdown.finalBalance)} remaining — on track at the moderate return assumption.`);
   }
   if (taxableMix>0.15) {
     quickRecs.push(`Most of your balance is pre-tax — consider Roth contributions or conversions over time to reduce future tax drag.`);
   }
   if (quickRecs.length===0) {
-    quickRecs.push(`Current trajectory covers your target with room to spare — maintain contributions and revisit assumptions annually.`);
+    quickRecs.push(`Current trajectory covers your full retirement plan through age ${drawdown.planEndAge} — maintain contributions and revisit assumptions annually.`);
   }
 
   return {
@@ -433,6 +566,7 @@ function calcRetirementProjection(accounts, assumptions) {
     bridgeYears, bridgeTotalNeeded, bridgeEndAge,
     ruleOf55Balance, ruleOf55Share, nonRuleOf55Balance, bridgeCovered,
     status, statusLabel, statusColor, gapPctOfTarget, contributionIncreasePctNeeded, quickRecs,
+    drawdown,
     trajectory: moderate.trajectory
   };
 }
@@ -2214,20 +2348,28 @@ Tax and inflation adjusted reality:
 - Gap (both figures in nominal dollars at the retirement year — apples to apples): ${formatMoney(retProj.gap)}
 - Note: the "today's purchasing power" figures are for intuition only; the Gap above is the real comparison, calculated entirely in future dollars at the retirement year
 
-Early retirement bridge (age ${assumptions.retirement_age} to ${retProj.bridgeEndAge}):
-- ${retProj.bridgeYears} years before Social Security/Medicare eligibility
-- Healthcare costs modeled growing ~5.5%/year (faster than general inflation) during this gap
-- Estimated total bridge cost: ${formatMoney(retProj.bridgeTotalNeeded)}
-- Rule of 55: ${formatMoney(retProj.ruleOf55Balance)} (${Math.round(retProj.ruleOf55Share*100)}%) sits in 403(b)/401(k) accounts, penalty-free to access starting the year of separation from service at 55+, even before age 59½
-- ${formatMoney(retProj.nonRuleOf55Balance)} sits in IRA/brokerage/HSA — these still face standard early withdrawal rules (IRA penalty before 59½; brokerage/HSA have their own rules)
-- Bridge fully covered by Rule of 55-eligible balance alone: ${retProj.bridgeCovered ? "yes" : "no"}
+Full retirement drawdown simulation (this is the PRIMARY analysis — three phases: accumulate to retirement, spend the bridge years from Rule of 55 funds, then spend the combined balance through age ${retProj.drawdown.planEndAge}):
+
+Phase 1 — Accumulation (now to age ${assumptions.retirement_age}, ${retProj.years} years):
+- Projected balance at retirement: ${formatMoney(retProj.drawdown.balanceAtRetirement)}
+- After blended tax adjustment: ${formatMoney(retProj.drawdown.spendableAtRetirement)}
+- Split: ~${Math.round(retProj.drawdown.ruleOf55Share*100)}% in Rule of 55-eligible 403(b)/401(k) accounts, rest in IRA/brokerage/HSA
+
+Phase 2 — Bridge years (age ${assumptions.retirement_age} to ${retProj.drawdown.medicareAge}, ${retProj.bridgeYears} years before Medicare eligibility):
+- Healthcare costs grow ~5.5%/year during this window and continue growing at that rate for the rest of the plan (Medicare reduces but doesn't eliminate above-inflation healthcare growth)
+- Bridge spending is drawn from the Rule of 55-eligible pool first (penalty-free), letting the rest compound untouched
+- Bridge shortfall (amount bridge spending exceeds what Rule of 55 funds can cover): ${retProj.drawdown.bridgeShortfall>0 ? formatMoney(retProj.drawdown.bridgeShortfall) : "none — fully covered"}
+- Combined balance remaining at end of bridge (age ${retProj.drawdown.medicareAge}): ${formatMoney(retProj.drawdown.balanceAtBridgeEnd)}
+- Social Security claiming age (separate from Medicare): ${retProj.drawdown.ssClaimAge} — no Social Security income assumed before this age
+
+Phase 3 — Full retirement drawdown (age ${retProj.drawdown.medicareAge} to ${retProj.drawdown.planEndAge}, ${retProj.drawdown.postBridgeYears} years):
+- Healthcare keeps growing ~5.5%/year the whole way, spending grows with general inflation, Social Security (once claimed at age ${retProj.drawdown.ssClaimAge}) is itself COLA-adjusted
+- Result: ${retProj.drawdown.lastsFullPlan ? `money lasts through age ${retProj.drawdown.planEndAge}, with ${formatMoney(retProj.drawdown.finalBalance)} remaining` : `money is projected to run low around age ${retProj.drawdown.ranOutAtAge}, which is ${retProj.drawdown.planEndAge-retProj.drawdown.ranOutAtAge} years short of the age-${retProj.drawdown.planEndAge} planning horizon`}
 
 App-calculated status (already shown to the user as a colored badge before they read this brief — your analysis should be consistent with this, not contradict it):
 - Status: ${retProj.statusLabel} (${retProj.status})
-- Gap is ${Math.round(retProj.gapPctOfTarget)}% of target
-- Contribution increase needed to close gap: ${retProj.contributionIncreasePctNeeded>0 ? `~${Math.round(retProj.contributionIncreasePctNeeded)}% more than current` : "none — already covered"}
 
-Known model limitation to mention briefly: these scenarios assume a flat average annual return every year. Real markets vary, and a downturn in the first few years of retirement specifically (sequence-of-returns risk) can hurt more than the average return suggests — this model doesn't capture that.
+Known model limitation to mention briefly: this simulation uses a single flat average annual return (8%) every year for both accumulation and drawdown. Real markets vary year to year, and a downturn in the first few years of retirement specifically (sequence-of-returns risk) can hurt more than the average return suggests — this model doesn't capture that. Treat the age-${retProj.drawdown.planEndAge} result as a directional estimate, not a guarantee.
 
 Write a brief in this EXACT format. Every section must be 1-3 short bullet points, never paragraphs. Be specific with numbers. No fluff, no filler. Do not give specific investment, fund, or allocation advice — stick to savings rate, contribution, tax/timing mechanics, and gap analysis.
 
@@ -2239,7 +2381,10 @@ Format:
 • [tax-adjusted, inflation-adjusted gap — not the gross projection]
 
 **THE BRIDGE YEARS**
-• [comment on the age ${assumptions.retirement_age}-${retProj.bridgeEndAge} gap, healthcare growth, and which accounts (Rule of 55) can fund it without penalty]
+• [comment on the age ${assumptions.retirement_age}-${retProj.drawdown.medicareAge} window, healthcare growth, and whether Rule of 55 funds cover it]
+
+**THROUGH AGE ${retProj.drawdown.planEndAge}**
+• [does the full retirement drawdown last through age ${retProj.drawdown.planEndAge}, or run low — and roughly when]
 
 **WHAT WOULD HELP MOST**
 • [1-2 concrete, non-advisory levers]
@@ -2247,7 +2392,7 @@ Format:
 **KNOWN LIMITATION**
 • [brief honest note on sequence-of-returns risk not being modeled]
 
-Keep the ENTIRE brief under 170 words total. Bullets only, no exceptions.`;
+Keep the ENTIRE brief under 190 words total. Bullets only, no exceptions.`;
 
       const res = await fetch("/api/brief", {
         method: "POST",
@@ -2442,7 +2587,7 @@ function Finance(){
   }
   async function saveAssumptions(){
     try{
-      const row={current_age:+form.current_age||0,retirement_age:+form.retirement_age||0,annual_return_pct:+form.annual_return_pct||0,withdrawal_rate_pct:+form.withdrawal_rate_pct||0,annual_retirement_spending:+form.annual_retirement_spending||0,social_security_estimate:+form.social_security_estimate||0,healthcare_estimate:+form.healthcare_estimate||0,contribution_increase_pct:+form.contribution_increase_pct||0,bridge_end_age:+form.bridge_end_age||65,inflation_pct:+form.inflation_pct||3};
+      const row={current_age:+form.current_age||0,retirement_age:+form.retirement_age||0,annual_return_pct:+form.annual_return_pct||0,withdrawal_rate_pct:+form.withdrawal_rate_pct||0,annual_retirement_spending:+form.annual_retirement_spending||0,social_security_estimate:+form.social_security_estimate||0,healthcare_estimate:+form.healthcare_estimate||0,contribution_increase_pct:+form.contribution_increase_pct||0,bridge_end_age:+form.medicare_age||65,medicare_age:+form.medicare_age||65,ss_claim_age:+form.ss_claim_age||67,plan_end_age:+form.plan_end_age||90,inflation_pct:+form.inflation_pct||3};
       if(assump && assump.id) await assumptions.update(assump.id,row); else await assumptions.insert(row);
     }catch(e){console.error("saveAssumptions failed",e);}
     closeModal();
@@ -2590,7 +2735,10 @@ function Finance(){
               <div>
                 <div style={{fontSize:15,fontWeight:800,color:retProj.statusColor}}>{retProj.statusLabel}</div>
                 <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>
-                  {retProj.gap<=0?`Projected surplus of ${formatMoneyShort(-retProj.gap)}`:`Gap of ${formatMoneyShort(retProj.gap)} (${Math.round(retProj.gapPctOfTarget)}% of target)`}
+                  {retProj.drawdown.lastsFullPlan
+                    ? `~${formatMoneyShort(retProj.drawdown.finalBalance)} expected remaining at age ${retProj.drawdown.planEndAge}`
+                    : `Projected to run low around age ${retProj.drawdown.ranOutAtAge}`
+                  }
                 </div>
               </div>
             </div>
@@ -2647,20 +2795,75 @@ function Finance(){
           </div>
 
           {retProj.bridgeYears>0&&(
-            <div style={{...S.statusCard(COLORS.amber),marginBottom:12}}>
-              <div style={{fontSize:12,fontWeight:700,marginBottom:4}}>🌉 Early Retirement Bridge — age {assump.retirement_age} to {retProj.bridgeEndAge}</div>
+            <div style={{...S.statusCard(retProj.drawdown.bridgeShortfall>0?COLORS.red:COLORS.amber),marginBottom:12}}>
+              <div style={{fontSize:12,fontWeight:700,marginBottom:4}}>🌉 Early Retirement Bridge — age {assump.retirement_age} to {retProj.drawdown.medicareAge}</div>
               <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>
-                {retProj.bridgeYears} years before Social Security/Medicare eligibility. Estimated cost (healthcare grows ~5.5%/yr, spending grows with inflation): <strong style={{color:COLORS.white}}>{formatMoneyShort(retProj.bridgeTotalNeeded)}</strong>.
+                {retProj.bridgeYears} years before Medicare eligibility (age {retProj.drawdown.medicareAge}). Social Security separately assumed to start at age {retProj.drawdown.ssClaimAge}. Healthcare grows ~5.5%/yr for the full plan, spending grows with inflation.
               </div>
               <div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${COLORS.navyLight}`}}>
                 <div style={{fontSize:11,fontWeight:700,color:COLORS.white,marginBottom:2}}>Rule of 55</div>
                 <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>
-                  {formatMoneyShort(retProj.ruleOf55Balance)} ({Math.round(retProj.ruleOf55Share*100)}%) is in 403(b)/401(k) accounts — penalty-free to access at separation from service, even before 59½.
-                  {retProj.nonRuleOf55Balance>0&&` ${formatMoneyShort(retProj.nonRuleOf55Balance)} in IRA/brokerage/HSA still follows standard 59½ rules — IRA withdrawals before then face penalties.`}
+                  At projected balance, ~{Math.round(retProj.ruleOf55Share*100)}% of your accounts will be in 403(b)/401(k) — penalty-free to access at separation from service, even before 59½. The simulation draws bridge-year spending from this pool first, letting it compound the rest of the time.
                 </div>
+              </div>
+              <div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${COLORS.navyLight}`}}>
+                {retProj.drawdown.bridgeShortfall>0
+                  ? <div style={{fontSize:12,color:COLORS.red,fontWeight:600}}>⚠️ Bridge years come up short by ~{formatMoneyShort(retProj.drawdown.bridgeShortfall)} even using Rule of 55 funds first.</div>
+                  : <div style={{fontSize:12,color:COLORS.green,fontWeight:600}}>✓ Rule of 55 funds fully cover the bridge years — extra retirement savings can be spent down during this window without penalty.</div>
+                }
               </div>
             </div>
           )}
+
+          <div style={{...S.statusCard(retProj.status==="green"?COLORS.green:retProj.status==="yellow"?COLORS.amber:COLORS.red),marginBottom:12}}>
+            <div style={{fontSize:12,fontWeight:700,marginBottom:4}}>📉 Full Retirement Drawdown — through age {retProj.drawdown.planEndAge}</div>
+            <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>
+              Simulates spending from age {assump.retirement_age} through {retProj.drawdown.planEndAge} at the moderate (8%) return — bridge years from Rule of 55 funds first, Social Security starting at {retProj.drawdown.ssClaimAge}, healthcare growing ~5.5%/yr the whole way.
+            </div>
+            <div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${COLORS.navyLight}`}}>
+              {retProj.drawdown.lastsFullPlan
+                ? <div style={{fontSize:12,color:COLORS.green,fontWeight:600}}>✓ Projected to last through age {retProj.drawdown.planEndAge}, with ~{formatMoneyShort(retProj.drawdown.finalBalance)} remaining.</div>
+                : <div style={{fontSize:12,color:COLORS.red,fontWeight:600}}>⚠️ Projected to run low around age {retProj.drawdown.ranOutAtAge} — {retProj.drawdown.planEndAge-retProj.drawdown.ranOutAtAge} years before the age-{retProj.drawdown.planEndAge} horizon.</div>
+              }
+            </div>
+          </div>
+
+          <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
+            <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>Projected Balance Over Time</div>
+            {(()=>{
+              const tl = retProj.drawdown.fullTimeline;
+              const currentAge = assump.current_age;
+              const checkpoints = [];
+              for (let age=currentAge; age<=retProj.drawdown.planEndAge; age+=5) {
+                const entry = tl.find(t=>t.age===age) || tl.reduce((closest,t)=> Math.abs(t.age-age)<Math.abs(closest.age-age)?t:closest, tl[0]);
+                if (entry) checkpoints.push(entry);
+              }
+              // Always include the final plan-end-age entry even if not a multiple of 5
+              const lastEntry = tl[tl.length-1];
+              if (lastEntry && checkpoints[checkpoints.length-1]?.age !== lastEntry.age) checkpoints.push(lastEntry);
+
+              return checkpoints.map((cp,i)=>{
+                const isRetirement = cp.age===assump.retirement_age;
+                const isMedicare = cp.age===retProj.drawdown.medicareAge;
+                const isPlanEnd = cp.age===retProj.drawdown.planEndAge;
+                const isRanOut = retProj.drawdown.ranOutAtAge && cp.age===retProj.drawdown.ranOutAtAge;
+                return (
+                  <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:i<checkpoints.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <span style={{fontSize:12,color:COLORS.slateLight}}>Age {cp.age}</span>
+                      {isRetirement&&<span style={S.badge(COLORS.blue)}>retire</span>}
+                      {isMedicare&&!isRetirement&&<span style={S.badge(COLORS.purple)}>medicare</span>}
+                      {isRanOut&&<span style={S.badge(COLORS.red)}>runs out</span>}
+                    </div>
+                    <span style={{fontSize:13,fontWeight:700,color:isPlanEnd?(retProj.status==="green"?COLORS.green:retProj.status==="yellow"?COLORS.amber:COLORS.red):COLORS.white}}>
+                      {formatMoneyShort(cp.balance)}
+                    </span>
+                  </div>
+                );
+              });
+            })()}
+            <div style={{fontSize:10,color:COLORS.slate,marginTop:8,fontStyle:"italic"}}>Checkpoints every 5 years from current age, moderate (8%) return assumption.</div>
+          </div>
 
           <button style={{...S.btnSm,width:"100%",marginBottom:12}} onClick={()=>{setForm({...assump});setShowModal("assumptions");}}>⚙️ Edit Assumptions</button>
         </>}
@@ -2807,11 +3010,15 @@ function Finance(){
         </div>
         <label style={S.label}>Annual Contribution Increase (%)</label>
         <input type="number" step="0.5" style={S.input} placeholder="e.g. 3 for typical raises/auto-escalation" value={form.contribution_increase_pct||""} onChange={e=>setForm(p=>({...p,contribution_increase_pct:e.target.value}))}/>
+        <label style={S.label}>Inflation Rate (%)</label>
+        <input type="number" step="0.5" style={S.input} placeholder="3" value={form.inflation_pct||""} onChange={e=>setForm(p=>({...p,inflation_pct:e.target.value}))}/>
         <div style={S.row}>
-          <div style={S.col}><label style={S.label}>Inflation Rate (%)</label><input type="number" step="0.5" style={S.input} placeholder="3" value={form.inflation_pct||""} onChange={e=>setForm(p=>({...p,inflation_pct:e.target.value}))}/></div>
-          <div style={S.col}><label style={S.label}>Bridge End Age</label><input type="number" style={S.input} placeholder="65" value={form.bridge_end_age||""} onChange={e=>setForm(p=>({...p,bridge_end_age:e.target.value}))}/></div>
+          <div style={S.col}><label style={S.label}>Medicare Age</label><input type="number" style={S.input} placeholder="65" value={form.medicare_age||""} onChange={e=>setForm(p=>({...p,medicare_age:e.target.value}))}/></div>
+          <div style={S.col}><label style={S.label}>SS Claim Age</label><input type="number" style={S.input} placeholder="67" value={form.ss_claim_age||""} onChange={e=>setForm(p=>({...p,ss_claim_age:e.target.value}))}/></div>
         </div>
-        <div style={{fontSize:11,color:COLORS.slate,marginTop:8,lineHeight:1.5}}>Scenarios use fixed 6% / 8% / 10% annual return assumptions — conservative, moderate, aggressive. Healthcare costs are modeled at ~5.5%/year growth, faster than general inflation.</div>
+        <label style={S.label}>Plan Through Age (end of life)</label>
+        <input type="number" style={S.input} placeholder="90" value={form.plan_end_age||""} onChange={e=>setForm(p=>({...p,plan_end_age:e.target.value}))}/>
+        <div style={{fontSize:11,color:COLORS.slate,marginTop:8,lineHeight:1.5}}>Scenarios use fixed 6% / 8% / 10% annual return assumptions — conservative, moderate, aggressive. Healthcare costs are modeled at ~5.5%/year growth for the full plan, faster than general inflation. Medicare eligibility and Social Security claiming age are tracked separately since most people claim SS later than 65.</div>
         <button style={{...S.btn,marginTop:16}} onClick={saveAssumptions}>Save Assumptions</button>
       </Modal>}
 
