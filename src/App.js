@@ -395,13 +395,44 @@ function calcRetirementProjection(accounts, assumptions) {
   const ruleOf55Share = totalBalance>0 ? ruleOf55Balance/totalBalance : 0;
   const nonRuleOf55Balance = totalBalance - ruleOf55Balance;
 
+  // Status: green/yellow/red based on gap size relative to target, and bridge coverage
+  const gapPctOfTarget = targetNumberInflated>0 ? (gap/targetNumberInflated)*100 : 0;
+  // Contribution increase needed to close the gap, as a % of current monthly contribution
+  const contributionIncreasePctNeeded = totalMonthly>0 ? ((monthlyNeeded - totalMonthly)/totalMonthly)*100 : (monthlyNeeded>0?999:0);
+  const bridgeCovered = ruleOf55Balance >= bridgeTotalNeeded;
+
+  let status, statusLabel, statusColor;
+  if (gap<=0 || gapPctOfTarget<=5) {
+    status="green"; statusLabel="On Track"; statusColor=COLORS.green;
+  } else if (contributionIncreasePctNeeded<=50 && bridgeCovered) {
+    status="yellow"; statusLabel="Closeable Gap"; statusColor=COLORS.amber;
+  } else {
+    status="red"; statusLabel="Needs Attention"; statusColor=COLORS.red;
+  }
+
+  // Quick, non-AI recommendations based on what's actually driving the status
+  const quickRecs = [];
+  if (gap>0) {
+    quickRecs.push(`Increase monthly contributions by ~${formatMoney(Math.max(0,monthlyNeeded-totalMonthly))} to close the gap at a moderate return.`);
+  }
+  if (!bridgeCovered && bridgeYears>0) {
+    quickRecs.push(`Rule of 55 balance (${formatMoneyShort(ruleOf55Balance)}) doesn't fully cover the ${formatMoneyShort(bridgeTotalNeeded)} bridge cost — consider building taxable/brokerage savings specifically earmarked for ages ${assumptions.retirement_age}-${bridgeEndAge}.`);
+  }
+  if (taxableMix>0.15) {
+    quickRecs.push(`Most of your balance is pre-tax — consider Roth contributions or conversions over time to reduce future tax drag.`);
+  }
+  if (quickRecs.length===0) {
+    quickRecs.push(`Current trajectory covers your target with room to spare — maintain contributions and revisit assumptions annually.`);
+  }
+
   return {
     totalBalance, totalMonthly, years, scenarios, growthRate,
     targetNumberToday, targetNumberInflated, inflationPct, deflator,
     spendableProjected, spendableTodaysDollars, taxableMix,
     gap, monthlyNeeded, netAnnualNeed,
     bridgeYears, bridgeTotalNeeded, bridgeEndAge,
-    ruleOf55Balance, ruleOf55Share, nonRuleOf55Balance,
+    ruleOf55Balance, ruleOf55Share, nonRuleOf55Balance, bridgeCovered,
+    status, statusLabel, statusColor, gapPctOfTarget, contributionIncreasePctNeeded, quickRecs,
     trajectory: moderate.trajectory
   };
 }
@@ -2189,6 +2220,12 @@ Early retirement bridge (age ${assumptions.retirement_age} to ${retProj.bridgeEn
 - Estimated total bridge cost: ${formatMoney(retProj.bridgeTotalNeeded)}
 - Rule of 55: ${formatMoney(retProj.ruleOf55Balance)} (${Math.round(retProj.ruleOf55Share*100)}%) sits in 403(b)/401(k) accounts, penalty-free to access starting the year of separation from service at 55+, even before age 59½
 - ${formatMoney(retProj.nonRuleOf55Balance)} sits in IRA/brokerage/HSA — these still face standard early withdrawal rules (IRA penalty before 59½; brokerage/HSA have their own rules)
+- Bridge fully covered by Rule of 55-eligible balance alone: ${retProj.bridgeCovered ? "yes" : "no"}
+
+App-calculated status (already shown to the user as a colored badge before they read this brief — your analysis should be consistent with this, not contradict it):
+- Status: ${retProj.statusLabel} (${retProj.status})
+- Gap is ${Math.round(retProj.gapPctOfTarget)}% of target
+- Contribution increase needed to close gap: ${retProj.contributionIncreasePctNeeded>0 ? `~${Math.round(retProj.contributionIncreasePctNeeded)}% more than current` : "none — already covered"}
 
 Known model limitation to mention briefly: these scenarios assume a flat average annual return every year. Real markets vary, and a downturn in the first few years of retirement specifically (sequence-of-returns risk) can hurt more than the average return suggests — this model doesn't capture that.
 
@@ -2483,7 +2520,10 @@ function Finance(){
           <div style={S.card}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{fontSize:13,fontWeight:600}}>🏦 Retirement (age {assump.retirement_age})</div>
-              <span style={{fontSize:12,color:retProj.gap>0?COLORS.amber:COLORS.green,fontWeight:700}}>{retProj.gap>0?`${formatMoneyShort(retProj.gap)} gap`:"On track ✓"}</span>
+              <span style={{fontSize:12,color:retProj.statusColor,fontWeight:700,display:"flex",alignItems:"center",gap:5}}>
+                <span style={{width:8,height:8,borderRadius:"50%",background:retProj.statusColor,display:"inline-block"}}/>
+                {retProj.statusLabel}
+              </span>
             </div>
             <div style={{fontSize:11,color:COLORS.slate,marginTop:4}}>Spendable (after tax) {formatMoneyShort(retProj.spendableProjected)} · Target (inflation-adj.) {formatMoneyShort(retProj.targetNumberInflated)}</div>
           </div>
@@ -2543,6 +2583,25 @@ function Finance(){
       </>}
 
       {tab==="retirement"&&<>
+        {retProj&&(
+          <div style={{...S.card,background:retProj.statusColor+"18",borderColor:retProj.statusColor+"44",marginBottom:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <div style={{width:14,height:14,borderRadius:"50%",background:retProj.statusColor,flexShrink:0}}/>
+              <div>
+                <div style={{fontSize:15,fontWeight:800,color:retProj.statusColor}}>{retProj.statusLabel}</div>
+                <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>
+                  {retProj.gap<=0?`Projected surplus of ${formatMoneyShort(-retProj.gap)}`:`Gap of ${formatMoneyShort(retProj.gap)} (${Math.round(retProj.gapPctOfTarget)}% of target)`}
+                </div>
+              </div>
+            </div>
+            <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${retProj.statusColor}33`}}>
+              {retProj.quickRecs.map((rec,i)=>(
+                <div key={i} style={{fontSize:12,color:COLORS.slateLight,lineHeight:1.5,marginBottom:i<retProj.quickRecs.length-1?6:0}}>• {rec}</div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div style={{display:"flex",gap:8,marginBottom:12}}>
           <button onClick={()=>setShowRetBrief(true)} style={{flex:1,background:COLORS.purple,color:"#fff",border:"none",borderRadius:10,padding:"12px 6px",fontSize:12,fontWeight:700,cursor:"pointer"}}>
             🤖 Retirement Brief
