@@ -191,7 +191,9 @@ const SEED={
     {id:"1",balance:50000,monthly_contribution:200,last_updated:"2026-06-01",notes:"529 plan"},
   ],
   college_goal:[
-    {id:"1",target_amount:160000,target_year:2027,notes:"Blended estimate — Aubrey targeting USC Honors, Clemson, College of Charleston. In-state preferred."},
+    {id:"1",child_name:"Aubrey",target_amount:160000,target_year:2027,notes:"Blended estimate — Aubrey targeting USC Honors, Clemson, College of Charleston. In-state preferred."},
+    {id:"2",child_name:"Blake",target_amount:160000,target_year:2032,notes:"Entering 7th grade (2026)."},
+    {id:"3",child_name:"Brayden",target_amount:160000,target_year:2035,notes:"Entering 4th grade (2026)."},
   ],
   mortgage:[
     {id:"1",current_balance:310000,interest_rate:6.25,monthly_payment:2400,term_years:30,start_date:"2021-08-01",extra_payment_monthly:0,last_updated:"2026-06-01"},
@@ -459,6 +461,136 @@ function simulateRetirementDrawdown(accounts, assumptions) {
     drawdownSchedule, ranOutAtAge, lastsFullPlan, finalBalance,
     fullTimeline
   };
+}
+
+// ─── INCOME SOURCE TIMELINE ──────────────────────────────────────────────────
+// Builds the "what pays for retirement, and when" picture — distinct age bands
+// with the funding source(s) active in each, for the Income Timeline display.
+function buildIncomeTimeline(assumptions, drawdown) {
+  if (!assumptions || !drawdown) return [];
+  const retAge = assumptions.retirement_age;
+  const medicareAge = drawdown.medicareAge;
+  const ssClaimAge = drawdown.ssClaimAge;
+  const planEnd = drawdown.planEndAge;
+
+  // Average annual spend need for a given age range, pulled from the actual schedules already simulated
+  function avgNeedForRange(startAge, endAge) {
+    const bridgeVals = (drawdown.bridgeSchedule||[]).filter(b=>b.age>=startAge && b.age<endAge).map(b=>b.needYear);
+    if (bridgeVals.length) return bridgeVals.reduce((a,b)=>a+b,0)/bridgeVals.length;
+    return null; // post-bridge years don't track needYear directly in drawdownSchedule, only balance
+  }
+
+  const bands = [];
+
+  // Band 1: retirement age → medicare age (bridge years, Rule of 55 funds)
+  if (medicareAge > retAge) {
+    const avgNeed = avgNeedForRange(retAge, medicareAge);
+    bands.push({
+      ageRange: `${retAge}–${medicareAge}`,
+      sources: ["403(b) / 401(k) — Rule of 55"],
+      detail: "Penalty-free withdrawals from current-employer plans. Self-funded healthcare (no Medicare yet).",
+      avgAnnual: avgNeed,
+      color: COLORS.purple,
+    });
+  }
+
+  // Band 2: medicare age → SS claim age (Medicare active, no SS yet)
+  if (ssClaimAge > medicareAge) {
+    bands.push({
+      ageRange: `${medicareAge}–${ssClaimAge}`,
+      sources: ["Medicare", "Portfolio withdrawals"],
+      detail: "Healthcare costs drop with Medicare coverage. Still drawing from savings for living expenses — no Social Security yet.",
+      avgAnnual: assumptions.annual_retirement_spending,
+      color: COLORS.blue,
+    });
+  } else {
+    // SS claimed at or before medicare age — merge bands conceptually
+    bands.push({
+      ageRange: `${medicareAge}+`,
+      sources: ["Medicare", "Social Security", "Portfolio"],
+      detail: "Medicare and Social Security both active alongside portfolio withdrawals.",
+      avgAnnual: Math.max(0, assumptions.annual_retirement_spending - (assumptions.social_security_estimate||0)),
+      color: COLORS.blue,
+    });
+  }
+
+  // Band 3: SS claim age → plan end (full income stack)
+  if (ssClaimAge >= medicareAge && ssClaimAge < planEnd) {
+    bands.push({
+      ageRange: `${ssClaimAge}–${planEnd}`,
+      sources: ["Social Security", "Medicare", "Portfolio withdrawals"],
+      detail: "Full income stack — Social Security and Medicare both active, portfolio covers the remaining gap.",
+      avgAnnual: Math.max(0, assumptions.annual_retirement_spending - (assumptions.social_security_estimate||0)),
+      color: COLORS.green,
+    });
+  }
+
+  return bands;
+}
+
+// ─── FAMILY MILESTONES TIMELINE ──────────────────────────────────────────────
+// Pulls together every dated/age-based milestone already tracked across modules
+// into one chronological list — college, mortgage, retirement, Medicare, SS.
+function buildFamilyMilestones(assump, collegeGoals, mort, mortMonths, retProj) {
+  const milestones = [];
+  const currentYear = new Date().getFullYear();
+  const childColors = { Aubrey: COLORS.red, Blake: COLORS.green, Brayden: COLORS.amber };
+
+  (collegeGoals||[]).forEach(g => {
+    if (g?.target_year) {
+      milestones.push({
+        year: g.target_year,
+        label: `${g.child_name||"Child"} starts college`,
+        detail: g.notes || "Target start year",
+        icon: "🎓",
+        color: childColors[g.child_name] || COLORS.slate,
+      });
+    }
+  });
+
+  if (mort && mortMonths) {
+    const payoffYear = currentYear + Math.ceil(mortMonths/12);
+    milestones.push({
+      year: payoffYear,
+      label: "Mortgage paid off",
+      detail: `${formatMoney(mort.current_balance)} balance, ${mort.interest_rate}% rate`,
+      icon: "🏠",
+      color: COLORS.blue,
+    });
+  }
+
+  if (assump) {
+    const retYear = currentYear + (assump.retirement_age - assump.current_age);
+    milestones.push({
+      year: retYear,
+      label: `Retirement (age ${assump.retirement_age})`,
+      detail: "Rule of 55 bridge years begin",
+      icon: "🏖️",
+      color: COLORS.purple,
+    });
+
+    if (retProj?.drawdown) {
+      const medicareYear = currentYear + (retProj.drawdown.medicareAge - assump.current_age);
+      milestones.push({
+        year: medicareYear,
+        label: `Medicare eligible (age ${retProj.drawdown.medicareAge})`,
+        detail: "Bridge years end, healthcare costs drop",
+        icon: "⚕️",
+        color: COLORS.green,
+      });
+
+      const ssYear = currentYear + (retProj.drawdown.ssClaimAge - assump.current_age);
+      milestones.push({
+        year: ssYear,
+        label: `Social Security claimed (age ${retProj.drawdown.ssClaimAge})`,
+        detail: "Full income stack begins",
+        icon: "💵",
+        color: COLORS.green,
+      });
+    }
+  }
+
+  return milestones.sort((a,b) => a.year - b.year);
 }
 
 function calcRetirementProjection(accounts, assumptions) {
@@ -2550,7 +2682,7 @@ function Finance(){
 
   const assump = assumptions.data[0];
   const collegeS = collegeSav.data[0];
-  const collegeG = collegeGoal.data[0];
+  const collegeG = collegeGoal.data.find(g=>g.child_name==="Aubrey") || collegeGoal.data[0];
   const mort = mortgage.data[0];
 
   const retProj = calcRetirementProjection(accounts.data, assump);
@@ -2562,6 +2694,9 @@ function Finance(){
   const interestSaved = mort && mortMonths && mortMonthsNoExtra && mort.extra_payment_monthly>0
     ? calcTotalInterest(mort.current_balance, mort.interest_rate, mort.monthly_payment, mortMonthsNoExtra) - mortInterest
     : null;
+
+  const incomeTimeline = assump && retProj?.drawdown ? buildIncomeTimeline(assump, retProj.drawdown) : [];
+  const familyMilestones = buildFamilyMilestones(assump, collegeGoal.data, mort, mortMonths, retProj);
 
   const totalRetirement = accounts.data.reduce((s,a)=>s+(a.balance||0),0);
   const totalCollege = collegeS?.balance || 0;
@@ -2649,7 +2784,7 @@ function Finance(){
       </div>
 
       <div style={S.tabs}>
-        {["overview","retirement","college","debt"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
+        {["overview","retirement","college","debt","milestones"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
       </div>
 
       {tab==="overview"&&<>
@@ -2865,6 +3000,66 @@ function Finance(){
             <div style={{fontSize:10,color:COLORS.slate,marginTop:8,fontStyle:"italic"}}>Checkpoints every 5 years from current age, moderate (8%) return assumption.</div>
           </div>
 
+          {incomeTimeline.length>0&&(
+            <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
+              <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>📋 Retirement Income Timeline</div>
+              {incomeTimeline.map((band,i)=>(
+                <div key={i} style={{display:"flex",gap:10,marginBottom:i<incomeTimeline.length-1?12:0}}>
+                  <div style={{width:3,background:band.color,borderRadius:2,flexShrink:0}}/>
+                  <div style={{flex:1}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <span style={{fontSize:13,fontWeight:700,color:band.color}}>Age {band.ageRange}</span>
+                      {band.avgAnnual!=null&&<span style={{fontSize:12,fontWeight:700,color:COLORS.white}}>~{formatMoneyShort(band.avgAnnual)}/yr</span>}
+                    </div>
+                    <div style={{fontSize:12,color:COLORS.white,marginTop:2,fontWeight:600}}>{band.sources.join(" + ")}</div>
+                    <div style={{fontSize:11,color:COLORS.slate,marginTop:2,lineHeight:1.4}}>{band.detail}</div>
+                  </div>
+                </div>
+              ))}
+              <div style={{fontSize:10,color:COLORS.slate,marginTop:10,fontStyle:"italic"}}>$/yr figures are inflation-adjusted estimates at the start of each band, in future dollars.</div>
+            </div>
+          )}
+
+          {retProj?.drawdown&&(
+            <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
+              <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>🔓 Rule of 55 Dashboard</div>
+              <div style={S.statGrid}>
+                <div style={S.statCell(COLORS.purple)}>
+                  <div style={{...S.statVal,fontSize:14}}>{Math.round(retProj.drawdown.ruleOf55Share*100)}%</div>
+                  <div style={S.statLbl}>of balance eligible</div>
+                </div>
+                <div style={S.statCell(COLORS.blue)}>
+                  <div style={{...S.statVal,fontSize:14}}>{retProj.bridgeYears}</div>
+                  <div style={S.statLbl}>bridge years</div>
+                </div>
+                <div style={S.statCell(retProj.drawdown.bridgeShortfall>0?COLORS.red:COLORS.green)}>
+                  <div style={{...S.statVal,fontSize:14}}>{retProj.drawdown.bridgeShortfall>0?"⚠️":"✓"}</div>
+                  <div style={S.statLbl}>{retProj.drawdown.bridgeShortfall>0?"shortfall":"covered"}</div>
+                </div>
+              </div>
+              <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${COLORS.navyLight}`,fontSize:11,color:COLORS.slateLight,lineHeight:1.6}}>
+                Current Rule of 55 eligible accounts (403b/401k): <strong style={{color:COLORS.white}}>{formatMoney(accounts.data.filter(ruleOf55Eligible).reduce((s,a)=>s+(a.balance||0),0))}</strong>
+                <br/>Projected at retirement (age {assump.retirement_age}): <strong style={{color:COLORS.white}}>~{formatMoneyShort(retProj.drawdown.spendableAtRetirement * retProj.drawdown.ruleOf55Share)}</strong>
+                <br/>Bridge coverage: <strong style={{color:retProj.drawdown.bridgeShortfall>0?COLORS.red:COLORS.green}}>
+                  {retProj.drawdown.bridgeShortfall>0 ? `short by ${formatMoneyShort(retProj.drawdown.bridgeShortfall)}` : `fully funded`}
+                </strong>
+              </div>
+              {retProj.drawdown.bridgeShortfall>0&&(()=>{
+                // Rough fix estimate: extra monthly contribution to Rule of 55-eligible accounts to close the bridge shortfall by retirement
+                const yearsToClose = Math.max(1, retProj.years);
+                const extraMonthlyNeeded = retProj.drawdown.bridgeShortfall / (yearsToClose*12*1.08); // rough, conservative
+                return(
+                  <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${COLORS.red}33`}}>
+                    <div style={{fontSize:12,color:COLORS.red,fontWeight:700}}>⚠️ Quick fix</div>
+                    <div style={{fontSize:11,color:COLORS.slateLight,marginTop:3,lineHeight:1.5}}>
+                      Increasing 403(b)/401(k) contributions by ~{formatMoney(extraMonthlyNeeded)}/mo would close most of this gap by retirement age, assuming moderate (8%) growth.
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
           <button style={{...S.btnSm,width:"100%",marginBottom:12}} onClick={()=>{setForm({...assump});setShowModal("assumptions");}}>⚙️ Edit Assumptions</button>
         </>}
 
@@ -2956,6 +3151,57 @@ function Finance(){
         })}
         <button style={S.btn} onClick={()=>{setForm({payment_frequency:"monthly",last_updated:TODAY_STR});setShowModal("debt");}}>+ Add Debt</button>
       </>}
+
+      {tab==="milestones"&&<>
+        <div style={{fontSize:12,color:COLORS.slate,marginBottom:16,lineHeight:1.5}}>
+          Every dated milestone tracked across Finance and College, in one timeline. Tap a college milestone to edit its target year.
+        </div>
+        {familyMilestones.length===0&&<div style={S.empty}>Add a college goal, mortgage, or retirement assumptions to see your timeline.</div>}
+        {familyMilestones.map((m,i)=>{
+          const yearsAway = m.year - new Date().getFullYear();
+          const isCollege = m.label.includes("starts college");
+          const goalRecord = isCollege ? collegeGoal.data.find(g=>m.label.startsWith(g.child_name)) : null;
+          return(
+            <div key={i} style={{display:"flex",gap:12,marginBottom:i<familyMilestones.length-1?4:0}}>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",width:24,flexShrink:0}}>
+                <div style={{width:10,height:10,borderRadius:"50%",background:m.color,flexShrink:0,marginTop:4}}/>
+                {i<familyMilestones.length-1&&<div style={{width:2,flex:1,background:COLORS.navyLight,marginTop:4}}/>}
+              </div>
+              <div
+                style={{...S.card,flex:1,borderLeft:`3px solid ${m.color}`,cursor:goalRecord?"pointer":"default",opacity:yearsAway<0?0.5:yearsAway>10?0.7:1}}
+                onClick={()=>{ if(goalRecord){ setEditItem(goalRecord); setForm({...goalRecord}); setShowModal("college-goal-child"); } }}
+              >
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                  <div>
+                    <div style={{fontSize:14,fontWeight:700}}>{m.icon} {m.label}</div>
+                    <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{m.detail}</div>
+                    <div style={{fontSize:10,color:m.color,marginTop:3,fontWeight:600}}>
+                      {yearsAway<0?`${-yearsAway}y ago`:yearsAway===0?"this year":`in ${yearsAway}y`}
+                    </div>
+                  </div>
+                  <div style={{fontSize:15,fontWeight:800,color:m.color,flexShrink:0,marginLeft:10}}>{m.year}</div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </>}
+
+      {showModal==="college-goal-child"&&<Modal title={`Edit ${editItem?.child_name}'s College Goal`} onClose={closeModal}>
+        <label style={S.label}>Target Start Year</label>
+        <input type="number" style={S.input} value={form.target_year||""} onChange={e=>setForm(p=>({...p,target_year:e.target.value}))}/>
+        <label style={S.label}>Target Savings Amount</label>
+        <input type="number" style={S.input} value={form.target_amount||""} onChange={e=>setForm(p=>({...p,target_amount:e.target.value}))}/>
+        <label style={S.label}>Notes</label>
+        <input style={S.input} placeholder="Grade, school targets, etc." value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
+        <button style={{...S.btn,marginTop:16}} onClick={async()=>{
+          try{
+            const row={child_name:editItem.child_name,target_amount:+form.target_amount||0,target_year:+form.target_year||new Date().getFullYear(),notes:form.notes||""};
+            await collegeGoal.update(editItem.id,row);
+          }catch(e){console.error("save child goal failed",e);}
+          closeModal();
+        }}>Save Changes</button>
+      </Modal>}
 
       {showModal==="account"&&<Modal title={editItem?"Edit Account":"Add Account"} onClose={closeModal}>
         <label style={S.label}>Account Name</label>
