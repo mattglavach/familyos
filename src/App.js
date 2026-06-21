@@ -185,7 +185,7 @@ const SEED={
     {id:"5",name:"Brokerage",account_type:"brokerage",balance:85000,monthly_contribution:400,employer_match:0,contribution_frequency:"monthly",tax_treatment:"taxable",last_updated:"2026-06-01",notes:""},
   ],
   retirement_assumptions:[
-    {id:"1",current_age:44,retirement_age:59,annual_return_pct:8,withdrawal_rate_pct:4,annual_retirement_spending:110000,social_security_estimate:30000,healthcare_estimate:18000,contribution_increase_pct:3,bridge_end_age:65,medicare_age:65,ss_claim_age:67,plan_end_age:90,inflation_pct:3},
+    {id:"1",current_age:44,retirement_age:59,annual_return_pct:7,withdrawal_rate_pct:4,annual_retirement_spending:110000,social_security_estimate:30000,healthcare_estimate:18000,contribution_increase_pct:3,bridge_end_age:65,medicare_age:65,ss_claim_age:67,plan_end_age:90,inflation_pct:3,conservative_rate_pct:5,moderate_rate_pct:7,aggressive_rate_pct:9,drawdown_rate_pct:5},
   ],
   college_savings:[
     {id:"1",balance:50000,monthly_contribution:200,last_updated:"2026-06-01",notes:"529 plan"},
@@ -314,8 +314,16 @@ function futureValueWithGrowth(presentValue, monthlyContribution, annualRatePct,
 }
 
 // Healthcare cost compounds faster than general inflation — default 5.5%/year
-function futureHealthcareCost(annualEstimate, years, growthPct=5.5) {
-  return annualEstimate * Math.pow(1 + growthPct/100, years);
+// Healthcare grows faster than general inflation, but not forever — above-inflation growth
+// is capped at ~20 years (the period most actuarial models treat as elevated), then reverts
+// to general inflation. Uncapped 5.5% compounding for 40+ years produces an unrealistic result
+// (e.g. healthcare alone exceeding total retirement spending by the end of a long plan).
+function futureHealthcareCost(annualEstimate, years, growthPct=5.5, accelCapYears=20, normalInflationPct=3) {
+  if (years <= accelCapYears) {
+    return annualEstimate * Math.pow(1 + growthPct/100, years);
+  }
+  const atCap = annualEstimate * Math.pow(1 + growthPct/100, accelCapYears);
+  return atCap * Math.pow(1 + normalInflationPct/100, years - accelCapYears);
 }
 
 // Rough effective tax treatment by account tax_treatment type
@@ -335,6 +343,122 @@ function ruleOf55Eligible(account) {
   return account.account_type === "403b" || account.account_type === "401k";
 }
 
+// ─── MONTE CARLO SIMULATION ───────────────────────────────────────────────────
+// Runs many randomized return paths instead of one fixed rate, to estimate a
+// success probability (% of paths that never run out of money) rather than a
+// single deterministic number. Uses a normal distribution via Box-Muller transform.
+function randomNormal(mean, stdDev) {
+  let u1 = Math.random(), u2 = Math.random();
+  while (u1 === 0) u1 = Math.random(); // avoid log(0)
+  const z = Math.sqrt(-2*Math.log(u1)) * Math.cos(2*Math.PI*u2);
+  return mean + z*stdDev;
+}
+
+// Runs ONE randomized path through accumulation + bridge + drawdown, returns whether it lasted.
+function runOneMonteCarloPath(accounts, assumptions, retirementAgeOverride, meanReturn, stdDev) {
+  const totalBalance = accounts.reduce((s,a)=>s+(a.balance||0),0);
+  const totalMonthly = accounts.reduce((s,a)=>s+effectiveMonthlyContribution(a),0);
+  const retirementAge = retirementAgeOverride || assumptions.retirement_age;
+  const accumYears = Math.max(0, retirementAge - assumptions.current_age);
+  const contribGrowth = assumptions.contribution_increase_pct || 0;
+  const inflationPct = assumptions.inflation_pct || 3;
+  const medicareAge = assumptions.medicare_age || assumptions.bridge_end_age || 65;
+  const ssClaimAge = assumptions.ss_claim_age || 67;
+  const planEndAge = assumptions.plan_end_age || 90;
+
+  const ruleOf55Share = totalBalance>0
+    ? accounts.filter(ruleOf55Eligible).reduce((s,a)=>s+(a.balance||0),0) / totalBalance
+    : 0;
+
+  // Accumulation — random return each year
+  let balance = totalBalance;
+  let contrib = totalMonthly;
+  for (let y=0; y<accumYears; y++) {
+    const yearReturn = randomNormal(meanReturn, stdDev) / 100;
+    for (let m=0; m<12; m++) balance = balance*(1+yearReturn/12) + contrib;
+    contrib = contrib * (1+contribGrowth/100);
+  }
+
+  const taxableMix = accounts.reduce((acc,a)=>{
+    const share = totalBalance>0 ? (a.balance||0)/totalBalance : 0;
+    return acc + share * (a.tax_treatment==="Roth"||a.tax_treatment==="HSA" ? 0 : a.tax_treatment==="taxable" ? 0.10 : 0.18);
+  },0);
+  let spendable = balance * (1-taxableMix);
+  let ruleOf55Pool = spendable * ruleOf55Share;
+  let otherPool = spendable * (1-ruleOf55Share);
+
+  // Bridge years — random return each year, draw from Rule of 55 pool first.
+  // Healthcare uses the capped growth function (accelerated for ~20yrs, then general inflation).
+  const bridgeYears = Math.max(0, medicareAge - retirementAge);
+  const spendingAtRet = assumptions.annual_retirement_spending * Math.pow(1+inflationPct/100, accumYears);
+
+  for (let y=0; y<bridgeYears; y++) {
+    const yearReturn = randomNormal(meanReturn, stdDev) / 100;
+    const totalYearsFromNow = accumYears + y;
+    const hcYear = futureHealthcareCost(assumptions.healthcare_estimate||0, totalYearsFromNow, 5.5, 20, inflationPct);
+    const needYear = hcYear + spendingAtRet*Math.pow(1+inflationPct/100,y);
+    ruleOf55Pool *= (1+yearReturn);
+    otherPool *= (1+yearReturn);
+    if (ruleOf55Pool >= needYear) ruleOf55Pool -= needYear;
+    else { const sf = needYear-ruleOf55Pool; ruleOf55Pool=0; otherPool=Math.max(0,otherPool-sf); }
+  }
+
+  // Post-bridge drawdown — random return each year
+  let runningBalance = ruleOf55Pool + otherPool;
+  const postBridgeYears = Math.max(0, planEndAge - medicareAge);
+  for (let y=0; y<postBridgeYears; y++) {
+    const age = medicareAge + y;
+    const yearsFromRet = age - retirementAge;
+    const totalYearsFromNow = accumYears + bridgeYears + y;
+    const yearReturn = randomNormal(meanReturn, stdDev) / 100;
+    const spendingThisYear = assumptions.annual_retirement_spending * Math.pow(1+inflationPct/100, yearsFromRet);
+    const hcYear = futureHealthcareCost(assumptions.healthcare_estimate||0, totalYearsFromNow, 5.5, 20, inflationPct);
+    const hasSS = age >= ssClaimAge;
+    const ssThisYear = hasSS ? (assumptions.social_security_estimate||0) * Math.pow(1+inflationPct/100, age-ssClaimAge) : 0;
+    const spendYear = Math.max(0, spendingThisYear + hcYear - ssThisYear);
+    runningBalance = runningBalance*(1+yearReturn) - spendYear;
+    if (runningBalance < 0) return { success:false, finalBalance:0 };
+  }
+  return { success:true, finalBalance: Math.max(0,runningBalance) };
+}
+
+// Runs N simulations for a given retirement age, returns success rate %.
+function runMonteCarloScenario(accounts, assumptions, retirementAgeOverride, numSimulations=1000) {
+  const meanReturn = assumptions.moderate_rate_pct || 7;
+  const stdDev = 15; // roughly matches historical S&P 500 annual volatility
+  let successes = 0;
+  const finalBalances = [];
+  for (let i=0; i<numSimulations; i++) {
+    const result = runOneMonteCarloPath(accounts, assumptions, retirementAgeOverride, meanReturn, stdDev);
+    if (result.success) { successes++; finalBalances.push(result.finalBalance); }
+  }
+  finalBalances.sort((a,b)=>a-b);
+  const median = finalBalances.length ? finalBalances[Math.floor(finalBalances.length/2)] : 0;
+  return {
+    retirementAge: retirementAgeOverride || assumptions.retirement_age,
+    successRate: Math.round((successes/numSimulations)*100),
+    medianFinalBalance: median,
+    numSimulations,
+  };
+}
+
+// Builds the comparison table: current plan + a few retirement age variants.
+function buildMonteCarloComparison(accounts, assumptions, numSimulations=1000) {
+  if (!assumptions) return [];
+  const baseAge = assumptions.retirement_age;
+  const variants = [
+    { label: "Current Plan", age: baseAge },
+    { label: `Retire at ${baseAge-2}`, age: baseAge-2 },
+    { label: `Retire at ${baseAge+1}`, age: baseAge+1 },
+    { label: `Retire at ${baseAge+3}`, age: baseAge+3 },
+  ].filter(v => v.age > assumptions.current_age && v.age < (assumptions.plan_end_age||90));
+
+  return variants.map(v => {
+    const result = runMonteCarloScenario(accounts, assumptions, v.age, numSimulations);
+    return { ...result, label: v.label };
+  });
+}
+
 // ─── FULL RETIREMENT DRAWDOWN SIMULATION ───────────────────────────────────────
 // Three phases: accumulate to retirement_age, draw down Rule-of-55 funds through
 // the bridge (retirement_age → bridge_end_age), then draw down combined balance
@@ -347,8 +471,11 @@ function simulateRetirementDrawdown(accounts, assumptions) {
   const accumYears = Math.max(0, assumptions.retirement_age - assumptions.current_age);
   const contribGrowth = assumptions.contribution_increase_pct || 0;
   const inflationPct = assumptions.inflation_pct || 3;
-  const moderateRate = 8;
-  const r = moderateRate/100;
+  // Accumulation uses the moderate growth rate (while still contributing); drawdown uses a
+  // separate, typically more conservative rate reflecting de-risking once spending begins.
+  const accumRate = assumptions.moderate_rate_pct || 7;
+  const drawdownRate = assumptions.drawdown_rate_pct || 5;
+  const r = drawdownRate/100; // used for bridge + post-bridge phases below
   const planEndAge = assumptions.plan_end_age || 90;
 
   // Medicare eligibility (drives bridge length) and Social Security claiming age (drives when SS offset begins)
@@ -366,7 +493,7 @@ function simulateRetirementDrawdown(accounts, assumptions) {
   {
     let bal = totalBalance;
     let contrib = totalMonthly;
-    const rMonthly = moderateRate/100/12;
+    const rMonthly = accumRate/100/12;
     accumSchedule.push({ age: assumptions.current_age, balance: Math.round(bal) });
     for (let y=1; y<=accumYears; y++) {
       for (let m=0; m<12; m++) bal = bal*(1+rMonthly) + contrib;
@@ -388,13 +515,13 @@ function simulateRetirementDrawdown(accounts, assumptions) {
 
   // ── Phase 2: Bridge (retirement_age → medicare_age) — draw from Rule of 55 pool first ──
   const bridgeYears = Math.max(0, medicareAge - assumptions.retirement_age);
-  const healthcareAtRetirement = futureHealthcareCost(assumptions.healthcare_estimate||0, accumYears, 5.5);
   const spendingAtRetirement = assumptions.annual_retirement_spending * Math.pow(1+inflationPct/100, accumYears);
 
   const bridgeSchedule = [];
   let bridgeShortfall = 0;
   for (let y=0; y<bridgeYears; y++) {
-    const hcYear = healthcareAtRetirement * Math.pow(1.055, y);
+    const totalYearsFromNow = accumYears + y;
+    const hcYear = futureHealthcareCost(assumptions.healthcare_estimate||0, totalYearsFromNow, 5.5, 20, inflationPct);
     const spendYear = spendingAtRetirement * Math.pow(1+inflationPct/100, y);
     const needYear = hcYear + spendYear;
 
@@ -415,27 +542,28 @@ function simulateRetirementDrawdown(accounts, assumptions) {
   const balanceAtBridgeEnd = ruleOf55Pool + otherPool;
 
   // ── Phase 3: Full retirement drawdown (medicare_age → plan_end_age) ──
-  // Healthcare keeps growing at ~5.5%/yr the WHOLE plan, not just the bridge —
-  // Medicare reduces but doesn't eliminate above-inflation healthcare cost growth.
+  // Healthcare grows faster than inflation for an initial accelerated window (capped at ~20yrs
+  // total from now), then reverts to general inflation — uncapped compounding for 40+ years
+  // would make healthcare alone exceed total spending, which isn't a realistic assumption.
   // Social Security only kicks in once ssClaimAge is reached, and is itself COLA-adjusted.
   const postBridgeYears = Math.max(0, planEndAge - medicareAge);
   let runningBalance = balanceAtBridgeEnd;
-  let healthcareRunning = healthcareAtRetirement * Math.pow(1.055, bridgeYears); // continue from where Phase 2 left off
   const drawdownSchedule = [];
   let ranOutAtAge = null;
 
   for (let y=0; y<postBridgeYears; y++) {
     const age = medicareAge + y;
     const yearsFromRetirement = age - assumptions.retirement_age;
+    const totalYearsFromNow = accumYears + bridgeYears + y;
 
     const spendingThisYear = assumptions.annual_retirement_spending * Math.pow(1+inflationPct/100, yearsFromRetirement);
-    healthcareRunning = healthcareRunning * 1.055;
+    const hcYear = futureHealthcareCost(assumptions.healthcare_estimate||0, totalYearsFromNow, 5.5, 20, inflationPct);
     const hasClaimedSS = age >= ssClaimAge;
     const ssThisYear = hasClaimedSS
       ? (assumptions.social_security_estimate||0) * Math.pow(1+inflationPct/100, age - ssClaimAge)
       : 0;
 
-    const spendYear = Math.max(0, spendingThisYear + healthcareRunning - ssThisYear);
+    const spendYear = Math.max(0, spendingThisYear + hcYear - ssThisYear);
 
     runningBalance = runningBalance * (1+r);
     runningBalance -= spendYear;
@@ -603,9 +731,9 @@ function calcRetirementProjection(accounts, assumptions) {
   const deflator = Math.pow(1 + inflationPct/100, years); // converts future $ back to today's purchasing power
 
   const scenarios = [
-    { label:"Conservative", rate:6, color:COLORS.slate },
-    { label:"Moderate",     rate:8, color:COLORS.blue },
-    { label:"Aggressive",   rate:10, color:COLORS.green },
+    { label:"Conservative", rate:assumptions.conservative_rate_pct||5, color:COLORS.slate },
+    { label:"Moderate",     rate:assumptions.moderate_rate_pct||7,     color:COLORS.blue },
+    { label:"Aggressive",   rate:assumptions.aggressive_rate_pct||9,   color:COLORS.green },
   ].map(s => {
     const result = futureValueWithGrowth(totalBalance, totalMonthly, s.rate, years, growthRate);
     return { ...s, projected: result.finalBalance, trajectory: result.trajectory, projectedTodaysDollars: result.finalBalance / deflator };
@@ -630,7 +758,7 @@ function calcRetirementProjection(accounts, assumptions) {
   // Gap: both sides expressed in nominal dollars at the retirement year — apples to apples
   const gap = targetNumberInflated - spendableProjected;
 
-  const r = 8/100/12;
+  const r = (assumptions.moderate_rate_pct||7)/100/12;
   const n = years*12;
   const fvOfCurrent = totalBalance * Math.pow(1+r, n);
   const remaining = targetNumberInflated - fvOfCurrent;
@@ -642,11 +770,10 @@ function calcRetirementProjection(accounts, assumptions) {
   const medicareAge = assumptions.medicare_age || assumptions.bridge_end_age || 65;
   const bridgeEndAge = medicareAge; // kept for backward-compat display naming
   const bridgeYears = Math.max(0, medicareAge - assumptions.retirement_age);
-  const healthcareAtRetirement = futureHealthcareCost(assumptions.healthcare_estimate||0, years, 5.5);
   const spendingAtRetirement = assumptions.annual_retirement_spending * Math.pow(1+inflationPct/100, years);
   let bridgeTotalNeeded = 0;
   for (let y=0; y<bridgeYears; y++) {
-    const hcYear = healthcareAtRetirement * Math.pow(1.055, y);
+    const hcYear = futureHealthcareCost(assumptions.healthcare_estimate||0, years+y, 5.5, 20, inflationPct);
     const spendYear = spendingAtRetirement * Math.pow(1+inflationPct/100, y);
     bridgeTotalNeeded += hcYear + spendYear;
   }
@@ -2501,7 +2628,7 @@ Phase 3 — Full retirement drawdown (age ${retProj.drawdown.medicareAge} to ${r
 App-calculated status (already shown to the user as a colored badge before they read this brief — your analysis should be consistent with this, not contradict it):
 - Status: ${retProj.statusLabel} (${retProj.status})
 
-Known model limitation to mention briefly: this simulation uses a single flat average annual return (8%) every year for both accumulation and drawdown. Real markets vary year to year, and a downturn in the first few years of retirement specifically (sequence-of-returns risk) can hurt more than the average return suggests — this model doesn't capture that. Treat the age-${retProj.drawdown.planEndAge} result as a directional estimate, not a guarantee.
+Known model limitation to mention briefly: this simulation uses a single flat average annual return for accumulation (${assumptions.moderate_rate_pct||7}%) and a separate flat rate for drawdown (${assumptions.drawdown_rate_pct||5}%), with no year-to-year variation within each phase. Real markets vary year to year, and a downturn in the first few years of retirement specifically (sequence-of-returns risk) can hurt more than the average return suggests — this model doesn't capture that. Treat the age-${retProj.drawdown.planEndAge} result as a directional estimate, not a guarantee.
 
 Write a brief in this EXACT format. Every section must be 1-3 short bullet points, never paragraphs. Be specific with numbers. No fluff, no filler. Do not give specific investment, fund, or allocation advice — stick to savings rate, contribution, tax/timing mechanics, and gap analysis.
 
@@ -2676,6 +2803,19 @@ function Finance(){
   const [form,setForm]           = useState({});
   const [activeSwipe,setActiveSwipe] = useState(null);
   const [showRetBrief,setShowRetBrief] = useState(false);
+  const [monteCarloResults,setMonteCarloResults] = useState(null);
+  const [monteCarloRunning,setMonteCarloRunning] = useState(false);
+
+  function runMonteCarlo() {
+    setMonteCarloRunning(true);
+    setMonteCarloResults(null);
+    // setTimeout lets the "Running…" state paint before the (synchronous, CPU-bound) simulation blocks the thread
+    setTimeout(() => {
+      const results = buildMonteCarloComparison(accounts.data, assump, 1000);
+      setMonteCarloResults(results);
+      setMonteCarloRunning(false);
+    }, 50);
+  }
 
   function openEdit(modal,item){ setEditItem(item); setForm({...item}); setShowModal(modal); setActiveSwipe(null); }
   function closeModal(){ setShowModal(null); setEditItem(null); setForm({}); }
@@ -2722,7 +2862,7 @@ function Finance(){
   }
   async function saveAssumptions(){
     try{
-      const row={current_age:+form.current_age||0,retirement_age:+form.retirement_age||0,annual_return_pct:+form.annual_return_pct||0,withdrawal_rate_pct:+form.withdrawal_rate_pct||0,annual_retirement_spending:+form.annual_retirement_spending||0,social_security_estimate:+form.social_security_estimate||0,healthcare_estimate:+form.healthcare_estimate||0,contribution_increase_pct:+form.contribution_increase_pct||0,bridge_end_age:+form.medicare_age||65,medicare_age:+form.medicare_age||65,ss_claim_age:+form.ss_claim_age||67,plan_end_age:+form.plan_end_age||90,inflation_pct:+form.inflation_pct||3};
+      const row={current_age:+form.current_age||0,retirement_age:+form.retirement_age||0,annual_return_pct:+form.annual_return_pct||0,withdrawal_rate_pct:+form.withdrawal_rate_pct||0,annual_retirement_spending:+form.annual_retirement_spending||0,social_security_estimate:+form.social_security_estimate||0,healthcare_estimate:+form.healthcare_estimate||0,contribution_increase_pct:+form.contribution_increase_pct||0,bridge_end_age:+form.medicare_age||65,medicare_age:+form.medicare_age||65,ss_claim_age:+form.ss_claim_age||67,plan_end_age:+form.plan_end_age||90,inflation_pct:+form.inflation_pct||3,conservative_rate_pct:+form.conservative_rate_pct||5,moderate_rate_pct:+form.moderate_rate_pct||7,aggressive_rate_pct:+form.aggressive_rate_pct||9,drawdown_rate_pct:+form.drawdown_rate_pct||5};
       if(assump && assump.id) await assumptions.update(assump.id,row); else await assumptions.insert(row);
     }catch(e){console.error("saveAssumptions failed",e);}
     closeModal();
@@ -2953,7 +3093,7 @@ function Finance(){
           <div style={{...S.statusCard(retProj.status==="green"?COLORS.green:retProj.status==="yellow"?COLORS.amber:COLORS.red),marginBottom:12}}>
             <div style={{fontSize:12,fontWeight:700,marginBottom:4}}>📉 Full Retirement Drawdown — through age {retProj.drawdown.planEndAge}</div>
             <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>
-              Simulates spending from age {assump.retirement_age} through {retProj.drawdown.planEndAge} at the moderate (8%) return — bridge years from Rule of 55 funds first, Social Security starting at {retProj.drawdown.ssClaimAge}, healthcare growing ~5.5%/yr the whole way.
+              Simulates spending from age {assump.retirement_age} through {retProj.drawdown.planEndAge} at the drawdown rate ({assump.drawdown_rate_pct||5}%) — bridge years from Rule of 55 funds first, Social Security starting at {retProj.drawdown.ssClaimAge}, healthcare growing ~5.5%/yr the whole way.
             </div>
             <div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${COLORS.navyLight}`}}>
               {retProj.drawdown.lastsFullPlan
@@ -2997,7 +3137,7 @@ function Finance(){
                 );
               });
             })()}
-            <div style={{fontSize:10,color:COLORS.slate,marginTop:8,fontStyle:"italic"}}>Checkpoints every 5 years from current age, moderate (8%) return assumption.</div>
+            <div style={{fontSize:10,color:COLORS.slate,marginTop:8,fontStyle:"italic"}}>Checkpoints every 5 years from current age — accumulation phase uses moderate rate, retirement phase uses drawdown rate.</div>
           </div>
 
           {incomeTimeline.length>0&&(
@@ -3047,18 +3187,50 @@ function Finance(){
               {retProj.drawdown.bridgeShortfall>0&&(()=>{
                 // Rough fix estimate: extra monthly contribution to Rule of 55-eligible accounts to close the bridge shortfall by retirement
                 const yearsToClose = Math.max(1, retProj.years);
-                const extraMonthlyNeeded = retProj.drawdown.bridgeShortfall / (yearsToClose*12*1.08); // rough, conservative
+                const extraMonthlyNeeded = retProj.drawdown.bridgeShortfall / (yearsToClose*12*(1+(assump.moderate_rate_pct||7)/100)); // rough, conservative
                 return(
                   <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${COLORS.red}33`}}>
                     <div style={{fontSize:12,color:COLORS.red,fontWeight:700}}>⚠️ Quick fix</div>
                     <div style={{fontSize:11,color:COLORS.slateLight,marginTop:3,lineHeight:1.5}}>
-                      Increasing 403(b)/401(k) contributions by ~{formatMoney(extraMonthlyNeeded)}/mo would close most of this gap by retirement age, assuming moderate (8%) growth.
+                      Increasing 403(b)/401(k) contributions by ~{formatMoney(extraMonthlyNeeded)}/mo would close most of this gap by retirement age, assuming moderate growth.
                     </div>
                   </div>
                 );
               })()}
             </div>
           )}
+
+          <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
+            <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:8}}>🎲 Probability of Success</div>
+            <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5,marginBottom:10}}>
+              Runs 1,000 simulations per scenario with randomized year-to-year returns (mean {assump.moderate_rate_pct||7}%, realistic volatility) instead of one fixed rate — shows what % of possible market paths never run out of money.
+            </div>
+            {!monteCarloResults&&!monteCarloRunning&&(
+              <button style={S.btn} onClick={runMonteCarlo}>▶️ Run Simulation</button>
+            )}
+            {monteCarloRunning&&(
+              <div style={{textAlign:"center",padding:"16px 0"}}>
+                <div style={{fontSize:13,color:COLORS.slate}}>Running 4,000 simulated paths…</div>
+              </div>
+            )}
+            {monteCarloResults&&!monteCarloRunning&&(
+              <>
+                {monteCarloResults.map((r,i)=>(
+                  <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:i<monteCarloResults.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
+                    <div>
+                      <div style={{fontSize:13,fontWeight:600,color:r.label==="Current Plan"?COLORS.blue:COLORS.white}}>{r.label}</div>
+                      <div style={{fontSize:10,color:COLORS.slate}}>age {r.retirementAge} · median ${formatMoneyShort(r.medianFinalBalance).replace("$","")}</div>
+                    </div>
+                    <div style={{fontSize:18,fontWeight:800,color:r.successRate>=90?COLORS.green:r.successRate>=75?COLORS.amber:COLORS.red}}>
+                      {r.successRate}%
+                    </div>
+                  </div>
+                ))}
+                <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={runMonteCarlo}>🔄 Re-run</button>
+                <div style={{fontSize:10,color:COLORS.slate,marginTop:8,fontStyle:"italic"}}>Success = money lasts through age {assump.plan_end_age||90} in that simulated path. Industry convention treats 85-95%+ as a generally safe plan.</div>
+              </>
+            )}
+          </div>
 
           <button style={{...S.btnSm,width:"100%",marginBottom:12}} onClick={()=>{setForm({...assump});setShowModal("assumptions");}}>⚙️ Edit Assumptions</button>
         </>}
@@ -3264,7 +3436,18 @@ function Finance(){
         </div>
         <label style={S.label}>Plan Through Age (end of life)</label>
         <input type="number" style={S.input} placeholder="90" value={form.plan_end_age||""} onChange={e=>setForm(p=>({...p,plan_end_age:e.target.value}))}/>
-        <div style={{fontSize:11,color:COLORS.slate,marginTop:8,lineHeight:1.5}}>Scenarios use fixed 6% / 8% / 10% annual return assumptions — conservative, moderate, aggressive. Healthcare costs are modeled at ~5.5%/year growth for the full plan, faster than general inflation. Medicare eligibility and Social Security claiming age are tracked separately since most people claim SS later than 65.</div>
+
+        <label style={{...S.label,marginTop:14}}>Return Rate Assumptions (%)</label>
+        <div style={S.row}>
+          <div style={S.col}><label style={S.label}>Conservative</label><input type="number" step="0.5" style={S.input} placeholder="5" value={form.conservative_rate_pct||""} onChange={e=>setForm(p=>({...p,conservative_rate_pct:e.target.value}))}/></div>
+          <div style={S.col}><label style={S.label}>Moderate</label><input type="number" step="0.5" style={S.input} placeholder="7" value={form.moderate_rate_pct||""} onChange={e=>setForm(p=>({...p,moderate_rate_pct:e.target.value}))}/></div>
+          <div style={S.col}><label style={S.label}>Aggressive</label><input type="number" step="0.5" style={S.input} placeholder="9" value={form.aggressive_rate_pct||""} onChange={e=>setForm(p=>({...p,aggressive_rate_pct:e.target.value}))}/></div>
+        </div>
+        <label style={S.label}>Drawdown Rate (%) — used during retirement spending</label>
+        <input type="number" step="0.5" style={S.input} placeholder="5" value={form.drawdown_rate_pct||""} onChange={e=>setForm(p=>({...p,drawdown_rate_pct:e.target.value}))}/>
+        <div style={{fontSize:10,color:COLORS.slate,marginTop:-4,marginBottom:10,lineHeight:1.4}}>Set these based on your actual fund allocation. Defaults assume a balanced (not 100% equity) portfolio, and a more conservative rate once spending down in retirement than while accumulating.</div>
+
+        <div style={{fontSize:11,color:COLORS.slate,marginTop:8,lineHeight:1.5}}>Healthcare costs are modeled at ~5.5%/year growth for the full plan, faster than general inflation. Medicare eligibility and Social Security claiming age are tracked separately since most people claim SS later than 65.</div>
         <button style={{...S.btn,marginTop:16}} onClick={saveAssumptions}>Save Assumptions</button>
       </Modal>}
 
