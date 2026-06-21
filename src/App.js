@@ -1422,16 +1422,24 @@ function useTable(table,orderCol,orderAsc=false){
   useEffect(()=>{load();},[load]);
 
   async function insert(row){
-    try{const{data:r,error}=await sb.from(table).insert(row);if(!error)await load();else setData(p=>[{...row,id:String(Date.now())},...(p||[])]);return r;}
-    catch{setData(p=>[{...row,id:String(Date.now())},...(p||[])]);}
+    try{const{data:r,error}=await sb.from(table).insert(row);if(!error)await load();else{console.error(`Insert failed on ${table}:`,error);setData(p=>[{...row,id:String(Date.now())},...(p||[])]);}return r;}
+    catch(e){console.error(`Insert exception on ${table}:`,e);setData(p=>[{...row,id:String(Date.now())},...(p||[])]);}
   }
   async function update(id,row){
-    try{await sb.from(table).eq("id",id).update(row);await load();}
-    catch{setData(p=>p.map(r=>r.id===id?{...r,...row}:r));}
+    try{
+      const{error}=await sb.from(table).eq("id",id).update(row);
+      if(!error)await load();
+      else{console.error(`Update failed on ${table}:`,error);setData(p=>p.map(r=>r.id===id?{...r,...row}:r));}
+    }
+    catch(e){console.error(`Update exception on ${table}:`,e);setData(p=>p.map(r=>r.id===id?{...r,...row}:r));}
   }
   async function remove(id){
-    try{await sb.from(table).eq("id",id).delete();await load();}
-    catch{setData(p=>p.filter(r=>r.id!==id));}
+    try{
+      const{error}=await sb.from(table).eq("id",id).delete();
+      if(!error)await load();
+      else{console.error(`Delete failed on ${table}:`,error);setData(p=>p.filter(r=>r.id!==id));}
+    }
+    catch(e){console.error(`Delete exception on ${table}:`,e);setData(p=>p.filter(r=>r.id!==id));}
   }
   return{data:data||[],loading,reload:load,insert,update,remove};
 }
