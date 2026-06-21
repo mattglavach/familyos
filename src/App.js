@@ -126,16 +126,19 @@ const MEMBER_COLORS={
 // ─── SEED DATA ────────────────────────────────────────────────────────────────
 const SEED={
   pool_readings:[
-    {id:"7",date:"2026-06-17",ph:8.0,free_chlorine:5.5,cc:0,salt:3350,cya:60,alkalinity:90,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"K-2006: 11 drops FC. Acid added 2 days prior. TA 90 ppm (9 drops)."},
-    {id:"6",date:"2026-06-15",ph:7.8,free_chlorine:3.0,cc:0,salt:3450,cya:60,alkalinity:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:""},
-    {id:"5",date:"2026-06-12",ph:8.0,free_chlorine:4.0,cc:0,salt:3450,cya:60,alkalinity:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"CYA increased"},
-    {id:"4",date:"2026-06-10",ph:7.8,free_chlorine:2.0,cc:0,salt:3300,cya:60,alkalinity:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"Hot weather"},
-    {id:"3",date:"2026-06-04",ph:7.8,free_chlorine:5.0,cc:0,salt:3450,cya:43,alkalinity:null,water_temp:null,swg_setting:54,filter_pressure:null,pump_hours:null,notes:"SWG 54%"},
-    {id:"2",date:"2026-05-31",ph:8.0,free_chlorine:5.5,cc:0,salt:3300,cya:null,alkalinity:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"K-2006: 11 drops FC. After party."},
+    {id:"7",date:"2026-06-17",ph:8.0,free_chlorine:5.5,cc:0,salt:3350,cya:60,alkalinity:90,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"K-2006: 11 drops FC. Acid added 2 days prior. TA 90 ppm (9 drops)."},
+    {id:"6",date:"2026-06-15",ph:7.8,free_chlorine:3.0,cc:0,salt:3450,cya:60,alkalinity:null,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:""},
+    {id:"5",date:"2026-06-12",ph:8.0,free_chlorine:4.0,cc:0,salt:3450,cya:60,alkalinity:null,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"CYA increased"},
+    {id:"4",date:"2026-06-10",ph:7.8,free_chlorine:2.0,cc:0,salt:3300,cya:60,alkalinity:null,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"Hot weather"},
+    {id:"3",date:"2026-06-04",ph:7.8,free_chlorine:5.0,cc:0,salt:3450,cya:43,alkalinity:null,calcium_hardness:null,water_temp:null,swg_setting:54,filter_pressure:null,pump_hours:null,notes:"SWG 54%"},
+    {id:"2",date:"2026-05-31",ph:8.0,free_chlorine:5.5,cc:0,salt:3300,cya:null,alkalinity:null,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"K-2006: 11 drops FC. After party."},
   ],
   pool_maintenance:[
     {id:"1",date:"2026-06-13",type:"Brushed walls & floor",notes:""},
     {id:"2",date:"2026-06-10",type:"Cleaned skimmer basket",notes:""},
+  ],
+  pool_settings:[
+    {id:"1",filter_clean_baseline_psi:null},
   ],
   pool_schedule:[
     {id:"1",title:"Check water level",last_completed:"2026-06-10",interval_days:7,notes:"SC evaporation heavy May–Sept"},
@@ -185,7 +188,7 @@ const SEED={
     {id:"5",name:"Brokerage",account_type:"brokerage",balance:85000,monthly_contribution:400,employer_match:0,contribution_frequency:"monthly",tax_treatment:"taxable",last_updated:"2026-06-01",notes:""},
   ],
   retirement_assumptions:[
-    {id:"1",current_age:44,retirement_age:59,annual_return_pct:7,withdrawal_rate_pct:4,annual_retirement_spending:110000,social_security_estimate:30000,healthcare_estimate:18000,contribution_increase_pct:3,bridge_end_age:65,medicare_age:65,ss_claim_age:67,plan_end_age:90,inflation_pct:3,conservative_rate_pct:5,moderate_rate_pct:7,aggressive_rate_pct:9,drawdown_rate_pct:5,return_volatility_pct:15},
+    {id:"1",current_age:44,retirement_age:59,annual_return_pct:7,withdrawal_rate_pct:4,annual_retirement_spending:110000,social_security_estimate:18000,social_security_estimate_spouse:12000,ss_claim_age:67,ss_claim_age_spouse:67,healthcare_estimate:18000,contribution_increase_pct:3,bridge_end_age:65,medicare_age:65,plan_end_age:90,inflation_pct:3,conservative_rate_pct:5,moderate_rate_pct:7,aggressive_rate_pct:9,drawdown_rate_pct:5,return_volatility_pct:15},
   ],
   college_savings:[
     {id:"1",balance:50000,monthly_contribution:200,last_updated:"2026-06-01",notes:"529 plan"},
@@ -326,6 +329,30 @@ function futureHealthcareCost(annualEstimate, years, growthPct=5.5, accelCapYear
   return atCap * Math.pow(1 + normalInflationPct/100, years - accelCapYears);
 }
 
+// Combined household Social Security at a given age — each spouse's benefit kicks in
+// independently at their own claim age, since most couples don't claim simultaneously.
+// Falls back to the original single combined estimate if spouse fields aren't set,
+// so existing single-input households behave exactly as before.
+function householdSocialSecurityAtAge(assumptions, age, inflationPct) {
+  const hasSpouseFields = assumptions.social_security_estimate_spouse!==undefined && assumptions.social_security_estimate_spouse!==null;
+  if (!hasSpouseFields) {
+    // Legacy single combined estimate
+    const claimAge = assumptions.ss_claim_age || 67;
+    if (age < claimAge) return 0;
+    return (assumptions.social_security_estimate||0) * Math.pow(1+inflationPct/100, age-claimAge);
+  }
+  let total = 0;
+  const userClaimAge = assumptions.ss_claim_age || 67;
+  const userBenefit = assumptions.social_security_estimate || 0;
+  if (age >= userClaimAge) total += userBenefit * Math.pow(1+inflationPct/100, age-userClaimAge);
+
+  const spouseClaimAge = assumptions.ss_claim_age_spouse || 67;
+  const spouseBenefit = assumptions.social_security_estimate_spouse || 0;
+  if (age >= spouseClaimAge) total += spouseBenefit * Math.pow(1+inflationPct/100, age-spouseClaimAge);
+
+  return total;
+}
+
 // Rough effective tax treatment by account tax_treatment type
 // pre-tax (403b/401k/IRA): taxed as ordinary income on withdrawal — assume ~18% effective rate
 // Roth: tax-free
@@ -413,8 +440,7 @@ function runOneMonteCarloPath(accounts, assumptions, retirementAgeOverride, mean
     const yearReturn = randomNormal(meanReturn, stdDev) / 100;
     const spendingThisYear = assumptions.annual_retirement_spending * Math.pow(1+inflationPct/100, yearsFromRet);
     const hcYear = futureHealthcareCost(assumptions.healthcare_estimate||0, totalYearsFromNow, 5.5, 20, inflationPct);
-    const hasSS = age >= ssClaimAge;
-    const ssThisYear = hasSS ? (assumptions.social_security_estimate||0) * Math.pow(1+inflationPct/100, age-ssClaimAge) : 0;
+    const ssThisYear = householdSocialSecurityAtAge(assumptions, age, inflationPct);
     const spendYear = Math.max(0, spendingThisYear + hcYear - ssThisYear);
     runningBalance = runningBalance*(1+yearReturn) - spendYear;
     if (runningBalance < 0) return { success:false, finalBalance:0 };
@@ -558,10 +584,7 @@ function simulateRetirementDrawdown(accounts, assumptions) {
 
     const spendingThisYear = assumptions.annual_retirement_spending * Math.pow(1+inflationPct/100, yearsFromRetirement);
     const hcYear = futureHealthcareCost(assumptions.healthcare_estimate||0, totalYearsFromNow, 5.5, 20, inflationPct);
-    const hasClaimedSS = age >= ssClaimAge;
-    const ssThisYear = hasClaimedSS
-      ? (assumptions.social_security_estimate||0) * Math.pow(1+inflationPct/100, age - ssClaimAge)
-      : 0;
+    const ssThisYear = householdSocialSecurityAtAge(assumptions, age, inflationPct);
 
     const spendYear = Math.max(0, spendingThisYear + hcYear - ssThisYear);
 
@@ -783,17 +806,31 @@ function calcRetirementProjection(accounts, assumptions) {
   const ruleOf55Share = totalBalance>0 ? ruleOf55Balance/totalBalance : 0;
   const nonRuleOf55Balance = totalBalance - ruleOf55Balance;
 
-  // ── PRIMARY STATUS: driven by the full drawdown simulation, not just accumulation ──
+  // ── PRIMARY STATUS: a single overall word (Excellent/On Track/Monitor/Risk), driven by
+  // the full drawdown simulation. Avoids alarming language when the underlying picture is
+  // actually fine — "Monitor" instead of "Tight," "Risk" instead of "Shortfall," etc.
   const drawdown = simulateRetirementDrawdown(accounts, assumptions);
   const gapPctOfTarget = targetNumberInflated>0 ? (gap/targetNumberInflated)*100 : 0;
 
-  let status, statusLabel, statusColor;
-  if (drawdown.lastsFullPlan && drawdown.bridgeShortfall<=0) {
-    status="green"; statusLabel="On Track Through Age 90"; statusColor=COLORS.green;
-  } else if (drawdown.lastsFullPlan || (drawdown.ranOutAtAge && drawdown.ranOutAtAge>=80)) {
-    status="yellow"; statusLabel="Tight — Money May Run Low"; statusColor=COLORS.amber;
+  let status, statusLabel, statusColor, statusDetail;
+  const bridgeOk = drawdown.bridgeShortfall<=0;
+  const finalCushionPct = drawdown.lastsFullPlan && targetNumberInflated>0 ? (drawdown.finalBalance/targetNumberInflated)*100 : 0;
+
+  if (drawdown.lastsFullPlan && bridgeOk && finalCushionPct>=50) {
+    status="excellent"; statusLabel="Excellent"; statusColor=COLORS.green;
+    statusDetail = `Plan lasts through age ${drawdown.planEndAge||90} with significant cushion.`;
+  } else if (drawdown.lastsFullPlan && bridgeOk) {
+    status="ontrack"; statusLabel="On Track"; statusColor=COLORS.green;
+    statusDetail = `Plan lasts through age ${drawdown.planEndAge||90}.`;
+  } else if (drawdown.lastsFullPlan && !bridgeOk) {
+    status="monitor"; statusLabel="On Track — Monitor Bridge Years"; statusColor=COLORS.amber;
+    statusDetail = `Full plan succeeds, but the ${assumptions.retirement_age}-${drawdown.medicareAge} bridge needs attention.`;
+  } else if (drawdown.ranOutAtAge && drawdown.ranOutAtAge>=80) {
+    status="monitor"; statusLabel="Monitor Closely"; statusColor=COLORS.amber;
+    statusDetail = `Funds projected to run low around age ${drawdown.ranOutAtAge} — adjustable with modest changes.`;
   } else {
-    status="red"; statusLabel="Shortfall Before Age 90"; statusColor=COLORS.red;
+    status="risk"; statusLabel="Retirement Plan Needs Adjustment"; statusColor=COLORS.red;
+    statusDetail = `Funds projected to run low around age ${drawdown.ranOutAtAge||"—"} — meaningful changes recommended.`;
   }
 
   // Contribution increase needed to close the gap, as a % of current monthly contribution
@@ -824,7 +861,7 @@ function calcRetirementProjection(accounts, assumptions) {
     gap, monthlyNeeded, netAnnualNeed,
     bridgeYears, bridgeTotalNeeded, bridgeEndAge,
     ruleOf55Balance, ruleOf55Share, nonRuleOf55Balance, bridgeCovered,
-    status, statusLabel, statusColor, gapPctOfTarget, contributionIncreasePctNeeded, quickRecs,
+    status, statusLabel, statusColor, statusDetail, gapPctOfTarget, contributionIncreasePctNeeded, quickRecs,
     drawdown,
     trajectory: moderate.trajectory
   };
@@ -1042,7 +1079,8 @@ function calcFCBurnRate(readings) {
 function calcLangelier(ph, alkalinity, calcium=CALCIUM_HARDNESS, waterTemp=82) {
   if(!ph || !alkalinity) return null;
   const tempF = waterTemp || 82;
-  const lsi = ph - (12.1 - Math.log10(calcium) - Math.log10(alkalinity) + (0.009 * tempF));
+  const cal = calcium || CALCIUM_HARDNESS;
+  const lsi = ph - (12.1 - Math.log10(cal) - Math.log10(alkalinity) + (0.009 * tempF));
   return Math.round(lsi * 100) / 100;
 }
 
@@ -1083,13 +1121,17 @@ function getSeasonalReminder() {
   return seasons[month];
 }
 
-function getChemRecommendations(last, readings) {
+function getChemRecommendations(last, readings, filterBaseline) {
   if(!last) return [];
   const recs = [];
   const shockMin = calcShockThreshold(last.cya);
   const burnRate = calcFCBurnRate(readings);
   const acidOz = calcAcidDose(last.ph, 7.4, last.alkalinity);
-  const lsi = calcLangelier(last.ph, last.alkalinity, CALCIUM_HARDNESS, last.water_temp);
+  // Use the most recent logged calcium hardness (could be from an earlier reading than `last`
+  // if calcium isn't tested every time) — falls back to the placeholder if never logged.
+  const calciumReading = readings.find(r=>r.calcium_hardness!==null && r.calcium_hardness!==undefined);
+  const calciumValue = calciumReading ? calciumReading.calcium_hardness : null;
+  const lsi = calcLangelier(last.ph, last.alkalinity, calciumValue||CALCIUM_HARDNESS, last.water_temp);
   const targetSWG = calcTargetSWG(last.free_chlorine, last.cya, last.water_temp, last.pump_hours);
   const phEffective = last.ph ? fcEffectiveAtPH(last.ph) : null;
 
@@ -1188,17 +1230,35 @@ function getChemRecommendations(last, readings) {
       color:COLORS.blue });
   }
 
-  if(last.filter_pressure && last.filter_pressure > 20) {
+  if(last.filter_pressure && filterBaseline && last.filter_pressure > filterBaseline+10) {
+    const delta = last.filter_pressure - filterBaseline;
+    recs.push({ priority:"med", param:"Filter", icon:"🔧",
+      action:`Filter pressure ${last.filter_pressure} psi (+${delta} above clean baseline) — clean cartridge`,
+      detail:`Baseline after last clean was ${filterBaseline} psi. +10 psi or more above that indicates a dirty filter. Remove cartridge, hose off thoroughly, reinstall, then log the new baseline.`,
+      color:COLORS.amber });
+  } else if(last.filter_pressure && !filterBaseline && last.filter_pressure > 20) {
     recs.push({ priority:"med", param:"Filter", icon:"🔧",
       action:`Filter pressure ${last.filter_pressure} psi — clean cartridge`,
-      detail:`Pressure above 20 psi indicates dirty filter. Remove cartridge, hose off thoroughly, reinstall. Clean filter improves SWG flow switch reliability.`,
+      detail:`No clean baseline set yet — using a general 20 psi threshold. Set a baseline after your next cartridge clean for a more accurate comparison.`,
       color:COLORS.amber });
   }
 
-  recs.push({ priority:"low", param:"Ca", icon:"🔬",
-    action:"Test calcium hardness",
-    detail:`Using estimated 200 ppm. Vinyl pools target 150-250 ppm. Low calcium is corrosive to your Pentair cell over time.`,
-    color:COLORS.slate });
+  if(!calciumValue) {
+    recs.push({ priority:"low", param:"Ca", icon:"🔬",
+      action:"Test calcium hardness",
+      detail:`Using estimated 200 ppm. Vinyl pools target 150-250 ppm. Low calcium is corrosive to your Pentair cell over time. Log a reading to replace this estimate.`,
+      color:COLORS.slate });
+  } else if(calciumValue < 150) {
+    recs.push({ priority:"med", param:"Ca", icon:"🔬",
+      action:`Calcium hardness low at ${calciumValue} ppm`,
+      detail:`Vinyl pools target 150-250 ppm. Low calcium is corrosive to your Pentair cell and vinyl liner over time. Add calcium chloride to raise it.`,
+      color:COLORS.amber });
+  } else if(calciumValue > 250) {
+    recs.push({ priority:"low", param:"Ca", icon:"🔬",
+      action:`Calcium hardness high at ${calciumValue} ppm`,
+      detail:`Above 250 ppm risks scaling, especially combined with high pH or TA. Dilute by draining if it keeps climbing.`,
+      color:COLORS.amber });
+  }
 
   if(lsi !== null) {
     const lsiStatus = lsi < -0.3 ? "corrosive" : lsi > 0.3 ? "scaling" : "balanced";
@@ -2287,11 +2347,13 @@ function Pool(){
   const readings   = useTable("pool_readings","date");
   const maintLog   = useTable("pool_maintenance","date");
   const schedule   = useTable("pool_schedule","title",true);
+  const poolSettings = useTable("pool_settings","id",true);
   const [tab,setTab]             = useState("dashboard");
   const [showLog,setShowLog]     = useState(false);
   const [showMaint,setShowMaint] = useState(false);
   const [showBrief,setShowBrief] = useState(false);
   const [showTreatment,setShowTreatment] = useState(false);
+  const [showFilterBaseline,setShowFilterBaseline] = useState(false);
   const [editItem,setEditItem]   = useState(null);
   const [form,setForm]           = useState({});
   const [useDrops,setUseDrops]   = useState(false);
@@ -2308,8 +2370,11 @@ function Pool(){
     {k:"filter_pressure",l:"PSI",      unit:"psi", target:"<20"},
   ];
 
+  const poolSettingsRow = poolSettings.data[0];
+  const filterBaseline = poolSettingsRow?.filter_clean_baseline_psi || null;
+
   const last     = readings.data[0];
-  const chemRecs = getChemRecommendations(last, readings.data);
+  const chemRecs = getChemRecommendations(last, readings.data, filterBaseline);
 
   // Dismissed recs are keyed by reading id + recommendation param, so a new reading auto-clears them
   const [dismissed,setDismissed] = useState(()=>{
@@ -2356,6 +2421,7 @@ function Pool(){
       date:form.date||TODAY_STR,
       ph:num(form.ph), free_chlorine:fc, cc:num(form.cc),
       salt:num(form.salt), cya:num(form.cya), alkalinity:num(form.alkalinity),
+      calcium_hardness:num(form.calcium_hardness),
       water_temp:num(form.water_temp), swg_setting:num(form.swg_setting),
       filter_pressure:num(form.filter_pressure), pump_hours:num(form.pump_hours),
       notes:form.notes||""
@@ -2432,10 +2498,17 @@ function Pool(){
               );
             })}
           </div>
-          <div style={{display:"flex",gap:12,marginTop:10,flexWrap:"wrap"}}>
+          <div style={{display:"flex",gap:12,marginTop:10,flexWrap:"wrap",alignItems:"center"}}>
             {last.cc!==null&&last.cc!==undefined&&<div style={{fontSize:12,color:last.cc>0.5?COLORS.red:COLORS.green}}>CC: {last.cc} ppm {last.cc===0?"✓":""}</div>}
-            {last.filter_pressure&&<div style={{fontSize:12,color:last.filter_pressure>20?COLORS.amber:COLORS.slate}}>Filter: {last.filter_pressure} psi</div>}
+            {last.filter_pressure&&(
+              <div style={{fontSize:12,color:filterBaseline&&last.filter_pressure>filterBaseline+10?COLORS.amber:!filterBaseline&&last.filter_pressure>20?COLORS.amber:COLORS.slate}}>
+                Filter: {last.filter_pressure} psi{filterBaseline?` (+${last.filter_pressure-filterBaseline} vs clean)`:""}
+              </div>
+            )}
             {last.swg_setting&&<div style={{fontSize:12,color:COLORS.slate}}>SWG: {last.swg_setting}%</div>}
+            <button onClick={()=>{setForm({filter_clean_baseline_psi:last.filter_pressure||""});setShowFilterBaseline(true);}} style={{fontSize:10,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,textDecoration:"underline"}}>
+              {filterBaseline?"update baseline":"set clean baseline"}
+            </button>
           </div>
           <div style={{display:"flex",gap:14,marginTop:8,paddingTop:8,borderTop:`1px solid ${COLORS.navyLight}`,flexWrap:"wrap"}}>
             {(()=>{
@@ -2646,13 +2719,37 @@ function Pool(){
           </div>
         </div>
         <div style={S.row}>
-          <div style={S.col}><label style={S.label}>Water Temp (°F)</label><input type="number" style={S.input} placeholder="" value={form.water_temp||""} onChange={e=>setForm(p=>({...p,water_temp:e.target.value}))}/></div>
-          <div style={S.col}><label style={S.label}>Filter Pressure (psi)</label><input type="number" style={S.input} placeholder="" value={form.filter_pressure||""} onChange={e=>setForm(p=>({...p,filter_pressure:e.target.value}))}/></div>
+          <div style={S.col}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <label style={{...S.label,marginBottom:0}}>Calcium Hardness (ppm)</label>
+              {(()=>{
+                const d=nextTestDue(readings.data,"calcium_hardness",90);
+                if(!d) return <span style={{fontSize:9,color:COLORS.slate}}>never tested</span>;
+                const overdue=d.days<0;
+                return <span style={{fontSize:9,color:overdue?COLORS.red:d.days<=7?COLORS.amber:COLORS.slate}}>{overdue?"overdue":`due ${formatDate(d.due)}`}</span>;
+              })()}
+            </div>
+            <input type="number" style={S.input} placeholder="target 150-250" value={form.calcium_hardness||""} onChange={e=>setForm(p=>({...p,calcium_hardness:e.target.value}))}/>
+          </div>
+          <div style={S.col}>
+            <label style={S.label}>Water Temp (°F)</label>
+            <input type="number" style={S.input} placeholder="" value={form.water_temp||""} onChange={e=>setForm(p=>({...p,water_temp:e.target.value}))}/>
+          </div>
         </div>
         <div style={S.row}>
+          <div style={S.col}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <label style={{...S.label,marginBottom:0}}>Filter Pressure (psi)</label>
+              {filterBaseline&&<span style={{fontSize:9,color:COLORS.slate}}>baseline {filterBaseline}</span>}
+            </div>
+            <input type="number" style={S.input} placeholder="" value={form.filter_pressure||""} onChange={e=>setForm(p=>({...p,filter_pressure:e.target.value}))}/>
+          </div>
           <div style={S.col}><label style={S.label}>SWG Setting (%)</label><input type="number" style={S.input} placeholder="" value={form.swg_setting||""} onChange={e=>setForm(p=>({...p,swg_setting:e.target.value}))}/></div>
+        </div>
+        <div style={S.row}>
           <div style={S.col}><label style={S.label}>Pump Hours/Day</label><input type="number" style={S.input} placeholder="" value={form.pump_hours||""} onChange={e=>setForm(p=>({...p,pump_hours:e.target.value}))}/></div>
         </div>
+
         <label style={S.label}>Notes</label>
         <input style={S.input} placeholder="Optional" value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
         <button style={{...S.btn,marginTop:8}} onClick={saveReading}>{editItem?"Save Changes":"Save Reading"}</button>
@@ -2673,6 +2770,23 @@ function Pool(){
       {showBrief&&<PoolBrief readings={readings.data} maintLog={maintLog.data} onClose={()=>setShowBrief(false)}/>}
 
       {showTreatment&&<TreatmentLogModal last={last} recs={chemRecs} onSave={logTreatment} onClose={()=>setShowTreatment(false)}/>}
+
+      {showFilterBaseline&&<Modal title="Set Filter Clean Baseline" onClose={()=>setShowFilterBaseline(false)}>
+        <div style={{fontSize:12,color:COLORS.slate,marginBottom:16,lineHeight:1.5}}>
+          Log the filter pressure right after cleaning the cartridge. Future readings will be compared as "+X psi above clean" instead of a flat threshold — more accurate since every filter's clean baseline is a little different.
+        </div>
+        <label style={S.label}>Clean Baseline (psi)</label>
+        <input type="number" style={S.input} placeholder="e.g. 12" value={form.filter_clean_baseline_psi||""} onChange={e=>setForm(p=>({...p,filter_clean_baseline_psi:e.target.value}))}/>
+        <button style={{...S.btn,marginTop:8}} onClick={async()=>{
+          try{
+            const val = form.filter_clean_baseline_psi!==undefined&&form.filter_clean_baseline_psi!=='' ? +form.filter_clean_baseline_psi : null;
+            const row = {filter_clean_baseline_psi: val};
+            if(poolSettingsRow && poolSettingsRow.id) await poolSettings.update(poolSettingsRow.id, row);
+            else await poolSettings.insert(row);
+          }catch(e){console.error("save filter baseline failed",e);}
+          setShowFilterBaseline(false);
+        }}>Save Baseline</button>
+      </Modal>}
     </div>
   );
 }
@@ -2947,6 +3061,7 @@ function Finance(){
   const [form,setForm]           = useState({});
   const [activeSwipe,setActiveSwipe] = useState(null);
   const [showRetBrief,setShowRetBrief] = useState(false);
+  const [showBridgeMath,setShowBridgeMath] = useState(false);
   const [monteCarloResults,setMonteCarloResults] = useState(null);
   const [monteCarloRunning,setMonteCarloRunning] = useState(false);
 
@@ -3008,7 +3123,7 @@ function Finance(){
   }
   async function saveAssumptions(){
     try{
-      const row={current_age:+form.current_age||0,retirement_age:+form.retirement_age||0,annual_return_pct:+form.annual_return_pct||0,withdrawal_rate_pct:+form.withdrawal_rate_pct||0,annual_retirement_spending:+form.annual_retirement_spending||0,social_security_estimate:+form.social_security_estimate||0,healthcare_estimate:+form.healthcare_estimate||0,contribution_increase_pct:+form.contribution_increase_pct||0,bridge_end_age:+form.medicare_age||65,medicare_age:+form.medicare_age||65,ss_claim_age:+form.ss_claim_age||67,plan_end_age:+form.plan_end_age||90,inflation_pct:+form.inflation_pct||3,conservative_rate_pct:+form.conservative_rate_pct||5,moderate_rate_pct:+form.moderate_rate_pct||7,aggressive_rate_pct:+form.aggressive_rate_pct||9,drawdown_rate_pct:+form.drawdown_rate_pct||5,return_volatility_pct:+form.return_volatility_pct||15};
+      const row={current_age:+form.current_age||0,retirement_age:+form.retirement_age||0,annual_return_pct:+form.annual_return_pct||0,withdrawal_rate_pct:+form.withdrawal_rate_pct||0,annual_retirement_spending:+form.annual_retirement_spending||0,social_security_estimate:+form.social_security_estimate||0,social_security_estimate_spouse:+form.social_security_estimate_spouse||0,ss_claim_age_spouse:+form.ss_claim_age_spouse||67,healthcare_estimate:+form.healthcare_estimate||0,contribution_increase_pct:+form.contribution_increase_pct||0,bridge_end_age:+form.medicare_age||65,medicare_age:+form.medicare_age||65,ss_claim_age:+form.ss_claim_age||67,plan_end_age:+form.plan_end_age||90,inflation_pct:+form.inflation_pct||3,conservative_rate_pct:+form.conservative_rate_pct||5,moderate_rate_pct:+form.moderate_rate_pct||7,aggressive_rate_pct:+form.aggressive_rate_pct||9,drawdown_rate_pct:+form.drawdown_rate_pct||5,return_volatility_pct:+form.return_volatility_pct||15};
       if(assump && assump.id) await assumptions.update(assump.id,row); else await assumptions.insert(row);
     }catch(e){console.error("saveAssumptions failed",e);}
     closeModal();
@@ -3162,9 +3277,12 @@ function Finance(){
               <div>
                 <div style={{fontSize:15,fontWeight:800,color:retProj.statusColor}}>{retProj.statusLabel}</div>
                 <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>
+                  {retProj.statusDetail}
+                </div>
+                <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>
                   {retProj.drawdown.lastsFullPlan
                     ? `~${formatMoneyShort(retProj.drawdown.finalBalance)} expected remaining at age ${retProj.drawdown.planEndAge}`
-                    : `Projected to run low around age ${retProj.drawdown.ranOutAtAge}`
+                    : ""
                   }
                 </div>
                 <div style={{fontSize:10,color:COLORS.slate,marginTop:3,fontStyle:"italic"}}>
@@ -3180,7 +3298,8 @@ function Finance(){
             {monteCarloResults&&(()=>{
               const current = monteCarloResults.find(r=>r.label==="Current Plan");
               if(!current) return null;
-              const diverges = (retProj.status==="green" && current.successRate<75) || (retProj.status!=="green" && current.successRate>=85);
+              const isPositiveStatus = retProj.status==="excellent" || retProj.status==="ontrack";
+              const diverges = (isPositiveStatus && current.successRate<75) || (!isPositiveStatus && current.successRate>=85);
               return(
                 <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${retProj.statusColor}33`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div style={{fontSize:11,color:COLORS.slateLight}}>
@@ -3236,24 +3355,25 @@ function Finance(){
               <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase"}}>Projection at Age {assump.retirement_age} ({retProj.years} years)</div>
               <Sparkline data={retProj.trajectory.map(t=>t.balance)} color={COLORS.blue}/>
             </div>
+            <div style={{fontSize:9,color:COLORS.slate,marginBottom:8,fontStyle:"italic"}}>Shown in today's purchasing power — what this would feel like buying things now, not the larger number your account will actually say.</div>
             {retProj.scenarios.map(s=>(
               <div key={s.label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${COLORS.navyLight}`}}>
                 <div style={{fontSize:12,color:COLORS.slateLight}}>{s.label} ({s.rate}%)</div>
                 <div style={{textAlign:"right"}}>
-                  <div style={{fontSize:15,fontWeight:700,color:s.color}}>{formatMoneyShort(s.projected)}</div>
-                  <div style={{fontSize:10,color:COLORS.slate}}>≈ {formatMoneyShort(s.projectedTodaysDollars)} in today's $</div>
+                  <div style={{fontSize:15,fontWeight:700,color:s.color}}>{formatMoneyShort(s.projectedTodaysDollars)}</div>
+                  <div style={{fontSize:10,color:COLORS.slate}}>{formatMoneyShort(s.projected)} future $</div>
                 </div>
               </div>
             ))}
             <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${COLORS.navyLight}`}}>
               <div style={{fontSize:12,color:COLORS.slate}}>Target (today's $): <strong style={{color:COLORS.white}}>{formatMoneyShort(retProj.targetNumberToday)}</strong></div>
-              <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>Target (inflation-adj. at {retProj.inflationPct}%/yr): <strong style={{color:COLORS.white}}>{formatMoneyShort(retProj.targetNumberInflated)}</strong></div>
-              <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>Spendable after tax (~{Math.round(retProj.taxableMix*100)}% blended rate): <strong style={{color:COLORS.white}}>{formatMoneyShort(retProj.spendableProjected)}</strong> <span style={{color:COLORS.slate}}>(≈{formatMoneyShort(retProj.spendableTodaysDollars)} today's $)</span></div>
+              <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>Spendable after tax (~{Math.round(retProj.taxableMix*100)}% blended rate): <strong style={{color:COLORS.white}}>{formatMoneyShort(retProj.spendableTodaysDollars)}</strong> <span style={{color:COLORS.slate}}>today's $</span></div>
+              <div style={{fontSize:11,color:COLORS.slate,marginTop:6}}>Future dollars (what the account will actually say): {formatMoneyShort(retProj.spendableProjected)} spendable vs. {formatMoneyShort(retProj.targetNumberInflated)} target</div>
               <div style={{fontSize:12,color:retProj.gap>0?COLORS.amber:COLORS.green,marginTop:6,fontWeight:600}}>
                 {retProj.gap>0?`Gap: ${formatMoneyShort(retProj.gap)} — consider increasing contribution by ~${formatMoney(retProj.monthlyNeeded)}/mo`:`On track — projected surplus of ${formatMoneyShort(-retProj.gap)}`}
               </div>
               {assump.contribution_increase_pct>0&&<div style={{fontSize:11,color:COLORS.slate,marginTop:6}}>Assumes contributions grow {assump.contribution_increase_pct}%/year</div>}
-              <div style={{fontSize:10,color:COLORS.slate,marginTop:6,fontStyle:"italic"}}>Note: scenarios assume flat annual returns. Real markets vary year to year — a downturn early in retirement (sequence-of-returns risk) can affect outcomes more than the average return suggests. "Today's $" figures show purchasing power for intuition only — the Gap above uses actual future dollars at retirement.</div>
+              <div style={{fontSize:10,color:COLORS.slate,marginTop:6,fontStyle:"italic"}}>Note: scenarios assume flat annual returns. Real markets vary year to year — a downturn early in retirement (sequence-of-returns risk) can affect outcomes more than the average return suggests. The Gap above is calculated using actual future dollars at retirement, not the today's-$ figures shown for intuition.</div>
             </div>
           </div>
 
@@ -3278,7 +3398,7 @@ function Finance(){
             </div>
           )}
 
-          <div style={{...S.statusCard(retProj.status==="green"?COLORS.green:retProj.status==="yellow"?COLORS.amber:COLORS.red),marginBottom:12}}>
+          <div style={{...S.statusCard(retProj.statusColor),marginBottom:12}}>
             <div style={{fontSize:12,fontWeight:700,marginBottom:4}}>📉 Full Retirement Drawdown — through age {retProj.drawdown.planEndAge}</div>
             <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>
               Simulates spending from age {assump.retirement_age} through {retProj.drawdown.planEndAge} at the drawdown rate ({assump.drawdown_rate_pct||5}%) — bridge years from Rule of 55 funds first, Social Security starting at {retProj.drawdown.ssClaimAge}, healthcare growing ~5.5%/yr the whole way.
@@ -3318,7 +3438,7 @@ function Finance(){
                       {isMedicare&&!isRetirement&&<span style={S.badge(COLORS.purple)}>medicare</span>}
                       {isRanOut&&<span style={S.badge(COLORS.red)}>runs out</span>}
                     </div>
-                    <span style={{fontSize:13,fontWeight:700,color:isPlanEnd?(retProj.status==="green"?COLORS.green:retProj.status==="yellow"?COLORS.amber:COLORS.red):COLORS.white}}>
+                    <span style={{fontSize:13,fontWeight:700,color:isPlanEnd?retProj.statusColor:COLORS.white}}>
                       {formatMoneyShort(cp.balance)}
                     </span>
                   </div>
@@ -3372,6 +3492,29 @@ function Finance(){
                   {retProj.drawdown.bridgeShortfall>0 ? `short by ${formatMoneyShort(retProj.drawdown.bridgeShortfall)}` : `fully funded`}
                 </strong>
               </div>
+
+              {retProj.drawdown.bridgeSchedule&&retProj.drawdown.bridgeSchedule.length>0&&(
+                <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${COLORS.navyLight}`}}>
+                  <button onClick={()=>setShowBridgeMath(p=>!p)} style={{...S.btnSm,width:"100%"}}>
+                    {showBridgeMath?"Hide":"Show"} year-by-year bridge math
+                  </button>
+                  {showBridgeMath&&(
+                    <div style={{marginTop:10}}>
+                      <div style={{fontSize:10,color:COLORS.slate,marginBottom:8,lineHeight:1.5}}>
+                        Spending and healthcare both inflate every year — by the last bridge year, the annual need is meaningfully higher than today's numbers. This is why a balance that looks like it should easily cover "spending × years" often doesn't.
+                      </div>
+                      {retProj.drawdown.bridgeSchedule.map((b,i)=>(
+                        <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:i<retProj.drawdown.bridgeSchedule.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
+                          <div style={{fontSize:11,color:COLORS.slateLight}}>Age {b.age}</div>
+                          <div style={{fontSize:11,color:COLORS.slate}}>need {formatMoneyShort(b.needYear)}</div>
+                          <div style={{fontSize:11,fontWeight:700,color:b.balance>0?COLORS.white:COLORS.red}}>pool {formatMoneyShort(b.balance)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {retProj.drawdown.bridgeShortfall>0&&(()=>{
                 // Rough fix estimate: extra monthly contribution to Rule of 55-eligible accounts to close the bridge shortfall by retirement
                 const yearsToClose = Math.max(1, retProj.years);
@@ -3646,18 +3789,26 @@ function Finance(){
         <input type="number" step="0.1" style={S.input} value={form.withdrawal_rate_pct||""} onChange={e=>setForm(p=>({...p,withdrawal_rate_pct:e.target.value}))}/>
         <label style={S.label}>Expected Annual Retirement Spending</label>
         <input type="number" style={S.input} value={form.annual_retirement_spending||""} onChange={e=>setForm(p=>({...p,annual_retirement_spending:e.target.value}))}/>
+
+        <label style={{...S.label,marginTop:10}}>Social Security — per person, since claim ages and benefits usually differ</label>
         <div style={S.row}>
-          <div style={S.col}><label style={S.label}>Social Security Est. (annual)</label><input type="number" style={S.input} value={form.social_security_estimate||""} onChange={e=>setForm(p=>({...p,social_security_estimate:e.target.value}))}/></div>
-          <div style={S.col}><label style={S.label}>Healthcare Est. (annual)</label><input type="number" style={S.input} value={form.healthcare_estimate||""} onChange={e=>setForm(p=>({...p,healthcare_estimate:e.target.value}))}/></div>
+          <div style={S.col}><label style={S.label}>Matt: Est. (annual)</label><input type="number" style={S.input} value={form.social_security_estimate||""} onChange={e=>setForm(p=>({...p,social_security_estimate:e.target.value}))}/></div>
+          <div style={S.col}><label style={S.label}>Matt: Claim Age</label><input type="number" style={S.input} placeholder="67" value={form.ss_claim_age||""} onChange={e=>setForm(p=>({...p,ss_claim_age:e.target.value}))}/></div>
         </div>
+        <div style={S.row}>
+          <div style={S.col}><label style={S.label}>Kalee: Est. (annual)</label><input type="number" style={S.input} value={form.social_security_estimate_spouse||""} onChange={e=>setForm(p=>({...p,social_security_estimate_spouse:e.target.value}))}/></div>
+          <div style={S.col}><label style={S.label}>Kalee: Claim Age</label><input type="number" style={S.input} placeholder="67" value={form.ss_claim_age_spouse||""} onChange={e=>setForm(p=>({...p,ss_claim_age_spouse:e.target.value}))}/></div>
+        </div>
+        <div style={{fontSize:10,color:COLORS.slate,marginTop:-4,marginBottom:10,lineHeight:1.4}}>Each benefit starts independently at that person's claim age — most couples don't claim simultaneously. Estimates available at ssa.gov/myaccount.</div>
+
+        <label style={S.label}>Healthcare Est. (annual)</label>
+        <input type="number" style={S.input} value={form.healthcare_estimate||""} onChange={e=>setForm(p=>({...p,healthcare_estimate:e.target.value}))}/>
         <label style={S.label}>Annual Contribution Increase (%)</label>
         <input type="number" step="0.5" style={S.input} placeholder="e.g. 3 for typical raises/auto-escalation" value={form.contribution_increase_pct||""} onChange={e=>setForm(p=>({...p,contribution_increase_pct:e.target.value}))}/>
         <label style={S.label}>Inflation Rate (%)</label>
         <input type="number" step="0.5" style={S.input} placeholder="3" value={form.inflation_pct||""} onChange={e=>setForm(p=>({...p,inflation_pct:e.target.value}))}/>
-        <div style={S.row}>
-          <div style={S.col}><label style={S.label}>Medicare Age</label><input type="number" style={S.input} placeholder="65" value={form.medicare_age||""} onChange={e=>setForm(p=>({...p,medicare_age:e.target.value}))}/></div>
-          <div style={S.col}><label style={S.label}>SS Claim Age</label><input type="number" style={S.input} placeholder="67" value={form.ss_claim_age||""} onChange={e=>setForm(p=>({...p,ss_claim_age:e.target.value}))}/></div>
-        </div>
+        <label style={S.label}>Medicare Age</label>
+        <input type="number" style={S.input} placeholder="65" value={form.medicare_age||""} onChange={e=>setForm(p=>({...p,medicare_age:e.target.value}))}/>
         <label style={S.label}>Plan Through Age (end of life)</label>
         <input type="number" style={S.input} placeholder="90" value={form.plan_end_age||""} onChange={e=>setForm(p=>({...p,plan_end_age:e.target.value}))}/>
 
