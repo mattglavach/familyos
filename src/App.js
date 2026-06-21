@@ -185,7 +185,7 @@ const SEED={
     {id:"5",name:"Brokerage",account_type:"brokerage",balance:85000,monthly_contribution:400,employer_match:0,contribution_frequency:"monthly",tax_treatment:"taxable",last_updated:"2026-06-01",notes:""},
   ],
   retirement_assumptions:[
-    {id:"1",current_age:44,retirement_age:59,annual_return_pct:7,withdrawal_rate_pct:4,annual_retirement_spending:110000,social_security_estimate:30000,healthcare_estimate:18000,contribution_increase_pct:3,bridge_end_age:65,medicare_age:65,ss_claim_age:67,plan_end_age:90,inflation_pct:3,conservative_rate_pct:5,moderate_rate_pct:7,aggressive_rate_pct:9,drawdown_rate_pct:5},
+    {id:"1",current_age:44,retirement_age:59,annual_return_pct:7,withdrawal_rate_pct:4,annual_retirement_spending:110000,social_security_estimate:30000,healthcare_estimate:18000,contribution_increase_pct:3,bridge_end_age:65,medicare_age:65,ss_claim_age:67,plan_end_age:90,inflation_pct:3,conservative_rate_pct:5,moderate_rate_pct:7,aggressive_rate_pct:9,drawdown_rate_pct:5,return_volatility_pct:15},
   ],
   college_savings:[
     {id:"1",balance:50000,monthly_contribution:200,last_updated:"2026-06-01",notes:"529 plan"},
@@ -425,7 +425,7 @@ function runOneMonteCarloPath(accounts, assumptions, retirementAgeOverride, mean
 // Runs N simulations for a given retirement age, returns success rate %.
 function runMonteCarloScenario(accounts, assumptions, retirementAgeOverride, numSimulations=1000) {
   const meanReturn = assumptions.moderate_rate_pct || 7;
-  const stdDev = 15; // roughly matches historical S&P 500 annual volatility
+  const stdDev = assumptions.return_volatility_pct || 15; // roughly matches historical S&P 500 annual volatility — lower if not 100% equities
   let successes = 0;
   const finalBalances = [];
   for (let i=0; i<numSimulations; i++) {
@@ -830,6 +830,74 @@ function calcRetirementProjection(accounts, assumptions) {
   };
 }
 
+// ─── RETIREMENT READINESS CHECKLIST ───────────────────────────────────────────
+// Surfaces the factors that already exist in retProj/monteCarloResults into one
+// clear pass/watch/risk view — no new math, no composite score (deliberately
+// avoided — a single number implies false precision a handful of inputs can't earn).
+function buildReadinessChecklist(retProj, monteCarloResults, assumptions) {
+  if (!retProj) return [];
+  const items = [];
+
+  const contributionGapPct = retProj.contributionIncreasePctNeeded;
+  if (contributionGapPct <= 0) {
+    items.push({ label: "Savings Rate", status: "good", detail: "Current contributions meet or exceed what's needed for the moderate scenario." });
+  } else if (contributionGapPct <= 25) {
+    items.push({ label: "Savings Rate", status: "watch", detail: `Contributions are close — increasing by ~${Math.round(contributionGapPct)}% would close the gap.` });
+  } else {
+    items.push({ label: "Savings Rate", status: "risk", detail: `Contributions would need to increase ~${Math.round(contributionGapPct)}% to fully close the gap at a moderate return.` });
+  }
+
+  if (retProj.gap <= 0) {
+    items.push({ label: "Portfolio Size", status: "good", detail: "Projected balance meets or exceeds the inflation-adjusted target." });
+  } else if (retProj.gapPctOfTarget <= 20) {
+    items.push({ label: "Portfolio Size", status: "watch", detail: `Within ${Math.round(retProj.gapPctOfTarget)}% of target — a modest gap.` });
+  } else {
+    items.push({ label: "Portfolio Size", status: "risk", detail: `${Math.round(retProj.gapPctOfTarget)}% below the inflation-adjusted target.` });
+  }
+
+  if (retProj.bridgeCovered) {
+    items.push({ label: "Rule of 55 Bridge", status: "good", detail: "403(b)/401(k) funds alone cover the bridge years without penalty." });
+  } else {
+    items.push({ label: "Rule of 55 Bridge", status: "risk", detail: `Bridge years come up ~${formatMoneyShort(retProj.drawdown.bridgeShortfall)} short even using Rule of 55 funds first.` });
+  }
+
+  const hcAtEnd = futureHealthcareCost(assumptions.healthcare_estimate||0, (retProj.drawdown.planEndAge-assumptions.current_age), 5.5, 20, retProj.inflationPct);
+  const spendAtEnd = assumptions.annual_retirement_spending * Math.pow(1+retProj.inflationPct/100, retProj.drawdown.planEndAge-assumptions.retirement_age);
+  const hcShareAtEnd = spendAtEnd>0 ? hcAtEnd/(hcAtEnd+spendAtEnd) : 0;
+  if (hcShareAtEnd < 0.25) {
+    items.push({ label: "Healthcare Risk", status: "good", detail: `Healthcare projected at ~${Math.round(hcShareAtEnd*100)}% of total spending by age ${retProj.drawdown.planEndAge}.` });
+  } else if (hcShareAtEnd < 0.40) {
+    items.push({ label: "Healthcare Risk", status: "watch", detail: `Healthcare grows to ~${Math.round(hcShareAtEnd*100)}% of total spending by age ${retProj.drawdown.planEndAge} — worth monitoring.` });
+  } else {
+    items.push({ label: "Healthcare Risk", status: "risk", detail: `Healthcare projected at ~${Math.round(hcShareAtEnd*100)}% of total spending by age ${retProj.drawdown.planEndAge} — a significant share.` });
+  }
+
+  if (retProj.taxableMix <= 0.10) {
+    items.push({ label: "Tax Diversification", status: "good", detail: "Well diversified across Roth, taxable, and pre-tax accounts." });
+  } else if (retProj.taxableMix <= 0.18) {
+    items.push({ label: "Tax Diversification", status: "watch", detail: "Moderately concentrated in pre-tax accounts — Roth contributions would help." });
+  } else {
+    items.push({ label: "Tax Diversification", status: "risk", detail: "Heavily concentrated in pre-tax accounts — most withdrawals will be fully taxable." });
+  }
+
+  if (monteCarloResults) {
+    const current = monteCarloResults.find(r=>r.label==="Current Plan");
+    if (current) {
+      if (current.successRate>=85) {
+        items.push({ label: "Market Variation", status: "good", detail: `${current.successRate}% of simulated market paths succeed.` });
+      } else if (current.successRate>=70) {
+        items.push({ label: "Market Variation", status: "watch", detail: `${current.successRate}% of simulated market paths succeed — meaningful risk from bad market timing.` });
+      } else {
+        items.push({ label: "Market Variation", status: "risk", detail: `Only ${current.successRate}% of simulated market paths succeed — the steady-return view is optimistic.` });
+      }
+    }
+  } else {
+    items.push({ label: "Market Variation", status: "unknown", detail: "Run the Monte Carlo simulation below to see how market variation affects this." });
+  }
+
+  return items;
+}
+
 function calcCollegeProjection(savings, goal) {
   if (!savings || !goal) return null;
   const currentYear = new Date().getFullYear();
@@ -840,6 +908,74 @@ function calcCollegeProjection(savings, goal) {
     ? Math.max(0, (goal.target_amount - (savings.balance||0)*Math.pow(1.06, years)) / (((Math.pow(1.06,years)-1)/(6/100))))
     : 0;
   return { projected, gap, years, monthlyNeeded };
+}
+
+// ─── POOLED MULTI-CHILD COLLEGE PROJECTION ────────────────────────────────────
+// Since the 529 is one shared fund (not per-child), this sequences withdrawals by
+// target year: the pool grows until each kid's start year, that kid's target amount
+// is withdrawn (whether or not it's fully there — tracked as a shortfall if not),
+// and the remainder keeps growing for the next kid in line.
+function calcPooledCollegeProjection(savings, goals) {
+  if (!savings || !goals || goals.length===0) return null;
+  const currentYear = new Date().getFullYear();
+  const sorted = [...goals].filter(g=>g.target_year).sort((a,b)=>a.target_year-b.target_year);
+  if (sorted.length===0) return null;
+
+  let balance = savings.balance||0;
+  const monthlyContribution = savings.monthly_contribution||0;
+  const rate = 6; // matches the existing single-child assumption, blended/today's-dollars
+  let lastYear = currentYear;
+  const perChild = [];
+
+  sorted.forEach(g => {
+    const yearsToThis = Math.max(0, g.target_year - lastYear);
+    balance = futureValue(balance, monthlyContribution, rate, yearsToThis);
+    const availableAtStart = balance;
+    const shortfall = Math.max(0, g.target_amount - availableAtStart);
+    const withdrawal = Math.min(g.target_amount, availableAtStart);
+    balance = Math.max(0, availableAtStart - g.target_amount); // remainder carries forward, can go to 0 if short
+    perChild.push({
+      child_name: g.child_name,
+      target_year: g.target_year,
+      target_amount: g.target_amount,
+      poolBalanceAtStart: Math.round(availableAtStart),
+      shortfall: Math.round(shortfall),
+      fullyFunded: shortfall<=0,
+    });
+    lastYear = g.target_year;
+  });
+
+  const totalTargets = sorted.reduce((s,g)=>s+g.target_amount,0);
+  const totalShortfall = perChild.reduce((s,c)=>s+c.shortfall,0);
+  const anyShortfall = perChild.some(c=>!c.fullyFunded);
+
+  // Suggested combined monthly contribution to fully fund all three sequentially —
+  // solved by working backward from the last kid's target, since the pool is shared.
+  // Approximation: treat it as needing enough monthly contribution so the LAST withdrawal
+  // (after all prior withdrawals) still clears its target, using the full horizon to the last kid.
+  const finalGoal = sorted[sorted.length-1];
+  const yearsToLast = Math.max(0, finalGoal.target_year - currentYear);
+  let suggestedMonthly = monthlyContribution;
+  if (anyShortfall && yearsToLast>0) {
+    // Binary search for the monthly contribution that clears every kid's withdrawal in sequence
+    let lo=monthlyContribution, hi=monthlyContribution+5000, iterations=0;
+    while (hi-lo>1 && iterations<40) {
+      const mid = (lo+hi)/2;
+      let bal = savings.balance||0, ly=currentYear, ok=true;
+      for (const g of sorted) {
+        const yrs = Math.max(0, g.target_year-ly);
+        bal = futureValue(bal, mid, rate, yrs);
+        if (bal < g.target_amount) { ok=false; }
+        bal = Math.max(0, bal-g.target_amount);
+        ly = g.target_year;
+      }
+      if (ok) hi=mid; else lo=mid;
+      iterations++;
+    }
+    suggestedMonthly = Math.round(hi);
+  }
+
+  return { perChild, totalTargets, totalShortfall, anyShortfall, suggestedMonthly, currentContribution: monthlyContribution };
 }
 
 function calcPayoffMonths(balance, annualRatePct, monthlyPayment) {
@@ -2834,7 +2970,9 @@ function Finance(){
   const mort = mortgage.data[0];
 
   const retProj = calcRetirementProjection(accounts.data, assump);
+  const readinessChecklist = retProj && assump ? buildReadinessChecklist(retProj, monteCarloResults, assump) : [];
   const collegeProj = calcCollegeProjection(collegeS, collegeG);
+  const pooledCollegeProj = calcPooledCollegeProjection(collegeS, collegeGoal.data);
 
   const mortMonths = mort ? calcPayoffMonths(mort.current_balance, mort.interest_rate, mort.monthly_payment + (mort.extra_payment_monthly||0)) : null;
   const mortMonthsNoExtra = mort ? calcPayoffMonths(mort.current_balance, mort.interest_rate, mort.monthly_payment) : null;
@@ -2870,7 +3008,7 @@ function Finance(){
   }
   async function saveAssumptions(){
     try{
-      const row={current_age:+form.current_age||0,retirement_age:+form.retirement_age||0,annual_return_pct:+form.annual_return_pct||0,withdrawal_rate_pct:+form.withdrawal_rate_pct||0,annual_retirement_spending:+form.annual_retirement_spending||0,social_security_estimate:+form.social_security_estimate||0,healthcare_estimate:+form.healthcare_estimate||0,contribution_increase_pct:+form.contribution_increase_pct||0,bridge_end_age:+form.medicare_age||65,medicare_age:+form.medicare_age||65,ss_claim_age:+form.ss_claim_age||67,plan_end_age:+form.plan_end_age||90,inflation_pct:+form.inflation_pct||3,conservative_rate_pct:+form.conservative_rate_pct||5,moderate_rate_pct:+form.moderate_rate_pct||7,aggressive_rate_pct:+form.aggressive_rate_pct||9,drawdown_rate_pct:+form.drawdown_rate_pct||5};
+      const row={current_age:+form.current_age||0,retirement_age:+form.retirement_age||0,annual_return_pct:+form.annual_return_pct||0,withdrawal_rate_pct:+form.withdrawal_rate_pct||0,annual_retirement_spending:+form.annual_retirement_spending||0,social_security_estimate:+form.social_security_estimate||0,healthcare_estimate:+form.healthcare_estimate||0,contribution_increase_pct:+form.contribution_increase_pct||0,bridge_end_age:+form.medicare_age||65,medicare_age:+form.medicare_age||65,ss_claim_age:+form.ss_claim_age||67,plan_end_age:+form.plan_end_age||90,inflation_pct:+form.inflation_pct||3,conservative_rate_pct:+form.conservative_rate_pct||5,moderate_rate_pct:+form.moderate_rate_pct||7,aggressive_rate_pct:+form.aggressive_rate_pct||9,drawdown_rate_pct:+form.drawdown_rate_pct||5,return_volatility_pct:+form.return_volatility_pct||15};
       if(assump && assump.id) await assumptions.update(assump.id,row); else await assumptions.insert(row);
     }catch(e){console.error("saveAssumptions failed",e);}
     closeModal();
@@ -2957,13 +3095,13 @@ function Finance(){
             <div style={{fontSize:9,color:COLORS.slate,marginTop:3,fontStyle:"italic"}}>At steady returns — see Finance → Retirement for realistic success rate</div>
           </div>
         )}
-        {collegeProj&&(
+        {pooledCollegeProj&&(
           <div style={S.card}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{fontSize:13,fontWeight:600}}>🎓 College Savings ({collegeG?.target_year})</div>
-              <span style={{fontSize:12,color:collegeProj.gap>0?COLORS.amber:COLORS.green,fontWeight:700}}>{collegeProj.gap>0?`${formatMoneyShort(collegeProj.gap)} gap`:"On track ✓"}</span>
+              <div style={{fontSize:13,fontWeight:600}}>🎓 College Savings (3 kids, 1 pool)</div>
+              <span style={{fontSize:12,color:pooledCollegeProj.anyShortfall?COLORS.amber:COLORS.green,fontWeight:700}}>{pooledCollegeProj.anyShortfall?`${pooledCollegeProj.perChild.filter(c=>!c.fullyFunded).length} short`:"On track ✓"}</span>
             </div>
-            <div style={{fontSize:11,color:COLORS.slate,marginTop:4}}>Projected {formatMoneyShort(collegeProj.projected)} · Target {formatMoneyShort(collegeG.target_amount)}</div>
+            <div style={{fontSize:11,color:COLORS.slate,marginTop:4}}>{pooledCollegeProj.perChild.map(c=>c.child_name).join(" → ")} · {formatMoneyShort(pooledCollegeProj.totalTargets)} total needed</div>
           </div>
         )}
         {mort&&mortMonths&&(
@@ -3047,6 +3185,26 @@ function Finance(){
                 </div>
               );
             })()}
+          </div>
+        )}
+
+        {readinessChecklist.length>0&&(
+          <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
+            <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>Retirement Readiness</div>
+            {readinessChecklist.map((item,i)=>{
+              const icon = item.status==="good"?"✅":item.status==="watch"?"⚠️":item.status==="risk"?"🔴":"❔";
+              const color = item.status==="good"?COLORS.green:item.status==="watch"?COLORS.amber:item.status==="risk"?COLORS.red:COLORS.slate;
+              return(
+                <div key={i} style={{display:"flex",gap:10,padding:"7px 0",borderBottom:i<readinessChecklist.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
+                  <span style={{fontSize:14,flexShrink:0}}>{icon}</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:12,fontWeight:700,color}}>{item.label}</div>
+                    <div style={{fontSize:11,color:COLORS.slate,marginTop:1,lineHeight:1.4}}>{item.detail}</div>
+                  </div>
+                </div>
+              );
+            })}
+            <div style={{fontSize:10,color:COLORS.slate,marginTop:8,fontStyle:"italic"}}>Each factor shown individually — deliberately no single composite score, since a few inputs can't responsibly compress into one number.</div>
           </div>
         )}
 
@@ -3228,7 +3386,7 @@ function Finance(){
           <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
             <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:8}}>🎲 Probability of Success</div>
             <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5,marginBottom:10}}>
-              Runs 1,000 simulations per scenario with randomized year-to-year returns (mean {assump.moderate_rate_pct||7}%, realistic volatility) instead of one fixed rate — shows what % of possible market paths never run out of money.
+              Runs 1,000 simulations per scenario with randomized year-to-year returns (mean {assump.moderate_rate_pct||7}%, ±{assump.return_volatility_pct||15}% volatility) instead of one fixed rate — shows what % of possible market paths never run out of money.
             </div>
             {!monteCarloResults&&!monteCarloRunning&&(
               <button style={S.btn} onClick={runMonteCarlo}>▶️ Run Simulation</button>
@@ -3287,23 +3445,60 @@ function Finance(){
       </>}
 
       {tab==="college"&&<>
-        {collegeS&&collegeProj&&(
+        {collegeS&&(
           <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
-            <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:8}}>529 Plan — {collegeG?.target_year} target</div>
+            <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:8}}>Shared 529 Plan</div>
             <div style={{fontSize:28,fontWeight:800}}>{formatMoneyShort(collegeS.balance)}</div>
-            <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>{formatMoney(collegeS.monthly_contribution)}/mo · Projected: {formatMoneyShort(collegeProj.projected)}</div>
-            <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${COLORS.navyLight}`}}>
-              <div style={{fontSize:12,color:COLORS.slate}}>Target: <strong style={{color:COLORS.white}}>{formatMoneyShort(collegeG.target_amount)}</strong></div>
-              <div style={{fontSize:12,color:collegeProj.gap>0?COLORS.amber:COLORS.green,marginTop:4,fontWeight:600}}>
-                {collegeProj.gap>0?`Gap: ${formatMoneyShort(collegeProj.gap)} — consider ~${formatMoney(collegeProj.monthlyNeeded)}/mo to close it`:`On track — projected surplus of ${formatMoneyShort(-collegeProj.gap)}`}
-              </div>
-            </div>
-            {collegeG?.notes&&<div style={{fontSize:11,color:COLORS.slate,marginTop:8,fontStyle:"italic"}}>{collegeG.notes}</div>}
+            <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>{formatMoney(collegeS.monthly_contribution)}/mo combined contribution</div>
           </div>
         )}
-        <div style={{display:"flex",gap:8}}>
-          <button style={{...S.btnSm,flex:1}} onClick={()=>{setForm({...collegeS,last_updated:TODAY_STR});setShowModal("college-savings");}}>Update Balance</button>
-          <button style={{...S.btnSm,flex:1}} onClick={()=>{setForm({...collegeG});setShowModal("college-goal");}}>Edit Goal</button>
+
+        {pooledCollegeProj&&(
+          <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
+            <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>Funding Sequence — one pool, three kids</div>
+            <div style={{fontSize:11,color:COLORS.slate,marginBottom:12,lineHeight:1.5}}>
+              The shared fund grows until each child's start year, their target is withdrawn, and the remainder keeps growing for the next.
+            </div>
+            {pooledCollegeProj.perChild.map((c,i)=>(
+              <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"9px 0",borderBottom:i<pooledCollegeProj.perChild.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
+                <div>
+                  <div style={{fontSize:13,fontWeight:700}}>{c.child_name} — {c.target_year}</div>
+                  <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>Pool at start: {formatMoneyShort(c.poolBalanceAtStart)} · Needs {formatMoneyShort(c.target_amount)}</div>
+                </div>
+                <span style={S.badge(c.fullyFunded?COLORS.green:COLORS.red)}>{c.fullyFunded?"funded":`short ${formatMoneyShort(c.shortfall)}`}</span>
+              </div>
+            ))}
+            <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${COLORS.navyLight}`}}>
+              {pooledCollegeProj.anyShortfall ? (
+                <div style={{fontSize:12,color:COLORS.amber,fontWeight:600}}>
+                  ⚠️ At current contributions (${formatMoney(pooledCollegeProj.currentContribution)}/mo), one or more kids come up short. Increasing to ~{formatMoney(pooledCollegeProj.suggestedMonthly)}/mo would fund all three in sequence.
+                </div>
+              ) : (
+                <div style={{fontSize:12,color:COLORS.green,fontWeight:600}}>✓ Current contribution funds all three kids in sequence.</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div style={S.sectionLabel}>Per-Child Goals</div>
+        <div style={S.swipeHint}>← swipe left to edit or delete</div>
+        {collegeGoal.data.map(g=>(
+          <SwipeCard key={g.id} id={g.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
+            onEdit={()=>{setEditItem(g);setForm({...g});setShowModal("college-goal-child");}}
+            onDelete={()=>{if(window.confirm(`Remove ${g.child_name}'s college goal?`))collegeGoal.remove(g.id);setActiveSwipe(null);}}
+            style={{...S.card,borderLeft:`3px solid ${{Aubrey:COLORS.red,Blake:COLORS.green,Brayden:COLORS.amber}[g.child_name]||COLORS.slate}`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div>
+                <div style={{fontSize:14,fontWeight:600}}>{g.child_name}</div>
+                <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{g.target_year} · {formatMoneyShort(g.target_amount)} target</div>
+              </div>
+            </div>
+            {g.notes&&<div style={{fontSize:11,color:COLORS.slateLight,marginTop:4,fontStyle:"italic"}}>{g.notes}</div>}
+          </SwipeCard>
+        ))}
+
+        <div style={{display:"flex",gap:8,marginTop:8}}>
+          <button style={{...S.btnSm,flex:1}} onClick={()=>{setForm({...collegeS,last_updated:TODAY_STR});setShowModal("college-savings");}}>Update Pool Balance</button>
         </div>
       </>}
 
@@ -3471,6 +3666,10 @@ function Finance(){
         <label style={S.label}>Drawdown Rate (%) — used during retirement spending</label>
         <input type="number" step="0.5" style={S.input} placeholder="5" value={form.drawdown_rate_pct||""} onChange={e=>setForm(p=>({...p,drawdown_rate_pct:e.target.value}))}/>
         <div style={{fontSize:10,color:COLORS.slate,marginTop:-4,marginBottom:10,lineHeight:1.4}}>Set these based on your actual fund allocation. Defaults assume a balanced (not 100% equity) portfolio, and a more conservative rate once spending down in retirement than while accumulating.</div>
+
+        <label style={S.label}>Return Volatility (%) — used by Monte Carlo simulation</label>
+        <input type="number" step="1" style={S.input} placeholder="15" value={form.return_volatility_pct||""} onChange={e=>setForm(p=>({...p,return_volatility_pct:e.target.value}))}/>
+        <div style={{fontSize:10,color:COLORS.slate,marginTop:-4,marginBottom:10,lineHeight:1.4}}>Default 15% roughly matches 100% equities historically. A 60/40 stock/bond mix runs closer to 10-12%. Lower volatility = higher Monte Carlo success rates.</div>
 
         <div style={{fontSize:11,color:COLORS.slate,marginTop:8,lineHeight:1.5}}>Healthcare costs are modeled at ~5.5%/year growth for the full plan, faster than general inflation. Medicare eligibility and Social Security claiming age are tracked separately since most people claim SS later than 65.</div>
         <button style={{...S.btn,marginTop:16}} onClick={saveAssumptions}>Save Assumptions</button>
