@@ -2543,7 +2543,7 @@ function Pool(){
 
 // ─── FINANCE ──────────────────────────────────────────────────────────────────
 // ─── RETIREMENT BRIEF ─────────────────────────────────────────────────────────
-function RetirementBrief({accounts, assumptions, retProj, onClose}) {
+function RetirementBrief({accounts, assumptions, retProj, monteCarloResults, onClose}) {
   const [brief, setBrief]     = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState(null);
@@ -2626,9 +2626,13 @@ Phase 3 — Full retirement drawdown (age ${retProj.drawdown.medicareAge} to ${r
 - Result: ${retProj.drawdown.lastsFullPlan ? `money lasts through age ${retProj.drawdown.planEndAge}, with ${formatMoney(retProj.drawdown.finalBalance)} remaining` : `money is projected to run low around age ${retProj.drawdown.ranOutAtAge}, which is ${retProj.drawdown.planEndAge-retProj.drawdown.ranOutAtAge} years short of the age-${retProj.drawdown.planEndAge} planning horizon`}
 
 App-calculated status (already shown to the user as a colored badge before they read this brief — your analysis should be consistent with this, not contradict it):
-- Status: ${retProj.statusLabel} (${retProj.status})
+- Status: ${retProj.statusLabel} (${retProj.status}) — this is the STEADY-RETURN view (flat ${assumptions.drawdown_rate_pct||5}% every year), explicitly labeled to the user as not accounting for market variation
 
-Known model limitation to mention briefly: this simulation uses a single flat average annual return for accumulation (${assumptions.moderate_rate_pct||7}%) and a separate flat rate for drawdown (${assumptions.drawdown_rate_pct||5}%), with no year-to-year variation within each phase. Real markets vary year to year, and a downturn in the first few years of retirement specifically (sequence-of-returns risk) can hurt more than the average return suggests — this model doesn't capture that. Treat the age-${retProj.drawdown.planEndAge} result as a directional estimate, not a guarantee.
+${monteCarloResults ? `Monte Carlo simulation (1,000 randomized-return paths per scenario, already run and shown to the user — this is the MORE REALISTIC view and should be weighted heavily in your analysis):
+${monteCarloResults.map(r=>`- ${r.label} (age ${r.retirementAge}): ${r.successRate}% of simulated paths last through age ${assumptions.plan_end_age||90}, median ending balance ${formatMoney(r.medianFinalBalance)}`).join(String.fromCharCode(10))}
+- If the steady-return status above says "On Track" but the Current Plan success rate is meaningfully below 85%, say so directly — don't let the optimistic steady-return number stand uncontested. The Monte Carlo result is the more honest answer to "will this actually work."` : `Monte Carlo simulation has not been run yet — mention that running it (button above) would give a more realistic picture than the steady-return number alone, since markets don't actually return the same amount every year.`}
+
+Known model limitation to mention briefly: the steady-return simulation uses a single flat average annual return for accumulation (${assumptions.moderate_rate_pct||7}%) and a separate flat rate for drawdown (${assumptions.drawdown_rate_pct||5}%), with no year-to-year variation. Real markets vary year to year, and a downturn in the first few years of retirement specifically (sequence-of-returns risk) can hurt more than the average return suggests — this is exactly what the Monte Carlo simulation is designed to reveal, if it's been run.
 
 Write a brief in this EXACT format. Every section must be 1-3 short bullet points, never paragraphs. Be specific with numbers. No fluff, no filler. Do not give specific investment, fund, or allocation advice — stick to savings rate, contribution, tax/timing mechanics, and gap analysis.
 
@@ -2645,13 +2649,16 @@ Format:
 **THROUGH AGE ${retProj.drawdown.planEndAge}**
 • [does the full retirement drawdown last through age ${retProj.drawdown.planEndAge}, or run low — and roughly when]
 
+**REALISTIC ODDS**
+• [Monte Carlo success rate if available, and whether it agrees or disagrees with the steady-return status above — be direct if they diverge]
+
 **WHAT WOULD HELP MOST**
 • [1-2 concrete, non-advisory levers]
 
 **KNOWN LIMITATION**
-• [brief honest note on sequence-of-returns risk not being modeled]
+• [brief honest note — if Monte Carlo hasn't been run, mention that; if it has, note what it doesn't capture either, like fees or tax law changes]
 
-Keep the ENTIRE brief under 190 words total. Bullets only, no exceptions.`;
+Keep the ENTIRE brief under 210 words total. Bullets only, no exceptions.`;
 
       const res = await fetch("/api/brief", {
         method: "POST",
@@ -2687,7 +2694,8 @@ Keep the ENTIRE brief under 190 words total. Bullets only, no exceptions.`;
     setFollowUp("");
     setAskingFollowUp(true);
     try {
-      const followUpPrompt = `You already gave this retirement brief:\n\n${brief}\n\nAnswer this follow-up directly and concisely (2-4 sentences, no headers/bullets unless needed). You are not a licensed advisor — stay educational, not prescriptive about specific investments. Current balance ${formatMoney(retProj.totalBalance)}, inflation-adjusted target ${formatMoney(retProj.targetNumberInflated)}, retiring at ${assumptions.retirement_age}, Rule of 55 eligible balance ${formatMoney(retProj.ruleOf55Balance)}.\n\nQuestion: ${question}`;
+      const mcContext = monteCarloResults ? ` Monte Carlo current-plan success rate: ${monteCarloResults.find(r=>r.label==="Current Plan")?.successRate}%.` : "";
+      const followUpPrompt = `You already gave this retirement brief:\n\n${brief}\n\nAnswer this follow-up directly and concisely (2-4 sentences, no headers/bullets unless needed). You are not a licensed advisor — stay educational, not prescriptive about specific investments. Current balance ${formatMoney(retProj.totalBalance)}, inflation-adjusted target ${formatMoney(retProj.targetNumberInflated)}, retiring at ${assumptions.retirement_age}, Rule of 55 eligible balance ${formatMoney(retProj.ruleOf55Balance)}.${mcContext}\n\nQuestion: ${question}`;
       const res = await fetch("/api/brief", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -2946,6 +2954,7 @@ function Finance(){
               </span>
             </div>
             <div style={{fontSize:11,color:COLORS.slate,marginTop:4}}>Spendable (after tax) {formatMoneyShort(retProj.spendableProjected)} · Target (inflation-adj.) {formatMoneyShort(retProj.targetNumberInflated)}</div>
+            <div style={{fontSize:9,color:COLORS.slate,marginTop:3,fontStyle:"italic"}}>At steady returns — see Finance → Retirement for realistic success rate</div>
           </div>
         )}
         {collegeProj&&(
@@ -3015,6 +3024,9 @@ function Finance(){
                     : `Projected to run low around age ${retProj.drawdown.ranOutAtAge}`
                   }
                 </div>
+                <div style={{fontSize:10,color:COLORS.slate,marginTop:3,fontStyle:"italic"}}>
+                  At a steady {assump.drawdown_rate_pct||5}% return every year — real markets vary. See Probability of Success below for a more realistic range.
+                </div>
               </div>
             </div>
             <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${retProj.statusColor}33`}}>
@@ -3022,6 +3034,19 @@ function Finance(){
                 <div key={i} style={{fontSize:12,color:COLORS.slateLight,lineHeight:1.5,marginBottom:i<retProj.quickRecs.length-1?6:0}}>• {rec}</div>
               ))}
             </div>
+            {monteCarloResults&&(()=>{
+              const current = monteCarloResults.find(r=>r.label==="Current Plan");
+              if(!current) return null;
+              const diverges = (retProj.status==="green" && current.successRate<75) || (retProj.status!=="green" && current.successRate>=85);
+              return(
+                <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${retProj.statusColor}33`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div style={{fontSize:11,color:COLORS.slateLight}}>
+                    🎲 Realistic success rate: <strong style={{color:current.successRate>=85?COLORS.green:current.successRate>=70?COLORS.amber:COLORS.red}}>{current.successRate}%</strong>
+                    {diverges&&<div style={{fontSize:10,color:COLORS.amber,marginTop:2}}>⚠️ Differs meaningfully from the steady-return badge above — market variation matters here.</div>}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 
@@ -3258,7 +3283,7 @@ function Finance(){
         ))}
         <button style={S.btn} onClick={()=>{setForm({account_type:"401k",contribution_frequency:"monthly",tax_treatment:"pre-tax",last_updated:TODAY_STR});setShowModal("account");}}>+ Add Account</button>
 
-        {showRetBrief&&<RetirementBrief accounts={accounts.data} assumptions={assump} retProj={retProj} onClose={()=>setShowRetBrief(false)}/>}
+        {showRetBrief&&<RetirementBrief accounts={accounts.data} assumptions={assump} retProj={retProj} monteCarloResults={monteCarloResults} onClose={()=>setShowRetBrief(false)}/>}
       </>}
 
       {tab==="college"&&<>
