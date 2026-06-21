@@ -3150,6 +3150,11 @@ function Finance(){
       </>}
 
       {tab==="retirement"&&<>
+        <div style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}>
+          <button onClick={()=>{setForm({...assump});setShowModal("assumptions");}} style={{background:COLORS.navyLight,border:`1px solid ${COLORS.navyLight}`,borderRadius:8,padding:"6px 12px",fontSize:11,fontWeight:700,color:COLORS.slateLight,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
+            ⚙️ Edit Assumptions
+          </button>
+        </div>
         {retProj&&(
           <div style={{...S.card,background:retProj.statusColor+"18",borderColor:retProj.statusColor+"44",marginBottom:12}}>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -3415,7 +3420,6 @@ function Finance(){
             )}
           </div>
 
-          <button style={{...S.btnSm,width:"100%",marginBottom:12}} onClick={()=>{setForm({...assump});setShowModal("assumptions");}}>⚙️ Edit Assumptions</button>
         </>}
 
         <div style={S.sectionLabel}>Accounts</div>
@@ -3471,7 +3475,7 @@ function Finance(){
             <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${COLORS.navyLight}`}}>
               {pooledCollegeProj.anyShortfall ? (
                 <div style={{fontSize:12,color:COLORS.amber,fontWeight:600}}>
-                  ⚠️ At current contributions (${formatMoney(pooledCollegeProj.currentContribution)}/mo), one or more kids come up short. Increasing to ~{formatMoney(pooledCollegeProj.suggestedMonthly)}/mo would fund all three in sequence.
+                  ⚠️ At current contributions ({formatMoney(pooledCollegeProj.currentContribution)}/mo), one or more kids come up short. Increasing to ~{formatMoney(pooledCollegeProj.suggestedMonthly)}/mo would fund all three in sequence.
                 </div>
               ) : (
                 <div style={{fontSize:12,color:COLORS.green,fontWeight:600}}>✓ Current contribution funds all three kids in sequence.</div>
