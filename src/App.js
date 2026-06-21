@@ -3206,7 +3206,7 @@ function Finance(){
                 {retProj.statusLabel}
               </span>
             </div>
-            <div style={{fontSize:11,color:COLORS.slate,marginTop:4}}>Spendable (after tax) {formatMoneyShort(retProj.spendableProjected)} · Target (inflation-adj.) {formatMoneyShort(retProj.targetNumberInflated)}</div>
+            <div style={{fontSize:11,color:COLORS.slate,marginTop:4}}>Spendable {formatMoneyShort(retProj.spendableTodaysDollars)} · Target {formatMoneyShort(retProj.targetNumberToday)} <span style={{color:COLORS.slate}}>(today's $)</span></div>
             <div style={{fontSize:9,color:COLORS.slate,marginTop:3,fontStyle:"italic"}}>At steady returns — see Finance → Retirement for realistic success rate</div>
           </div>
         )}
@@ -3534,7 +3534,7 @@ function Finance(){
           <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
             <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:8}}>🎲 Probability of Success</div>
             <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5,marginBottom:10}}>
-              Runs 1,000 simulations per scenario with randomized year-to-year returns (mean {assump.moderate_rate_pct||7}%, ±{assump.return_volatility_pct||15}% volatility) instead of one fixed rate — shows what % of possible market paths never run out of money.
+              Runs 1,000 simulations with randomized year-to-year returns (mean {assump.moderate_rate_pct||7}%, ±{assump.return_volatility_pct||15}% volatility) instead of one fixed rate — shows what % of possible market paths never run out of money for your current plan.
             </div>
             {!monteCarloResults&&!monteCarloRunning&&(
               <button style={S.btn} onClick={runMonteCarlo}>▶️ Run Simulation</button>
@@ -3544,24 +3544,43 @@ function Finance(){
                 <div style={{fontSize:13,color:COLORS.slate}}>Running 4,000 simulated paths…</div>
               </div>
             )}
-            {monteCarloResults&&!monteCarloRunning&&(
-              <>
-                {monteCarloResults.map((r,i)=>(
-                  <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:i<monteCarloResults.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
-                    <div>
-                      <div style={{fontSize:13,fontWeight:600,color:r.label==="Current Plan"?COLORS.blue:COLORS.white}}>{r.label}</div>
-                      <div style={{fontSize:10,color:COLORS.slate}}>age {r.retirementAge} · median ${formatMoneyShort(r.medianFinalBalance).replace("$","")}</div>
-                    </div>
-                    <div style={{fontSize:18,fontWeight:800,color:r.successRate>=90?COLORS.green:r.successRate>=75?COLORS.amber:COLORS.red}}>
-                      {r.successRate}%
-                    </div>
+            {monteCarloResults&&!monteCarloRunning&&(()=>{
+              const current = monteCarloResults.find(r=>r.label==="Current Plan");
+              if(!current) return null;
+              return(
+                <>
+                  <div style={{textAlign:"center",padding:"8px 0"}}>
+                    <div style={{fontSize:36,fontWeight:800,color:current.successRate>=90?COLORS.green:current.successRate>=75?COLORS.amber:COLORS.red}}>{current.successRate}%</div>
+                    <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>of simulated paths last through age {assump.plan_end_age||90}</div>
+                    <div style={{fontSize:10,color:COLORS.slate,marginTop:2}}>median ending balance {formatMoneyShort(current.medianFinalBalance)}</div>
                   </div>
-                ))}
-                <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={runMonteCarlo}>🔄 Re-run</button>
-                <div style={{fontSize:10,color:COLORS.slate,marginTop:8,fontStyle:"italic"}}>Success = money lasts through age {assump.plan_end_age||90} in that simulated path. Industry convention treats 85-95%+ as a generally safe plan.</div>
-              </>
-            )}
+                  <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={runMonteCarlo}>🔄 Re-run</button>
+                  <div style={{fontSize:10,color:COLORS.slate,marginTop:8,fontStyle:"italic"}}>Industry convention treats 85-95%+ as a generally safe plan.</div>
+                </>
+              );
+            })()}
           </div>
+
+          {monteCarloResults&&!monteCarloRunning&&(
+            <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
+              <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:8}}>🤔 What If I Retire Earlier or Later?</div>
+              <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5,marginBottom:10}}>
+                Same 1,000-simulation approach, compared across a few retirement ages around your current plan.
+              </div>
+              {monteCarloResults.map((r,i)=>(
+                <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:i<monteCarloResults.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:600,color:r.label==="Current Plan"?COLORS.blue:COLORS.white}}>{r.label}</div>
+                    <div style={{fontSize:10,color:COLORS.slate}}>age {r.retirementAge} · median {formatMoneyShort(r.medianFinalBalance)}</div>
+                  </div>
+                  <div style={{fontSize:18,fontWeight:800,color:r.successRate>=90?COLORS.green:r.successRate>=75?COLORS.amber:COLORS.red}}>
+                    {r.successRate}%
+                  </div>
+                </div>
+              ))}
+              <div style={{fontSize:10,color:COLORS.slate,marginTop:8,fontStyle:"italic"}}>Each row is its own full simulation through age {assump.plan_end_age||90} — not just a snapshot at retirement.</div>
+            </div>
+          )}
 
         </>}
 
