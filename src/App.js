@@ -1478,72 +1478,108 @@ function CalendarBanner({gc}){
 function Dashboard({onNavigate,gc}){
   const{data:homeMaint}   =useTable("home_maintenance","title",true);
   const{data:deadlines}   =useTable("college_deadlines","due_date",true);
+  const readings          =useTable("pool_readings","date");
+  const poolMaint         =useTable("pool_maintenance","date");
+  const poolSched         =useTable("pool_schedule","title",true);
+  const assumptions       =useTable("retirement_assumptions","id",true);
+  const accounts          =useTable("retirement_accounts","name",true);
 
-  const [showAttention,setShowAttention] = useState(true);
   const [showFullSchedule,setShowFullSchedule] = useState(false);
   const [filter,setFilter]   = useState("All");
   const [overrides,setOverrides] = useState({});
   const [reassigning,setReassigning] = useState(null);
   const members=["All","Aubrey","Blake","Brayden","Matt","Kalee"];
 
-  const overdueItems    =homeMaint.filter(m=>maintStatus(m)==="overdue");
-  const urgentDeadlines =deadlines.filter(d=>!d.completed&&daysBetween(d.due_date)<=14);
+  const assump = assumptions.data[0];
+  const retProj = assump ? calcRetirementProjection(accounts.data, assump) : null;
+  const lastReading = readings.data[0];
+  const chemRecs = lastReading ? getChemRecommendations(lastReading, readings.data, null) : [];
+  const highChemRecs = chemRecs.filter(r=>r.priority==="high"||r.priority==="med");
+  const overdueItems = homeMaint.filter(m=>maintStatus(m)==="overdue");
+  const urgentDeadlines = deadlines.filter(d=>!d.completed&&daysBetween(d.due_date)<=14);
 
   const allEvents=(gc.token?gc.events:[]).map(e=>({...e,member:overrides[e.id]||e.member}));
   const filtered=allEvents.filter(e=>filter==="All"||e.member===filter);
 
   const next3Days=Array.from({length:3},(_,i)=>{const d=new Date(todayReal);d.setDate(d.getDate()+i);return d.toISOString().split("T")[0];});
+  const next7Days=Array.from({length:7},(_,i)=>{const d=new Date(todayReal);d.setDate(d.getDate()+i);return d.toISOString().split("T")[0];});
   const next30Days=Array.from({length:30},(_,i)=>{const d=new Date(todayReal);d.setDate(d.getDate()+i);return d.toISOString().split("T")[0];});
-  const visibleDays = showFullSchedule ? next30Days : next3Days;
+  const visibleDays = showFullSchedule ? next30Days : next7Days;
 
   const eventsInWindow = filtered.filter(e=>visibleDays.includes(e.date));
-  const totalEventsNext3 = filtered.filter(e=>next3Days.includes(e.date)).length;
+  const totalEventsNext7 = filtered.filter(e=>next7Days.includes(e.date)).length;
 
+  // Build a single prioritized attention list across all modules
   const attention=[];
-  if(!gc.token)attention.push({color:COLORS.blue,icon:"📅",text:"Google Calendar not connected",action:"Connect"});
+  if(!gc.token) attention.push({color:COLORS.blue,icon:"📅",text:"Connect Google Calendar to see your schedule",action:"Connect",onAction:gc.signIn});
+  highChemRecs.forEach(r=>attention.push({color:r.priority==="high"?COLORS.red:COLORS.amber,icon:"🏊",text:r.action,action:"Pool →",onAction:()=>onNavigate("pool")}));
   overdueItems.forEach(m=>{
     const days=-daysBetween(nextDueDate(m.last_completed,m.interval_days));
-    attention.push({color:COLORS.red,icon:"🏡",text:`${m.title} overdue by ${days} days`,action:"View",tab:"home-mgmt"});
+    attention.push({color:COLORS.red,icon:"🏡",text:`${m.title} overdue by ${days} day${days!==1?"s":""}`,action:"House →",onAction:()=>onNavigate("home-mgmt")});
   });
   urgentDeadlines.forEach(d=>{
     const days=daysBetween(d.due_date);
-    attention.push({color:days<=4?COLORS.red:COLORS.amber,icon:"🎓",text:`${d.title} — ${days===0?"Today":days<0?`${-days}d overdue`:`${days}d`}`,action:"View",tab:"college"});
+    attention.push({color:days<=4?COLORS.red:COLORS.amber,icon:"🎓",text:`${d.title} — ${days===0?"Today":days<0?`${-days}d overdue`:`in ${days}d`}`,action:"College →",onAction:()=>onNavigate("college")});
   });
+
+  // Module status overview
+  const poolStatus = highChemRecs.length>0 ? {label:"Needs Attention",color:COLORS.amber} : lastReading ? {label:"Good",color:COLORS.green} : {label:"No data",color:COLORS.slate};
+  const homeStatus = overdueItems.length>0 ? {label:"Overdue",color:COLORS.red} : {label:"Good",color:COLORS.green};
+  const financeStatus = retProj ? {label:retProj.statusLabel.split("—")[0].trim(),color:retProj.statusColor} : {label:"—",color:COLORS.slate};
+  const collegeStatus = urgentDeadlines.length>0 ? {label:"Deadlines",color:COLORS.amber} : {label:"On Track",color:COLORS.green};
+
+  // Recent activity: last 5 completed/logged items across modules
+  const recentActivity = [
+    ...readings.data.slice(0,2).map(r=>({date:r.date,icon:"🏊",text:`Pool reading logged — pH ${r.ph||"—"}, FC ${r.free_chlorine||"—"}`,color:COLORS.blue})),
+    ...poolMaint.data.slice(0,2).map(m=>({date:m.date,icon:"🔧",text:`${m.type}`,color:COLORS.slate})),
+    ...deadlines.filter(d=>d.completed).slice(0,2).map(d=>({date:d.due_date,icon:"🎓",text:`${d.title} completed`,color:COLORS.green})),
+  ].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
 
   return(
     <div style={S.screen}>
-      <div onClick={()=>attention.length>0&&setShowAttention(p=>!p)} style={{...S.card,background:COLORS.navyLight,borderColor:COLORS.blue+"44",cursor:attention.length>0?"pointer":"default"}}>
-        <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:6}}>{formatToday()}</div>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{fontSize:20,fontWeight:700,lineHeight:1.2}}>{attention.length} item{attention.length!==1?"s":""} need your attention</div>
-          {attention.length>0&&<span style={{fontSize:18,color:COLORS.slate}}>{showAttention?"−":"+"}</span>}
+
+      {/* Hero: Today's Brief header */}
+      <div style={{...S.card,background:COLORS.navyLight,borderColor:COLORS.blue+"44",marginBottom:6}}>
+        <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:4}}>Today's Brief</div>
+        <div style={{fontSize:22,fontWeight:800,lineHeight:1.2,letterSpacing:"-0.3px"}}>
+          {attention.length===0?"All clear 👋":`${attention.length} item${attention.length!==1?"s":""} need your attention`}
         </div>
-        <div style={{fontSize:13,color:COLORS.slate,marginTop:4}}>{totalEventsNext3} events in next 3 days · {urgentDeadlines.length} deadline{urgentDeadlines.length!==1?"s":""} approaching</div>
+        <div style={{fontSize:13,color:COLORS.slate,marginTop:4}}>
+          {totalEventsNext7} event{totalEventsNext7!==1?"s":""} this week · {urgentDeadlines.length} deadline{urgentDeadlines.length!==1?"s":""} approaching
+        </div>
       </div>
 
-      {showAttention&&attention.length>0&&<>
+      {/* Status overview strip */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+        {[
+          {label:"Pool",  ...poolStatus,  nav:"pool"},
+          {label:"House", ...homeStatus,  nav:"home-mgmt"},
+          {label:"Finance",...financeStatus,nav:"finance"},
+          {label:"College",...collegeStatus,nav:"college"},
+        ].map((s,i)=>(
+          <button key={i} onClick={()=>onNavigate(s.nav)} style={{background:COLORS.navyMid,border:`1px solid ${COLORS.navyLight}`,borderTop:`3px solid ${s.color}`,borderRadius:12,padding:"10px 12px",cursor:"pointer",textAlign:"left"}}>
+            <div style={{fontSize:10,color:COLORS.slate,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.5px"}}>{s.label}</div>
+            <div style={{fontSize:13,fontWeight:700,color:s.color,marginTop:3}}>{s.label==="Finance"&&s.label.length>12?s.label.split(" ")[0]:s.label==="Finance"?financeStatus.label:s.label==="Pool"?poolStatus.label:s.label==="House"?homeStatus.label:collegeStatus.label}</div>
+          </button>
+        ))}
+      </div>
+
+      {/* Needs Attention */}
+      {attention.length>0&&<>
         <div style={S.sectionLabel}>Needs Attention</div>
-        {attention.map((a,i)=>(
+        {attention.slice(0,5).map((a,i)=>(
           <div key={i} style={S.statusCard(a.color)}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{fontSize:13,fontWeight:600,flex:1,paddingRight:10}}>{a.icon} {a.text}</div>
-              {a.tab?<button style={S.btnSm} onClick={()=>onNavigate(a.tab)}>{a.action} →</button>:<button style={S.btnSm} onClick={gc.signIn}>{a.action} →</button>}
+              <button style={S.btnSm} onClick={a.onAction}>{a.action||"View →"}</button>
             </div>
           </div>
         ))}
       </>}
 
-      {!gc.token&&(
-        <div style={{...S.statusCard(COLORS.blue),marginBottom:8}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div style={{fontSize:12,color:COLORS.slateLight}}>Calendar not connected — tap Connect in the header to see your schedule here.</div>
-            <button style={S.btnSm} onClick={gc.signIn}>Connect</button>
-          </div>
-        </div>
-      )}
-
+      {/* Upcoming */}
       {gc.token&&<>
-        <div style={S.sectionLabel}>{showFullSchedule?"Next 30 Days":"Next 3 Days"}</div>
+        <div style={S.sectionLabel}>{showFullSchedule?"Next 30 Days":"This Week"}</div>
         <div style={{marginBottom:12}}>
           {members.map(m=><span key={m} style={S.chip(filter===m,MEMBER_COLORS[m]||COLORS.blue)} onClick={()=>setFilter(m)}>{m}</span>)}
         </div>
@@ -1579,12 +1615,35 @@ function Dashboard({onNavigate,gc}){
             </div>
           );
         })}
-        {!gc.loading&&eventsInWindow.length===0&&<div style={S.empty}>No events found.</div>}
-
+        {!gc.loading&&eventsInWindow.length===0&&<div style={{...S.empty,padding:"20px 0"}}>No events this week.</div>}
         <button style={S.btnSm} onClick={()=>setShowFullSchedule(p=>!p)}>
-          {showFullSchedule?"Show next 3 days only":"Show next 30 days →"}
+          {showFullSchedule?"Show this week only":"Show next 30 days →"}
         </button>
       </>}
+
+      {!gc.token&&(
+        <div style={{...S.statusCard(COLORS.blue),marginBottom:8}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div style={{fontSize:12,color:COLORS.slateLight}}>Connect Calendar to see your week here.</div>
+            <button style={S.btnSm} onClick={gc.signIn}>Connect</button>
+          </div>
+        </div>
+      )}
+
+      {/* Recent Activity */}
+      {recentActivity.length>0&&<>
+        <div style={S.sectionLabel}>Recent Activity</div>
+        {recentActivity.map((a,i)=>(
+          <div key={i} style={{display:"flex",gap:10,alignItems:"center",padding:"8px 0",borderBottom:i<recentActivity.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
+            <span style={{fontSize:16,flexShrink:0}}>{a.icon}</span>
+            <div style={{flex:1}}>
+              <div style={{fontSize:12,color:COLORS.slateLight}}>{a.text}</div>
+              <div style={{fontSize:10,color:COLORS.slate,marginTop:2}}>{formatDate(a.date)}</div>
+            </div>
+          </div>
+        ))}
+      </>}
+
     </div>
   );
 }
@@ -3937,6 +3996,116 @@ function Finance(){
   );
 }
 
+// ─── QUICK ADD ────────────────────────────────────────────────────────────────
+function QuickAdd({onNavigate}){
+  const [open,setOpen] = useState(false);
+  const readings = useTable("pool_readings","date");
+  const maintLog = useTable("pool_maintenance","date");
+  const deadlines = useTable("college_deadlines","due_date",true);
+  const [form,setForm] = useState({});
+  const [mode,setMode] = useState(null); // "pool"|"maint"|"college"|"note"
+
+  function close(){setOpen(false);setMode(null);setForm({});}
+
+  const options=[
+    {id:"pool",    icon:"🏊", label:"Pool Reading",    color:COLORS.blue},
+    {id:"maint",   icon:"🔧", label:"Maintenance Task", color:COLORS.amber},
+    {id:"college", icon:"🎓", label:"College Deadline", color:COLORS.purple},
+    {id:"note",    icon:"📝", label:"Quick Note",       color:COLORS.slate},
+  ];
+
+  async function savePool(){
+    function num(v){return(v===undefined||v===null||v==='') ? null : +v;}
+    await readings.insert({date:form.date||TODAY_STR,ph:num(form.ph),free_chlorine:num(form.free_chlorine),cc:num(form.cc)||0,salt:num(form.salt),cya:num(form.cya),alkalinity:num(form.alkalinity),calcium_hardness:num(form.calcium_hardness),water_temp:num(form.water_temp),filter_pressure:num(form.filter_pressure),swg_setting:num(form.swg_setting),pump_hours:num(form.pump_hours),notes:form.notes||""});
+    close();onNavigate("pool");
+  }
+  async function saveMaint(){
+    if(!form.type)return;
+    await maintLog.insert({date:form.date||TODAY_STR,type:form.type,notes:form.notes||""});
+    close();onNavigate("pool");
+  }
+  async function saveCollege(){
+    if(!form.title||!form.due_date)return;
+    await deadlines.insert({title:form.title,due_date:form.due_date,school:form.school||"",category:form.category||"other",completed:false});
+    close();onNavigate("college");
+  }
+
+  return(<>
+    {/* Floating button — sits above the nav bar */}
+    <button
+      onClick={()=>setOpen(true)}
+      style={{position:"fixed",bottom:72,right:"calc(50% - 215px + 16px)",width:52,height:52,borderRadius:"50%",background:COLORS.blue,color:"#fff",border:"none",fontSize:26,fontWeight:300,cursor:"pointer",zIndex:30,boxShadow:"0 4px 16px #0007",display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1}}
+    >+</button>
+
+    {open&&<div style={S.modal} onClick={e=>e.target===e.currentTarget&&close()}>
+      <div style={S.sheet}>
+        <div style={S.sheetHandle}/>
+        {!mode&&<>
+          <div style={{...S.sheetTitle,marginBottom:20}}>Quick Add</div>
+          {options.map(o=>(
+            <button key={o.id} onClick={()=>setMode(o.id)} style={{display:"flex",alignItems:"center",gap:14,width:"100%",background:COLORS.navyLight,border:`1px solid ${COLORS.navyLight}`,borderLeft:`3px solid ${o.color}`,borderRadius:12,padding:"14px 16px",marginBottom:10,cursor:"pointer",color:COLORS.white,textAlign:"left"}}>
+              <span style={{fontSize:22}}>{o.icon}</span>
+              <span style={{fontSize:15,fontWeight:600}}>{o.label}</span>
+            </button>
+          ))}
+          <button onClick={close} style={{...S.btnSm,width:"100%",marginTop:8}}>Cancel</button>
+        </>}
+
+        {mode==="pool"&&<>
+          <div style={{...S.sheetTitle}}>🏊 Pool Reading</div>
+          <div style={S.row}>
+            <div style={S.col}><label style={S.label}>pH</label><input type="number" step="0.1" style={S.input} value={form.ph||""} onChange={e=>setForm(p=>({...p,ph:e.target.value}))}/></div>
+            <div style={S.col}><label style={S.label}>FC (ppm)</label><input type="number" step="0.5" style={S.input} value={form.free_chlorine||""} onChange={e=>setForm(p=>({...p,free_chlorine:e.target.value}))}/></div>
+          </div>
+          <div style={S.row}>
+            <div style={S.col}><label style={S.label}>Salt (ppm)</label><input type="number" style={S.input} value={form.salt||""} onChange={e=>setForm(p=>({...p,salt:e.target.value}))}/></div>
+            <div style={S.col}><label style={S.label}>CYA (ppm)</label><input type="number" style={S.input} value={form.cya||""} onChange={e=>setForm(p=>({...p,cya:e.target.value}))}/></div>
+          </div>
+          <label style={S.label}>Notes</label>
+          <input style={S.input} value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
+          <button style={S.btn} onClick={savePool}>Save Reading</button>
+          <button style={{...S.btnSm,width:"100%",marginTop:8}} onClick={()=>setMode(null)}>← Back</button>
+        </>}
+
+        {mode==="maint"&&<>
+          <div style={{...S.sheetTitle}}>🔧 Maintenance Task</div>
+          <label style={S.label}>Task</label>
+          <div>{["Check water level","Clean skimmer basket","Brushed walls & floor","Added salt","Cleaned cartridge filter","Cleaned salt cell","Checked flow switch","Other"].map(t=>(
+            <span key={t} style={S.chip(form.type===t,COLORS.amber)} onClick={()=>setForm(p=>({...p,type:t}))}>{t}</span>
+          ))}</div>
+          <label style={S.label}>Date</label>
+          <input type="date" style={S.input} value={form.date||TODAY_STR} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/>
+          <label style={S.label}>Notes</label>
+          <input style={S.input} value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
+          <button style={S.btn} onClick={saveMaint}>Log Task</button>
+          <button style={{...S.btnSm,width:"100%",marginTop:8}} onClick={()=>setMode(null)}>← Back</button>
+        </>}
+
+        {mode==="college"&&<>
+          <div style={{...S.sheetTitle}}>🎓 College Deadline</div>
+          <label style={S.label}>Title</label>
+          <input style={S.input} placeholder="e.g. Submit Common App" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
+          <label style={S.label}>Due Date</label>
+          <input type="date" style={S.input} value={form.due_date||""} onChange={e=>setForm(p=>({...p,due_date:e.target.value}))}/>
+          <label style={S.label}>School (optional)</label>
+          <input style={S.input} value={form.school||""} onChange={e=>setForm(p=>({...p,school:e.target.value}))}/>
+          <button style={S.btn} onClick={saveCollege}>Add Deadline</button>
+          <button style={{...S.btnSm,width:"100%",marginTop:8}} onClick={()=>setMode(null)}>← Back</button>
+        </>}
+
+        {mode==="note"&&<>
+          <div style={{...S.sheetTitle}}>📝 Quick Note</div>
+          <div style={{fontSize:13,color:COLORS.slate,marginBottom:16}}>Notes aren't stored yet — this will open the relevant module's form. Use this to navigate quickly.</div>
+          {[{label:"Log a pool reading",nav:"pool"},{label:"Add a home task",nav:"home-mgmt"},{label:"Track a college item",nav:"college"},{label:"Update finances",nav:"finance"}].map((o,i)=>(
+            <button key={i} onClick={()=>{close();onNavigate(o.nav);}} style={{...S.btnSm,width:"100%",marginBottom:8,textAlign:"left"}}>{o.label} →</button>
+          ))}
+          <button style={{...S.btnSm,width:"100%",marginTop:4}} onClick={()=>setMode(null)}>← Back</button>
+        </>}
+      </div>
+    </div>}
+  </>);
+}
+
 // ─── ROOT APP ─────────────────────────────────────────────────────────────────
 export default function App(){
   const [tab,setTab] = useState("home");
@@ -3980,6 +4149,8 @@ export default function App(){
       {tab==="home-mgmt"&&<HomeMgmt/>}
       {tab==="pool"     &&<Pool/>}
       {tab==="finance"  &&<Finance/>}
+
+      <QuickAdd onNavigate={setTab}/>
 
       <nav style={S.nav}>
         {TABS.map(t=>(
