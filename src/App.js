@@ -630,6 +630,55 @@ function buildMonteCarloComparison(accounts, assumptions, numSimulations=1000) {
   });
 }
 
+// Spending sensitivity — run the current plan at different annual spending levels.
+// Answers: "what if we spend $10k less or more per year in retirement?"
+function buildSpendingSensitivity(accounts, assumptions, numSimulations=500) {
+  if (!assumptions) return [];
+  const base = assumptions.annual_retirement_spending || 110000;
+  const variants = [
+    { label: formatMoneyShort(base - 20000), spending: base - 20000 },
+    { label: formatMoneyShort(base - 10000), spending: base - 10000 },
+    { label: `${formatMoneyShort(base)} (current)`, spending: base, isCurrent: true },
+    { label: formatMoneyShort(base + 10000), spending: base + 10000 },
+    { label: formatMoneyShort(base + 20000), spending: base + 20000 },
+  ].filter(v => v.spending > 0);
+
+  return variants.map(v => {
+    const modifiedAssumptions = { ...assumptions, annual_retirement_spending: v.spending };
+    const result = runMonteCarloScenario(accounts, modifiedAssumptions, null, numSimulations);
+    return { ...result, label: v.label, isCurrent: v.isCurrent || false };
+  });
+}
+
+// Contribution impact — run the current plan with different monthly contribution levels.
+// Answers: "what does saving $500 more per month actually do?"
+function buildContributionImpact(accounts, assumptions, numSimulations=500) {
+  if (!assumptions) return [];
+  const currentMonthly = accounts.reduce((s,a) => {
+    const contrib = a.monthly_contribution || 0;
+    const match = a.employer_match || 0;
+    const freq = a.contribution_frequency || "monthly";
+    const monthly = freq==="biweekly" ? (contrib+match)*(26/12) : contrib+match;
+    return s + monthly;
+  }, 0);
+
+  const variants = [
+    { label: "Current", delta: 0, isCurrent: true },
+    { label: "+$250/mo", delta: 250 },
+    { label: "+$500/mo", delta: 500 },
+    { label: "+$1,000/mo", delta: 1000 },
+  ];
+
+  return variants.map(v => {
+    // Build a fake extra account representing the additional contribution
+    const modifiedAccounts = v.delta > 0
+      ? [...accounts, { balance: 0, monthly_contribution: v.delta, employer_match: 0, account_type: "brokerage", tax_treatment: "Roth", contribution_frequency: "monthly" }]
+      : accounts;
+    const result = runMonteCarloScenario(modifiedAccounts, assumptions, null, numSimulations);
+    return { ...result, label: v.label, delta: v.delta, isCurrent: v.isCurrent || false };
+  });
+}
+
 // ─── FULL RETIREMENT DRAWDOWN SIMULATION ───────────────────────────────────────
 // Three phases: accumulate to retirement_age, draw down Rule-of-55 funds through
 // the bridge (retirement_age → bridge_end_age), then draw down combined balance
@@ -2584,6 +2633,7 @@ function Pool(){
   const [tab,setTab]             = useState("dashboard");
   const [showLog,setShowLog]     = useState(false);
   const [showMaint,setShowMaint] = useState(false);
+  const [showScheduleEdit,setShowScheduleEdit] = useState(false);
   const [showBrief,setShowBrief] = useState(false);
   const [showTreatment,setShowTreatment] = useState(false);
   const [showFilterBaseline,setShowFilterBaseline] = useState(false);
@@ -2669,7 +2719,17 @@ function Pool(){
   function closeLog(){setShowLog(false);setEditItem(null);setForm({});setUseDrops(false);}
   function closeMaint(){setShowMaint(false);setEditItem(null);setForm({});}
 
-  async function markScheduleDone(item){ await schedule.update(item.id,{last_completed:TODAY_STR}); }
+  async function markScheduleDone(item){
+    await schedule.update(item.id, {last_completed: TODAY_STR, title: item.title, interval_days: item.interval_days, notes: item.notes||""});
+  }
+
+  async function saveScheduleItem(){
+    if(!form.title || !form.interval_days) return;
+    const row = {title: form.title, last_completed: form.last_completed||TODAY_STR, interval_days: +form.interval_days, notes: form.notes||""};
+    if(editItem) await schedule.update(editItem.id, row);
+    else await schedule.insert(row);
+    setShowScheduleEdit(false); setEditItem(null); setForm({});
+  }
 
   async function saveReading(){
     function num(v){ return (v===undefined||v===null||v==='') ? null : +v; }
@@ -2931,7 +2991,7 @@ function Pool(){
             const pct=Math.max(0,100-(days/item.interval_days)*100);
             return(
               <SwipeCard key={item.id} id={item.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
-                onEdit={()=>{setEditItem(item);setForm(item);setShowMaint(true);}}
+                onEdit={()=>{setEditItem(item);setForm({...item});setShowScheduleEdit(true);setActiveSwipe(null);}}
                 onDelete={()=>{if(window.confirm("Remove this item?"))schedule.remove(item.id);setActiveSwipe(null);}}
                 style={S.statusCard(color)}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
@@ -2948,7 +3008,7 @@ function Pool(){
               </SwipeCard>
             );
           })}
-          <button style={S.btn} onClick={()=>{setForm({});setShowMaint(true);}}>+ Add Item</button>
+          <button style={S.btn} onClick={()=>{setForm({interval_days:7});setShowScheduleEdit(true);}}>+ Add Item</button>
         </>}
       </>}
 
@@ -3068,6 +3128,20 @@ function Pool(){
       {showBrief&&<PoolBrief readings={readings.data} maintLog={maintLog.data} onClose={()=>setShowBrief(false)}/>}
 
       {showTreatment&&<TreatmentLogModal last={last} recs={chemRecs} onSave={logTreatment} onClose={()=>setShowTreatment(false)}/>}
+
+      {showScheduleEdit&&<Modal title={editItem?"Edit Schedule Item":"Add Schedule Item"} onClose={()=>{setShowScheduleEdit(false);setEditItem(null);setForm({});}}>
+        <label style={S.label}>Task Name</label>
+        <input style={S.input} placeholder="e.g. Check water level" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
+        <label style={S.label}>Interval</label>
+        <div style={{marginBottom:12}}>
+          {[7,14,30,60,90,180,365].map(d=><span key={d} style={S.chip(+form.interval_days===d,COLORS.blue)} onClick={()=>setForm(p=>({...p,interval_days:d}))}>{d}d</span>)}
+        </div>
+        <label style={S.label}>Last Completed</label>
+        <input type="date" style={S.input} value={form.last_completed||""} onChange={e=>setForm(p=>({...p,last_completed:e.target.value}))}/>
+        <label style={S.label}>Notes (optional)</label>
+        <input style={S.input} value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
+        <button style={{...S.btn,marginTop:8}} onClick={saveScheduleItem}>{editItem?"Save Changes":"Add Item"}</button>
+      </Modal>}
 
       {showFilterBaseline&&<Modal title="Set Filter Clean Baseline" onClose={()=>setShowFilterBaseline(false)}>
         <div style={{fontSize:12,color:COLORS.slate,marginBottom:16,lineHeight:1.5}}>
@@ -3362,15 +3436,38 @@ function Finance(){
   const [showBridgeMath,setShowBridgeMath] = useState(false);
   const [monteCarloResults,setMonteCarloResults] = useState(null);
   const [monteCarloRunning,setMonteCarloRunning] = useState(false);
+  const [spendingResults,setSpendingResults] = useState(null);
+  const [spendingRunning,setSpendingRunning] = useState(false);
+  const [contribResults,setContribResults] = useState(null);
+  const [contribRunning,setContribRunning] = useState(false);
 
   function runMonteCarlo() {
     setMonteCarloRunning(true);
     setMonteCarloResults(null);
-    // setTimeout lets the "Running…" state paint before the (synchronous, CPU-bound) simulation blocks the thread
     setTimeout(() => {
       const results = buildMonteCarloComparison(accounts.data, assump, 1000);
       setMonteCarloResults(results);
       setMonteCarloRunning(false);
+    }, 50);
+  }
+
+  function runSpendingSensitivity() {
+    setSpendingRunning(true);
+    setSpendingResults(null);
+    setTimeout(() => {
+      const results = buildSpendingSensitivity(accounts.data, assump, 500);
+      setSpendingResults(results);
+      setSpendingRunning(false);
+    }, 50);
+  }
+
+  function runContribImpact() {
+    setContribRunning(true);
+    setContribResults(null);
+    setTimeout(() => {
+      const results = buildContributionImpact(accounts.data, assump, 500);
+      setContribResults(results);
+      setContribRunning(false);
     }, 50);
   }
 
@@ -3879,6 +3976,58 @@ function Finance(){
               
             </div>
           )}
+
+          {/* Spending Sensitivity */}
+          <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
+            <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:8}}>💸 What If We Spend More or Less?</div>
+            <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5,marginBottom:10}}>
+              How does annual retirement spending affect success probability? Each row is {500} simulated paths at a different spending level.
+            </div>
+            {!spendingResults&&!spendingRunning&&(
+              <button style={S.btn} onClick={runSpendingSensitivity}>▶️ Run Spending Analysis</button>
+            )}
+            {spendingRunning&&<div style={{textAlign:"center",padding:"14px 0",fontSize:13,color:COLORS.slate}}>Running simulations…</div>}
+            {spendingResults&&!spendingRunning&&(
+              <>
+                {spendingResults.map((r,i)=>(
+                  <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:i<spendingResults.length-1?`1px solid ${COLORS.navyLight}`:"none",background:r.isCurrent?COLORS.blue+"11":"transparent",borderRadius:r.isCurrent?6:0,paddingLeft:r.isCurrent?8:0,paddingRight:r.isCurrent?8:0}}>
+                    <div>
+                      <div style={{fontSize:13,fontWeight:r.isCurrent?700:500,color:r.isCurrent?COLORS.blue:COLORS.white}}>{r.label}/yr</div>
+                      <div style={{fontSize:10,color:COLORS.slate}}>median {formatMoneyShort(r.medianFinalBalance)} at age {assump.plan_end_age||90}</div>
+                    </div>
+                    <div style={{fontSize:18,fontWeight:800,color:r.successRate>=85?COLORS.green:r.successRate>=70?COLORS.amber:COLORS.red}}>{r.successRate}%</div>
+                  </div>
+                ))}
+                <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={runSpendingSensitivity}>🔄 Re-run</button>
+              </>
+            )}
+          </div>
+
+          {/* Contribution Impact */}
+          <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
+            <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:8}}>📈 What If We Save More?</div>
+            <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5,marginBottom:10}}>
+              How does increasing monthly contributions affect success probability? Each row adds to your current total contribution.
+            </div>
+            {!contribResults&&!contribRunning&&(
+              <button style={S.btn} onClick={runContribImpact}>▶️ Run Contribution Analysis</button>
+            )}
+            {contribRunning&&<div style={{textAlign:"center",padding:"14px 0",fontSize:13,color:COLORS.slate}}>Running simulations…</div>}
+            {contribResults&&!contribRunning&&(
+              <>
+                {contribResults.map((r,i)=>(
+                  <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:i<contribResults.length-1?`1px solid ${COLORS.navyLight}`:"none",background:r.isCurrent?COLORS.blue+"11":"transparent",borderRadius:r.isCurrent?6:0,paddingLeft:r.isCurrent?8:0,paddingRight:r.isCurrent?8:0}}>
+                    <div>
+                      <div style={{fontSize:13,fontWeight:r.isCurrent?700:500,color:r.isCurrent?COLORS.blue:COLORS.white}}>{r.label}</div>
+                      <div style={{fontSize:10,color:COLORS.slate}}>median {formatMoneyShort(r.medianFinalBalance)} at age {assump.plan_end_age||90}</div>
+                    </div>
+                    <div style={{fontSize:18,fontWeight:800,color:r.successRate>=85?COLORS.green:r.successRate>=70?COLORS.amber:COLORS.red}}>{r.successRate}%</div>
+                  </div>
+                ))}
+                <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={runContribImpact}>🔄 Re-run</button>
+              </>
+            )}
+          </div>
 
         </>}
 
