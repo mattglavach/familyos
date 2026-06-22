@@ -1291,36 +1291,37 @@ const S={
   logo:{fontSize:18,fontWeight:700,letterSpacing:"-0.5px"},
   logoAccent:{color:COLORS.blue},
   dateLabel:{fontSize:12,color:COLORS.slate,marginTop:2},
-  screen:{padding:"20px 16px"},
-  sectionLabel:{fontSize:10,fontWeight:700,letterSpacing:"1.2px",color:COLORS.slate,textTransform:"uppercase",marginBottom:10,marginTop:24},
-  card:{background:COLORS.navyMid,borderRadius:12,padding:"14px 16px",marginBottom:10,border:`1px solid ${COLORS.navyLight}`},
-  statusCard:(c)=>({background:COLORS.navyMid,borderRadius:12,padding:"14px 16px",marginBottom:10,border:`1px solid ${COLORS.navyLight}`,borderLeft:`3px solid ${c}`}),
+  screen:{padding:"20px 16px",background:COLORS.navy},
+  sectionLabel:{fontSize:10,fontWeight:700,letterSpacing:"1.2px",color:COLORS.slate,textTransform:"uppercase",marginBottom:12,marginTop:28},
+  card:{background:COLORS.navyMid,borderRadius:14,padding:"16px 18px",marginBottom:14,border:`1px solid ${COLORS.navyLight}`},
+  statusCard:(c)=>({background:COLORS.navyMid,borderRadius:14,padding:"16px 18px",marginBottom:14,border:`1px solid ${COLORS.navyLight}`,borderLeft:`3px solid ${c}`}),
   badge:(c)=>({display:"inline-block",background:c+"22",color:c,borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:600}),
   memberDot:(m)=>({display:"inline-block",width:8,height:8,borderRadius:"50%",background:MEMBER_COLORS[m]||COLORS.slate,marginRight:6}),
-  btn:{background:COLORS.blue,color:"#fff",border:"none",borderRadius:8,padding:"11px 18px",fontSize:14,fontWeight:600,cursor:"pointer",width:"100%",marginTop:12},
-  btnSm:{background:COLORS.navyLight,color:COLORS.slateLight,border:"none",borderRadius:6,padding:"6px 12px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0},
-  btnGreen:{background:COLORS.green+"22",color:COLORS.green,border:`1px solid ${COLORS.green}44`,borderRadius:6,padding:"6px 12px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0},
+  btn:{background:COLORS.blue,color:"#fff",border:"none",borderRadius:10,padding:"13px 18px",fontSize:14,fontWeight:600,cursor:"pointer",width:"100%",marginTop:12},
+  btnSm:{background:COLORS.navyLight,color:COLORS.slateLight,border:"none",borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0},
+  btnGreen:{background:COLORS.green+"22",color:COLORS.green,border:`1px solid ${COLORS.green}44`,borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0},
   btnCheck:{background:COLORS.green+"22",color:COLORS.green,border:`1px solid ${COLORS.green}44`,borderRadius:6,padding:"5px 9px",fontSize:13,fontWeight:700,cursor:"pointer",flexShrink:0,lineHeight:1,minWidth:28,textAlign:"center"},
-  btnRed:{background:COLORS.red+"22",color:COLORS.red,border:`1px solid ${COLORS.red}44`,borderRadius:6,padding:"6px 12px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0},
-  btnAmber:{background:COLORS.amber+"22",color:COLORS.amber,border:`1px solid ${COLORS.amber}44`,borderRadius:6,padding:"6px 12px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0},
-  input:{background:COLORS.navyLight,border:`1px solid ${COLORS.navyLight}`,borderRadius:8,padding:"10px 12px",fontSize:14,color:COLORS.white,width:"100%",boxSizing:"border-box",outline:"none",marginBottom:10},
+  btnRed:{background:COLORS.red+"22",color:COLORS.red,border:`1px solid ${COLORS.red}44`,borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0},
+  btnAmber:{background:COLORS.amber+"22",color:COLORS.amber,border:`1px solid ${COLORS.amber}44`,borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0},
+  input:{background:COLORS.navyLight,border:`1px solid ${COLORS.navyLight}`,borderRadius:10,padding:"11px 14px",fontSize:14,color:COLORS.white,width:"100%",boxSizing:"border-box",outline:"none",marginBottom:12},
   label:{fontSize:11,color:COLORS.slate,marginBottom:4,display:"block",fontWeight:600},
   row:{display:"flex",gap:10},col:{flex:1},
   statGrid:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8},
-  statCell:(c)=>({background:COLORS.navyMid,border:`1px solid ${COLORS.navyLight}`,borderTop:`3px solid ${c}`,borderRadius:8,padding:"10px 8px",textAlign:"center"}),
-  statVal:{fontSize:17,fontWeight:700},statLbl:{fontSize:10,color:COLORS.slate,marginTop:2},statTarget:{fontSize:9,color:COLORS.slate,marginTop:1},
+  statCell:(c)=>({background:COLORS.navyMid,border:`1px solid ${COLORS.navyLight}`,borderTop:`3px solid ${c}`,borderRadius:10,padding:"12px 8px",textAlign:"center"}),
+  statVal:{fontSize:20,fontWeight:700,letterSpacing:"-0.2px"},statLbl:{fontSize:10,color:COLORS.slate,marginTop:2},statTarget:{fontSize:9,color:COLORS.slate,marginTop:1},
   nav:{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:COLORS.navyMid,borderTop:`1px solid ${COLORS.navyLight}`,display:"flex",zIndex:20,paddingBottom:"env(safe-area-inset-bottom)"},
-  navItem:(a)=>({flex:1,display:"flex",flexDirection:"column",alignItems:"center",padding:"10px 0 8px",cursor:"pointer",background:"transparent",border:"none",color:a?COLORS.blue:COLORS.slate,fontSize:10,fontWeight:a?700:500,gap:4}),
-  modal:{position:"fixed",inset:0,background:"#000b",zIndex:50,display:"flex",alignItems:"flex-end",justifyContent:"center"},
-  sheet:{background:COLORS.navyMid,borderRadius:"16px 16px 0 0",padding:"20px 20px 48px",width:"100%",maxWidth:430,maxHeight:"90vh",overflowY:"auto"},
-  sheetTitle:{fontSize:17,fontWeight:700,marginBottom:18},
+  navItem:(a)=>({flex:1,display:"flex",flexDirection:"column",alignItems:"center",padding:"10px 0 8px",cursor:"pointer",background:"transparent",border:"none",color:a?COLORS.blue:COLORS.slate,fontSize:10,fontWeight:a?700:500,gap:4,borderTop:a?`2px solid ${COLORS.blue}`:"2px solid transparent"}),
+  modal:{position:"fixed",inset:0,background:"#000c",zIndex:50,display:"flex",alignItems:"flex-end",justifyContent:"center"},
+  sheet:{background:COLORS.navyMid,borderRadius:"20px 20px 0 0",padding:"12px 20px 48px",width:"100%",maxWidth:430,maxHeight:"92vh",overflowY:"auto"},
+  sheetHandle:{width:40,height:4,borderRadius:2,background:COLORS.navyLight,margin:"0 auto 16px"},
+  sheetTitle:{fontSize:18,fontWeight:700,marginBottom:18},
   chip:(a,c)=>({display:"inline-block",padding:"4px 12px",borderRadius:20,fontSize:12,fontWeight:600,cursor:"pointer",border:`1px solid ${a?c:COLORS.navyLight}`,background:a?c+"22":"transparent",color:a?c:COLORS.slate,marginRight:6,marginBottom:6}),
   tabs:{display:"flex",background:COLORS.navyMid,borderRadius:10,padding:3,marginBottom:16,border:`1px solid ${COLORS.navyLight}`},
   tabBtn:(a)=>({flex:1,border:"none",borderRadius:8,padding:"8px 0",cursor:"pointer",background:a?COLORS.blue:"transparent",color:a?"#fff":COLORS.slate,fontSize:12,fontWeight:700,textTransform:"capitalize",transition:"all 0.15s"}),
   empty:{textAlign:"center",padding:"40px 20px",color:COLORS.slate,fontSize:14},
   progress:{height:3,background:COLORS.navyLight,borderRadius:2,marginTop:8,overflow:"hidden"},
   progressFill:(pct,c)=>({height:"100%",width:`${Math.min(100,Math.max(0,pct))}%`,background:c,borderRadius:2}),
-  gcBanner:{background:COLORS.blue+"18",border:`1px solid ${COLORS.blue}44`,borderRadius:12,padding:"14px 16px",marginBottom:16},
+  gcBanner:{background:COLORS.blue+"18",border:`1px solid ${COLORS.blue}44`,borderRadius:14,padding:"14px 18px",marginBottom:16},
   swipeHint:{fontSize:10,color:COLORS.slate,textAlign:"center",marginBottom:8,letterSpacing:"0.5px"},
 };
 
@@ -1396,9 +1397,10 @@ function Modal({title,onClose,children}){
   return(
     <div style={S.modal} onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div style={S.sheet}>
+        <div style={S.sheetHandle}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
           <div style={S.sheetTitle}>{title}</div>
-          <button onClick={onClose} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",padding:4}}>{I.close()}</button>
+          <button onClick={onClose} style={{background:COLORS.navyLight,border:"none",color:COLORS.slate,cursor:"pointer",padding:"6px 8px",borderRadius:8,display:"flex",alignItems:"center"}}>{I.close()}</button>
         </div>
         {children}
       </div>
@@ -3283,7 +3285,7 @@ function Finance(){
             <div style={{display:"flex",alignItems:"center",gap:10}}>
               <div style={{width:14,height:14,borderRadius:"50%",background:retProj.statusColor,flexShrink:0}}/>
               <div>
-                <div style={{fontSize:15,fontWeight:800,color:retProj.statusColor}}>{retProj.statusLabel}</div>
+                <div style={{fontSize:22,fontWeight:800,color:retProj.statusColor,letterSpacing:"-0.3px"}}>{retProj.statusLabel}</div>
                 <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>
                   {retProj.statusDetail}
                 </div>
@@ -3336,7 +3338,7 @@ function Finance(){
                 </div>
               );
             })}
-            <div style={{fontSize:10,color:COLORS.slate,marginTop:8,fontStyle:"italic"}}>Each factor shown individually — deliberately no single composite score, since a few inputs can't responsibly compress into one number.</div>
+            
           </div>
         )}
 
@@ -3349,11 +3351,11 @@ function Finance(){
         <div style={{display:"flex",gap:8,marginBottom:12}}>
           <div style={{...S.card,flex:1,marginBottom:0,textAlign:"center"}}>
             <div style={{fontSize:10,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.5px"}}>Total Balance</div>
-            <div style={{fontSize:18,fontWeight:800,marginTop:4}}>{formatMoneyShort(retProj?.totalBalance||0)}</div>
+            <div style={{fontSize:22,fontWeight:800,marginTop:4,letterSpacing:"-0.3px"}}>{formatMoneyShort(retProj?.totalBalance||0)}</div>
           </div>
           <div style={{...S.card,flex:1,marginBottom:0,textAlign:"center"}}>
             <div style={{fontSize:10,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.5px"}}>Monthly Contribution</div>
-            <div style={{fontSize:18,fontWeight:800,marginTop:4}}>{formatMoney(retProj?.totalMonthly||0)}</div>
+            <div style={{fontSize:22,fontWeight:800,marginTop:4,letterSpacing:"-0.3px"}}>{formatMoney(retProj?.totalMonthly||0)}</div>
           </div>
         </div>
 
@@ -3363,7 +3365,7 @@ function Finance(){
               <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase"}}>Projection at Age {assump.retirement_age} ({retProj.years} years)</div>
               <Sparkline data={retProj.trajectory.map(t=>t.balance)} color={COLORS.blue}/>
             </div>
-            <div style={{fontSize:9,color:COLORS.slate,marginBottom:8,fontStyle:"italic"}}>Shown in today's purchasing power — what this would feel like buying things now, not the larger number your account will actually say.</div>
+            
             {retProj.scenarios.map(s=>(
               <div key={s.label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${COLORS.navyLight}`}}>
                 <div style={{fontSize:12,color:COLORS.slateLight}}>{s.label} ({s.rate}%)</div>
@@ -3381,7 +3383,7 @@ function Finance(){
                 {retProj.gap>0?`Gap: ${formatMoneyShort(retProj.gap)} — consider increasing contribution by ~${formatMoney(retProj.monthlyNeeded)}/mo`:`On track — projected surplus of ${formatMoneyShort(-retProj.gap)}`}
               </div>
               {assump.contribution_increase_pct>0&&<div style={{fontSize:11,color:COLORS.slate,marginTop:6}}>Assumes contributions grow {assump.contribution_increase_pct}%/year</div>}
-              <div style={{fontSize:10,color:COLORS.slate,marginTop:6,fontStyle:"italic"}}>Note: scenarios assume flat annual returns. Real markets vary year to year — a downturn early in retirement (sequence-of-returns risk) can affect outcomes more than the average return suggests. The Gap above is calculated using actual future dollars at retirement, not the today's-$ figures shown for intuition.</div>
+              
             </div>
           </div>
 
@@ -3453,7 +3455,7 @@ function Finance(){
                 );
               });
             })()}
-            <div style={{fontSize:10,color:COLORS.slate,marginTop:8,fontStyle:"italic"}}>Checkpoints every 5 years from current age — accumulation phase uses moderate rate, retirement phase uses drawdown rate.</div>
+            
           </div>
 
           {incomeTimeline.length>0&&(
@@ -3472,7 +3474,7 @@ function Finance(){
                   </div>
                 </div>
               ))}
-              <div style={{fontSize:10,color:COLORS.slate,marginTop:10,fontStyle:"italic"}}>$/yr figures are inflation-adjusted estimates at the start of each band, in future dollars.</div>
+              
             </div>
           )}
 
@@ -3586,7 +3588,7 @@ function Finance(){
                   </div>
                 </div>
               ))}
-              <div style={{fontSize:10,color:COLORS.slate,marginTop:8,fontStyle:"italic"}}>Each row is its own full simulation through age {assump.plan_end_age||90} — not just a snapshot at retirement.</div>
+              
             </div>
           )}
 
