@@ -267,11 +267,13 @@ function calcPoolHealth(last, shockMin, readings) {
 
   // Per-parameter status labels — reflect actual risk level, not just in-range vs. out-of-range.
   // CYA 30-50 for SWG is a monitor situation, not a red alert. pH 7.9-8.1 is minor.
+  // CYA thresholds tuned for SWG pools: ideal 60-80, acceptable 40-60, low <40, dangerously low <30
   function paramLabel(param, value) {
     const s = poolStatus(param, value);
     if (value === null || value === undefined) return { statusLabel: "Not tested", color: COLORS.slate, icon: "⚪", scoreDeduct: 3 };
     if (param === "cya") {
       if (value >= 60) return { statusLabel: "Good", color: COLORS.green, icon: "🟢", scoreDeduct: 0 };
+      if (value >= 40) return { statusLabel: "Acceptable", color: COLORS.green, icon: "🟢", scoreDeduct: 5 }; // 40-60 is fine for SWG, just not ideal
       if (value >= 30) return { statusLabel: "Slightly Low", color: COLORS.amber, icon: "🟡", scoreDeduct: 10 }; // monitor, not urgent
       return { statusLabel: "Low — add stabilizer", color: COLORS.red, icon: "🔴", scoreDeduct: 30 };
     }
@@ -343,34 +345,31 @@ function calcPoolHealth(last, shockMin, readings) {
   const overallLabel = anyRed ? "Needs Attention" : anyAmber ? "Good" : "Healthy";
   const overallEmoji = anyRed ? "🔴" : anyAmber ? "🟡" : "🟢";
 
-  // Static executive summary — rule-based, no API call
-  // Executive summary — lead with safety, then the top action, then reassurance
-  // More direct: mention what to actually do, not just what's wrong
+  // Static executive summary — direct, specific, action-oriented
   const summaryParts = [];
 
-  // Safety first
   if (safeToSwim) summaryParts.push("Pool is safe to swim.");
   else summaryParts.push(notSafeReasons[0] || "Check chemistry before swimming.");
 
-  // Top issue + action
+  // Top action — specific with dose where possible
   if (last.ph && last.ph > 7.8) {
-    const acidRecs = getChemRecommendations && typeof getChemRecommendations === "function" ? null : null; // acid dose already in chemRecs
+    const acidOzCalc = calcAcidDose(last.ph, 7.4, last.alkalinity || (taRecent.value));
     const trend = trendDirection(readings, "ph", last.ph);
-    summaryParts.push(`pH is${trend==="up"?" trending up and":""} elevated at ${last.ph} — lower with muriatic acid.`);
+    const doseStr = acidOzCalc ? ` with approximately ${acidOzCalc} oz muriatic acid` : "";
+    summaryParts.push(`pH is${trend==="up"?" trending up and":""} elevated at ${last.ph} and should be lowered${doseStr}.`);
   } else if (last.ph && last.ph < 7.2) {
     summaryParts.push(`pH is low at ${last.ph} — add sodium bicarbonate to raise it.`);
   } else if (last.free_chlorine !== null && last.free_chlorine < 1.0) {
-    summaryParts.push(`FC is critically low at ${last.free_chlorine} ppm — add chlorine now.`);
+    summaryParts.push(`FC is critically low at ${last.free_chlorine} ppm — add chlorine before swimming.`);
   } else if (cyaRecent.value !== null && cyaRecent.value < 30) {
     summaryParts.push(`CYA is low at ${cyaRecent.value} ppm — add stabilizer this week.`);
   }
 
-  // Reassurance if all other params are fine
-  const otherParamsOk = params.filter(p=>p.key!=="ph"&&p.key!=="free_chlorine").every(p=>p.icon==="🟢"||p.icon==="🟡");
+  // Reassurance line
+  const otherParamsOk = params.filter(p=>p.key!=="ph"&&p.key!=="free_chlorine").every(p=>p.icon==="🟢");
   if (summaryParts.length >= 2 && otherParamsOk) {
     summaryParts.push("All other tested parameters are within acceptable ranges.");
-  }
-  if (summaryParts.length === 1 && safeToSwim) {
+  } else if (summaryParts.length === 1 && safeToSwim) {
     summaryParts.push("Chemistry looks balanced — no action needed.");
   }
 
