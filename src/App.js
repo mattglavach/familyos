@@ -2926,38 +2926,9 @@ function Pool(){
       {/* Chemistry detail card — collapsed by default, now inside the banner toggle */}
 
       <div style={{...S.tabs,marginTop:16}}>
-        {["log","trends","schedule","history"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
+        {["dashboard","trends","schedule","history"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
       </div>
 
-      {tab==="log"&&<>
-        {readings.loading?<Loading/>:<>
-          <div style={S.swipeHint}>← swipe left to edit or delete</div>
-          {readings.data.map(r=>(
-            <SwipeCard key={r.id} id={r.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
-              onEdit={()=>openEditReading(r)}
-              onDelete={()=>{if(window.confirm("Delete this reading?"))readings.remove(r.id);setActiveSwipe(null);}}
-              style={S.card}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                <div style={{fontSize:13,fontWeight:700}}>{formatDate(r.date)}</div>
-                <div style={{fontSize:11,color:COLORS.slate,textAlign:"right"}}>
-                  {r.water_temp?`${r.water_temp}°F`:""}
-                  {r.swg_setting?` · SWG ${r.swg_setting}%`:""}
-                  {r.pump_hours?` · ${r.pump_hours}h`:""}
-                </div>
-              </div>
-              <div style={{display:"flex",gap:10,marginTop:8,flexWrap:"wrap"}}>
-                {PARAMS.filter(p=>!["water_temp","filter_pressure"].includes(p.k)).map(p=>{
-                  const v=r[p.k];
-                  const s=poolStatus(p.k,v);
-                  return <div key={p.k}><div style={{fontSize:13,fontWeight:600,color:v!==null&&v!==undefined?statusColor(s):COLORS.slate}}>{v!==null&&v!==undefined?v:"—"}</div><div style={{fontSize:10,color:COLORS.slate}}>{p.l}</div></div>;
-                })}
-              </div>
-              {r.notes&&<div style={{fontSize:11,color:COLORS.slate,marginTop:6,fontStyle:"italic"}}>{r.notes}</div>}
-            </SwipeCard>
-          ))}
-          <button style={S.btn} onClick={()=>{setForm({date:TODAY_STR});setShowLog(true);}}>+ Log Reading</button>
-        </>}
-      </>}
 
       {tab==="trends"&&<>
         {PARAMS.filter(p=>!["water_temp","filter_pressure","cc"].includes(p.k)).map(p=>{
@@ -3013,22 +2984,61 @@ function Pool(){
       </>}
 
       {tab==="history"&&<>
-        {maintLog.loading?<Loading/>:<>
+        {(readings.loading||maintLog.loading)?<Loading/>:<>
           <div style={S.swipeHint}>← swipe left to edit or delete</div>
-          {maintLog.data.map(m=>(
-            <SwipeCard key={m.id} id={m.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
-              onEdit={()=>openEditMaint(m)}
-              onDelete={()=>{if(window.confirm("Delete entry?"))maintLog.remove(m.id);setActiveSwipe(null);}}
-              style={S.card}>
-              <div style={{fontSize:12,fontWeight:700,color:m.type==="Treatment applied"?COLORS.green:COLORS.white}}>{m.type}</div>
-              <div style={{fontSize:11,color:COLORS.slate,marginTop:3}}>{formatDate(m.date)}</div>
-              {m.notes&&<div style={{fontSize:11,color:COLORS.slate,marginTop:4,lineHeight:1.5,fontStyle:"italic"}}>{m.notes}</div>}
-            </SwipeCard>
-          ))}
-          <button style={S.btn} onClick={()=>{setForm({date:TODAY_STR});setShowMaint(true);}}>+ Log Entry</button>
+          {(()=>{
+            // Interleave readings and maintenance entries, sorted newest first
+            const items = [
+              ...readings.data.map(r=>({...r, _type:"reading", _date:r.date})),
+              ...maintLog.data.map(m=>({...m, _type:"maint", _date:m.date})),
+            ].sort((a,b)=>new Date(b._date)-new Date(a._date));
+
+            if(items.length===0) return <div style={S.empty}>No history yet.</div>;
+
+            return items.map(item=>{
+              if(item._type==="reading") return(
+                <SwipeCard key={`r-${item.id}`} id={`r-${item.id}`} activeId={activeSwipe} setActiveId={setActiveSwipe}
+                  onEdit={()=>openEditReading(item)}
+                  onDelete={()=>{if(window.confirm("Delete this reading?"))readings.remove(item.id);setActiveSwipe(null);}}
+                  style={S.card}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <span style={{fontSize:10,background:COLORS.blue+"22",color:COLORS.blue,borderRadius:4,padding:"1px 6px",fontWeight:700}}>Reading</span>
+                      <div style={{fontSize:13,fontWeight:700}}>{formatDate(item.date)}</div>
+                    </div>
+                    <div style={{fontSize:11,color:COLORS.slate,textAlign:"right"}}>
+                      {item.water_temp?`${item.water_temp}°F`:""}
+                      {item.swg_setting?` · SWG ${item.swg_setting}%`:""}
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:10,marginTop:8,flexWrap:"wrap"}}>
+                    {PARAMS.filter(p=>!["water_temp","filter_pressure"].includes(p.k)).map(p=>{
+                      const v=item[p.k];
+                      const s=poolStatus(p.k,v);
+                      return <div key={p.k}><div style={{fontSize:13,fontWeight:600,color:v!==null&&v!==undefined?statusColor(s):COLORS.slate}}>{v!==null&&v!==undefined?v:"—"}</div><div style={{fontSize:10,color:COLORS.slate}}>{p.l}</div></div>;
+                    })}
+                  </div>
+                  {item.notes&&<div style={{fontSize:11,color:COLORS.slate,marginTop:6,fontStyle:"italic"}}>{item.notes}</div>}
+                </SwipeCard>
+              );
+              return(
+                <SwipeCard key={`m-${item.id}`} id={`m-${item.id}`} activeId={activeSwipe} setActiveId={setActiveSwipe}
+                  onEdit={()=>openEditMaint(item)}
+                  onDelete={()=>{if(window.confirm("Delete entry?"))maintLog.remove(item.id);setActiveSwipe(null);}}
+                  style={S.card}>
+                  <div style={{display:"flex",alignItems:"center",gap:6}}>
+                    <span style={{fontSize:10,background:COLORS.green+"22",color:COLORS.green,borderRadius:4,padding:"1px 6px",fontWeight:700}}>Maintenance</span>
+                    <div style={{fontSize:12,fontWeight:700,color:item.type==="Treatment applied"?COLORS.green:COLORS.white}}>{item.type}</div>
+                  </div>
+                  <div style={{fontSize:11,color:COLORS.slate,marginTop:3}}>{formatDate(item.date)}</div>
+                  {item.notes&&<div style={{fontSize:11,color:COLORS.slate,marginTop:4,lineHeight:1.5,fontStyle:"italic"}}>{item.notes}</div>}
+                </SwipeCard>
+              );
+            });
+          })()}
+          <button style={S.btn} onClick={()=>{setForm({date:TODAY_STR});setShowMaint(true);}}>+ Log Maintenance</button>
         </>}
       </>}
-
       {showLog&&<Modal title={editItem?"Edit Reading":"Log Pool Reading"} onClose={closeLog}>
         <label style={S.label}>Date</label>
         <input type="date" style={S.input} value={form.date||""} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/>
