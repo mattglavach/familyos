@@ -1408,11 +1408,21 @@ function getChemRecommendations(last, readings, filterBaseline) {
 
   if(lsi !== null) {
     const lsiStatus = lsi < -0.3 ? "corrosive" : lsi > 0.3 ? "scaling" : "balanced";
-    if(lsiStatus !== "balanced") {
+    // LSI "corrosive" is common and largely expected for vinyl/SWG pools at normal calcium levels
+    // (150-250 ppm). Only flag it if calcium is actually logged and we have a real reading,
+    // and only as informational — LSI is designed for plaster pools and less critical for vinyl.
+    if(lsiStatus === "scaling") {
       recs.push({ priority:"low", param:"LSI", icon:"📊",
-        action:`LSI ${lsi} — water is ${lsiStatus}`,
-        detail:`${lsiStatus==="corrosive"?"Slightly corrosive water — monitor vinyl and equipment.":"Scaling tendency — watch for cloudiness or equipment deposits."} Adjust pH to 7.4 first.`,
+        action:`LSI ${lsi} — scaling tendency`,
+        detail:`Water has a slight tendency to deposit scale. Monitor equipment and surfaces. First step: adjust pH toward 7.4.`,
         color:COLORS.amber });
+    } else if(lsiStatus === "corrosive" && calciumValue !== null) {
+      // Only show if calcium is actually logged — estimated 200 ppm almost always shows corrosive
+      // for vinyl SWG pools and isn't actionable
+      recs.push({ priority:"low", param:"LSI", icon:"📊",
+        action:`LSI ${lsi} — slightly corrosive`,
+        detail:`Normal range for vinyl/SWG pools. Monitor equipment surfaces. Raising calcium or alkalinity slightly would improve LSI.`,
+        color:COLORS.slate });
     }
   }
 
@@ -2242,6 +2252,11 @@ function PoolBrief({readings, maintLog, onClose}) {
       const cyaStale = cyaDue && cyaDue.days < 0;
       const taStale = taDue && taDue.days < 0;
 
+      // Pull most recent non-null CYA and TA across all readings — not just the latest entry
+      const mostRecentCYA = readings.find(r => r.cya !== null && r.cya !== undefined);
+      const mostRecentTA  = readings.find(r => r.alkalinity !== null && r.alkalinity !== undefined);
+      const mostRecentCalcium = readings.find(r => r.calcium_hardness !== null && r.calcium_hardness !== undefined);
+
       const last = readings[0];
       const missingFields = [];
       if (!last?.water_temp) missingFields.push("water temp");
@@ -2288,6 +2303,10 @@ Chemistry context:
 - Shock threshold (CYA÷10): ${shockMin} ppm minimum FC
 - Acid needed to reach pH 7.4: ~${acidOz||'unknown'} oz muriatic acid
 - Recommended SWG %: ~${targetSWG}%
+- Most recent CYA reading: ${mostRecentCYA ? `${mostRecentCYA.cya} ppm (tested ${mostRecentCYA.date})` : 'never tested'}
+- Most recent TA reading: ${mostRecentTA ? `${mostRecentTA.alkalinity} ppm (tested ${mostRecentTA.date})` : 'never tested'}
+- Most recent Calcium Hardness: ${mostRecentCalcium ? `${mostRecentCalcium.calcium_hardness} ppm (tested ${mostRecentCalcium.date})` : 'not tested — using estimated 200 ppm for LSI'}
+- LSI note: This is a VINYL liner pool with SWG. Vinyl pools naturally run lower calcium (150-250 ppm target) and will often show a slightly negative LSI — this is expected and NOT a cause for alarm. Do NOT characterize the water as "corrosive" based on LSI alone for this pool type. Only flag LSI if scaling tendency (positive LSI) is detected.
 ${staleDataNote ? `- DATA QUALITY FLAG: ${staleDataNote}` : ''}
 ${missingDataNote ? `- DATA QUALITY FLAG: ${missingDataNote}` : ''}
 
