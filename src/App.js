@@ -239,16 +239,31 @@ function maintColor(s){return s==="overdue"?COLORS.red:s==="due-soon"?COLORS.amb
 function calcPoolHealth(last, shockMin, readings) {
   if (!last) return null;
 
-  // Safe to swim requires: FC above minimum safe threshold, pH in range, CC acceptable
+  // Safe to swim is based on TRUE safety thresholds, not ideal target ranges.
+  // pH 8.0 is outside ideal but NOT unsafe — truly unsafe pH is below 6.8 or above 8.5.
+  // Separate "safe to swim" from "maintenance recommended" to avoid false red alerts.
   const fcSafe = last.free_chlorine !== null && last.free_chlorine >= 1.0;
-  const phSafe = last.ph !== null && last.ph >= 7.2 && last.ph <= 7.8;
-  const ccSafe = last.cc === null || last.cc === undefined || last.cc <= 0.5;
+  const phSafe = last.ph === null || (last.ph >= 6.8 && last.ph <= 8.5);
+  const ccSafe = last.cc === null || last.cc === undefined || last.cc <= 1.0; // >1 ppm = real chloramine concern
   const safeToSwim = fcSafe && phSafe && ccSafe;
 
+  // Maintenance recommended even though swimming is safe
+  const phIdeal = last.ph === null || (last.ph >= 7.2 && last.ph <= 7.8);
+  const maintenanceNeeded = !phIdeal ||
+    (last.cya !== null && last.cya < 50) ||
+    (last.salt !== null && (last.salt < 3200 || last.salt > 3800)) ||
+    (last.alkalinity !== null && (last.alkalinity < 80 || last.alkalinity > 140));
+
   const notSafeReasons = [];
-  if (!fcSafe) notSafeReasons.push(last.free_chlorine === null ? "FC not tested" : `FC too low (${last.free_chlorine} ppm)`);
-  if (!phSafe) notSafeReasons.push(last.ph === null ? "pH not tested" : `pH ${last.ph} — outside 7.2–7.8`);
-  if (!ccSafe) notSafeReasons.push(`CC elevated (${last.cc} ppm)`);
+  if (!fcSafe) notSafeReasons.push(last.free_chlorine === null ? "FC not tested" : `FC too low (${last.free_chlorine} ppm — need ≥1 ppm)`);
+  if (!phSafe) notSafeReasons.push(`pH ${last.ph} is extreme — outside 6.8–8.5`);
+  if (!ccSafe) notSafeReasons.push(`CC elevated at ${last.cc} ppm — chloramines present`);
+
+  const maintenanceReasons = [];
+  if (last.ph && last.ph > 7.8) maintenanceReasons.push(`pH ${last.ph} elevated — add acid`);
+  else if (last.ph && last.ph < 7.2) maintenanceReasons.push(`pH ${last.ph} low — add sodium bicarb`);
+  if (last.cya !== null && last.cya < 50) maintenanceReasons.push(`CYA ${last.cya} ppm — add stabilizer`);
+  if (last.salt !== null && last.salt < 3200) maintenanceReasons.push(`Salt ${last.salt} ppm — add salt`);
 
   // Per-parameter status labels — plain English, not raw numbers
   function paramLabel(param, value) {
@@ -273,17 +288,45 @@ function calcPoolHealth(last, shockMin, readings) {
     return labels[s] || { statusLabel: "Check", color: COLORS.slate, icon: "⚪" };
   }
 
+  // Helper: find most recent non-null value for a param across all readings
+  function mostRecentValue(key) {
+    for (const r of readings) {
+      if (r[key] !== null && r[key] !== undefined) return { value: r[key], date: r.date };
+    }
+    return { value: null, date: null };
+  }
+
+  // For CYA and TA, pull the most recent reading even if not in the latest entry
+  // These are tested less frequently — always show the last known value, not "not tested"
+  const cyaRecent = mostRecentValue("cya");
+  const taRecent = mostRecentValue("alkalinity");
+
+  // Test intervals: CYA every 30 days, TA every 14 days
+  function nextTestInfo(lastDate, intervalDays) {
+    if (!lastDate) return { dueLabel: "Never tested", overdue: true, urgency: "red" };
+    const due = nextDueDate(lastDate, intervalDays);
+    const days = daysBetween(due);
+    if (days < 0) return { dueLabel: `Overdue by ${-days}d`, overdue: true, urgency: "red" };
+    if (days <= 5) return { dueLabel: `Due in ${days}d`, overdue: false, urgency: "amber" };
+    return { dueLabel: `Due ${formatDate(due)}`, overdue: false, urgency: "green" };
+  }
+
+  const cyaTestInfo = nextTestInfo(cyaRecent.date, 30);
+  const taTestInfo  = nextTestInfo(taRecent.date, 14);
+
   const params = [
-    { key: "free_chlorine", label: "FC",   shortLabel:"FC",   value: last.free_chlorine, unit: "ppm" },
-    { key: "ph",            label: "pH",   shortLabel:"pH",   value: last.ph,            unit: "" },
-    { key: "cya",           label: "CYA",  shortLabel:"CYA",  value: last.cya,           unit: "ppm" },
-    { key: "salt",          label: "Salt", shortLabel:"Salt", value: last.salt,           unit: "ppm" },
-    { key: "alkalinity",    label: "TA",   shortLabel:"TA",   value: last.alkalinity,     unit: "ppm" },
+    { key: "free_chlorine", label: "FC",   shortLabel:"FC",   value: last.free_chlorine,   unit: "ppm",  testInterval: null },
+    { key: "ph",            label: "pH",   shortLabel:"pH",   value: last.ph,               unit: "",     testInterval: null },
+    { key: "cya",           label: "CYA",  shortLabel:"CYA",  value: cyaRecent.value,        unit: "ppm",  testInterval: 30, testedDate: cyaRecent.date, testInfo: cyaTestInfo },
+    { key: "salt",          label: "Salt", shortLabel:"Salt", value: last.salt,              unit: "ppm",  testInterval: null },
+    { key: "alkalinity",    label: "TA",   shortLabel:"TA",   value: taRecent.value,         unit: "ppm",  testInterval: 14, testedDate: taRecent.date, testInfo: taTestInfo },
   ].map(p => {
     const trend = trendDirection(readings, p.key, p.value);
     const trendArrowChar = trend==="up" ? "⬆️" : trend==="down" ? "⬇️" : trend==="flat" ? "➡️" : null;
-    const lastTested = lastTestedDate(readings, p.key);
-    const lastTestedLabel = p.value!==null&&p.value!==undefined ? null : lastTested ? `Last: ${formatDate(lastTested)}` : "Never tested";
+    const lastTested = p.testedDate || lastTestedDate(readings, p.key);
+    const lastTestedLabel = p.value!==null&&p.value!==undefined
+      ? (p.testInterval ? `Tested ${formatDate(lastTested)}` : null)
+      : (lastTested ? `Last: ${formatDate(lastTested)}` : "Never tested");
     return { ...p, ...paramLabel(p.key, p.value), trend, trendArrow: trendArrowChar, lastTestedLabel };
   });
 
@@ -324,7 +367,7 @@ function calcPoolHealth(last, shockMin, readings) {
 
   const summary = summaryLines.slice(0, 2).join(" ");
 
-  return { safeToSwim, notSafeReasons, params, overallColor, overallLabel, overallEmoji, score, summary };
+  return { safeToSwim, notSafeReasons, maintenanceNeeded, maintenanceReasons, params, overallColor, overallLabel, overallEmoji, score, summary };
 }
 
 // Find the most recent reading date where a given param was actually tested (not null)
@@ -2644,12 +2687,17 @@ function Pool(){
                 {formatDate(last.date)}{last.water_temp?` · ${last.water_temp}°F`:""}
               </div>
             </div>
-            {/* Safe to swim — clean binary */}
-            <div style={{background:health.safeToSwim?COLORS.green+"22":COLORS.red+"22",border:`1px solid ${health.safeToSwim?COLORS.green:COLORS.red}44`,borderRadius:10,padding:"8px 12px",textAlign:"center",flexShrink:0,marginLeft:12}}>
+            {/* Safe to swim — three states: safe, safe+maintenance, unsafe */}
+            <div style={{
+              background:health.safeToSwim?(health.maintenanceNeeded?COLORS.amber+"22":COLORS.green+"22"):COLORS.red+"22",
+              border:`1px solid ${health.safeToSwim?(health.maintenanceNeeded?COLORS.amber:COLORS.green):COLORS.red}44`,
+              borderRadius:10,padding:"8px 12px",textAlign:"center",flexShrink:0,marginLeft:12
+            }}>
               <div style={{fontSize:10,color:COLORS.slate,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.5px"}}>Safe to Swim</div>
-              <div style={{fontSize:15,fontWeight:800,color:health.safeToSwim?COLORS.green:COLORS.red,marginTop:2}}>
-                {health.safeToSwim?"✅ Yes":"❌ No"}
+              <div style={{fontSize:15,fontWeight:800,color:health.safeToSwim?(health.maintenanceNeeded?COLORS.amber:COLORS.green):COLORS.red,marginTop:2}}>
+                {health.safeToSwim?(health.maintenanceNeeded?"🟡 Yes":"✅ Yes"):"❌ No"}
               </div>
+              {health.safeToSwim&&health.maintenanceNeeded&&<div style={{fontSize:9,color:COLORS.amber,marginTop:2,maxWidth:90,lineHeight:1.3}}>maintenance recommended</div>}
               {!health.safeToSwim&&<div style={{fontSize:9,color:COLORS.red,marginTop:2,maxWidth:90,lineHeight:1.3}}>{health.notSafeReasons[0]}</div>}
             </div>
           </div>
@@ -2669,7 +2717,9 @@ function Pool(){
                   <div style={{fontSize:13,fontWeight:700,color:COLORS.white,marginTop:2}}>
                     {p.value!==null&&p.value!==undefined?`${p.value}${p.unit}`:p.lastTestedLabel||"—"}
                   </div>
-                  {p.trendArrow&&<div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{p.trendArrow}</div>}
+                  {p.trendArrow&&<div style={{fontSize:10,color:COLORS.slate,marginTop:2}}>{p.trendArrow}</div>}
+                  {p.lastTestedLabel&&p.value!==null&&p.value!==undefined&&<div style={{fontSize:9,color:COLORS.slate,marginTop:2,lineHeight:1.3}}>{p.lastTestedLabel}</div>}
+                  {p.testInfo&&<div style={{fontSize:9,color:p.testInfo.urgency==="red"?COLORS.red:p.testInfo.urgency==="amber"?COLORS.amber:COLORS.slate,marginTop:2,lineHeight:1.3}}>{p.testInfo.dueLabel}</div>}
                 </div>
               ))}
             </div>
