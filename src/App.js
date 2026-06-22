@@ -265,27 +265,29 @@ function calcPoolHealth(last, shockMin, readings) {
   if (last.cya !== null && last.cya < 50) maintenanceReasons.push(`CYA ${last.cya} ppm — add stabilizer`);
   if (last.salt !== null && last.salt < 3200) maintenanceReasons.push(`Salt ${last.salt} ppm — add salt`);
 
-  // Per-parameter status labels — plain English, not raw numbers
+  // Per-parameter status labels — reflect actual risk level, not just in-range vs. out-of-range.
+  // CYA 30-50 for SWG is a monitor situation, not a red alert. pH 7.9-8.1 is minor.
   function paramLabel(param, value) {
     const s = poolStatus(param, value);
-    if (value === null || value === undefined) return { statusLabel: "Not tested", color: COLORS.slate, icon: "⚪" };
+    if (value === null || value === undefined) return { statusLabel: "Not tested", color: COLORS.slate, icon: "⚪", scoreDeduct: 3 };
+    if (param === "cya") {
+      if (value >= 60) return { statusLabel: "Good", color: COLORS.green, icon: "🟢", scoreDeduct: 0 };
+      if (value >= 30) return { statusLabel: "Slightly Low", color: COLORS.amber, icon: "🟡", scoreDeduct: 10 }; // monitor, not urgent
+      return { statusLabel: "Low — add stabilizer", color: COLORS.red, icon: "🔴", scoreDeduct: 30 };
+    }
+    if (param === "ph") {
+      if (value >= 7.2 && value <= 7.8) return { statusLabel: "Good", color: COLORS.green, icon: "🟢", scoreDeduct: 0 };
+      if ((value > 7.8 && value <= 8.1) || (value >= 6.8 && value < 7.2)) return { statusLabel: value>7.8?"Elevated":"Low", color: COLORS.amber, icon: "🟡", scoreDeduct: 15 };
+      return { statusLabel: value>8.1?"High":"Low", color: COLORS.red, icon: "🔴", scoreDeduct: 35 };
+    }
     const labels = {
-      green: { statusLabel: "Good", color: COLORS.green, icon: "🟢" },
-      amber: {
-        statusLabel: param==="ph"&&value>7.6 ? "High" :
-                     param==="ph"&&value<7.2 ? "Low" :
-                     param==="free_chlorine"&&value>4.0 ? "High" :
-                     param==="cya"&&value<50 ? "Low" :
-                     param==="salt"&&value<3200 ? "Low" : "Off",
-        color: COLORS.amber, icon: "🟡"
-      },
-      red: {
-        statusLabel: param==="free_chlorine"&&value<1 ? "Unsafe" :
-                     param==="ph" ? (value>7.8?"High":"Low") : "Action needed",
-        color: COLORS.red, icon: "🔴"
-      },
+      green: { statusLabel: "Good",    color: COLORS.green, icon: "🟢", scoreDeduct: 0 },
+      amber: { statusLabel: param==="free_chlorine"&&value>4.0?"High":param==="salt"&&value<3200?"Low":"Off",
+               color: COLORS.amber, icon: "🟡", scoreDeduct: 15 },
+      red:   { statusLabel: param==="free_chlorine"&&value<1?"Unsafe":"Action needed",
+               color: COLORS.red,   icon: "🔴", scoreDeduct: 40 },
     };
-    return labels[s] || { statusLabel: "Check", color: COLORS.slate, icon: "⚪" };
+    return labels[s] || { statusLabel: "Check", color: COLORS.slate, icon: "⚪", scoreDeduct: 5 };
   }
 
   // Helper: find most recent non-null value for a param across all readings
@@ -296,12 +298,11 @@ function calcPoolHealth(last, shockMin, readings) {
     return { value: null, date: null };
   }
 
-  // For CYA and TA, pull the most recent reading even if not in the latest entry
-  // These are tested less frequently — always show the last known value, not "not tested"
   const cyaRecent = mostRecentValue("cya");
-  const taRecent = mostRecentValue("alkalinity");
+  const taRecent  = mostRecentValue("alkalinity");
 
-  // Test intervals: CYA every 30 days, TA every 14 days
+  // Test intervals — SWG summer pool cadence per #6 feedback
+  // FC/pH every 2-3 days (logged manually), TA every 14 days, CYA every 14 days in swim season, Salt monthly
   function nextTestInfo(lastDate, intervalDays) {
     if (!lastDate) return { dueLabel: "Never tested", overdue: true, urgency: "red" };
     const due = nextDueDate(lastDate, intervalDays);
@@ -311,13 +312,13 @@ function calcPoolHealth(last, shockMin, readings) {
     return { dueLabel: `Due ${formatDate(due)}`, overdue: false, urgency: "green" };
   }
 
-  const cyaTestInfo = nextTestInfo(cyaRecent.date, 30);
+  const cyaTestInfo = nextTestInfo(cyaRecent.date, 14); // every 14 days in swim season
   const taTestInfo  = nextTestInfo(taRecent.date, 14);
 
   const params = [
     { key: "free_chlorine", label: "FC",   shortLabel:"FC",   value: last.free_chlorine,   unit: "ppm",  testInterval: null },
     { key: "ph",            label: "pH",   shortLabel:"pH",   value: last.ph,               unit: "",     testInterval: null },
-    { key: "cya",           label: "CYA",  shortLabel:"CYA",  value: cyaRecent.value,        unit: "ppm",  testInterval: 30, testedDate: cyaRecent.date, testInfo: cyaTestInfo },
+    { key: "cya",           label: "CYA",  shortLabel:"CYA",  value: cyaRecent.value,        unit: "ppm",  testInterval: 14, testedDate: cyaRecent.date, testInfo: cyaTestInfo },
     { key: "salt",          label: "Salt", shortLabel:"Salt", value: last.salt,              unit: "ppm",  testInterval: null },
     { key: "alkalinity",    label: "TA",   shortLabel:"TA",   value: taRecent.value,         unit: "ppm",  testInterval: 14, testedDate: taRecent.date, testInfo: taTestInfo },
   ].map(p => {
@@ -330,13 +331,9 @@ function calcPoolHealth(last, shockMin, readings) {
     return { ...p, ...paramLabel(p.key, p.value), trend, trendArrow: trendArrowChar, lastTestedLabel };
   });
 
-  // Health score 0-100: start at 100, deduct per out-of-range parameter
+  // Health score — per-parameter deductions based on actual risk, not just in/out of range
   let score = 100;
-  params.forEach(p => {
-    if (p.icon==="🔴") score -= 25;
-    else if (p.icon==="🟡") score -= 10;
-    else if (p.icon==="⚪") score -= 5;
-  });
+  params.forEach(p => { score -= (p.scoreDeduct||0); });
   score = Math.max(0, Math.min(100, score));
 
   // Overall condition
@@ -347,25 +344,37 @@ function calcPoolHealth(last, shockMin, readings) {
   const overallEmoji = anyRed ? "🔴" : anyAmber ? "🟡" : "🟢";
 
   // Static executive summary — rule-based, no API call
-  const summaryLines = [];
-  if (last.ph && last.ph > 7.6) {
-    const trend = trendDirection(readings, "ph", last.ph);
-    summaryLines.push(`pH is${trend==="up"?" trending up and":""} elevated at ${last.ph} — common with SWG operation.`);
-  } else if (last.ph && last.ph < 7.2) {
-    summaryLines.push(`pH is low at ${last.ph} — add sodium bicarbonate to raise it.`);
-  }
-  if (last.free_chlorine !== null) {
-    const fcTrend = trendDirection(readings, "free_chlorine", last.free_chlorine);
-    if (last.free_chlorine < 1.0) summaryLines.push(`FC is critically low at ${last.free_chlorine} ppm — add chlorine before swimming.`);
-    else if (fcTrend==="down") summaryLines.push(`FC is falling (${last.free_chlorine} ppm) — monitor closely or bump SWG.`);
-    else if (last.free_chlorine >= 1.0 && last.free_chlorine <= 5.0) summaryLines.push(`Chlorine is in range at ${last.free_chlorine} ppm.`);
-  }
-  if (last.cya !== null && last.cya < 50) summaryLines.push(`CYA is low at ${last.cya} ppm — chlorine is burning off faster than normal. Add stabilizer.`);
-  if (summaryLines.length === 0) summaryLines.push("Chemistry looks balanced based on the last reading.");
-  if (safeToSwim) summaryLines.push("Pool is safe to swim.");
-  else summaryLines.push(notSafeReasons[0]||"Check chemistry before swimming.");
+  // Executive summary — lead with safety, then the top action, then reassurance
+  // More direct: mention what to actually do, not just what's wrong
+  const summaryParts = [];
 
-  const summary = summaryLines.slice(0, 2).join(" ");
+  // Safety first
+  if (safeToSwim) summaryParts.push("Pool is safe to swim.");
+  else summaryParts.push(notSafeReasons[0] || "Check chemistry before swimming.");
+
+  // Top issue + action
+  if (last.ph && last.ph > 7.8) {
+    const acidRecs = getChemRecommendations && typeof getChemRecommendations === "function" ? null : null; // acid dose already in chemRecs
+    const trend = trendDirection(readings, "ph", last.ph);
+    summaryParts.push(`pH is${trend==="up"?" trending up and":""} elevated at ${last.ph} — lower with muriatic acid.`);
+  } else if (last.ph && last.ph < 7.2) {
+    summaryParts.push(`pH is low at ${last.ph} — add sodium bicarbonate to raise it.`);
+  } else if (last.free_chlorine !== null && last.free_chlorine < 1.0) {
+    summaryParts.push(`FC is critically low at ${last.free_chlorine} ppm — add chlorine now.`);
+  } else if (cyaRecent.value !== null && cyaRecent.value < 30) {
+    summaryParts.push(`CYA is low at ${cyaRecent.value} ppm — add stabilizer this week.`);
+  }
+
+  // Reassurance if all other params are fine
+  const otherParamsOk = params.filter(p=>p.key!=="ph"&&p.key!=="free_chlorine").every(p=>p.icon==="🟢"||p.icon==="🟡");
+  if (summaryParts.length >= 2 && otherParamsOk) {
+    summaryParts.push("All other tested parameters are within acceptable ranges.");
+  }
+  if (summaryParts.length === 1 && safeToSwim) {
+    summaryParts.push("Chemistry looks balanced — no action needed.");
+  }
+
+  const summary = summaryParts.slice(0, 3).join(" ");
 
   return { safeToSwim, notSafeReasons, maintenanceNeeded, maintenanceReasons, params, overallColor, overallLabel, overallEmoji, score, summary };
 }
@@ -2703,7 +2712,20 @@ function Pool(){
           </div>
           {/* Line 2: Executive summary */}
           <div style={{fontSize:13,color:COLORS.slateLight,lineHeight:1.5,marginBottom:10}}>{health.summary}</div>
-          {/* View details toggle for chemistry cards */}
+          {/* Today's Action — inside banner, above chemistry toggle per #5 */}
+          {highRecs.length>0&&(
+            <div style={{background:highRecs[0].color+"18",border:`1px solid ${highRecs[0].color}44`,borderRadius:10,padding:"12px 14px",marginBottom:10}}>
+              <div style={{fontSize:9,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4}}>Today's Action</div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                <div style={{flex:1,paddingRight:6}}>
+                  <div style={{fontSize:14,fontWeight:700,color:highRecs[0].color}}>{highRecs[0].icon} {highRecs[0].action}</div>
+                  <div style={{fontSize:11,color:COLORS.slateLight,marginTop:3,lineHeight:1.4}}>{highRecs[0].detail}</div>
+                </div>
+                <button onClick={()=>dismissRec(highRecs[0].param)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:14,padding:2,flexShrink:0}}>✕</button>
+              </div>
+            </div>
+          )}
+          {/* View details toggle */}
           <button onClick={()=>setShowChemDetails(p=>!p)} style={{fontSize:11,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,textDecoration:"underline",display:"block"}}>
             {showChemDetails?"Hide chemistry details":"View chemistry details"}
           </button>
@@ -2737,21 +2759,7 @@ function Pool(){
         </div>
       )}
 
-      {/* Top action — elevated, directly after health banner (#5) */}
-      {highRecs.length>0&&(
-        <div style={{...S.statusCard(highRecs[0].color),marginBottom:14,padding:"16px 18px"}}>
-          <div style={{fontSize:10,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:6}}>Today's Action</div>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-            <div style={{flex:1,paddingRight:8}}>
-              <div style={{fontSize:15,fontWeight:700,marginBottom:4}}>{highRecs[0].icon} {highRecs[0].action}</div>
-              <div style={{fontSize:12,color:COLORS.slateLight,lineHeight:1.5}}>{highRecs[0].detail}</div>
-            </div>
-            <button onClick={()=>dismissRec(highRecs[0].param)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:16,padding:2,flexShrink:0}}>✕</button>
-          </div>
-        </div>
-      )}
-
-      {/* Remaining high priority actions */}
+      {/* Remaining high priority actions (beyond the first, already shown in banner) */}
       {highRecs.slice(1).map((r,i)=>(
         <div key={i} style={{...S.statusCard(r.color),marginBottom:8}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
