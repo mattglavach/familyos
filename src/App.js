@@ -233,6 +233,52 @@ function statusColor(s){return s==="red"?COLORS.red:s==="amber"?COLORS.amber:s==
 function maintStatus(item){const days=daysBetween(nextDueDate(item.last_completed,item.interval_days));if(days<0)return"overdue";if(days<=7)return"due-soon";return"ok";}
 function maintColor(s){return s==="overdue"?COLORS.red:s==="due-soon"?COLORS.amber:COLORS.green;}
 
+// ─── POOL HEALTH ASSESSMENT ───────────────────────────────────────────────────
+// Derives a safe-to-swim status and plain-language per-parameter labels from
+// the most recent reading. No composite score — each parameter assessed independently.
+function calcPoolHealth(last, shockMin) {
+  if (!last) return null;
+
+  // Safe to swim requires: FC above minimum safe threshold, pH in range, CC acceptable
+  const fcSafe = last.free_chlorine !== null && last.free_chlorine >= 1.0;
+  const phSafe = last.ph !== null && last.ph >= 7.2 && last.ph <= 7.8;
+  const ccSafe = last.cc === null || last.cc === undefined || last.cc <= 0.5;
+  const safeToSwim = fcSafe && phSafe && ccSafe;
+
+  const notSafeReasons = [];
+  if (!fcSafe) notSafeReasons.push(last.free_chlorine === null ? "FC not tested" : `FC too low (${last.free_chlorine} ppm — need ≥1 ppm)`);
+  if (!phSafe) notSafeReasons.push(last.ph === null ? "pH not tested" : `pH out of range (${last.ph} — need 7.2–7.8)`);
+  if (!ccSafe) notSafeReasons.push(`CC elevated (${last.cc} ppm — indicates chloramines)`);
+
+  // Per-parameter status labels — plain English, not raw numbers
+  function paramLabel(param, value) {
+    const s = poolStatus(param, value);
+    if (value === null || value === undefined) return { label: "Not tested", color: COLORS.slate, icon: "❔" };
+    const labels = {
+      green: { label: "Good", color: COLORS.green, icon: "✅" },
+      amber: { label: param === "ph" && value > 7.6 ? "Slightly High" : param === "ph" && value < 7.2 ? "Low" : param === "free_chlorine" && value > 4.0 ? "High" : param === "cya" && value < 50 ? "Low — add stabilizer" : param === "salt" && value < 3200 ? "Low" : "Slightly Off", color: COLORS.amber, icon: "⚠️" },
+      red: { label: param === "free_chlorine" && value < 1 ? "Unsafe — add chlorine" : param === "ph" ? `Out of range (${value})` : "Action needed", color: COLORS.red, icon: "🔴" },
+    };
+    return labels[s] || { label: "Check", color: COLORS.slate, icon: "❔" };
+  }
+
+  const params = [
+    { key: "free_chlorine", label: "Chlorine", value: last.free_chlorine, unit: "ppm" },
+    { key: "ph",            label: "pH",        value: last.ph,            unit: "" },
+    { key: "cya",           label: "Stabilizer (CYA)", value: last.cya,   unit: "ppm" },
+    { key: "salt",          label: "Salt",      value: last.salt,          unit: "ppm" },
+    { key: "alkalinity",    label: "Alkalinity",value: last.alkalinity,    unit: "ppm" },
+  ].map(p => ({ ...p, ...paramLabel(p.key, p.value) }));
+
+  // Overall condition — used for the banner color, not a score
+  const anyRed = params.some(p => p.icon === "🔴");
+  const anyAmber = params.some(p => p.icon === "⚠️");
+  const overallColor = anyRed ? COLORS.red : anyAmber ? COLORS.amber : COLORS.green;
+  const overallLabel = anyRed ? "Needs Attention" : anyAmber ? "Good — Minor Items" : "Healthy";
+
+  return { safeToSwim, notSafeReasons, params, overallColor, overallLabel };
+}
+
 // Find the most recent reading date where a given param was actually tested (not null)
 function lastTestedDate(readings, paramKey) {
   for (const r of readings) {
@@ -2443,7 +2489,9 @@ function Pool(){
   const filterBaseline = poolSettingsRow?.filter_clean_baseline_psi || null;
 
   const last     = readings.data[0];
+  const shockMin = last ? calcShockThreshold(last.cya) : null;
   const chemRecs = getChemRecommendations(last, readings.data, filterBaseline);
+  const health   = calcPoolHealth(last, shockMin);
 
   // Dismissed recs are keyed by reading id + recommendation param, so a new reading auto-clears them
   const [dismissed,setDismissed] = useState(()=>{
@@ -2517,9 +2565,13 @@ function Pool(){
     return o[maintStatus(a)]-o[maintStatus(b)];
   });
 
+  const [showChemDetails,setShowChemDetails] = useState(false);
+
   return(
     <div style={S.screen}>
-      <div style={{display:"flex",gap:8,marginBottom:12}}>
+
+      {/* Action buttons row */}
+      <div style={{display:"flex",gap:8,marginBottom:16}}>
         <button onClick={()=>{setForm({date:TODAY_STR});setShowLog(true);}} style={{flex:1,background:COLORS.blue,color:"#fff",border:"none",borderRadius:10,padding:"12px 6px",fontSize:12,fontWeight:700,cursor:"pointer"}}>
           + Log Reading
         </button>
@@ -2531,8 +2583,47 @@ function Pool(){
         </button>
       </div>
 
+      {/* Pool Health Banner */}
+      {health&&(
+        <div style={{...S.card,background:health.overallColor+"18",borderColor:health.overallColor+"44",marginBottom:14}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+            <div>
+              <div style={{fontSize:22,fontWeight:800,color:health.overallColor,letterSpacing:"-0.3px"}}>{health.overallLabel}</div>
+              <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>{formatDate(last.date)}{last.water_temp?` · ${last.water_temp}°F`:""}</div>
+            </div>
+            <div style={{textAlign:"right",flexShrink:0,marginLeft:12}}>
+              <div style={{fontSize:14,fontWeight:800,color:health.safeToSwim?COLORS.green:COLORS.red}}>
+                {health.safeToSwim?"✅ Safe to Swim":"🚫 Hold Off"}
+              </div>
+              {!health.safeToSwim&&<div style={{fontSize:10,color:COLORS.red,marginTop:2,textAlign:"right",maxWidth:140,lineHeight:1.3}}>{health.notSafeReasons[0]}</div>}
+            </div>
+          </div>
+          {/* Per-parameter status row */}
+          <div style={{display:"flex",gap:6,marginTop:14,flexWrap:"wrap"}}>
+            {health.params.map((p,i)=>(
+              <div key={i} style={{background:COLORS.navyMid,borderRadius:8,padding:"6px 10px",border:`1px solid ${p.color}33`,minWidth:60,textAlign:"center"}}>
+                <div style={{fontSize:10,color:COLORS.slate,fontWeight:600}}>{p.label}</div>
+                <div style={{fontSize:11,fontWeight:700,color:p.color,marginTop:2}}>{p.icon} {p.label==="Chlorine"||p.label==="pH"||p.label==="Salt"||p.label==="Alkalinity"||p.label==="Stabilizer (CYA)"?p.label.split(" ")[0]==="Stabilizer"?"CYA":p.label:p.label}</div>
+                <div style={{fontSize:10,color:p.color,marginTop:1}}>{p.label_short||p.label.split("—")[0].trim()}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* If no reading yet */}
+      {!last&&(
+        <div style={{...S.card,textAlign:"center",padding:"32px 20px",marginBottom:14}}>
+          <div style={{fontSize:32,marginBottom:8}}>🏊</div>
+          <div style={{fontSize:15,fontWeight:700,marginBottom:6}}>No readings yet</div>
+          <div style={{fontSize:13,color:COLORS.slate,marginBottom:16}}>Log your first pool reading to see health status and recommendations.</div>
+          <button onClick={()=>{setForm({date:TODAY_STR});setShowLog(true);}} style={S.btn}>+ Log First Reading</button>
+        </div>
+      )}
+
+      {/* Seasonal reminder */}
       {!seasonDismissed&&season&&(
-        <div style={{...S.statusCard(COLORS.blue),marginBottom:12}}>
+        <div style={{...S.statusCard(COLORS.blue),marginBottom:14}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
             <div style={{flex:1,paddingRight:8}}>
               <div style={{fontSize:12,fontWeight:700,marginBottom:3}}>🗓️ {season.label} — target SWG {season.swg}</div>
@@ -2543,10 +2634,69 @@ function Pool(){
         </div>
       )}
 
+      {/* Recommended Actions — high priority */}
+      {highRecs.length>0&&<>
+        <div style={S.sectionLabel}>Action Needed</div>
+        {highRecs.map((r,i)=>(
+          <div key={i} style={{...S.statusCard(r.color),marginBottom:8}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+              <div style={{flex:1,paddingRight:8}}>
+                <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>{r.icon} {r.action}</div>
+                <div style={{fontSize:12,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
+              </div>
+              <button onClick={()=>dismissRec(r.param)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:16,padding:2,flexShrink:0}}>✕</button>
+            </div>
+          </div>
+        ))}
+      </>}
+
+      {/* Medium priority recommendations */}
+      {medRecs.length>0&&<>
+        <div style={S.sectionLabel}>This Week</div>
+        {medRecs.map((r,i)=>(
+          <div key={i} style={{...S.statusCard(r.color),marginBottom:8}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+              <div style={{flex:1,paddingRight:8}}>
+                <div style={{fontSize:12,fontWeight:700,marginBottom:3}}>{r.icon} {r.action}</div>
+                <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
+              </div>
+              <button onClick={()=>dismissRec(r.param)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:14,padding:2,flexShrink:0}}>✕</button>
+            </div>
+          </div>
+        ))}
+      </>}
+
+      {/* All clear if nothing to act on */}
+      {last&&highRecs.length===0&&medRecs.length===0&&(
+        <div style={{...S.card,background:COLORS.green+"11",borderColor:COLORS.green+"33",textAlign:"center",padding:"16px"}}>
+          <div style={{fontSize:15,fontWeight:700,color:COLORS.green}}>✅ No actions needed</div>
+          <div style={{fontSize:12,color:COLORS.slate,marginTop:4}}>Chemistry looks balanced — keep up with regular testing.</div>
+        </div>
+      )}
+
+      {/* Low priority notes — collapsed */}
+      {lowRecs.length>0&&(
+        <button onClick={()=>setShowLow(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"center",marginBottom:8,marginTop:4}}>
+          {showLow?"Hide":"Show"} {lowRecs.length} additional note{lowRecs.length!==1?"s":""}
+        </button>
+      )}
+      {showLow&&lowRecs.map((r,i)=>(
+        <div key={i} style={{...S.statusCard(r.color),marginBottom:8}}>
+          <div style={{fontSize:11,fontWeight:700,marginBottom:3}}>{r.icon} {r.action}</div>
+          <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
+        </div>
+      ))}
+
+      {/* Chemistry Details — collapsed by default */}
       {last&&(
-        <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
+        <button onClick={()=>setShowChemDetails(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"center",marginTop:8,marginBottom:showChemDetails?8:16}}>
+          {showChemDetails?"Hide chemistry details":"View chemistry numbers"}
+        </button>
+      )}
+      {last&&showChemDetails&&(
+        <div style={{...S.card,background:COLORS.navyLight,marginBottom:14}}>
           <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:8}}>
-            Last Reading — {formatDate(last.date)}{last.water_temp?` · ${last.water_temp}°F`:""}
+            Chemistry — {formatDate(last.date)}{last.water_temp?` · ${last.water_temp}°F`:""}
             {last.pump_hours?` · Pump ${last.pump_hours}h`:""}
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
@@ -2585,7 +2735,7 @@ function Pool(){
               if(!cyaDue) return <div style={{fontSize:11,color:COLORS.slate}}>CYA never tested</div>;
               const overdue=cyaDue.days<0;
               return <div style={{fontSize:11,color:overdue?COLORS.red:cyaDue.days<=3?COLORS.amber:COLORS.slate}}>
-                CYA {overdue?`overdue — test now`:`not due until ${formatDate(cyaDue.due)}`}
+                CYA {overdue?"overdue — test now":`not due until ${formatDate(cyaDue.due)}`}
               </div>;
             })()}
             {(()=>{
@@ -2593,48 +2743,12 @@ function Pool(){
               if(!taDue) return <div style={{fontSize:11,color:COLORS.slate}}>TA never tested</div>;
               const overdue=taDue.days<0;
               return <div style={{fontSize:11,color:overdue?COLORS.red:taDue.days<=3?COLORS.amber:COLORS.slate}}>
-                TA {overdue?`overdue — test now`:`not due until ${formatDate(taDue.due)}`}
+                TA {overdue?"overdue — test now":`not due until ${formatDate(taDue.due)}`}
               </div>;
             })()}
           </div>
         </div>
       )}
-
-      {highRecs.map((r,i)=>(
-        <div key={i} style={{...S.statusCard(r.color),marginBottom:8}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-            <div style={{flex:1,paddingRight:8}}>
-              <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>{r.icon} {r.action}</div>
-              <div style={{fontSize:12,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
-            </div>
-            <button onClick={()=>dismissRec(r.param)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:16,padding:2,flexShrink:0}}>✕</button>
-          </div>
-        </div>
-      ))}
-
-      {medRecs.map((r,i)=>(
-        <div key={i} style={{...S.statusCard(r.color),marginBottom:8}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-            <div style={{flex:1,paddingRight:8}}>
-              <div style={{fontSize:12,fontWeight:700,marginBottom:3}}>{r.icon} {r.action}</div>
-              <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
-            </div>
-            <button onClick={()=>dismissRec(r.param)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:14,padding:2,flexShrink:0}}>✕</button>
-          </div>
-        </div>
-      ))}
-
-      {lowRecs.length>0&&(
-        <button onClick={()=>setShowLow(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"center",marginBottom:8}}>
-          {showLow?"Hide":"Show"} {lowRecs.length} additional note{lowRecs.length!==1?"s":""}
-        </button>
-      )}
-      {showLow&&lowRecs.map((r,i)=>(
-        <div key={i} style={{...S.statusCard(r.color),marginBottom:8}}>
-          <div style={{fontSize:11,fontWeight:700,marginBottom:3}}>{r.icon} {r.action}</div>
-          <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
-        </div>
-      ))}
 
       <div style={{...S.tabs,marginTop:16}}>
         {["log","trends","schedule","history"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
