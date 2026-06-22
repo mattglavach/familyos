@@ -2588,7 +2588,30 @@ function Pool(){
   const poolSettingsRow = poolSettings.data[0];
   const filterBaseline = poolSettingsRow?.filter_clean_baseline_psi || null;
 
-  const last     = readings.data[0];
+  // Use the most recent reading as the base for date/notes/metadata
+  const lastRaw = readings.data[0];
+  // But for each chemistry parameter, pull the most recent non-null value across all readings.
+  // This handles partial readings (e.g. logging only salt today) correctly — the health banner
+  // always reflects the most current known value for each parameter, not just what was in today's log.
+  function latestValue(key) {
+    for (const r of readings.data) {
+      if (r[key] !== null && r[key] !== undefined) return r[key];
+    }
+    return null;
+  }
+  const last = lastRaw ? {
+    ...lastRaw,
+    ph:             latestValue("ph"),
+    free_chlorine:  latestValue("free_chlorine"),
+    cc:             latestValue("cc"),
+    salt:           latestValue("salt"),
+    cya:            latestValue("cya"),
+    alkalinity:     latestValue("alkalinity"),
+    calcium_hardness: latestValue("calcium_hardness"),
+    water_temp:     latestValue("water_temp"),
+    filter_pressure: latestValue("filter_pressure"),
+    swg_setting:    latestValue("swg_setting"),
+  } : null;
   const shockMin = last ? calcShockThreshold(last.cya) : null;
   const chemRecs = getChemRecommendations(last, readings.data, filterBaseline);
   const health   = calcPoolHealth(last, shockMin, readings.data);
