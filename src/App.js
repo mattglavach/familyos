@@ -236,7 +236,7 @@ function maintColor(s){return s==="overdue"?COLORS.red:s==="due-soon"?COLORS.amb
 // ─── POOL HEALTH ASSESSMENT ───────────────────────────────────────────────────
 // Derives a safe-to-swim status and plain-language per-parameter labels from
 // the most recent reading. No composite score — each parameter assessed independently.
-function calcPoolHealth(last, shockMin) {
+function calcPoolHealth(last, shockMin, readings) {
   if (!last) return null;
 
   // Safe to swim requires: FC above minimum safe threshold, pH in range, CC acceptable
@@ -246,37 +246,85 @@ function calcPoolHealth(last, shockMin) {
   const safeToSwim = fcSafe && phSafe && ccSafe;
 
   const notSafeReasons = [];
-  if (!fcSafe) notSafeReasons.push(last.free_chlorine === null ? "FC not tested" : `FC too low (${last.free_chlorine} ppm — need ≥1 ppm)`);
-  if (!phSafe) notSafeReasons.push(last.ph === null ? "pH not tested" : `pH out of range (${last.ph} — need 7.2–7.8)`);
-  if (!ccSafe) notSafeReasons.push(`CC elevated (${last.cc} ppm — indicates chloramines)`);
+  if (!fcSafe) notSafeReasons.push(last.free_chlorine === null ? "FC not tested" : `FC too low (${last.free_chlorine} ppm)`);
+  if (!phSafe) notSafeReasons.push(last.ph === null ? "pH not tested" : `pH ${last.ph} — outside 7.2–7.8`);
+  if (!ccSafe) notSafeReasons.push(`CC elevated (${last.cc} ppm)`);
 
   // Per-parameter status labels — plain English, not raw numbers
   function paramLabel(param, value) {
     const s = poolStatus(param, value);
-    if (value === null || value === undefined) return { label: "Not tested", color: COLORS.slate, icon: "❔" };
+    if (value === null || value === undefined) return { statusLabel: "Not tested", color: COLORS.slate, icon: "⚪" };
     const labels = {
-      green: { label: "Good", color: COLORS.green, icon: "✅" },
-      amber: { label: param === "ph" && value > 7.6 ? "Slightly High" : param === "ph" && value < 7.2 ? "Low" : param === "free_chlorine" && value > 4.0 ? "High" : param === "cya" && value < 50 ? "Low — add stabilizer" : param === "salt" && value < 3200 ? "Low" : "Slightly Off", color: COLORS.amber, icon: "⚠️" },
-      red: { label: param === "free_chlorine" && value < 1 ? "Unsafe — add chlorine" : param === "ph" ? `Out of range (${value})` : "Action needed", color: COLORS.red, icon: "🔴" },
+      green: { statusLabel: "Good", color: COLORS.green, icon: "🟢" },
+      amber: {
+        statusLabel: param==="ph"&&value>7.6 ? "High" :
+                     param==="ph"&&value<7.2 ? "Low" :
+                     param==="free_chlorine"&&value>4.0 ? "High" :
+                     param==="cya"&&value<50 ? "Low" :
+                     param==="salt"&&value<3200 ? "Low" : "Off",
+        color: COLORS.amber, icon: "🟡"
+      },
+      red: {
+        statusLabel: param==="free_chlorine"&&value<1 ? "Unsafe" :
+                     param==="ph" ? (value>7.8?"High":"Low") : "Action needed",
+        color: COLORS.red, icon: "🔴"
+      },
     };
-    return labels[s] || { label: "Check", color: COLORS.slate, icon: "❔" };
+    return labels[s] || { statusLabel: "Check", color: COLORS.slate, icon: "⚪" };
   }
 
   const params = [
-    { key: "free_chlorine", label: "Chlorine", value: last.free_chlorine, unit: "ppm" },
-    { key: "ph",            label: "pH",        value: last.ph,            unit: "" },
-    { key: "cya",           label: "Stabilizer (CYA)", value: last.cya,   unit: "ppm" },
-    { key: "salt",          label: "Salt",      value: last.salt,          unit: "ppm" },
-    { key: "alkalinity",    label: "Alkalinity",value: last.alkalinity,    unit: "ppm" },
-  ].map(p => ({ ...p, ...paramLabel(p.key, p.value) }));
+    { key: "free_chlorine", label: "FC",   shortLabel:"FC",   value: last.free_chlorine, unit: "ppm" },
+    { key: "ph",            label: "pH",   shortLabel:"pH",   value: last.ph,            unit: "" },
+    { key: "cya",           label: "CYA",  shortLabel:"CYA",  value: last.cya,           unit: "ppm" },
+    { key: "salt",          label: "Salt", shortLabel:"Salt", value: last.salt,           unit: "ppm" },
+    { key: "alkalinity",    label: "TA",   shortLabel:"TA",   value: last.alkalinity,     unit: "ppm" },
+  ].map(p => {
+    const trend = trendDirection(readings, p.key, p.value);
+    const trendArrowChar = trend==="up" ? "⬆️" : trend==="down" ? "⬇️" : trend==="flat" ? "➡️" : null;
+    const lastTested = lastTestedDate(readings, p.key);
+    const lastTestedLabel = p.value!==null&&p.value!==undefined ? null : lastTested ? `Last: ${formatDate(lastTested)}` : "Never tested";
+    return { ...p, ...paramLabel(p.key, p.value), trend, trendArrow: trendArrowChar, lastTestedLabel };
+  });
 
-  // Overall condition — used for the banner color, not a score
-  const anyRed = params.some(p => p.icon === "🔴");
-  const anyAmber = params.some(p => p.icon === "⚠️");
+  // Health score 0-100: start at 100, deduct per out-of-range parameter
+  let score = 100;
+  params.forEach(p => {
+    if (p.icon==="🔴") score -= 25;
+    else if (p.icon==="🟡") score -= 10;
+    else if (p.icon==="⚪") score -= 5;
+  });
+  score = Math.max(0, Math.min(100, score));
+
+  // Overall condition
+  const anyRed = params.some(p => p.icon==="🔴");
+  const anyAmber = params.some(p => p.icon==="🟡");
   const overallColor = anyRed ? COLORS.red : anyAmber ? COLORS.amber : COLORS.green;
-  const overallLabel = anyRed ? "Needs Attention" : anyAmber ? "Good — Minor Items" : "Healthy";
+  const overallLabel = anyRed ? "Needs Attention" : anyAmber ? "Good" : "Healthy";
+  const overallEmoji = anyRed ? "🔴" : anyAmber ? "🟡" : "🟢";
 
-  return { safeToSwim, notSafeReasons, params, overallColor, overallLabel };
+  // Static executive summary — rule-based, no API call
+  const summaryLines = [];
+  if (last.ph && last.ph > 7.6) {
+    const trend = trendDirection(readings, "ph", last.ph);
+    summaryLines.push(`pH is${trend==="up"?" trending up and":""} elevated at ${last.ph} — common with SWG operation.`);
+  } else if (last.ph && last.ph < 7.2) {
+    summaryLines.push(`pH is low at ${last.ph} — add sodium bicarbonate to raise it.`);
+  }
+  if (last.free_chlorine !== null) {
+    const fcTrend = trendDirection(readings, "free_chlorine", last.free_chlorine);
+    if (last.free_chlorine < 1.0) summaryLines.push(`FC is critically low at ${last.free_chlorine} ppm — add chlorine before swimming.`);
+    else if (fcTrend==="down") summaryLines.push(`FC is falling (${last.free_chlorine} ppm) — monitor closely or bump SWG.`);
+    else if (last.free_chlorine >= 1.0 && last.free_chlorine <= 5.0) summaryLines.push(`Chlorine is in range at ${last.free_chlorine} ppm.`);
+  }
+  if (last.cya !== null && last.cya < 50) summaryLines.push(`CYA is low at ${last.cya} ppm — chlorine is burning off faster than normal. Add stabilizer.`);
+  if (summaryLines.length === 0) summaryLines.push("Chemistry looks balanced based on the last reading.");
+  if (safeToSwim) summaryLines.push("Pool is safe to swim.");
+  else summaryLines.push(notSafeReasons[0]||"Check chemistry before swimming.");
+
+  const summary = summaryLines.slice(0, 2).join(" ");
+
+  return { safeToSwim, notSafeReasons, params, overallColor, overallLabel, overallEmoji, score, summary };
 }
 
 // Find the most recent reading date where a given param was actually tested (not null)
@@ -1331,7 +1379,7 @@ function getChemRecommendations(last, readings, filterBaseline) {
 
 // ─── STYLES ───────────────────────────────────────────────────────────────────
 const S={
-  app:{background:COLORS.navy,minHeight:"100vh",maxWidth:430,margin:"0 auto",fontFamily:"'Inter',system-ui,sans-serif",color:COLORS.white,position:"relative",paddingBottom:84},
+  app:{background:COLORS.navy,minHeight:"100vh",maxWidth:430,margin:"0 auto",fontFamily:"'Inter',system-ui,sans-serif",color:COLORS.white,position:"relative",paddingBottom:160},
   header:{background:COLORS.navyMid,padding:"16px 20px 12px",borderBottom:`1px solid ${COLORS.navyLight}`,position:"sticky",top:0,zIndex:10},
   headerRow:{display:"flex",justifyContent:"space-between",alignItems:"center"},
   logo:{fontSize:18,fontWeight:700,letterSpacing:"-0.5px"},
@@ -2491,7 +2539,7 @@ function Pool(){
   const last     = readings.data[0];
   const shockMin = last ? calcShockThreshold(last.cya) : null;
   const chemRecs = getChemRecommendations(last, readings.data, filterBaseline);
-  const health   = calcPoolHealth(last, shockMin);
+  const health   = calcPoolHealth(last, shockMin, readings.data);
 
   // Dismissed recs are keyed by reading id + recommendation param, so a new reading auto-clears them
   const [dismissed,setDismissed] = useState(()=>{
@@ -2583,35 +2631,53 @@ function Pool(){
         </button>
       </div>
 
-      {/* Pool Health Banner */}
+      {/* Pool Health Banner — simplified, decisive */}
       {health&&(
         <div style={{...S.card,background:health.overallColor+"18",borderColor:health.overallColor+"44",marginBottom:14}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+          {/* Line 1: Score + label + date */}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
             <div>
-              <div style={{fontSize:22,fontWeight:800,color:health.overallColor,letterSpacing:"-0.3px"}}>{health.overallLabel}</div>
-              <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>{formatDate(last.date)}{last.water_temp?` · ${last.water_temp}°F`:""}</div>
-            </div>
-            <div style={{textAlign:"right",flexShrink:0,marginLeft:12}}>
-              <div style={{fontSize:14,fontWeight:800,color:health.safeToSwim?COLORS.green:COLORS.red}}>
-                {health.safeToSwim?"✅ Safe to Swim":"🚫 Hold Off"}
+              <div style={{fontSize:24,fontWeight:800,color:health.overallColor,letterSpacing:"-0.3px"}}>
+                {health.overallEmoji} Pool Health: {health.score}/100
               </div>
-              {!health.safeToSwim&&<div style={{fontSize:10,color:COLORS.red,marginTop:2,textAlign:"right",maxWidth:140,lineHeight:1.3}}>{health.notSafeReasons[0]}</div>}
+              <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>
+                {formatDate(last.date)}{last.water_temp?` · ${last.water_temp}°F`:""}
+              </div>
+            </div>
+            {/* Safe to swim — clean binary */}
+            <div style={{background:health.safeToSwim?COLORS.green+"22":COLORS.red+"22",border:`1px solid ${health.safeToSwim?COLORS.green:COLORS.red}44`,borderRadius:10,padding:"8px 12px",textAlign:"center",flexShrink:0,marginLeft:12}}>
+              <div style={{fontSize:10,color:COLORS.slate,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.5px"}}>Safe to Swim</div>
+              <div style={{fontSize:15,fontWeight:800,color:health.safeToSwim?COLORS.green:COLORS.red,marginTop:2}}>
+                {health.safeToSwim?"✅ Yes":"❌ No"}
+              </div>
+              {!health.safeToSwim&&<div style={{fontSize:9,color:COLORS.red,marginTop:2,maxWidth:90,lineHeight:1.3}}>{health.notSafeReasons[0]}</div>}
             </div>
           </div>
-          {/* Per-parameter status row */}
-          <div style={{display:"flex",gap:6,marginTop:14,flexWrap:"wrap"}}>
-            {health.params.map((p,i)=>(
-              <div key={i} style={{background:COLORS.navyMid,borderRadius:8,padding:"6px 10px",border:`1px solid ${p.color}33`,minWidth:60,textAlign:"center"}}>
-                <div style={{fontSize:10,color:COLORS.slate,fontWeight:600}}>{p.label}</div>
-                <div style={{fontSize:11,fontWeight:700,color:p.color,marginTop:2}}>{p.icon} {p.label==="Chlorine"||p.label==="pH"||p.label==="Salt"||p.label==="Alkalinity"||p.label==="Stabilizer (CYA)"?p.label.split(" ")[0]==="Stabilizer"?"CYA":p.label:p.label}</div>
-                <div style={{fontSize:10,color:p.color,marginTop:1}}>{p.label_short||p.label.split("—")[0].trim()}</div>
-              </div>
-            ))}
-          </div>
+          {/* Line 2: Executive summary */}
+          <div style={{fontSize:13,color:COLORS.slateLight,lineHeight:1.5,marginBottom:10}}>{health.summary}</div>
+          {/* View details toggle for chemistry cards */}
+          <button onClick={()=>setShowChemDetails(p=>!p)} style={{fontSize:11,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,textDecoration:"underline",display:"block"}}>
+            {showChemDetails?"Hide chemistry details":"View chemistry details"}
+          </button>
+          {showChemDetails&&(
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginTop:12}}>
+              {health.params.map((p,i)=>(
+                <div key={i} style={{background:COLORS.navyMid,borderRadius:10,padding:"10px 8px",border:`1px solid ${p.color}44`,textAlign:"center"}}>
+                  <div style={{fontSize:11,color:COLORS.slate,fontWeight:700}}>{p.shortLabel}</div>
+                  <div style={{fontSize:16,fontWeight:700,color:p.color,marginTop:4}}>{p.icon}</div>
+                  <div style={{fontSize:11,fontWeight:600,color:p.color}}>{p.statusLabel}</div>
+                  <div style={{fontSize:13,fontWeight:700,color:COLORS.white,marginTop:2}}>
+                    {p.value!==null&&p.value!==undefined?`${p.value}${p.unit}`:p.lastTestedLabel||"—"}
+                  </div>
+                  {p.trendArrow&&<div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{p.trendArrow}</div>}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* If no reading yet */}
+      {/* No reading yet */}
       {!last&&(
         <div style={{...S.card,textAlign:"center",padding:"32px 20px",marginBottom:14}}>
           <div style={{fontSize:32,marginBottom:8}}>🏊</div>
@@ -2621,36 +2687,34 @@ function Pool(){
         </div>
       )}
 
-      {/* Seasonal reminder */}
-      {!seasonDismissed&&season&&(
-        <div style={{...S.statusCard(COLORS.blue),marginBottom:14}}>
+      {/* Top action — elevated, directly after health banner (#5) */}
+      {highRecs.length>0&&(
+        <div style={{...S.statusCard(highRecs[0].color),marginBottom:14,padding:"16px 18px"}}>
+          <div style={{fontSize:10,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:6}}>Today's Action</div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
             <div style={{flex:1,paddingRight:8}}>
-              <div style={{fontSize:12,fontWeight:700,marginBottom:3}}>🗓️ {season.label} — target SWG {season.swg}</div>
-              <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>{season.note}</div>
+              <div style={{fontSize:15,fontWeight:700,marginBottom:4}}>{highRecs[0].icon} {highRecs[0].action}</div>
+              <div style={{fontSize:12,color:COLORS.slateLight,lineHeight:1.5}}>{highRecs[0].detail}</div>
             </div>
-            <button onClick={dismissSeason} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:14,padding:2,flexShrink:0}}>✕</button>
+            <button onClick={()=>dismissRec(highRecs[0].param)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:16,padding:2,flexShrink:0}}>✕</button>
           </div>
         </div>
       )}
 
-      {/* Recommended Actions — high priority */}
-      {highRecs.length>0&&<>
-        <div style={S.sectionLabel}>Action Needed</div>
-        {highRecs.map((r,i)=>(
-          <div key={i} style={{...S.statusCard(r.color),marginBottom:8}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-              <div style={{flex:1,paddingRight:8}}>
-                <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>{r.icon} {r.action}</div>
-                <div style={{fontSize:12,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
-              </div>
-              <button onClick={()=>dismissRec(r.param)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:16,padding:2,flexShrink:0}}>✕</button>
+      {/* Remaining high priority actions */}
+      {highRecs.slice(1).map((r,i)=>(
+        <div key={i} style={{...S.statusCard(r.color),marginBottom:8}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+            <div style={{flex:1,paddingRight:8}}>
+              <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>{r.icon} {r.action}</div>
+              <div style={{fontSize:12,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
             </div>
+            <button onClick={()=>dismissRec(r.param)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:16,padding:2,flexShrink:0}}>✕</button>
           </div>
-        ))}
-      </>}
+        </div>
+      ))}
 
-      {/* Medium priority recommendations */}
+      {/* This Week — medium priority */}
       {medRecs.length>0&&<>
         <div style={S.sectionLabel}>This Week</div>
         {medRecs.map((r,i)=>(
@@ -2666,7 +2730,7 @@ function Pool(){
         ))}
       </>}
 
-      {/* All clear if nothing to act on */}
+      {/* All clear */}
       {last&&highRecs.length===0&&medRecs.length===0&&(
         <div style={{...S.card,background:COLORS.green+"11",borderColor:COLORS.green+"33",textAlign:"center",padding:"16px"}}>
           <div style={{fontSize:15,fontWeight:700,color:COLORS.green}}>✅ No actions needed</div>
@@ -2674,7 +2738,7 @@ function Pool(){
         </div>
       )}
 
-      {/* Low priority notes — collapsed */}
+      {/* Low priority notes */}
       {lowRecs.length>0&&(
         <button onClick={()=>setShowLow(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"center",marginBottom:8,marginTop:4}}>
           {showLow?"Hide":"Show"} {lowRecs.length} additional note{lowRecs.length!==1?"s":""}
@@ -2687,68 +2751,20 @@ function Pool(){
         </div>
       ))}
 
-      {/* Chemistry Details — collapsed by default */}
-      {last&&(
-        <button onClick={()=>setShowChemDetails(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"center",marginTop:8,marginBottom:showChemDetails?8:16}}>
-          {showChemDetails?"Hide chemistry details":"View chemistry numbers"}
-        </button>
-      )}
-      {last&&showChemDetails&&(
-        <div style={{...S.card,background:COLORS.navyLight,marginBottom:14}}>
-          <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:8}}>
-            Chemistry — {formatDate(last.date)}{last.water_temp?` · ${last.water_temp}°F`:""}
-            {last.pump_hours?` · Pump ${last.pump_hours}h`:""}
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
-            {PARAMS.filter(p=>!["water_temp","filter_pressure","cc"].includes(p.k)).map(p=>{
-              const v=last[p.k];
-              const s=poolStatus(p.k,v);const col=statusColor(s);
-              const dir=trendDirection(readings.data,p.k,v);
-              const trendColor=dir==="up"?COLORS.amber:dir==="down"?COLORS.blue:COLORS.slate;
-              return(
-                <div key={p.k} style={S.statCell(col)}>
-                  <div style={{...S.statVal,fontSize:15,color:s==="grey"?COLORS.slate:COLORS.white}}>
-                    {v!==null&&v!==undefined?v:"—"}
-                    {dir&&<span style={{fontSize:11,color:trendColor,marginLeft:3}}>{trendArrow(dir)}</span>}
-                  </div>
-                  <div style={S.statLbl}>{p.l}</div>
-                  <div style={S.statTarget}>{p.target}</div>
-                </div>
-              );
-            })}
-          </div>
-          <div style={{display:"flex",gap:12,marginTop:10,flexWrap:"wrap",alignItems:"center"}}>
-            {last.cc!==null&&last.cc!==undefined&&<div style={{fontSize:12,color:last.cc>0.5?COLORS.red:COLORS.green}}>CC: {last.cc} ppm {last.cc===0?"✓":""}</div>}
-            {last.filter_pressure&&(
-              <div style={{fontSize:12,color:filterBaseline&&last.filter_pressure>filterBaseline+10?COLORS.amber:!filterBaseline&&last.filter_pressure>20?COLORS.amber:COLORS.slate}}>
-                Filter: {last.filter_pressure} psi{filterBaseline?` (+${last.filter_pressure-filterBaseline} vs clean)`:""}
-              </div>
-            )}
-            {last.swg_setting&&<div style={{fontSize:12,color:COLORS.slate}}>SWG: {last.swg_setting}%</div>}
-            <button onClick={()=>{setForm({filter_clean_baseline_psi:last.filter_pressure||""});setShowFilterBaseline(true);}} style={{fontSize:10,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,textDecoration:"underline"}}>
-              {filterBaseline?"update baseline":"set clean baseline"}
-            </button>
-          </div>
-          <div style={{display:"flex",gap:14,marginTop:8,paddingTop:8,borderTop:`1px solid ${COLORS.navyLight}`,flexWrap:"wrap"}}>
-            {(()=>{
-              const cyaDue=nextTestDue(readings.data,"cya",30);
-              if(!cyaDue) return <div style={{fontSize:11,color:COLORS.slate}}>CYA never tested</div>;
-              const overdue=cyaDue.days<0;
-              return <div style={{fontSize:11,color:overdue?COLORS.red:cyaDue.days<=3?COLORS.amber:COLORS.slate}}>
-                CYA {overdue?"overdue — test now":`not due until ${formatDate(cyaDue.due)}`}
-              </div>;
-            })()}
-            {(()=>{
-              const taDue=nextTestDue(readings.data,"alkalinity",14);
-              if(!taDue) return <div style={{fontSize:11,color:COLORS.slate}}>TA never tested</div>;
-              const overdue=taDue.days<0;
-              return <div style={{fontSize:11,color:overdue?COLORS.red:taDue.days<=3?COLORS.amber:COLORS.slate}}>
-                TA {overdue?"overdue — test now":`not due until ${formatDate(taDue.due)}`}
-              </div>;
-            })()}
+      {/* Seasonal tip — moved below actions (#4) */}
+      {!seasonDismissed&&season&&(
+        <div style={{...S.statusCard(COLORS.blue),marginBottom:14,marginTop:4}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+            <div style={{flex:1,paddingRight:8}}>
+              <div style={{fontSize:12,fontWeight:700,marginBottom:3}}>🗓️ {season.label} — target SWG {season.swg}</div>
+              <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>{season.note}</div>
+            </div>
+            <button onClick={dismissSeason} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:14,padding:2,flexShrink:0}}>✕</button>
           </div>
         </div>
       )}
+
+      {/* Chemistry detail card — collapsed by default, now inside the banner toggle */}
 
       <div style={{...S.tabs,marginTop:16}}>
         {["log","trends","schedule","history"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
