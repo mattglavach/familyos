@@ -3966,6 +3966,7 @@ function Finance(){
   const [activeSwipe,setActiveSwipe] = useState(null);
   const [showRetBrief,setShowRetBrief] = useState(false);
   const [showBridgeMath,setShowBridgeMath] = useState(false);
+  const [showBridgeTable,setShowBridgeTable] = useState(false);
   const [monteCarloResults,setMonteCarloResults] = useState(null);
   const [monteCarloRunning,setMonteCarloRunning] = useState(false);
   const [spendingResults,setSpendingResults] = useState(null);
@@ -4346,7 +4347,6 @@ function Finance(){
             const r55Pct = Math.round(retProj.ruleOf55Share*100);
             const spouseSSAge = assump.ss_claim_age_spouse||67;
             const userSSAge   = assump.ss_claim_age||67;
-            const [showBridgeTable,setShowBridgeTable] = React.useState(false);
 
             return(
               <div style={{...S.card,borderTop:`3px solid ${bridgeOk?COLORS.amber:COLORS.red}`,marginBottom:12}}>
