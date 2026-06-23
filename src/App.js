@@ -1974,6 +1974,8 @@ function College(){
   const scores                   = useTable("sat_scores","date");
   const testPlan                 = useTable("college_test_plan","target_date",true);
   const essays                   = useTable("college_essays","due_date",true);
+  const collegeGoals             = useTable("college_goal","id",true);
+  const collegeSav               = useTable("college_savings","id",true);
   const [showModal,setShowModal] = useState(null);
   const [editItem,setEditItem]   = useState(null);
   const [form,setForm]           = useState({});
@@ -2094,7 +2096,7 @@ function College(){
       </div>
 
       <div style={S.tabs}>
-        {["deadlines","schools","essays","tests","scores"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
+        {["deadlines","schools","essays","tests","scores","planning"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
       </div>
 
       {tab==="deadlines"&&<>
@@ -2357,6 +2359,96 @@ function College(){
         </>}
       </>}
 
+      {tab==="planning"&&<>
+        <div style={{...S.card,background:COLORS.navyLight,marginBottom:16}}>
+          <div style={{fontSize:11,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4}}>Future Planning</div>
+          <div style={{fontSize:15,fontWeight:700}}>Blake & Brayden</div>
+          <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>Years until college start · 529 funding status</div>
+        </div>
+
+        {(()=>{
+          const savingsBalance = collegeSav.data[0]?.balance || 0;
+          const children = [
+            { name:"Blake",   color:COLORS.green,  startYear:2032, age:12,
+              milestones:[
+                {year:2027, label:"PSAT / start tracking", done:false},
+                {year:2028, label:"Build college list", done:false},
+                {year:2029, label:"Campus visits", done:false},
+                {year:2030, label:"SAT / ACT prep", done:false},
+                {year:2031, label:"Applications", done:false},
+                {year:2032, label:"College starts 🎓", done:false},
+              ]
+            },
+            { name:"Brayden", color:COLORS.amber, startYear:2035, age:9,
+              milestones:[
+                {year:2030, label:"PSAT / start tracking", done:false},
+                {year:2031, label:"Build college list", done:false},
+                {year:2032, label:"Campus visits", done:false},
+                {year:2033, label:"SAT / ACT prep", done:false},
+                {year:2034, label:"Applications", done:false},
+                {year:2035, label:"College starts 🎓", done:false},
+              ]
+            },
+          ];
+
+          const currentYear = new Date(todayReal).getFullYear();
+
+          return children.map(child=>{
+            const goal = collegeGoals.data.find(g=>g.child_name===child.name);
+            const yearsAway = child.startYear - currentYear;
+            const targetAmount = goal?.target_amount || 160000;
+            // Rough per-child share of the pool based on sequential drawdown timing
+            const monthsToStart = yearsAway * 12;
+            const growthRate = 0.07 / 12;
+            const futurePoolEstimate = savingsBalance * Math.pow(1 + growthRate, monthsToStart);
+            const pct = Math.min(100, Math.round(futurePoolEstimate / targetAmount * 100));
+
+            return(
+              <div key={child.name} style={{...S.card,borderTop:`3px solid ${child.color}`,marginBottom:14}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                  <div>
+                    <div style={{fontSize:16,fontWeight:800,color:child.color}}>{child.name}</div>
+                    <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>Age {child.age} · {yearsAway} year{yearsAway!==1?"s":""} until college · Class of {child.startYear}</div>
+                  </div>
+                  <div style={{textAlign:"right",flexShrink:0,marginLeft:12}}>
+                    <div style={{fontSize:20,fontWeight:800,color:pct>=80?COLORS.green:pct>=50?COLORS.amber:COLORS.red}}>{pct}%</div>
+                    <div style={{fontSize:10,color:COLORS.slate}}>funded est.</div>
+                  </div>
+                </div>
+
+                {/* 529 progress */}
+                <div style={{fontSize:11,color:COLORS.slate,marginBottom:4}}>
+                  Target: {formatMoneyShort(targetAmount)} · Pool grows to ~{formatMoneyShort(futurePoolEstimate)} by {child.startYear}
+                </div>
+                <div style={S.progress}><div style={S.progressFill(pct, pct>=80?COLORS.green:pct>=50?COLORS.amber:COLORS.red)}/></div>
+
+                {/* Milestone timeline */}
+                <div style={{marginTop:14}}>
+                  <div style={{fontSize:10,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:8}}>Planning Timeline</div>
+                  {child.milestones.map((m,i)=>{
+                    const isPast = m.year < currentYear;
+                    const isCurrent = m.year === currentYear;
+                    return(
+                      <div key={i} style={{display:"flex",gap:10,alignItems:"center",padding:"6px 0",borderBottom:i<child.milestones.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
+                        <div style={{width:8,height:8,borderRadius:"50%",background:isPast?child.color:isCurrent?child.color:COLORS.navyLight,flexShrink:0}}/>
+                        <div style={{flex:1,fontSize:12,color:isPast?COLORS.slate:isCurrent?COLORS.white:COLORS.slate,fontWeight:isCurrent?700:400}}>{m.label}</div>
+                        <div style={{fontSize:11,color:COLORS.slate,flexShrink:0}}>{m.year}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          });
+        })()}
+
+        <div style={{...S.card,background:COLORS.navyLight,marginTop:4}}>
+          <div style={{fontSize:12,color:COLORS.slate,lineHeight:1.6}}>
+            📌 529 estimates assume the shared pool grows at 7%/yr and is available sequentially — Aubrey first (2027), then Blake (2032), then Brayden (2035). Update per-child target amounts in Finance → College.
+          </div>
+        </div>
+      </>}
+
       {showModal==="deadline"&&<Modal title={editItem?"Edit Deadline":"Add Deadline"} onClose={closeModal}>
         <label style={S.label}>Title</label>
         <input style={S.input} placeholder="e.g. Common App Essay Draft" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
@@ -2444,11 +2536,15 @@ function HomeMgmt(){
   const [editItem,setEditItem]   = useState(null);
   const [form,setForm]           = useState({});
   const [activeSwipe,setActiveSwipe] = useState(null);
+  const [showOk,setShowOk]       = useState(false);
 
-  function openEdit(item){setEditItem(item);setForm(item);setShowModal(true);setActiveSwipe(null);}
+  function openEdit(item){setEditItem(item);setForm({...item});setShowModal(true);setActiveSwipe(null);}
   function closeModal(){setShowModal(false);setEditItem(null);setForm({});}
 
-  async function markDone(item){await maint.update(item.id,{last_completed:TODAY_STR});}
+  // Fix: pass full row so Supabase doesn't reject a partial update
+  async function markDone(item){
+    await maint.update(item.id,{title:item.title,last_completed:TODAY_STR,interval_days:item.interval_days,notes:item.notes||""});
+  }
   async function save(){
     if(!form.title||!form.interval_days)return;
     const row={title:form.title,last_completed:form.last_completed||TODAY_STR,interval_days:+form.interval_days,notes:form.notes||""};
@@ -2457,43 +2553,85 @@ function HomeMgmt(){
     closeModal();
   }
 
-  const sorted=[...maint.data].sort((a,b)=>{
-    const o={overdue:0,"due-soon":1,ok:2};
-    return o[maintStatus(a)]-o[maintStatus(b)];
-  });
+  const overdue  = maint.data.filter(m=>maintStatus(m)==="overdue").sort((a,b)=>daysBetween(nextDueDate(a.last_completed,a.interval_days))-daysBetween(nextDueDate(b.last_completed,b.interval_days)));
+  const dueSoon  = maint.data.filter(m=>maintStatus(m)==="due-soon").sort((a,b)=>daysBetween(nextDueDate(a.last_completed,a.interval_days))-daysBetween(nextDueDate(b.last_completed,b.interval_days)));
+  const ok       = maint.data.filter(m=>maintStatus(m)==="ok").sort((a,b)=>daysBetween(nextDueDate(a.last_completed,a.interval_days))-daysBetween(nextDueDate(b.last_completed,b.interval_days)));
+
+  function MaintCard({item}){
+    const st=maintStatus(item);
+    const color=maintColor(st);
+    const nd=nextDueDate(item.last_completed,item.interval_days);
+    const days=daysBetween(nd);
+    const pct=Math.max(0,Math.min(100,100-(days/item.interval_days)*100));
+    return(
+      <SwipeCard key={item.id} id={item.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
+        onEdit={()=>openEdit(item)}
+        onDelete={()=>{if(window.confirm("Delete this item?"))maint.remove(item.id);setActiveSwipe(null);}}
+        style={S.statusCard(color)}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+          <div style={{flex:1}}>
+            <div style={{fontSize:14,fontWeight:600}}>{item.title}</div>
+            <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>
+              {st==="overdue"?`Overdue by ${-days}d`:st==="due-soon"?`Due in ${days}d`:`Due ${formatDate(nd)}`}
+              {item.notes?` · ${item.notes}`:""}
+            </div>
+            <div style={S.progress}><div style={S.progressFill(pct,color)}/></div>
+          </div>
+          <button style={{...S.btnCheck,marginLeft:12}} onClick={()=>markDone(item)}>✓</button>
+        </div>
+      </SwipeCard>
+    );
+  }
 
   return(
     <div style={S.screen}>
       {maint.loading?<Loading/>:<>
-        <div style={S.sectionLabel}>Maintenance Schedule</div>
-        <div style={S.swipeHint}>← swipe left to edit or delete</div>
-        {sorted.map(item=>{
-          const st=maintStatus(item);
-          const color=maintColor(st);
-          const nd=nextDueDate(item.last_completed,item.interval_days);
-          const days=daysBetween(nd);
-          const pct=Math.max(0,100-(days/item.interval_days)*100);
-          return(
-            <SwipeCard key={item.id} id={item.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
-              onEdit={()=>openEdit(item)}
-              onDelete={()=>{if(window.confirm("Delete this item?"))maint.remove(item.id);setActiveSwipe(null);}}
-              style={S.statusCard(color)}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:14,fontWeight:600}}>{item.title}</div>
-                  <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>
-                    {st==="overdue"?`Overdue by ${-days}d`:st==="due-soon"?`Due in ${days}d`:`Due ${formatDate(nd)}`}
-                    {item.notes?` · ${item.notes}`:""}
-                  </div>
-                  <div style={S.progress}><div style={S.progressFill(pct,color)}/></div>
-                </div>
-                <button style={{...S.btnCheck,marginLeft:12}} onClick={()=>markDone(item)}>✓</button>
-              </div>
-            </SwipeCard>
-          );
-        })}
-        {sorted.length===0&&<div style={S.empty}>No maintenance items yet.</div>}
-        <button style={S.btn} onClick={()=>{setForm({});setShowModal(true);}}>+ Add Item</button>
+
+        {/* Summary strip */}
+        {(overdue.length>0||dueSoon.length>0)&&(
+          <div style={{...S.card,background:overdue.length>0?COLORS.red+"11":COLORS.amber+"11",borderColor:overdue.length>0?COLORS.red+"33":COLORS.amber+"33",marginBottom:14}}>
+            <div style={{fontSize:22,fontWeight:800,color:overdue.length>0?COLORS.red:COLORS.amber,letterSpacing:"-0.3px"}}>
+              {overdue.length>0?`${overdue.length} overdue`:`${dueSoon.length} due soon`}
+            </div>
+            <div style={{fontSize:12,color:COLORS.slate,marginTop:4}}>
+              {overdue.length>0&&dueSoon.length>0?`+ ${dueSoon.length} due this week`:
+               overdue.length>0?"tap ✓ to mark done":"all within the next 7 days"}
+            </div>
+          </div>
+        )}
+
+        {overdue.length===0&&dueSoon.length===0&&maint.data.length>0&&(
+          <div style={{...S.card,background:COLORS.green+"11",borderColor:COLORS.green+"33",marginBottom:14,textAlign:"center",padding:"16px"}}>
+            <div style={{fontSize:15,fontWeight:700,color:COLORS.green}}>✅ All maintenance current</div>
+            <div style={{fontSize:12,color:COLORS.slate,marginTop:4}}>Nothing overdue or due this week.</div>
+          </div>
+        )}
+
+        {/* Overdue */}
+        {overdue.length>0&&<>
+          <div style={{fontSize:10,fontWeight:700,color:COLORS.red,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8}}>⚠️ Overdue · {overdue.length}</div>
+          {overdue.map(item=><MaintCard key={item.id} item={item}/>)}
+        </>}
+
+        {/* Due soon */}
+        {dueSoon.length>0&&<>
+          <div style={{fontSize:10,fontWeight:700,color:COLORS.amber,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8,marginTop:overdue.length>0?16:0}}>📅 Due This Week · {dueSoon.length}</div>
+          {dueSoon.map(item=><MaintCard key={item.id} item={item}/>)}
+        </>}
+
+        {/* OK items — collapsed by default */}
+        {ok.length>0&&<>
+          <button onClick={()=>setShowOk(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"center",marginTop:12,marginBottom:showOk?8:0}}>
+            {showOk?`Hide ${ok.length} current items`:`Show ${ok.length} current item${ok.length!==1?"s":""} ↓`}
+          </button>
+          {showOk&&<>
+            <div style={{fontSize:10,fontWeight:700,color:COLORS.green,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8,marginTop:4}}>✓ Current · {ok.length}</div>
+            {ok.map(item=><MaintCard key={item.id} item={item}/>)}
+          </>}
+        </>}
+
+        {maint.data.length===0&&<div style={S.empty}>No maintenance items yet. Add your first below.</div>}
+        <button style={{...S.btn,marginTop:12}} onClick={()=>{setForm({});setShowModal(true);}}>+ Add Item</button>
       </>}
 
       {showModal&&<Modal title={editItem?"Edit Item":"Add Maintenance Item"} onClose={closeModal}>
