@@ -1684,145 +1684,213 @@ function Dashboard({onNavigate,gc}){
   const{data:deadlines}   =useTable("college_deadlines","due_date",true);
   const readings          =useTable("pool_readings","date");
   const poolMaint         =useTable("pool_maintenance","date");
-  const poolSched         =useTable("pool_schedule","title",true);
   const assumptions       =useTable("retirement_assumptions","id",true);
   const accounts          =useTable("retirement_accounts","name",true);
 
   const [showFullSchedule,setShowFullSchedule] = useState(false);
-  const [filter,setFilter]   = useState("All");
+  const [showAllActions,setShowAllActions]     = useState(false);
+  const [filter,setFilter]     = useState("All");
   const [overrides,setOverrides] = useState({});
   const [reassigning,setReassigning] = useState(null);
   const members=["All","Aubrey","Blake","Brayden","Matt","Kalee"];
 
-  const assump = assumptions.data[0];
-  const retProj = assump ? calcRetirementProjection(accounts.data, assump) : null;
+  const assump     = assumptions.data[0];
+  const retProj    = assump ? calcRetirementProjection(accounts.data, assump) : null;
   const lastReading = readings.data[0];
-  const chemRecs = lastReading ? getChemRecommendations(lastReading, readings.data, null) : [];
+  const chemRecs   = lastReading ? getChemRecommendations(lastReading, readings.data, null) : [];
   const highChemRecs = chemRecs.filter(r=>r.priority==="high"||r.priority==="med");
-  const overdueItems = homeMaint.filter(m=>maintStatus(m)==="overdue");
-  const urgentDeadlines = deadlines.filter(d=>!d.completed&&daysBetween(d.due_date)<=14);
+  const overdueHomeMaint  = homeMaint.filter(m=>maintStatus(m)==="overdue");
+  const dueSoonHomeMaint  = homeMaint.filter(m=>maintStatus(m)==="due-soon");
+  const urgentDeadlines   = deadlines.filter(d=>!d.completed&&daysBetween(d.due_date)<=14);
+  const upcomingDeadlines = deadlines.filter(d=>!d.completed&&daysBetween(d.due_date)>14&&daysBetween(d.due_date)<=60);
 
-  const allEvents=(gc.token?gc.events:[]).map(e=>({...e,member:overrides[e.id]||e.member}));
-  const filtered=allEvents.filter(e=>filter==="All"||e.member===filter);
-
-  const next3Days=Array.from({length:3},(_,i)=>{const d=new Date(todayReal);d.setDate(d.getDate()+i);return d.toISOString().split("T")[0];});
-  const next7Days=Array.from({length:7},(_,i)=>{const d=new Date(todayReal);d.setDate(d.getDate()+i);return d.toISOString().split("T")[0];});
-  const next30Days=Array.from({length:30},(_,i)=>{const d=new Date(todayReal);d.setDate(d.getDate()+i);return d.toISOString().split("T")[0];});
-  const visibleDays = showFullSchedule ? next30Days : next7Days;
-
-  const eventsInWindow = filtered.filter(e=>visibleDays.includes(e.date));
+  const allEvents  = (gc.token?gc.events:[]).map(e=>({...e,member:overrides[e.id]||e.member}));
+  const filtered   = allEvents.filter(e=>filter==="All"||e.member===filter);
+  const next7Days  = Array.from({length:7},(_,i)=>{const d=new Date(todayReal);d.setDate(d.getDate()+i);return d.toISOString().split("T")[0];});
+  const next30Days = Array.from({length:30},(_,i)=>{const d=new Date(todayReal);d.setDate(d.getDate()+i);return d.toISOString().split("T")[0];});
+  const visibleDays      = showFullSchedule ? next30Days : next7Days;
+  const eventsInWindow   = filtered.filter(e=>visibleDays.includes(e.date));
   const totalEventsNext7 = filtered.filter(e=>next7Days.includes(e.date)).length;
 
-  // Build a single prioritized attention list across all modules
-  const attention=[];
-  if(!gc.token) attention.push({color:COLORS.blue,icon:"📅",text:"Connect Google Calendar to see your schedule",action:"Connect",onAction:gc.signIn});
-  highChemRecs.forEach(r=>attention.push({color:r.priority==="high"?COLORS.red:COLORS.amber,icon:"🏊",text:r.action,action:"Pool →",onAction:()=>onNavigate("pool")}));
-  overdueItems.forEach(m=>{
+  // ── Action Center: three tiers ─────────────────────────────────────────────
+  const overdue=[], thisWeek=[], upcoming=[];
+
+  highChemRecs.forEach(r=>{
+    const item={icon:"🏊",text:r.action,color:r.priority==="high"?COLORS.red:COLORS.amber,nav:"pool",detail:null};
+    r.priority==="high" ? overdue.push(item) : thisWeek.push(item);
+  });
+  overdueHomeMaint.forEach(m=>{
     const days=-daysBetween(nextDueDate(m.last_completed,m.interval_days));
-    attention.push({color:COLORS.red,icon:"🏡",text:`${m.title} overdue by ${days} day${days!==1?"s":""}`,action:"House →",onAction:()=>onNavigate("home-mgmt")});
+    overdue.push({icon:"🏡",text:m.title,color:COLORS.red,nav:"home-mgmt",detail:`${days}d overdue`});
+  });
+  dueSoonHomeMaint.forEach(m=>{
+    const days=daysBetween(nextDueDate(m.last_completed,m.interval_days));
+    thisWeek.push({icon:"🏡",text:m.title,color:COLORS.amber,nav:"home-mgmt",detail:`due in ${days}d`});
   });
   urgentDeadlines.forEach(d=>{
     const days=daysBetween(d.due_date);
-    attention.push({color:days<=4?COLORS.red:COLORS.amber,icon:"🎓",text:`${d.title} — ${days===0?"Today":days<0?`${-days}d overdue`:`in ${days}d`}`,action:"College →",onAction:()=>onNavigate("college")});
+    const item={icon:"🎓",text:d.title,color:days<=4?COLORS.red:COLORS.amber,nav:"college",detail:days===0?"Today":days<0?`${-days}d overdue`:`in ${days}d`};
+    days<=4 ? overdue.push(item) : thisWeek.push(item);
+  });
+  upcomingDeadlines.forEach(d=>{
+    upcoming.push({icon:"🎓",text:d.title,color:COLORS.slate,nav:"college",detail:`in ${daysBetween(d.due_date)}d`});
+  });
+  filtered.filter(e=>e.date===TODAY_STR).forEach(e=>{
+    overdue.push({icon:"📅",text:e.title,color:COLORS.blue,nav:"home",detail:e.time||"Today"});
+  });
+  filtered.filter(e=>next7Days.includes(e.date)&&e.date!==TODAY_STR).slice(0,3).forEach(e=>{
+    thisWeek.push({icon:"📅",text:e.title,color:MEMBER_COLORS[e.member]||COLORS.slate,nav:"home",detail:`${e.time||""} ${formatDate(e.date)}`.trim()});
   });
 
-  // Module status overview
-  const poolStatus = highChemRecs.length>0 ? {label:"Needs Attention",color:COLORS.amber} : lastReading ? {label:"Good",color:COLORS.green} : {label:"No data",color:COLORS.slate};
-  const homeStatus = overdueItems.length>0 ? {label:"Overdue",color:COLORS.red} : {label:"Good",color:COLORS.green};
-  const financeStatus = retProj ? {label:retProj.statusLabel.split("—")[0].trim(),color:retProj.statusColor} : {label:"—",color:COLORS.slate};
-  const collegeStatus = urgentDeadlines.length>0 ? {label:"Deadlines",color:COLORS.amber} : {label:"On Track",color:COLORS.green};
+  const totalActions = overdue.length + thisWeek.length + upcoming.length;
+  const focusItems   = [...overdue,...thisWeek].slice(0,5);
 
-  // Recent activity: last 5 completed/logged items across modules
-  const recentActivity = [
-    ...readings.data.slice(0,2).map(r=>({date:r.date,icon:"🏊",text:`Pool reading logged — pH ${r.ph||"—"}, FC ${r.free_chlorine||"—"}`,color:COLORS.blue})),
-    ...poolMaint.data.slice(0,2).map(m=>({date:m.date,icon:"🔧",text:`${m.type}`,color:COLORS.slate})),
+  // ── Module status ──────────────────────────────────────────────────────────
+  const poolSt    = highChemRecs.length>0 ? {label:"Needs Attention",color:COLORS.amber,detail:highChemRecs[0]?.action?.split(" — ")[0]||""} : lastReading ? {label:"Good",color:COLORS.green,detail:"Chemistry balanced"} : {label:"No data",color:COLORS.slate,detail:"Log first reading"};
+  const homeSt    = overdueHomeMaint.length>0 ? {label:"Overdue",color:COLORS.red,detail:`${overdueHomeMaint.length} item${overdueHomeMaint.length!==1?"s":""} overdue`} : dueSoonHomeMaint.length>0 ? {label:"Due Soon",color:COLORS.amber,detail:`${dueSoonHomeMaint.length} due this week`} : {label:"Good",color:COLORS.green,detail:"All tasks current"};
+  const financeSt = retProj ? {label:retProj.statusLabel.split("—")[0].trim(),color:retProj.statusColor,detail:`Age ${assump?.retirement_age} plan`} : {label:"—",color:COLORS.slate,detail:""};
+  const collegeSt = urgentDeadlines.length>0 ? {label:"Deadlines",color:COLORS.amber,detail:`${urgentDeadlines.length} within 2 weeks`} : {label:"On Track",color:COLORS.green,detail:"No urgent deadlines"};
+
+  const recentActivity=[
+    ...readings.data.slice(0,2).map(r=>({date:r.date,icon:"🏊",text:`Pool — pH ${r.ph||"—"}, FC ${r.free_chlorine||"—"}`,color:COLORS.blue})),
+    ...poolMaint.data.slice(0,2).map(m=>({date:m.date,icon:"🔧",text:m.type,color:COLORS.slate})),
     ...deadlines.filter(d=>d.completed).slice(0,2).map(d=>({date:d.due_date,icon:"🎓",text:`${d.title} completed`,color:COLORS.green})),
-  ].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  ].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,4);
+
+  function ActionItem({item,i,total}){
+    return(
+      <button onClick={()=>onNavigate(item.nav)} style={{display:"flex",alignItems:"center",gap:10,width:"100%",background:"none",border:"none",padding:"10px 0",borderBottom:i<total-1?`1px solid ${COLORS.navyLight}`:"none",cursor:"pointer",textAlign:"left"}}>
+        <div style={{width:32,height:32,borderRadius:8,background:item.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>{item.icon}</div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:13,fontWeight:600,color:COLORS.white,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.text}</div>
+          {item.detail&&<div style={{fontSize:11,color:item.color,marginTop:1}}>{item.detail}</div>}
+        </div>
+        <div style={{fontSize:12,color:COLORS.slate,flexShrink:0}}>›</div>
+      </button>
+    );
+  }
 
   return(
     <div style={S.screen}>
 
-      {/* Hero: Today's Brief header */}
-      <div style={{...S.card,background:COLORS.navyLight,borderColor:COLORS.blue+"44",marginBottom:6}}>
-        <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:4}}>Today's Brief</div>
-        <div style={{fontSize:22,fontWeight:800,lineHeight:1.2,letterSpacing:"-0.3px"}}>
-          {attention.length===0?"All clear 👋":`${attention.length} item${attention.length!==1?"s":""} need your attention`}
+      {/* ── 1. TODAY'S FOCUS ── */}
+      <div style={{background:COLORS.navyMid,borderRadius:16,padding:"20px 18px",marginBottom:16,border:`1px solid ${COLORS.navyLight}`,borderTop:`3px solid ${focusItems.length===0?COLORS.green:overdue.length>0?COLORS.red:COLORS.amber}`}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:focusItems.length>0?14:0}}>
+          <div>
+            <div style={{fontSize:10,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4}}>Today's Focus</div>
+            <div style={{fontSize:26,fontWeight:800,letterSpacing:"-0.5px",lineHeight:1.1,color:focusItems.length===0?COLORS.green:overdue.length>0?COLORS.red:COLORS.amber}}>
+              {focusItems.length===0?"All clear 👋":overdue.length>0?`${overdue.length} need${overdue.length===1?"s":""} action now`:`${thisWeek.length} due this week`}
+            </div>
+            <div style={{fontSize:12,color:COLORS.slate,marginTop:4}}>{formatToday()} · {totalEventsNext7} event{totalEventsNext7!==1?"s":""} this week</div>
+          </div>
+          {totalActions>0&&<div style={{textAlign:"right",flexShrink:0,marginLeft:12}}>
+            <div style={{fontSize:24,fontWeight:800,color:overdue.length>0?COLORS.red:COLORS.amber}}>{totalActions}</div>
+            <div style={{fontSize:10,color:COLORS.slate}}>actions</div>
+          </div>}
         </div>
-        <div style={{fontSize:13,color:COLORS.slate,marginTop:4}}>
-          {totalEventsNext7} event{totalEventsNext7!==1?"s":""} this week · {urgentDeadlines.length} deadline{urgentDeadlines.length!==1?"s":""} approaching
-        </div>
+        {focusItems.length>0&&focusItems.map((item,i)=><ActionItem key={i} item={item} i={i} total={focusItems.length}/>)}
       </div>
 
-      {/* Status overview strip */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+      {/* ── 2. FAMILY HEALTH ── */}
+      <div style={S.sectionLabel}>Family Health</div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:20}}>
         {[
-          {label:"Pool",  ...poolStatus,  nav:"pool"},
-          {label:"House", ...homeStatus,  nav:"home-mgmt"},
-          {label:"Finance",...financeStatus,nav:"finance"},
-          {label:"College",...collegeStatus,nav:"college"},
+          {label:"Pool",   ...poolSt,   nav:"pool"},
+          {label:"House",  ...homeSt,   nav:"home-mgmt"},
+          {label:"Finance",...financeSt, nav:"finance"},
+          {label:"College",...collegeSt, nav:"college"},
         ].map((s,i)=>(
-          <button key={i} onClick={()=>onNavigate(s.nav)} style={{background:COLORS.navyMid,border:`1px solid ${COLORS.navyLight}`,borderTop:`3px solid ${s.color}`,borderRadius:12,padding:"10px 12px",cursor:"pointer",textAlign:"left"}}>
-            <div style={{fontSize:10,color:COLORS.slate,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.5px"}}>{s.label}</div>
-            <div style={{fontSize:13,fontWeight:700,color:s.color,marginTop:3}}>{s.label==="Finance"&&s.label.length>12?s.label.split(" ")[0]:s.label==="Finance"?financeStatus.label:s.label==="Pool"?poolStatus.label:s.label==="House"?homeStatus.label:collegeStatus.label}</div>
+          <button key={i} onClick={()=>onNavigate(s.nav)} style={{background:COLORS.navyMid,border:`1px solid ${COLORS.navyLight}`,borderTop:`3px solid ${s.color}`,borderRadius:12,padding:"12px 14px",cursor:"pointer",textAlign:"left"}}>
+            <div style={{fontSize:10,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>{s.label}</div>
+            <div style={{fontSize:13,fontWeight:700,color:s.color,marginTop:4}}>{s.label}</div>
+            <div style={{fontSize:11,color:COLORS.slate,marginTop:2,lineHeight:1.3}}>{s.detail}</div>
           </button>
         ))}
       </div>
 
-      {/* Needs Attention */}
-      {attention.length>0&&<>
-        <div style={S.sectionLabel}>Needs Attention</div>
-        {attention.slice(0,5).map((a,i)=>(
-          <div key={i} style={S.statusCard(a.color)}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{fontSize:13,fontWeight:600,flex:1,paddingRight:10}}>{a.icon} {a.text}</div>
-              <button style={S.btnSm} onClick={a.onAction}>{a.action||"View →"}</button>
-            </div>
+      {/* ── 3. ACTION CENTER ── */}
+      {totalActions>0&&<>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <div style={S.sectionLabel}>Action Center</div>
+          {totalActions>5&&<button onClick={()=>setShowAllActions(p=>!p)} style={{fontSize:11,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,marginBottom:12}}>{showAllActions?"Less ↑":`All ${totalActions} →`}</button>}
+        </div>
+
+        {overdue.length>0&&(
+          <div style={{...S.card,background:COLORS.red+"11",borderColor:COLORS.red+"33",marginBottom:10}}>
+            <div style={{fontSize:10,fontWeight:700,color:COLORS.red,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:6}}>⚠️ Overdue · {overdue.length}</div>
+            {overdue.slice(0,showAllActions?99:3).map((item,i)=><ActionItem key={i} item={item} i={i} total={Math.min(overdue.length,showAllActions?99:3)}/>)}
+            {!showAllActions&&overdue.length>3&&<div style={{fontSize:11,color:COLORS.slate,paddingTop:6}}>+{overdue.length-3} more — tap "All" above</div>}
           </div>
-        ))}
+        )}
+
+        {thisWeek.length>0&&(
+          <div style={{...S.card,background:COLORS.amber+"11",borderColor:COLORS.amber+"33",marginBottom:10}}>
+            <div style={{fontSize:10,fontWeight:700,color:COLORS.amber,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:6}}>📅 Due This Week · {thisWeek.length}</div>
+            {thisWeek.slice(0,showAllActions?99:3).map((item,i)=><ActionItem key={i} item={item} i={i} total={Math.min(thisWeek.length,showAllActions?99:3)}/>)}
+            {!showAllActions&&thisWeek.length>3&&<div style={{fontSize:11,color:COLORS.slate,paddingTop:6}}>+{thisWeek.length-3} more</div>}
+          </div>
+        )}
+
+        {upcoming.length>0&&(showAllActions||overdue.length+thisWeek.length<=3)&&(
+          <div style={{...S.card,background:COLORS.navyLight,marginBottom:10}}>
+            <div style={{fontSize:10,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:6}}>🔮 Upcoming · {upcoming.length}</div>
+            {upcoming.slice(0,3).map((item,i)=><ActionItem key={i} item={item} i={i} total={Math.min(upcoming.length,3)}/>)}
+          </div>
+        )}
       </>}
 
-      {/* Upcoming */}
+      {totalActions===0&&(
+        <div style={{...S.card,background:COLORS.green+"11",borderColor:COLORS.green+"33",textAlign:"center",padding:"20px 16px",marginBottom:16}}>
+          <div style={{fontSize:20,marginBottom:6}}>✅</div>
+          <div style={{fontSize:14,fontWeight:700,color:COLORS.green}}>Nothing needs attention</div>
+          <div style={{fontSize:12,color:COLORS.slate,marginTop:4}}>All modules are current.</div>
+        </div>
+      )}
+
+      {/* ── 4. THIS WEEK ── */}
       {gc.token&&<>
-        <div style={S.sectionLabel}>{showFullSchedule?"Next 30 Days":"This Week"}</div>
-        <div style={{marginBottom:12}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={S.sectionLabel}>This Week</div>
+          <button onClick={()=>setShowFullSchedule(p=>!p)} style={{fontSize:11,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,marginBottom:12}}>{showFullSchedule?"Collapse ↑":"30 days →"}</button>
+        </div>
+        <div style={{marginBottom:10}}>
           {members.map(m=><span key={m} style={S.chip(filter===m,MEMBER_COLORS[m]||COLORS.blue)} onClick={()=>setFilter(m)}>{m}</span>)}
         </div>
-        {gc.loading&&<Loading/>}
-        {!gc.loading&&visibleDays.map(day=>{
-          const evs=filtered.filter(e=>e.date===day);
-          if(!evs.length)return null;
-          const isToday=day===TODAY_STR;
-          return(
-            <div key={day}>
-              <div style={{...S.sectionLabel,color:isToday?COLORS.blue:COLORS.slate,marginTop:12}}>{isToday?"Today":formatDateFull(day)}</div>
-              {evs.map(e=>(
-                <div key={e.id} style={{...S.card,borderLeft:`3px solid ${MEMBER_COLORS[e.member]||COLORS.slate}`,marginBottom:10}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:14,fontWeight:600}}>{e.title}</div>
-                      <div style={{fontSize:12,color:COLORS.slate,marginTop:3}}>{e.time||"All day"}{e.location?` · ${e.location}`:""}</div>
+        {gc.loading?<Loading/>:(
+          eventsInWindow.length===0
+            ?<div style={{...S.empty,padding:"14px 0",marginBottom:8}}>No events {showFullSchedule?"in the next 30 days":"this week"}.</div>
+            :visibleDays.map(day=>{
+              const evs=filtered.filter(e=>e.date===day);
+              if(!evs.length)return null;
+              const isToday=day===TODAY_STR;
+              return(
+                <div key={day}>
+                  <div style={{fontSize:10,fontWeight:700,color:isToday?COLORS.blue:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:6,marginTop:10}}>{isToday?"Today":formatDateFull(day)}</div>
+                  {evs.map(e=>(
+                    <div key={e.id} style={{...S.card,borderLeft:`3px solid ${MEMBER_COLORS[e.member]||COLORS.slate}`,marginBottom:8,padding:"12px 14px"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:13,fontWeight:600}}>{e.title}</div>
+                          <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{e.time||"All day"}{e.location?` · ${e.location}`:""}</div>
+                        </div>
+                        <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+                          <span style={S.badge(MEMBER_COLORS[e.member]||COLORS.slate)}>{e.member}</span>
+                          <button style={{...S.btnSm,fontSize:10,padding:"3px 8px"}} onClick={()=>setReassigning(reassigning===e.id?null:e.id)}>reassign</button>
+                        </div>
+                      </div>
+                      {reassigning===e.id&&(
+                        <div style={{marginTop:8,display:"flex",flexWrap:"wrap",gap:6}}>
+                          {["Aubrey","Blake","Brayden","Matt","Kalee"].map(m=>(
+                            <span key={m} style={S.chip(e.member===m,MEMBER_COLORS[m])} onClick={()=>{setOverrides(p=>({...p,[e.id]:m}));setReassigning(null);}}>{m}</span>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
-                      <span style={S.badge(MEMBER_COLORS[e.member]||COLORS.slate)}>{e.member}</span>
-                      <button style={{...S.btnSm,fontSize:10,padding:"3px 8px"}} onClick={()=>setReassigning(reassigning===e.id?null:e.id)}>reassign</button>
-                    </div>
-                  </div>
-                  {reassigning===e.id&&(
-                    <div style={{marginTop:10,display:"flex",flexWrap:"wrap",gap:6}}>
-                      {["Aubrey","Blake","Brayden","Matt","Kalee"].map(m=>(
-                        <span key={m} style={S.chip(e.member===m,MEMBER_COLORS[m])} onClick={()=>{setOverrides(p=>({...p,[e.id]:m}));setReassigning(null);}}>{m}</span>
-                      ))}
-                    </div>
-                  )}
+                  ))}
                 </div>
-              ))}
-            </div>
-          );
-        })}
-        {!gc.loading&&eventsInWindow.length===0&&<div style={{...S.empty,padding:"20px 0"}}>No events this week.</div>}
-        <button style={S.btnSm} onClick={()=>setShowFullSchedule(p=>!p)}>
-          {showFullSchedule?"Show this week only":"Show next 30 days →"}
-        </button>
+              );
+            })
+        )}
       </>}
 
       {!gc.token&&(
@@ -1834,7 +1902,7 @@ function Dashboard({onNavigate,gc}){
         </div>
       )}
 
-      {/* Recent Activity */}
+      {/* ── 5. RECENT ACTIVITY ── */}
       {recentActivity.length>0&&<>
         <div style={S.sectionLabel}>Recent Activity</div>
         {recentActivity.map((a,i)=>(
