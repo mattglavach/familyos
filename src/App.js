@@ -126,12 +126,12 @@ const MEMBER_COLORS={
 // ─── SEED DATA ────────────────────────────────────────────────────────────────
 const SEED={
   pool_readings:[
-    {id:"7",date:"2026-06-17",ph:8.0,free_chlorine:5.5,cc:0,salt:3350,cya:60,alkalinity:90,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"K-2006: 11 drops FC. Acid added 2 days prior. TA 90 ppm (9 drops)."},
-    {id:"6",date:"2026-06-15",ph:7.8,free_chlorine:3.0,cc:0,salt:3450,cya:60,alkalinity:null,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:""},
-    {id:"5",date:"2026-06-12",ph:8.0,free_chlorine:4.0,cc:0,salt:3450,cya:60,alkalinity:null,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"CYA increased"},
-    {id:"4",date:"2026-06-10",ph:7.8,free_chlorine:2.0,cc:0,salt:3300,cya:60,alkalinity:null,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"Hot weather"},
-    {id:"3",date:"2026-06-04",ph:7.8,free_chlorine:5.0,cc:0,salt:3450,cya:43,alkalinity:null,calcium_hardness:null,water_temp:null,swg_setting:54,filter_pressure:null,pump_hours:null,notes:"SWG 54%"},
-    {id:"2",date:"2026-05-31",ph:8.0,free_chlorine:5.5,cc:0,salt:3300,cya:null,alkalinity:null,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"K-2006: 11 drops FC. After party."},
+    {id:"7",date:"2026-06-17",logged_at:"2026-06-17T18:30:00Z",ph:8.0,free_chlorine:5.5,cc:0,salt:3350,cya:60,alkalinity:90,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"K-2006: 11 drops FC. Acid added 2 days prior. TA 90 ppm (9 drops)."},
+    {id:"6",date:"2026-06-15",logged_at:"2026-06-15T17:00:00Z",ph:7.8,free_chlorine:3.0,cc:0,salt:3450,cya:60,alkalinity:null,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:""},
+    {id:"5",date:"2026-06-12",logged_at:"2026-06-12T16:00:00Z",ph:8.0,free_chlorine:4.0,cc:0,salt:3450,cya:60,alkalinity:null,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"CYA increased"},
+    {id:"4",date:"2026-06-10",logged_at:"2026-06-10T15:00:00Z",ph:7.8,free_chlorine:2.0,cc:0,salt:3300,cya:60,alkalinity:null,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"Hot weather"},
+    {id:"3",date:"2026-06-04",logged_at:"2026-06-04T17:30:00Z",ph:7.8,free_chlorine:5.0,cc:0,salt:3450,cya:43,alkalinity:null,calcium_hardness:null,water_temp:null,swg_setting:54,filter_pressure:null,pump_hours:null,notes:"SWG 54%"},
+    {id:"2",date:"2026-05-31",logged_at:"2026-05-31T16:00:00Z",ph:8.0,free_chlorine:5.5,cc:0,salt:3300,cya:null,alkalinity:null,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"K-2006: 11 drops FC. After party."},
   ],
   pool_maintenance:[
     {id:"1",date:"2026-06-13",type:"Brushed walls & floor",notes:""},
@@ -1682,7 +1682,7 @@ function CalendarBanner({gc}){
 function Dashboard({onNavigate,gc}){
   const{data:homeMaint}   =useTable("home_maintenance","title",true);
   const{data:deadlines}   =useTable("college_deadlines","due_date",true);
-  const readings          =useTable("pool_readings","date");
+  const readings          =useTable("pool_readings","logged_at");
   const poolMaint         =useTable("pool_maintenance","date");
   const assumptions       =useTable("retirement_assumptions","id",true);
   const accounts          =useTable("retirement_accounts","name",true);
@@ -2879,11 +2879,11 @@ function TreatmentLogModal({last, recs, onSave, onClose}) {
 
 // ─── POOL ─────────────────────────────────────────────────────────────────────
 function Pool(){
-  const readings   = useTable("pool_readings","date");
+  const readings   = useTable("pool_readings","logged_at");
   const maintLog   = useTable("pool_maintenance","date");
   const schedule   = useTable("pool_schedule","title",true);
   const poolSettings = useTable("pool_settings","id",true);
-  const [tab,setTab]             = useState("dashboard");
+  const [tab,setTab]             = useState("trends");
   const [showLog,setShowLog]     = useState(false);
   const [showMaint,setShowMaint] = useState(false);
   const [showScheduleEdit,setShowScheduleEdit] = useState(false);
@@ -2967,7 +2967,14 @@ function Pool(){
     try{ localStorage.setItem(seasonKey,"true"); }catch{}
   }
 
-  function openEditReading(r){setEditItem(r);setForm({...r});setShowLog(true);setActiveSwipe(null);}
+  function openEditReading(r){
+    // Extract HH:MM from logged_at for the time field
+    const timeVal = r.logged_at ? new Date(r.logged_at).toTimeString().slice(0,5) : "";
+    setEditItem(r);
+    setForm({...r, time:timeVal});
+    setShowLog(true);
+    setActiveSwipe(null);
+  }
   function openEditMaint(m){setEditItem(m);setForm({...m});setShowMaint(true);setActiveSwipe(null);}
   function closeLog(){setShowLog(false);setEditItem(null);setForm({});setUseDrops(false);}
   function closeMaint(){setShowMaint(false);setEditItem(null);setForm({});}
@@ -2988,8 +2995,13 @@ function Pool(){
     function num(v){ return (v===undefined||v===null||v==='') ? null : +v; }
     let fc = num(form.free_chlorine);
     if(useDrops && fc!==null) fc = Math.round(fc * 0.5 * 10) / 10;
+    const d = form.date||TODAY_STR;
+    // Build logged_at: combine date with entered time (or current time for new readings)
+    const timeStr = form.time || new Date().toTimeString().slice(0,5); // HH:MM
+    const loggedAt = new Date(`${d}T${timeStr}:00`).toISOString();
     const row={
-      date:form.date||TODAY_STR,
+      date:d,
+      logged_at:loggedAt,
       ph:num(form.ph), free_chlorine:fc, cc:num(form.cc),
       salt:num(form.salt), cya:num(form.cya), alkalinity:num(form.alkalinity),
       calcium_hardness:num(form.calcium_hardness),
@@ -3023,19 +3035,6 @@ function Pool(){
 
   return(
     <div style={S.screen}>
-
-      {/* Action buttons row */}
-      <div style={{display:"flex",gap:8,marginBottom:16}}>
-        <button onClick={()=>{setForm({date:TODAY_STR});setShowLog(true);}} style={{flex:1,background:COLORS.blue,color:"#fff",border:"none",borderRadius:10,padding:"12px 6px",fontSize:12,fontWeight:700,cursor:"pointer"}}>
-          + Log Reading
-        </button>
-        <button onClick={()=>setShowBrief(true)} style={{flex:1,background:COLORS.purple,color:"#fff",border:"none",borderRadius:10,padding:"12px 6px",fontSize:12,fontWeight:700,cursor:"pointer"}}>
-          🤖 Pool Brief
-        </button>
-        <button onClick={()=>setShowTreatment(true)} style={{flex:1,background:COLORS.green,color:"#fff",border:"none",borderRadius:10,padding:"12px 6px",fontSize:12,fontWeight:700,cursor:"pointer"}}>
-          ✓ Log Treatment
-        </button>
-      </div>
 
       {/* Pool Health Banner — simplified, decisive */}
       {health&&(
@@ -3079,10 +3078,16 @@ function Pool(){
               </div>
             </div>
           )}
-          {/* View details toggle */}
-          <button onClick={()=>setShowChemDetails(p=>!p)} style={{fontSize:11,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,textDecoration:"underline",display:"block"}}>
-            {showChemDetails?"Hide chemistry details":"View chemistry details"}
-          </button>
+          {/* Footer row: chemistry toggle + quick actions */}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4}}>
+            <button onClick={()=>setShowChemDetails(p=>!p)} style={{fontSize:11,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,textDecoration:"underline"}}>
+              {showChemDetails?"Hide details":"View chemistry details"}
+            </button>
+            <div style={{display:"flex",gap:12}}>
+              <button onClick={()=>setShowTreatment(true)} style={{fontSize:11,color:COLORS.green,background:"none",border:"none",cursor:"pointer",padding:0}}>✓ Log Treatment</button>
+              <button onClick={()=>setShowBrief(true)} style={{fontSize:11,color:COLORS.purple,background:"none",border:"none",cursor:"pointer",padding:0}}>🤖 Brief</button>
+            </div>
+          </div>
           {showChemDetails&&(
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginTop:12}}>
               {health.params.map((p,i)=>(
@@ -3179,7 +3184,7 @@ function Pool(){
       {/* Chemistry detail card — collapsed by default, now inside the banner toggle */}
 
       <div style={{...S.tabs,marginTop:16}}>
-        {["dashboard","trends","schedule","history"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
+        {["trends","schedule","history"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
       </div>
 
 
@@ -3293,8 +3298,16 @@ function Pool(){
         </>}
       </>}
       {showLog&&<Modal title={editItem?"Edit Reading":"Log Pool Reading"} onClose={closeLog}>
-        <label style={S.label}>Date</label>
-        <input type="date" style={S.input} value={form.date||""} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/>
+        <div style={S.row}>
+          <div style={S.col}>
+            <label style={S.label}>Date</label>
+            <input type="date" style={S.input} value={form.date||""} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/>
+          </div>
+          <div style={{flex:"0 0 100px"}}>
+            <label style={S.label}>Time</label>
+            <input type="time" style={S.input} value={form.time||new Date().toTimeString().slice(0,5)} onChange={e=>setForm(p=>({...p,time:e.target.value}))}/>
+          </div>
+        </div>
 
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
           <label style={{...S.label,marginBottom:0}}>Free Chlorine</label>
@@ -4676,7 +4689,7 @@ function Finance(){
 // ─── QUICK ADD ────────────────────────────────────────────────────────────────
 function QuickAdd({onNavigate}){
   const [open,setOpen] = useState(false);
-  const readings = useTable("pool_readings","date");
+  const readings = useTable("pool_readings","logged_at");
   const maintLog = useTable("pool_maintenance","date");
   const deadlines = useTable("college_deadlines","due_date",true);
   const [form,setForm] = useState({});
