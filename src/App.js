@@ -3046,7 +3046,7 @@ function Pool(){
                 {health.overallEmoji} Pool Health: {health.score}/100
               </div>
               <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>
-                {formatDate(last.date)}{last.water_temp?` · ${last.water_temp}°F`:""}
+                {formatDate(last.date)}{last.logged_at?` · ${new Date(last.logged_at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}`:""}{last.water_temp?` · ${last.water_temp}°F`:""}
               </div>
             </div>
             {/* Safe to swim — three states: safe, safe+maintenance, unsafe */}
@@ -3245,24 +3245,32 @@ function Pool(){
         {(readings.loading||maintLog.loading)?<Loading/>:<>
           <div style={S.swipeHint}>← swipe left to edit or delete</div>
           {(()=>{
-            // Interleave readings and maintenance entries, sorted newest first
+            // Interleave readings and maintenance entries
+            // Use logged_at for readings (precise datetime), date for maintenance (date only)
             const items = [
-              ...readings.data.map(r=>({...r, _type:"reading", _date:r.date})),
-              ...maintLog.data.map(m=>({...m, _type:"maint", _date:m.date})),
-            ].sort((a,b)=>new Date(b._date)-new Date(a._date));
+              ...readings.data.map(r=>({...r, _type:"reading", _sortKey:r.logged_at||r.date})),
+              ...maintLog.data.map(m=>({...m, _type:"maint", _sortKey:m.date})),
+            ].sort((a,b)=>new Date(b._sortKey)-new Date(a._sortKey));
+
+            // Detect which dates have multiple readings (to decide whether to show time)
+            const readingsByDate = {};
+            readings.data.forEach(r=>{ readingsByDate[r.date]=(readingsByDate[r.date]||0)+1; });
 
             if(items.length===0) return <div style={S.empty}>No history yet.</div>;
 
             return items.map(item=>{
-              if(item._type==="reading") return(
-                <SwipeCard key={`r-${item.id}`} id={`r-${item.id}`} activeId={activeSwipe} setActiveId={setActiveSwipe}
-                  onEdit={()=>openEditReading(item)}
-                  onDelete={()=>{if(window.confirm("Delete this reading?"))readings.remove(item.id);setActiveSwipe(null);}}
-                  style={S.card}>
+              if(item._type==="reading"){
+                const hasTime = item.logged_at && readingsByDate[item.date] > 1;
+                const timeLabel = hasTime ? new Date(item.logged_at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}) : "";
+                return(
+                  <SwipeCard key={`r-${item.id}`} id={`r-${item.id}`} activeId={activeSwipe} setActiveId={setActiveSwipe}
+                    onEdit={()=>openEditReading(item)}
+                    onDelete={()=>{if(window.confirm("Delete this reading?"))readings.remove(item.id);setActiveSwipe(null);}}
+                    style={S.card}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
                       <span style={{fontSize:10,background:COLORS.blue+"22",color:COLORS.blue,borderRadius:4,padding:"1px 6px",fontWeight:700}}>Reading</span>
-                      <div style={{fontSize:13,fontWeight:700}}>{formatDate(item.date)}</div>
+                      <div style={{fontSize:13,fontWeight:700}}>{formatDate(item.date)}{timeLabel?` · ${timeLabel}`:""}</div>
                     </div>
                     <div style={{fontSize:11,color:COLORS.slate,textAlign:"right"}}>
                       {item.water_temp?`${item.water_temp}°F`:""}
@@ -3279,6 +3287,7 @@ function Pool(){
                   {item.notes&&<div style={{fontSize:11,color:COLORS.slate,marginTop:6,fontStyle:"italic"}}>{item.notes}</div>}
                 </SwipeCard>
               );
+              }
               return(
                 <SwipeCard key={`m-${item.id}`} id={`m-${item.id}`} activeId={activeSwipe} setActiveId={setActiveSwipe}
                   onEdit={()=>openEditMaint(item)}
@@ -4706,7 +4715,7 @@ function QuickAdd({onNavigate}){
 
   async function savePool(){
     function num(v){return(v===undefined||v===null||v==='') ? null : +v;}
-    await readings.insert({date:form.date||TODAY_STR,ph:num(form.ph),free_chlorine:num(form.free_chlorine),cc:num(form.cc)||0,salt:num(form.salt),cya:num(form.cya),alkalinity:num(form.alkalinity),calcium_hardness:num(form.calcium_hardness),water_temp:num(form.water_temp),filter_pressure:num(form.filter_pressure),swg_setting:num(form.swg_setting),pump_hours:num(form.pump_hours),notes:form.notes||""});
+    await readings.insert({date:form.date||TODAY_STR,logged_at:new Date().toISOString(),ph:num(form.ph),free_chlorine:num(form.free_chlorine),cc:num(form.cc)||0,salt:num(form.salt),cya:num(form.cya),alkalinity:num(form.alkalinity),calcium_hardness:num(form.calcium_hardness),water_temp:num(form.water_temp),filter_pressure:num(form.filter_pressure),swg_setting:num(form.swg_setting),pump_hours:num(form.pump_hours),notes:form.notes||""});
     close();onNavigate("pool");
   }
   async function saveMaint(){
