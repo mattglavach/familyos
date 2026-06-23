@@ -1921,6 +1921,52 @@ function Dashboard({onNavigate,gc}){
 }
 
 // ─── COLLEGE ──────────────────────────────────────────────────────────────────
+
+// Junior year → application timeline milestones for Aubrey (Class of 2028)
+// Each milestone has a target date, category, and completion check based on data
+function calcAubreyTimeline(deadlines, scores, schools, essays) {
+  const today = new Date(todayReal);
+  const milestones = [
+    { id:"psat",       label:"PSAT / NMSQT",          date:"2025-10-15", category:"test",        detail:"October junior year" },
+    { id:"collegeList",label:"Build college list",     date:"2026-03-01", category:"planning",    detail:"10-15 schools across reach/target/safety" },
+    { id:"campusVisit",label:"Spring campus visits",   date:"2026-05-01", category:"visit",       detail:"Visit 3-5 schools before summer" },
+    { id:"satPrep",    label:"SAT/ACT prep",           date:"2026-05-15", category:"test",        detail:"Plan test dates and prep strategy" },
+    { id:"sat1",       label:"SAT/ACT — first attempt",date:"2026-06-07", category:"test",        detail:"Aim for score above target range" },
+    { id:"essayDraft", label:"Common App essay draft", date:"2026-07-15", category:"essay",       detail:"Start main personal statement" },
+    { id:"activ",      label:"Activities list draft",  date:"2026-07-31", category:"application", detail:"150-char descriptions for all activities" },
+    { id:"sat2",       label:"SAT/ACT — second attempt",date:"2026-08-23",category:"test",        detail:"Retake if score can improve" },
+    { id:"earlyApp",   label:"Early apps open",        date:"2026-08-01", category:"application", detail:"Common App opens August 1" },
+    { id:"edea",       label:"ED/EA deadlines",        date:"2026-11-01", category:"application", detail:"Most ED/EA due Nov 1 or Nov 15" },
+    { id:"regular",    label:"Regular Decision",       date:"2027-01-01", category:"application", detail:"Most RD deadlines Jan 1–15" },
+    { id:"finAid",     label:"Financial aid (FAFSA)",  date:"2026-10-01", category:"application", detail:"FAFSA opens Oct 1 — submit early" },
+    { id:"decisions",  label:"Decisions & commit",     date:"2027-05-01", category:"planning",    detail:"National Decision Day: May 1" },
+  ];
+
+  // Auto-complete logic based on actual data
+  const hasScores = scores && scores.length > 0;
+  const hasSchools = schools && schools.length >= 5;
+  const hasVisit = deadlines && deadlines.some(d=>d.completed&&d.category==="visit");
+  const hasEssay = essays && essays.some(e=>e.status==="submitted"||e.status==="review");
+  const hasApplied = schools && schools.some(s=>s.status==="applied"||s.status==="accepted");
+
+  return milestones.map(m => {
+    const mDate = new Date(m.date);
+    const isPast = mDate < today;
+    const daysAway = Math.round((mDate - today) / 86400000);
+
+    // Auto-detect completion
+    let completed = false;
+    if (m.id==="sat1"||m.id==="sat2") completed = hasScores;
+    else if (m.id==="collegeList") completed = hasSchools;
+    else if (m.id==="campusVisit") completed = hasVisit;
+    else if (m.id==="essayDraft") completed = hasEssay;
+    else if (m.id==="edea"||m.id==="regular") completed = hasApplied;
+    else if (m.id==="psat") completed = isPast; // assume done if date passed
+
+    return { ...m, completed, isPast, daysAway };
+  });
+}
+
 function College(){
   const [tab,setTab]             = useState("deadlines");
   const deadlines                = useTable("college_deadlines","due_date",true);
@@ -1932,14 +1978,24 @@ function College(){
   const [editItem,setEditItem]   = useState(null);
   const [form,setForm]           = useState({});
   const [activeSwipe,setActiveSwipe] = useState(null);
+  const [showTimeline,setShowTimeline] = useState(false);
+  const [showCompleted,setShowCompleted] = useState(false);
 
-  const catColor={test:COLORS.purple,application:COLORS.blue,visit:COLORS.green,other:COLORS.slate};
+  const catColor={test:COLORS.purple,application:COLORS.blue,visit:COLORS.green,essay:COLORS.amber,planning:COLORS.slate,other:COLORS.slate};
   const statusColors={researching:COLORS.slate,target:COLORS.blue,applying:COLORS.amber,applied:COLORS.purple,accepted:COLORS.green,rejected:COLORS.red};
   const appTypeColors={ED:COLORS.red,EA:COLORS.amber,Regular:COLORS.blue,Rolling:COLORS.slate};
   const matchColors={Reach:COLORS.red,Target:COLORS.blue,Safety:COLORS.green};
   const essayStatusColors={"not started":COLORS.slate,drafting:COLORS.amber,review:COLORS.blue,submitted:COLORS.green};
   const pending=deadlines.data.filter(d=>!d.completed).sort((a,b)=>new Date(a.due_date)-new Date(b.due_date));
   const done=deadlines.data.filter(d=>d.completed);
+
+  const timeline = calcAubreyTimeline(deadlines.data, scores.data, schools.data, essays.data);
+  const completedMilestones = timeline.filter(m=>m.completed).length;
+  const nextMilestone = timeline.find(m=>!m.completed);
+  const overdueDeadlines = pending.filter(d=>daysBetween(d.due_date)<0);
+  const thisWeekDeadlines = pending.filter(d=>daysBetween(d.due_date)>=0&&daysBetween(d.due_date)<=7);
+  const soonDeadlines = pending.filter(d=>daysBetween(d.due_date)>7&&daysBetween(d.due_date)<=30);
+  const upcomingDeadlines = pending.filter(d=>daysBetween(d.due_date)>30);
 
   function openEdit(modal,item){
     setEditItem(item);
@@ -1989,10 +2045,52 @@ function College(){
 
   return(
     <div style={S.screen}>
+
+      {/* ── Aubrey header card with timeline progress ── */}
       <div style={{...S.card,background:COLORS.navyLight,borderLeft:`3px solid ${MEMBER_COLORS.Aubrey}`,marginBottom:16}}>
         <div style={{fontSize:11,color:COLORS.red,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase"}}>Aubrey · Class of 2028</div>
         <div style={{fontSize:16,fontWeight:700,marginTop:2}}>Junior Year — College Planning</div>
-        <div style={{fontSize:12,color:COLORS.slate,marginTop:4}}>{schools.data.filter(s=>s.status==="target"||s.status==="applying").length} target schools · {pending.length} open deadlines</div>
+        <div style={{fontSize:12,color:COLORS.slate,marginTop:4}}>
+          {schools.data.filter(s=>s.status==="target"||s.status==="applying").length} target schools · {pending.length} open deadline{pending.length!==1?"s":""}
+        </div>
+
+        {/* Progress bar */}
+        <div style={{marginTop:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+            <div style={{fontSize:11,color:COLORS.slate,fontWeight:600}}>{completedMilestones} of {timeline.length} milestones complete</div>
+            <div style={{fontSize:11,color:COLORS.blue}}>{Math.round(completedMilestones/timeline.length*100)}%</div>
+          </div>
+          <div style={S.progress}>
+            <div style={S.progressFill(completedMilestones/timeline.length*100, COLORS.blue)}/>
+          </div>
+          {nextMilestone&&<div style={{fontSize:11,color:COLORS.slateLight,marginTop:6}}>
+            Next: <span style={{color:COLORS.white,fontWeight:600}}>{nextMilestone.label}</span>
+            {nextMilestone.daysAway>0?` — in ${nextMilestone.daysAway}d`:nextMilestone.daysAway===0?" — Today":" — Overdue"}
+          </div>}
+        </div>
+
+        <button onClick={()=>setShowTimeline(p=>!p)} style={{fontSize:11,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,marginTop:10,textDecoration:"underline"}}>
+          {showTimeline?"Hide timeline":"View full timeline →"}
+        </button>
+
+        {showTimeline&&(
+          <div style={{marginTop:12}}>
+            {timeline.map((m,i)=>(
+              <div key={m.id} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"8px 0",borderBottom:i<timeline.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
+                <div style={{width:20,height:20,borderRadius:"50%",background:m.completed?COLORS.green:m.isPast&&!m.completed?COLORS.red:COLORS.navyLight,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,flexShrink:0,marginTop:1}}>
+                  {m.completed?"✓":m.isPast?"!":""}
+                </div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:12,fontWeight:600,color:m.completed?COLORS.slate:m.isPast?COLORS.red:COLORS.white}}>{m.label}</div>
+                  <div style={{fontSize:10,color:COLORS.slate,marginTop:1}}>
+                    {formatDate(m.date)} · {m.detail}
+                  </div>
+                </div>
+                <span style={S.badge(catColor[m.category]||COLORS.slate)}>{m.category}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div style={S.tabs}>
@@ -2002,30 +2100,116 @@ function College(){
       {tab==="deadlines"&&<>
         {deadlines.loading?<Loading/>:<>
           <div style={S.swipeHint}>← swipe left to edit or delete</div>
-          {pending.map(d=>{
-            const days=daysBetween(d.due_date);
-            return(
+
+          {/* Overdue */}
+          {overdueDeadlines.length>0&&<>
+            <div style={{fontSize:10,fontWeight:700,color:COLORS.red,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8,marginTop:4}}>⚠️ Overdue · {overdueDeadlines.length}</div>
+            {overdueDeadlines.map(d=>(
               <SwipeCard key={d.id} id={d.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
                 onEdit={()=>openEdit("deadline",d)}
                 onDelete={()=>{if(window.confirm("Delete this deadline?"))deadlines.remove(d.id);setActiveSwipe(null);}}
-                style={S.statusCard(days<=7?COLORS.red:days<=14?COLORS.amber:COLORS.blue)}>
+                style={S.statusCard(COLORS.red)}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div style={{flex:1,paddingRight:10}}>
                     <div style={{fontSize:13,fontWeight:600}}>{d.title}</div>
                     {d.school&&<div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{d.school}</div>}
                     <div style={{display:"flex",gap:6,marginTop:6,alignItems:"center"}}>
                       <span style={S.badge(catColor[d.category]||COLORS.slate)}>{d.category}</span>
-                      <span style={{fontSize:11,color:days<=7?COLORS.red:COLORS.slate,fontWeight:600}}>{days===0?"Today":days<0?`${-days}d overdue`:`${days}d`}</span>
+                      <span style={{fontSize:11,color:COLORS.red,fontWeight:700}}>{Math.abs(daysBetween(d.due_date))}d overdue</span>
                     </div>
                   </div>
                   <button style={S.btnCheck} onClick={()=>deadlines.update(d.id,{completed:true})}>✓</button>
                 </div>
               </SwipeCard>
-            );
-          })}
+            ))}
+          </>}
+
+          {/* Due this week */}
+          {thisWeekDeadlines.length>0&&<>
+            <div style={{fontSize:10,fontWeight:700,color:COLORS.amber,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8,marginTop:overdueDeadlines.length>0?16:4}}>📅 Due This Week · {thisWeekDeadlines.length}</div>
+            {thisWeekDeadlines.map(d=>{
+              const days=daysBetween(d.due_date);
+              return(
+                <SwipeCard key={d.id} id={d.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
+                  onEdit={()=>openEdit("deadline",d)}
+                  onDelete={()=>{if(window.confirm("Delete this deadline?"))deadlines.remove(d.id);setActiveSwipe(null);}}
+                  style={S.statusCard(COLORS.amber)}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                    <div style={{flex:1,paddingRight:10}}>
+                      <div style={{fontSize:13,fontWeight:600}}>{d.title}</div>
+                      {d.school&&<div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{d.school}</div>}
+                      <div style={{display:"flex",gap:6,marginTop:6,alignItems:"center"}}>
+                        <span style={S.badge(catColor[d.category]||COLORS.slate)}>{d.category}</span>
+                        <span style={{fontSize:11,color:COLORS.amber,fontWeight:700}}>{days===0?"Today":`in ${days}d`}</span>
+                      </div>
+                    </div>
+                    <button style={S.btnCheck} onClick={()=>deadlines.update(d.id,{completed:true})}>✓</button>
+                  </div>
+                </SwipeCard>
+              );
+            })}
+          </>}
+
+          {/* Due this month */}
+          {soonDeadlines.length>0&&<>
+            <div style={{fontSize:10,fontWeight:700,color:COLORS.blue,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8,marginTop:16}}>📌 This Month · {soonDeadlines.length}</div>
+            {soonDeadlines.map(d=>{
+              const days=daysBetween(d.due_date);
+              return(
+                <SwipeCard key={d.id} id={d.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
+                  onEdit={()=>openEdit("deadline",d)}
+                  onDelete={()=>{if(window.confirm("Delete this deadline?"))deadlines.remove(d.id);setActiveSwipe(null);}}
+                  style={S.statusCard(COLORS.blue)}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                    <div style={{flex:1,paddingRight:10}}>
+                      <div style={{fontSize:13,fontWeight:600}}>{d.title}</div>
+                      {d.school&&<div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{d.school}</div>}
+                      <div style={{display:"flex",gap:6,marginTop:6,alignItems:"center"}}>
+                        <span style={S.badge(catColor[d.category]||COLORS.slate)}>{d.category}</span>
+                        <span style={{fontSize:11,color:COLORS.slate}}>{formatDate(d.due_date)} · in {days}d</span>
+                      </div>
+                    </div>
+                    <button style={S.btnCheck} onClick={()=>deadlines.update(d.id,{completed:true})}>✓</button>
+                  </div>
+                </SwipeCard>
+              );
+            })}
+          </>}
+
+          {/* Upcoming */}
+          {upcomingDeadlines.length>0&&<>
+            <div style={{fontSize:10,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8,marginTop:16}}>🔮 Upcoming · {upcomingDeadlines.length}</div>
+            {upcomingDeadlines.map(d=>{
+              const days=daysBetween(d.due_date);
+              return(
+                <SwipeCard key={d.id} id={d.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
+                  onEdit={()=>openEdit("deadline",d)}
+                  onDelete={()=>{if(window.confirm("Delete this deadline?"))deadlines.remove(d.id);setActiveSwipe(null);}}
+                  style={S.card}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                    <div style={{flex:1,paddingRight:10}}>
+                      <div style={{fontSize:13,fontWeight:600}}>{d.title}</div>
+                      {d.school&&<div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{d.school}</div>}
+                      <div style={{display:"flex",gap:6,marginTop:6,alignItems:"center"}}>
+                        <span style={S.badge(catColor[d.category]||COLORS.slate)}>{d.category}</span>
+                        <span style={{fontSize:11,color:COLORS.slate}}>{formatDate(d.due_date)} · in {days}d</span>
+                      </div>
+                    </div>
+                    <button style={S.btnCheck} onClick={()=>deadlines.update(d.id,{completed:true})}>✓</button>
+                  </div>
+                </SwipeCard>
+              );
+            })}
+          </>}
+
+          {pending.length===0&&<div style={{...S.card,textAlign:"center",padding:"24px 16px",color:COLORS.slate}}>No open deadlines — add one below.</div>}
+
+          {/* Completed */}
           {done.length>0&&<>
-            <div style={{...S.sectionLabel,marginTop:20}}>Completed</div>
-            {done.map(d=>(
+            <button onClick={()=>setShowCompleted(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"center",marginTop:12,marginBottom:4}}>
+              {showCompleted?"Hide":"Show"} {done.length} completed
+            </button>
+            {showCompleted&&done.map(d=>(
               <SwipeCard key={d.id} id={d.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
                 onEdit={()=>openEdit("deadline",d)}
                 onDelete={()=>{if(window.confirm("Delete?"))deadlines.remove(d.id);setActiveSwipe(null);}}
@@ -2037,6 +2221,7 @@ function College(){
               </SwipeCard>
             ))}
           </>}
+
           <button style={S.btn} onClick={()=>{setForm({category:"test"});setShowModal("deadline");}}>+ Add Deadline</button>
         </>}
       </>}
@@ -3662,51 +3847,85 @@ function Finance(){
       </div>
 
       {tab==="overview"&&<>
-        {(retStale.stale||collegeStale.stale||mortStale.stale)&&<>
-          <div style={S.sectionLabel}>Needs Update</div>
-          {retStale.stale&&<div style={S.statusCard(COLORS.amber)}><div style={{fontSize:13,fontWeight:600}}>🏦 Retirement balances {retStale.days?`last updated ${retStale.days}d ago`:"never updated"}</div></div>}
-          {collegeStale.stale&&<div style={S.statusCard(COLORS.amber)}><div style={{fontSize:13,fontWeight:600}}>🎓 College savings {collegeStale.days?`last updated ${collegeStale.days}d ago`:"never updated"}</div></div>}
-          {mortStale.stale&&<div style={S.statusCard(COLORS.amber)}><div style={{fontSize:13,fontWeight:600}}>🏠 Mortgage {mortStale.days?`last updated ${mortStale.days}d ago`:"never updated"}</div></div>}
-        </>}
+        {/* Net Worth Hero */}
+        {retProj&&(
+          <div style={{background:COLORS.navyMid,borderRadius:16,padding:"20px 18px",marginBottom:16,border:`1px solid ${COLORS.navyLight}`,borderTop:`3px solid ${retProj.statusColor}`}}>
+            <div style={{fontSize:10,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4}}>Financial Snapshot</div>
+            <div style={{fontSize:28,fontWeight:800,letterSpacing:"-0.5px"}}>{formatMoneyShort(netWorth)}</div>
+            <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>estimated net worth</div>
+            <div style={{display:"flex",gap:16,marginTop:14,flexWrap:"wrap"}}>
+              <div>
+                <div style={{fontSize:11,color:COLORS.slate}}>Retirement</div>
+                <div style={{fontSize:14,fontWeight:700,marginTop:2}}>{formatMoneyShort(retProj.totalBalance)}</div>
+              </div>
+              {collegeS&&<div>
+                <div style={{fontSize:11,color:COLORS.slate}}>College 529</div>
+                <div style={{fontSize:14,fontWeight:700,marginTop:2}}>{formatMoneyShort(collegeS.balance)}</div>
+              </div>}
+              {mort&&<div>
+                <div style={{fontSize:11,color:COLORS.slate}}>Mortgage</div>
+                <div style={{fontSize:14,fontWeight:700,color:COLORS.red,marginTop:2}}>({formatMoneyShort(mort.current_balance)})</div>
+              </div>}
+            </div>
+          </div>
+        )}
+
+        {/* Staleness warnings */}
+        {(retStale.stale||collegeStale.stale||mortStale.stale)&&(
+          <div style={{...S.card,background:COLORS.amber+"11",borderColor:COLORS.amber+"33",marginBottom:12}}>
+            <div style={{fontSize:11,fontWeight:700,color:COLORS.amber,marginBottom:6}}>⚠️ Some balances may be out of date</div>
+            {retStale.stale&&<div style={{fontSize:11,color:COLORS.slateLight,marginBottom:2}}>• Retirement: {retStale.days?`${retStale.days}d ago`:"never updated"}</div>}
+            {collegeStale.stale&&<div style={{fontSize:11,color:COLORS.slateLight,marginBottom:2}}>• College: {collegeStale.days?`${collegeStale.days}d ago`:"never updated"}</div>}
+            {mortStale.stale&&<div style={{fontSize:11,color:COLORS.slateLight}}>• Mortgage: {mortStale.days?`${mortStale.days}d ago`:"never updated"}</div>}
+          </div>
+        )}
 
         <div style={S.sectionLabel}>Goals at a Glance</div>
+
         {retProj&&(
-          <div style={S.card}>
+          <div style={{...S.card,borderLeft:`3px solid ${retProj.statusColor}`,marginBottom:10}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{fontSize:13,fontWeight:600}}>🏦 Retirement (age {assump.retirement_age})</div>
-              <span style={{fontSize:12,color:retProj.statusColor,fontWeight:700,display:"flex",alignItems:"center",gap:5}}>
-                <span style={{width:8,height:8,borderRadius:"50%",background:retProj.statusColor,display:"inline-block"}}/>
-                {retProj.statusLabel}
-              </span>
+              <div style={{fontSize:13,fontWeight:700}}>🏦 Retirement</div>
+              <span style={{fontSize:12,color:retProj.statusColor,fontWeight:700}}>{retProj.statusLabel.split("—")[0].trim()}</span>
             </div>
-            <div style={{fontSize:11,color:COLORS.slate,marginTop:4}}>Spendable {formatMoneyShort(retProj.spendableTodaysDollars)} · Target {formatMoneyShort(retProj.targetNumberToday)} <span style={{color:COLORS.slate}}>(today's $)</span></div>
-            <div style={{fontSize:9,color:COLORS.slate,marginTop:3,fontStyle:"italic"}}>At steady returns — see Finance → Retirement for realistic success rate</div>
+            <div style={{fontSize:11,color:COLORS.slate,marginTop:4}}>Age {assump.retirement_age} · {formatMoneyShort(retProj.spendableTodaysDollars)} projected vs {formatMoneyShort(retProj.targetNumberToday)} needed (today's $)</div>
+            {retProj.gap>0
+              ?<div style={{fontSize:11,color:COLORS.amber,marginTop:4,fontWeight:600}}>Gap: {formatMoneyShort(retProj.gap)} — ~{formatMoney(retProj.monthlyNeeded)}/mo more</div>
+              :<div style={{fontSize:11,color:COLORS.green,marginTop:4,fontWeight:600}}>On track — surplus {formatMoneyShort(-retProj.gap)}</div>
+            }
+            <div style={S.progress}><div style={S.progressFill(Math.min(100,retProj.totalBalance/retProj.targetNumberInflated*100), retProj.statusColor)}/></div>
           </div>
         )}
+
         {pooledCollegeProj&&(
-          <div style={S.card}>
+          <div style={{...S.card,borderLeft:`3px solid ${pooledCollegeProj.anyShortfall?COLORS.amber:COLORS.green}`,marginBottom:10}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{fontSize:13,fontWeight:600}}>🎓 College Savings (3 kids, 1 pool)</div>
+              <div style={{fontSize:13,fontWeight:700}}>🎓 College (3 kids)</div>
               <span style={{fontSize:12,color:pooledCollegeProj.anyShortfall?COLORS.amber:COLORS.green,fontWeight:700}}>{pooledCollegeProj.anyShortfall?`${pooledCollegeProj.perChild.filter(c=>!c.fullyFunded).length} short`:"On track ✓"}</span>
             </div>
-            <div style={{fontSize:11,color:COLORS.slate,marginTop:4}}>{pooledCollegeProj.perChild.map(c=>c.child_name).join(" → ")} · {formatMoneyShort(pooledCollegeProj.totalTargets)} total needed</div>
+            <div style={{fontSize:11,color:COLORS.slate,marginTop:4}}>{pooledCollegeProj.perChild.map(c=>`${c.child_name} ${c.target_year}`).join(" → ")} · {formatMoneyShort(pooledCollegeProj.totalTargets)} total</div>
+            {pooledCollegeProj.anyShortfall&&<div style={{fontSize:11,color:COLORS.amber,marginTop:4,fontWeight:600}}>Increase to ~{formatMoney(pooledCollegeProj.suggestedMonthly)}/mo to fund all three</div>}
+            <div style={S.progress}><div style={S.progressFill(Math.min(100,(collegeS?.balance||0)/pooledCollegeProj.totalTargets*100), pooledCollegeProj.anyShortfall?COLORS.amber:COLORS.green)}/></div>
           </div>
         )}
+
         {mort&&mortMonths&&(
-          <div style={S.card}>
+          <div style={{...S.card,borderLeft:`3px solid ${COLORS.blue}`,marginBottom:10}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{fontSize:13,fontWeight:600}}>🏠 Mortgage Payoff</div>
+              <div style={{fontSize:13,fontWeight:700}}>🏠 Mortgage</div>
               <span style={{fontSize:12,color:COLORS.blue,fontWeight:700}}>{monthsToDate(mortMonths)}</span>
             </div>
-            <div style={{fontSize:11,color:COLORS.slate,marginTop:4}}>{formatMoney(mort.current_balance)} remaining at {mort.interest_rate}%</div>
+            <div style={{fontSize:11,color:COLORS.slate,marginTop:4}}>{formatMoney(mort.current_balance)} remaining at {mort.interest_rate}% · {formatMoney(mort.monthly_payment)}/mo</div>
+            <div style={S.progress}><div style={S.progressFill(Math.min(100,100-(mort.current_balance/(mort.original_balance||mort.current_balance*1.5))*100), COLORS.blue)}/></div>
           </div>
         )}
+
         {otherDebt.data.map(d=>{
-          const months = calcPayoffMonths(d.balance, d.interest_rate, d.payment_frequency==="biweekly"?d.payment_amount*2.17:d.payment_amount);
+          const months=calcPayoffMonths(d.balance, d.interest_rate, d.payment_frequency==="biweekly"?d.payment_amount*2.17:d.payment_amount);
           return(
-            <div key={d.id} style={S.card}>
+            <div key={d.id} style={{...S.card,borderLeft:`3px solid ${COLORS.red}`,marginBottom:10}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div style={{fontSize:13,fontWeight:600}}>💳 {d.name}</div>
+                <div style={{fontSize:13,fontWeight:700}}>💳 {d.name}</div>
                 <span style={{fontSize:12,color:COLORS.red,fontWeight:700}}>{months?monthsToDate(months):"—"}</span>
               </div>
               <div style={{fontSize:11,color:COLORS.slate,marginTop:4}}>{formatMoney(d.balance)} at {d.interest_rate}%</div>
@@ -3714,30 +3933,32 @@ function Finance(){
           );
         })}
 
-        <div style={S.sectionLabel}>Action Items</div>
-        {actionItems.data.filter(a=>!a.completed).map(a=>(
-          <div key={a.id} style={S.statusCard(priorityColors[a.priority])}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{fontSize:13,fontWeight:600,flex:1,paddingRight:10}}>{a.title}</div>
-              <button style={S.btnCheck} onClick={()=>actionItems.update(a.id,{completed:true})}>✓</button>
+        {actionItems.data.filter(a=>!a.completed).length>0&&<>
+          <div style={S.sectionLabel}>Action Items</div>
+          {actionItems.data.filter(a=>!a.completed).map(a=>(
+            <div key={a.id} style={S.statusCard(priorityColors[a.priority])}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{fontSize:13,fontWeight:600,flex:1,paddingRight:10}}>{a.title}</div>
+                <button style={S.btnCheck} onClick={()=>actionItems.update(a.id,{completed:true})}>✓</button>
+              </div>
             </div>
-          </div>
-        ))}
-        <button style={S.btn} onClick={()=>{setForm({priority:"med",category:"other"});setShowModal("action");}}>+ Add Action Item</button>
+          ))}
+        </>}
+        <button style={{...S.btnSm,width:"100%",marginTop:8}} onClick={()=>{setForm({priority:"med",category:"other"});setShowModal("action");}}>+ Add Action Item</button>
 
-        <div style={S.sectionLabel}>Snapshot History</div>
-        {snapshots.data.slice(0,5).map(s=>(
-          <div key={s.id} style={S.card}>
-            <div style={{display:"flex",justifyContent:"space-between"}}>
-              <div style={{fontSize:13,fontWeight:600}}>{formatDate(s.date)}</div>
+        {snapshots.data.length>0&&<>
+          <div style={S.sectionLabel}>Net Worth History</div>
+          {snapshots.data.slice(0,5).map(s=>(
+            <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${COLORS.navyLight}`}}>
+              <div style={{fontSize:12,color:COLORS.slate}}>{formatDate(s.date)}</div>
               <div style={{fontSize:13,fontWeight:700}}>{formatMoney(s.net_worth)}</div>
             </div>
-          </div>
-        ))}
-        <button style={S.btn} onClick={()=>{setForm({date:TODAY_STR});setShowModal("snapshot");}}>📸 Save Net Worth Snapshot</button>
+          ))}
+        </>}
+        <button style={{...S.btnSm,width:"100%",marginTop:12}} onClick={()=>{setForm({date:TODAY_STR});setShowModal("snapshot");}}>📸 Save Snapshot</button>
       </>}
 
-      {tab==="retirement"&&<>
+            {tab==="retirement"&&<>
         <div style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}>
           <button onClick={()=>{setForm({...assump});setShowModal("assumptions");}} style={{background:COLORS.navyLight,border:`1px solid ${COLORS.navyLight}`,borderRadius:8,padding:"6px 12px",fontSize:11,fontWeight:700,color:COLORS.slateLight,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
             ⚙️ Edit Assumptions
