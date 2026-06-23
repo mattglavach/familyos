@@ -4842,7 +4842,9 @@ function QuickAdd({onNavigate}){
   const [form,setForm] = useState({});
   const [mode,setMode] = useState(null); // "pool"|"maint"|"college"|"note"
 
-  function close(){setOpen(false);setMode(null);setForm({});}
+  const [saveError,setSaveError] = useState(null);
+
+  function close(){setOpen(false);setMode(null);setForm({});setSaveError(null);}
 
   const options=[
     {id:"pool",    icon:"🏊", label:"Pool Reading",    color:COLORS.blue},
@@ -4852,9 +4854,14 @@ function QuickAdd({onNavigate}){
   ];
 
   async function savePool(){
+    setSaveError(null);
     function num(v){return(v===undefined||v===null||v==='') ? null : +v;}
-    await readings.insert({date:form.date||TODAY_STR,logged_at:new Date().toISOString(),ph:num(form.ph),free_chlorine:num(form.free_chlorine),cc:num(form.cc)||0,salt:num(form.salt),cya:num(form.cya),alkalinity:num(form.alkalinity),calcium_hardness:num(form.calcium_hardness),water_temp:num(form.water_temp),filter_pressure:num(form.filter_pressure),swg_setting:num(form.swg_setting),pump_hours:num(form.pump_hours),notes:form.notes||""});
-    close();onNavigate("pool");
+    const row={date:form.date||TODAY_STR,logged_at:new Date().toISOString(),ph:num(form.ph),free_chlorine:num(form.free_chlorine),cc:num(form.cc)||0,salt:num(form.salt),cya:num(form.cya),alkalinity:num(form.alkalinity),calcium_hardness:num(form.calcium_hardness),water_temp:num(form.water_temp),filter_pressure:num(form.filter_pressure),swg_setting:num(form.swg_setting),pump_hours:num(form.pump_hours),notes:form.notes||""};
+    try{
+      const{data,error}=await sb.from("pool_readings").insert(row);
+      if(error){setSaveError(`Save failed — ${error.message||JSON.stringify(error)}`);return;}
+      close();onNavigate("pool");
+    }catch(e){setSaveError(`Error: ${e.message}`);}
   }
   async function saveMaint(){
     if(!form.type)return;
@@ -4901,6 +4908,7 @@ function QuickAdd({onNavigate}){
           <label style={S.label}>Notes</label>
           <input style={S.input} value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
           <button style={S.btn} onClick={savePool}>Save Reading</button>
+          {saveError&&<div style={{fontSize:11,color:COLORS.red,marginTop:8,lineHeight:1.4}}>{saveError}</div>}
           <button style={{...S.btnSm,width:"100%",marginTop:8}} onClick={()=>setMode(null)}>← Back</button>
         </>}
 
