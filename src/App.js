@@ -300,11 +300,10 @@ function calcPoolHealth(last, shockMin, readings) {
     return { value: null, date: null };
   }
 
-  const cyaRecent = mostRecentValue("cya");
-  const taRecent  = mostRecentValue("alkalinity");
+  const cyaRecent     = mostRecentValue("cya");
+  const taRecent      = mostRecentValue("alkalinity");
+  const calciumRecent = mostRecentValue("calcium_hardness");
 
-  // Test intervals — SWG summer pool cadence per #6 feedback
-  // FC/pH every 2-3 days (logged manually), TA every 14 days, CYA every 14 days in swim season, Salt monthly
   function nextTestInfo(lastDate, intervalDays) {
     if (!lastDate) return { dueLabel: "Never tested", overdue: true, urgency: "red" };
     const due = nextDueDate(lastDate, intervalDays);
@@ -314,15 +313,17 @@ function calcPoolHealth(last, shockMin, readings) {
     return { dueLabel: `Due ${formatDate(due)}`, overdue: false, urgency: "green" };
   }
 
-  const cyaTestInfo = nextTestInfo(cyaRecent.date, 14); // every 14 days in swim season
-  const taTestInfo  = nextTestInfo(taRecent.date, 14);
+  const cyaTestInfo     = nextTestInfo(cyaRecent.date, 14);
+  const taTestInfo      = nextTestInfo(taRecent.date, 14);
+  const calciumTestInfo = nextTestInfo(calciumRecent.date, 90);
 
   const params = [
-    { key: "free_chlorine", label: "FC",   shortLabel:"FC",   value: last.free_chlorine,   unit: "ppm",  testInterval: null },
-    { key: "ph",            label: "pH",   shortLabel:"pH",   value: last.ph,               unit: "",     testInterval: null },
-    { key: "cya",           label: "CYA",  shortLabel:"CYA",  value: cyaRecent.value,        unit: "ppm",  testInterval: 14, testedDate: cyaRecent.date, testInfo: cyaTestInfo },
-    { key: "salt",          label: "Salt", shortLabel:"Salt", value: last.salt,              unit: "ppm",  testInterval: null },
-    { key: "alkalinity",    label: "TA",   shortLabel:"TA",   value: taRecent.value,         unit: "ppm",  testInterval: 14, testedDate: taRecent.date, testInfo: taTestInfo },
+    { key: "free_chlorine", label: "Free Chlorine", shortLabel:"FC",   value: last.free_chlorine,   unit: "ppm",  target:"4–6 ppm",    testInterval: null },
+    { key: "ph",            label: "pH",             shortLabel:"pH",   value: last.ph,               unit: "",     target:"7.2–7.8",    testInterval: null },
+    { key: "cya",           label: "Stabilizer",     shortLabel:"CYA",  value: cyaRecent.value,        unit: "ppm",  target:"60–80 ppm",  testInterval: 14, testedDate: cyaRecent.date, testInfo: cyaTestInfo },
+    { key: "salt",          label: "Salt",            shortLabel:"Salt", value: last.salt,              unit: "ppm",  target:"3200–3600",  testInterval: null },
+    { key: "alkalinity",    label: "Total Alkalinity",shortLabel:"TA",   value: taRecent.value,         unit: "ppm",  target:"80–120 ppm", testInterval: 14, testedDate: taRecent.date, testInfo: taTestInfo },
+    { key: "calcium_hardness", label: "Calcium Hardness", shortLabel:"Ca", value: calciumRecent.value, unit: "ppm",  target:"150–250 ppm",testInterval: 90, testedDate: calciumRecent.date, testInfo: calciumTestInfo },
   ].map(p => {
     const trend = trendDirection(readings, p.key, p.value);
     const trendArrowChar = trend==="up" ? "⬆️" : trend==="down" ? "⬇️" : trend==="flat" ? "➡️" : null;
@@ -1456,21 +1457,15 @@ function getChemRecommendations(last, readings, filterBaseline) {
 
   if(lsi !== null) {
     const lsiStatus = lsi < -0.3 ? "corrosive" : lsi > 0.3 ? "scaling" : "balanced";
-    // LSI "corrosive" is common and largely expected for vinyl/SWG pools at normal calcium levels
-    // (150-250 ppm). Only flag it if calcium is actually logged and we have a real reading,
-    // and only as informational — LSI is designed for plaster pools and less critical for vinyl.
+    // Corrosive LSI is mathematically inevitable for vinyl/SWG pools at normal calcium levels
+    // (150-250 ppm) — you'd need Ca>650 ppm to balance LSI, which would cause scaling on a vinyl
+    // pool. LSI is a plaster/gunite metric. Corrosive alerts suppressed entirely.
+    // Only alert on scaling (positive LSI) which is genuinely actionable regardless of pool type.
     if(lsiStatus === "scaling") {
       recs.push({ priority:"low", param:"LSI", icon:"📊",
         action:`LSI ${lsi} — scaling tendency`,
-        detail:`Water has a slight tendency to deposit scale. Monitor equipment and surfaces. First step: adjust pH toward 7.4.`,
+        detail:`Water has a slight tendency to deposit scale. First step: adjust pH toward 7.4. Monitor equipment and tile surfaces for deposits.`,
         color:COLORS.amber });
-    } else if(lsiStatus === "corrosive" && calciumValue !== null) {
-      // Only show if calcium is actually logged — estimated 200 ppm almost always shows corrosive
-      // for vinyl SWG pools and isn't actionable
-      recs.push({ priority:"low", param:"LSI", icon:"📊",
-        action:`LSI ${lsi} — slightly corrosive`,
-        detail:`Normal range for vinyl/SWG pools. Monitor equipment surfaces. Raising calcium or alkalinity slightly would improve LSI.`,
-        color:COLORS.slate });
     }
   }
 
@@ -1490,7 +1485,7 @@ function getChemRecommendations(last, readings, filterBaseline) {
 // ─── STYLES ───────────────────────────────────────────────────────────────────
 const S={
   app:{background:COLORS.navy,minHeight:"100vh",maxWidth:430,margin:"0 auto",fontFamily:"'Inter',system-ui,sans-serif",color:COLORS.white,position:"relative",paddingBottom:160},
-  header:{background:COLORS.navyMid,padding:"16px 20px 12px",borderBottom:`1px solid ${COLORS.navyLight}`,position:"sticky",top:0,zIndex:10},
+  header:{background:COLORS.navyMid,padding:"16px 20px 12px",paddingTop:"calc(env(safe-area-inset-top) + 16px)",borderBottom:`1px solid ${COLORS.navyLight}`,position:"sticky",top:0,zIndex:10},
   headerRow:{display:"flex",justifyContent:"space-between",alignItems:"center"},
   logo:{fontSize:18,fontWeight:700,letterSpacing:"-0.5px"},
   logoAccent:{color:COLORS.blue},
@@ -1501,34 +1496,33 @@ const S={
   statusCard:(c)=>({background:COLORS.navyMid,borderRadius:14,padding:"16px 18px",marginBottom:14,border:`1px solid ${COLORS.navyLight}`,borderLeft:`3px solid ${c}`}),
   badge:(c)=>({display:"inline-block",background:c+"22",color:c,borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:600}),
   memberDot:(m)=>({display:"inline-block",width:8,height:8,borderRadius:"50%",background:MEMBER_COLORS[m]||COLORS.slate,marginRight:6}),
-  btn:{background:COLORS.blue,color:"#fff",border:"none",borderRadius:10,padding:"13px 18px",fontSize:14,fontWeight:600,cursor:"pointer",width:"100%",marginTop:12},
-  btnSm:{background:COLORS.navyLight,color:COLORS.slateLight,border:"none",borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0},
-  btnGreen:{background:COLORS.green+"22",color:COLORS.green,border:`1px solid ${COLORS.green}44`,borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0},
-  btnCheck:{background:COLORS.green+"22",color:COLORS.green,border:`1px solid ${COLORS.green}44`,borderRadius:6,padding:"5px 9px",fontSize:13,fontWeight:700,cursor:"pointer",flexShrink:0,lineHeight:1,minWidth:28,textAlign:"center"},
-  btnRed:{background:COLORS.red+"22",color:COLORS.red,border:`1px solid ${COLORS.red}44`,borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0},
-  btnAmber:{background:COLORS.amber+"22",color:COLORS.amber,border:`1px solid ${COLORS.amber}44`,borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0},
-  input:{background:COLORS.navyLight,border:`1px solid ${COLORS.navyLight}`,borderRadius:10,padding:"11px 14px",fontSize:14,color:COLORS.white,width:"100%",boxSizing:"border-box",outline:"none",marginBottom:12},
+  btn:{background:COLORS.blue,color:"#fff",border:"none",borderRadius:10,padding:"13px 18px",fontSize:14,fontWeight:600,cursor:"pointer",width:"100%",marginTop:12,WebkitTapHighlightColor:"transparent",transition:"opacity 0.1s"},
+  btnSm:{background:COLORS.navyLight,color:COLORS.slateLight,border:"none",borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0,WebkitTapHighlightColor:"transparent"},
+  btnGreen:{background:COLORS.green+"22",color:COLORS.green,border:`1px solid ${COLORS.green}44`,borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0,WebkitTapHighlightColor:"transparent"},
+  btnCheck:{background:COLORS.green+"22",color:COLORS.green,border:`1px solid ${COLORS.green}44`,borderRadius:6,padding:"5px 9px",fontSize:13,fontWeight:700,cursor:"pointer",flexShrink:0,lineHeight:1,minWidth:28,textAlign:"center",WebkitTapHighlightColor:"transparent"},
+  btnRed:{background:COLORS.red+"22",color:COLORS.red,border:`1px solid ${COLORS.red}44`,borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0,WebkitTapHighlightColor:"transparent"},
+  btnAmber:{background:COLORS.amber+"22",color:COLORS.amber,border:`1px solid ${COLORS.amber}44`,borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0,WebkitTapHighlightColor:"transparent"},
+  input:{background:COLORS.navyLight,border:"1px solid #2a3a58",borderRadius:10,padding:"11px 14px",fontSize:14,color:COLORS.white,width:"100%",boxSizing:"border-box",outline:"none",marginBottom:12,transition:"border-color 0.15s"},
   label:{fontSize:11,color:COLORS.slate,marginBottom:4,display:"block",fontWeight:600},
   row:{display:"flex",gap:10},col:{flex:1},
   statGrid:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8},
   statCell:(c)=>({background:COLORS.navyMid,border:`1px solid ${COLORS.navyLight}`,borderTop:`3px solid ${c}`,borderRadius:10,padding:"12px 8px",textAlign:"center"}),
   statVal:{fontSize:20,fontWeight:700,letterSpacing:"-0.2px"},statLbl:{fontSize:10,color:COLORS.slate,marginTop:2},statTarget:{fontSize:9,color:COLORS.slate,marginTop:1},
   nav:{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:COLORS.navyMid,borderTop:`1px solid ${COLORS.navyLight}`,display:"flex",zIndex:20,paddingBottom:"env(safe-area-inset-bottom)"},
-  navItem:(a)=>({flex:1,display:"flex",flexDirection:"column",alignItems:"center",padding:"10px 0 8px",cursor:"pointer",background:"transparent",border:"none",color:a?COLORS.blue:COLORS.slate,fontSize:10,fontWeight:a?700:500,gap:4,borderTop:a?`2px solid ${COLORS.blue}`:"2px solid transparent"}),
+  navItem:(a)=>({flex:1,display:"flex",flexDirection:"column",alignItems:"center",padding:"10px 0 8px",cursor:"pointer",background:"transparent",border:"none",color:a?COLORS.blue:COLORS.slate,fontSize:10,fontWeight:a?700:500,gap:4,borderTop:a?`2px solid ${COLORS.blue}`:"2px solid transparent",WebkitTapHighlightColor:"transparent",transition:"color 0.15s"}),
   modal:{position:"fixed",inset:0,background:"#000c",zIndex:50,display:"flex",alignItems:"flex-end",justifyContent:"center"},
-  sheet:{background:COLORS.navyMid,borderRadius:"20px 20px 0 0",padding:"12px 20px 48px",width:"100%",maxWidth:430,maxHeight:"92vh",overflowY:"auto"},
+  sheet:{background:COLORS.navyMid,borderRadius:"20px 20px 0 0",padding:"12px 20px 48px",width:"100%",maxWidth:430,maxHeight:"92vh",overflowY:"auto",animation:"slideUp 0.25s ease-out"},
   sheetHandle:{width:40,height:4,borderRadius:2,background:COLORS.navyLight,margin:"0 auto 16px"},
   sheetTitle:{fontSize:18,fontWeight:700,marginBottom:18},
-  chip:(a,c)=>({display:"inline-block",padding:"4px 12px",borderRadius:20,fontSize:12,fontWeight:600,cursor:"pointer",border:`1px solid ${a?c:COLORS.navyLight}`,background:a?c+"22":"transparent",color:a?c:COLORS.slate,marginRight:6,marginBottom:6}),
+  chip:(a,c)=>({display:"inline-block",padding:"4px 12px",borderRadius:20,fontSize:12,fontWeight:600,cursor:"pointer",border:`1px solid ${a?c:COLORS.navyLight}`,background:a?c+"22":"transparent",color:a?c:COLORS.slate,marginRight:6,marginBottom:6,WebkitTapHighlightColor:"transparent",transition:"all 0.12s"}),
   tabs:{display:"flex",background:COLORS.navyMid,borderRadius:10,padding:3,marginBottom:16,border:`1px solid ${COLORS.navyLight}`},
-  tabBtn:(a)=>({flex:1,border:"none",borderRadius:8,padding:"8px 0",cursor:"pointer",background:a?COLORS.blue:"transparent",color:a?"#fff":COLORS.slate,fontSize:12,fontWeight:700,textTransform:"capitalize",transition:"all 0.15s"}),
+  tabBtn:(a)=>({flex:1,border:"none",borderRadius:8,padding:"8px 0",cursor:"pointer",background:a?COLORS.blue:"transparent",color:a?"#fff":COLORS.slate,fontSize:12,fontWeight:700,textTransform:"capitalize",transition:"all 0.15s",WebkitTapHighlightColor:"transparent"}),
   empty:{textAlign:"center",padding:"40px 20px",color:COLORS.slate,fontSize:14},
   progress:{height:3,background:COLORS.navyLight,borderRadius:2,marginTop:8,overflow:"hidden"},
-  progressFill:(pct,c)=>({height:"100%",width:`${Math.min(100,Math.max(0,pct))}%`,background:c,borderRadius:2}),
+  progressFill:(pct,c)=>({height:"100%",width:`${Math.min(100,Math.max(0,pct))}%`,background:c,borderRadius:2,transition:"width 0.4s ease-out"}),
   gcBanner:{background:COLORS.blue+"18",border:`1px solid ${COLORS.blue}44`,borderRadius:14,padding:"14px 18px",marginBottom:16},
   swipeHint:{fontSize:10,color:COLORS.slate,textAlign:"center",marginBottom:8,letterSpacing:"0.5px"},
 };
-
 // ─── ICONS ────────────────────────────────────────────────────────────────────
 const I={
   home:(a)=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={a?2.5:2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
@@ -1612,6 +1606,19 @@ function Modal({title,onClose,children}){
   );
 }
 function Loading(){return <div style={S.empty}>Loading…</div>;}
+
+function SwipeHint(){
+  const [seen,setSeen] = useState(()=>{
+    try{return sessionStorage.getItem("swipeHintSeen")==="1";}catch{return false;}
+  });
+  if(seen) return null;
+  return(
+    <div style={S.swipeHint} onClick={()=>{
+      setSeen(true);
+      try{sessionStorage.setItem("swipeHintSeen","1");}catch{}
+    }}>← swipe left to edit or delete</div>
+  );
+}
 
 // ─── DATA HOOK ────────────────────────────────────────────────────────────────
 function useTable(table,orderCol,orderAsc=false){
@@ -2101,7 +2108,7 @@ function College(){
 
       {tab==="deadlines"&&<>
         {deadlines.loading?<Loading/>:<>
-          <div style={S.swipeHint}>← swipe left to edit or delete</div>
+          <SwipeHint/>
 
           {/* Overdue */}
           {overdueDeadlines.length>0&&<>
@@ -2230,7 +2237,7 @@ function College(){
 
       {tab==="schools"&&<>
         {schools.loading?<Loading/>:<>
-          <div style={S.swipeHint}>← swipe left to edit or delete</div>
+          <SwipeHint/>
           {["target","researching","applying","applied","accepted","rejected"].map(status=>{
             const group=schools.data.filter(s=>s.status===status);
             if(!group.length)return null;
@@ -2267,7 +2274,7 @@ function College(){
       {tab==="essays"&&<>
         {essays.loading?<Loading/>:<>
           <div style={{fontSize:12,color:COLORS.slate,marginBottom:12,lineHeight:1.5}}>Track Common App and supplemental essays — status and due dates.</div>
-          <div style={S.swipeHint}>← swipe left to edit or delete</div>
+          <SwipeHint/>
           {["not started","drafting","review","submitted"].map(status=>{
             const group=essays.data.filter(e=>(e.status||"not started")===status);
             if(!group.length)return null;
@@ -2309,7 +2316,7 @@ function College(){
       {tab==="tests"&&<>
         {testPlan.loading?<Loading/>:<>
           <div style={{fontSize:12,color:COLORS.slate,marginBottom:12,lineHeight:1.5}}>Plan upcoming SAT/ACT attempts — registration deadlines and target scores.</div>
-          <div style={S.swipeHint}>← swipe left to edit or delete</div>
+          <SwipeHint/>
           {testPlan.data.map(t=>{
             const days=daysBetween(t.target_date);
             return(
@@ -2345,7 +2352,7 @@ function College(){
               </div>
             </div>
           )}
-          <div style={S.swipeHint}>← swipe left to edit or delete</div>
+          <SwipeHint/>
           {scores.data.map(s=>(
             <SwipeCard key={s.id} id={s.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
               onEdit={()=>openEdit("score",s)}
@@ -2964,53 +2971,126 @@ Keep the ENTIRE brief under 150 words total. Bullets only, no exceptions.`;
 
 // ─── TREATMENT LOG MODAL ──────────────────────────────────────────────────────
 function TreatmentLogModal({last, recs, onSave, onClose}) {
-  const [checked, setChecked] = useState({});
-  const [notes, setNotes]     = useState("");
-  const [saving, setSaving]   = useState(false);
+  const [checked,setChecked]   = useState({});
+  const [details,setDetails]   = useState({}); // per-item editable detail override
+  const [custom,setCustom]     = useState([]); // [{type, detail}] freeform additions
+  const [saving,setSaving]     = useState(false);
 
   const actionItems = recs.filter(r=>r.priority==="high"||r.priority==="med");
 
-  function toggle(i) { setChecked(p=>({...p,[i]:!p[i]})); }
+  function toggle(i){
+    setChecked(p=>({...p,[i]:!p[i]}));
+    // Pre-fill detail with the recommendation's action text when first checked
+    if(!checked[i] && !details[i]){
+      setDetails(p=>({...p,[i]:actionItems[i].action}));
+    }
+  }
 
-  async function save() {
+  function addCustom(){
+    setCustom(p=>[...p,{type:"",detail:""}]);
+  }
+  function updateCustom(i,field,val){
+    setCustom(p=>p.map((c,ci)=>ci===i?{...c,[field]:val}:c));
+  }
+  function removeCustom(i){
+    setCustom(p=>p.filter((_,ci)=>ci!==i));
+  }
+
+  const COMMON_TREATMENTS = [
+    "Added muriatic acid","Added sodium bicarbonate","Added salt","Added CYA stabilizer",
+    "Added liquid chlorine","Added shock","Brushed walls & floor","Vacuumed",
+    "Cleaned filter cartridge","Cleaned salt cell","Adjusted SWG setting",
+    "Backwashed","Checked flow switch","Added algaecide","Other",
+  ];
+
+  const checkedItems = actionItems.filter((_,i)=>checked[i]);
+  const validCustom  = custom.filter(c=>c.detail.trim().length>0);
+  const hasAnything  = checkedItems.length>0 || validCustom.length>0;
+
+  async function save(){
     setSaving(true);
-    const completedItems = actionItems.filter((_,i)=>checked[i]).map(r=>`${r.param}: ${r.action}`);
-    if(completedItems.length===0){setSaving(false);return;}
-    const treatmentNote = [
-      `Treatment applied — ${new Date().toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})}`,
-      `Starting chemistry: FC=${last?.free_chlorine} ppm, pH=${last?.ph}, Salt=${last?.salt} ppm, CYA=${last?.cya??'unknown'} ppm`,
-      ...completedItems,
-      notes ? `Notes: ${notes}` : null
-    ].filter(Boolean).join(' | ');
-    await onSave(treatmentNote);
+    const lines = [
+      `Treatment — ${new Date().toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})}`,
+      `Chemistry: FC=${last?.free_chlorine??'—'}, pH=${last?.ph??'—'}, Salt=${last?.salt??'—'}, CYA=${last?.cya??'—'}`,
+      ...checkedItems.map((_,idx)=>{
+        const origIdx = actionItems.indexOf(checkedItems[idx]);
+        return details[origIdx]||actionItems[origIdx].action;
+      }),
+      ...validCustom.map(c=>c.type?`${c.type}: ${c.detail}`:c.detail),
+    ];
+    await onSave(lines.filter(Boolean).join(' | '));
     setSaving(false);
     onClose();
   }
 
-  return (
+  return(
     <Modal title="Log Treatment" onClose={onClose}>
-      <div style={{fontSize:12,color:COLORS.slate,marginBottom:16,lineHeight:1.5}}>
-        Check off what you're doing today. This logs your treatment with starting chemistry values.
+      <div style={{fontSize:12,color:COLORS.slate,marginBottom:14,lineHeight:1.5}}>
+        Check what you did. Edit the description to match exactly what you actually used or adjusted.
       </div>
-      {actionItems.map((r,i)=>(
-        <div key={i} onClick={()=>toggle(i)} style={{...S.card,cursor:"pointer",borderLeft:`3px solid ${checked[i]?COLORS.green:r.color}`,marginBottom:8}}>
-          <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
-            <div style={{width:20,height:20,borderRadius:6,border:`2px solid ${checked[i]?COLORS.green:COLORS.slate}`,background:checked[i]?COLORS.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:2}}>
-              {checked[i]&&<span style={{color:"#fff",fontSize:12}}>✓</span>}
+
+      {/* Recommendation-based items */}
+      {actionItems.length>0&&<>
+        <div style={{fontSize:10,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8}}>Recommended Actions</div>
+        {actionItems.map((r,i)=>(
+          <div key={i} style={{...S.card,borderLeft:`3px solid ${checked[i]?COLORS.green:r.color}`,marginBottom:8,padding:"12px 14px"}}>
+            <div style={{display:"flex",gap:10,alignItems:"flex-start"}} onClick={()=>toggle(i)}>
+              <div style={{width:20,height:20,borderRadius:6,border:`2px solid ${checked[i]?COLORS.green:COLORS.slate}`,background:checked[i]?COLORS.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1,cursor:"pointer"}}>
+                {checked[i]&&<span style={{color:"#fff",fontSize:11,lineHeight:1}}>✓</span>}
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:600,color:checked[i]?COLORS.white:COLORS.slateLight}}>{r.icon} {r.action}</div>
+                {!checked[i]&&<div style={{fontSize:11,color:COLORS.slate,marginTop:2,lineHeight:1.4}}>{r.detail}</div>}
+              </div>
             </div>
-            <div>
-              <div style={{fontSize:13,fontWeight:600}}>{r.icon} {r.action}</div>
-              <div style={{fontSize:11,color:COLORS.slate,marginTop:3,lineHeight:1.5}}>{r.detail}</div>
-            </div>
+            {/* Editable detail when checked */}
+            {checked[i]&&(
+              <div style={{marginTop:8}}>
+                <label style={{...S.label,marginBottom:4}}>What you actually did</label>
+                <input
+                  style={{...S.input,marginBottom:0,fontSize:12}}
+                  value={details[i]||""}
+                  placeholder="e.g. Added 10 oz muriatic acid (not 11)"
+                  onChange={e=>setDetails(p=>({...p,[i]:e.target.value}))}
+                />
+              </div>
+            )}
           </div>
+        ))}
+      </>}
+
+      {/* Custom / additional treatments */}
+      <div style={{fontSize:10,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginTop:14,marginBottom:8}}>Additional Treatments</div>
+      {custom.map((c,i)=>(
+        <div key={i} style={{...S.card,marginBottom:8,padding:"12px 14px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <label style={{...S.label,marginBottom:0}}>Treatment type</label>
+            <button onClick={()=>removeCustom(i)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:14,padding:0}}>✕</button>
+          </div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
+            {COMMON_TREATMENTS.map(t=>(
+              <span key={t} style={S.chip(c.type===t,COLORS.blue)} onClick={()=>updateCustom(i,"type",c.type===t?"":t)}>{t}</span>
+            ))}
+          </div>
+          <label style={S.label}>Details / amount</label>
+          <input
+            style={{...S.input,marginBottom:0,fontSize:12}}
+            placeholder="e.g. 2 lbs, raised SWG from 40% to 50%, etc."
+            value={c.detail}
+            onChange={e=>updateCustom(i,"detail",e.target.value)}
+          />
         </div>
       ))}
-      <label style={{...S.label,marginTop:12}}>Additional notes</label>
-      <input style={S.input} placeholder="e.g. Added 1 quart muriatic acid, lowered SWG to 45%" value={notes} onChange={e=>setNotes(e.target.value)}/>
-      <button style={{...S.btn,marginTop:8,background:Object.values(checked).some(Boolean)?COLORS.green:COLORS.slate}} onClick={save} disabled={saving||!Object.values(checked).some(Boolean)}>
-        {saving?"Saving…":"Log Completed Treatment"}
+      <button onClick={addCustom} style={{...S.btnSm,width:"100%",marginBottom:12}}>+ Add Treatment</button>
+
+      <button
+        style={{...S.btn,background:hasAnything?COLORS.green:COLORS.slate}}
+        onClick={save}
+        disabled={saving||!hasAnything}
+      >
+        {saving?"Saving…":"Log Treatment"}
       </button>
-      {!Object.values(checked).some(Boolean) && <div style={{fontSize:11,color:COLORS.slate,textAlign:"center",marginTop:8}}>Check at least one item to log</div>}
+      {!hasAnything&&<div style={{fontSize:11,color:COLORS.slate,textAlign:"center",marginTop:8}}>Check an item or add a treatment above</div>}
     </Modal>
   );
 }
@@ -3227,20 +3307,49 @@ function Pool(){
             </div>
           </div>
           {showChemDetails&&(
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginTop:12}}>
+            <div style={{marginTop:12,borderTop:`1px solid ${COLORS.navyLight}`,paddingTop:12}}>
               {health.params.map((p,i)=>(
-                <div key={i} style={{background:COLORS.navyMid,borderRadius:10,padding:"10px 8px",border:`1px solid ${p.color}44`,textAlign:"center"}}>
-                  <div style={{fontSize:11,color:COLORS.slate,fontWeight:700}}>{p.shortLabel}</div>
-                  <div style={{fontSize:16,fontWeight:700,color:p.color,marginTop:4}}>{p.icon}</div>
-                  <div style={{fontSize:11,fontWeight:600,color:p.color}}>{p.statusLabel}</div>
-                  <div style={{fontSize:13,fontWeight:700,color:COLORS.white,marginTop:2}}>
-                    {p.value!==null&&p.value!==undefined?`${p.value}${p.unit}`:p.lastTestedLabel||"—"}
+                <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:i<health.params.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
+                  {/* Status dot */}
+                  <div style={{width:8,height:8,borderRadius:"50%",background:p.color,flexShrink:0,marginTop:1}}/>
+                  {/* Name + status */}
+                  <div style={{flex:"0 0 110px"}}>
+                    <div style={{fontSize:12,fontWeight:700,color:COLORS.white}}>{p.label}</div>
+                    <div style={{fontSize:11,color:p.color,marginTop:1}}>{p.statusLabel}</div>
                   </div>
-                  {p.trendArrow&&<div style={{fontSize:10,color:COLORS.slate,marginTop:2}}>{p.trendArrow}</div>}
-                  {p.lastTestedLabel&&p.value!==null&&p.value!==undefined&&<div style={{fontSize:9,color:COLORS.slate,marginTop:2,lineHeight:1.3}}>{p.lastTestedLabel}</div>}
-                  {p.testInfo&&<div style={{fontSize:9,color:p.testInfo.urgency==="red"?COLORS.red:p.testInfo.urgency==="amber"?COLORS.amber:COLORS.slate,marginTop:2,lineHeight:1.3}}>{p.testInfo.dueLabel}</div>}
+                  {/* Value + trend */}
+                  <div style={{flex:"0 0 70px",textAlign:"right"}}>
+                    <div style={{fontSize:14,fontWeight:700,color:p.value!==null&&p.value!==undefined?COLORS.white:COLORS.slate}}>
+                      {p.value!==null&&p.value!==undefined?`${p.value}${p.unit}`:"—"}
+                      {p.trendArrow&&<span style={{fontSize:11,marginLeft:3}}>{p.trendArrow}</span>}
+                    </div>
+                    <div style={{fontSize:10,color:COLORS.slate,marginTop:1}}>{p.target}</div>
+                  </div>
+                  {/* Last tested / due */}
+                  <div style={{flex:1,textAlign:"right"}}>
+                    {p.lastTestedLabel&&<div style={{fontSize:10,color:COLORS.slate,lineHeight:1.3}}>{p.lastTestedLabel}</div>}
+                    {p.testInfo&&<div style={{fontSize:10,color:p.testInfo.urgency==="red"?COLORS.red:p.testInfo.urgency==="amber"?COLORS.amber:COLORS.slate,marginTop:p.lastTestedLabel?2:0,lineHeight:1.3}}>{p.testInfo.dueLabel}</div>}
+                    {!p.lastTestedLabel&&!p.testInfo&&<div style={{fontSize:10,color:COLORS.slate}}>Every reading</div>}
+                  </div>
                 </div>
               ))}
+              {/* CC row — always from most recent reading */}
+              {last.cc!==null&&last.cc!==undefined&&(
+                <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderTop:`1px solid ${COLORS.navyLight}`}}>
+                  <div style={{width:8,height:8,borderRadius:"50%",background:last.cc>0.5?COLORS.red:last.cc>0?COLORS.amber:COLORS.green,flexShrink:0,marginTop:1}}/>
+                  <div style={{flex:"0 0 110px"}}>
+                    <div style={{fontSize:12,fontWeight:700,color:COLORS.white}}>Combined Chlorine</div>
+                    <div style={{fontSize:11,color:last.cc>0.5?COLORS.red:last.cc>0?COLORS.amber:COLORS.green,marginTop:1}}>{last.cc===0?"None detected":last.cc<=0.5?"Acceptable":"Elevated"}</div>
+                  </div>
+                  <div style={{flex:"0 0 70px",textAlign:"right"}}>
+                    <div style={{fontSize:14,fontWeight:700,color:COLORS.white}}>{last.cc} ppm</div>
+                    <div style={{fontSize:10,color:COLORS.slate,marginTop:1}}>target: 0</div>
+                  </div>
+                  <div style={{flex:1,textAlign:"right"}}>
+                    <div style={{fontSize:10,color:COLORS.slate}}>Every reading</div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -3350,7 +3459,7 @@ function Pool(){
 
       {tab==="schedule"&&<>
         {schedule.loading?<Loading/>:<>
-          <div style={S.swipeHint}>← swipe left to edit or delete</div>
+          <SwipeHint/>
           {schedSorted.map(item=>{
             const st=maintStatus(item);const color=maintColor(st);
             const nd=nextDueDate(item.last_completed,item.interval_days);
@@ -3381,7 +3490,7 @@ function Pool(){
 
       {tab==="history"&&<>
         {(readings.loading||maintLog.loading)?<Loading/>:<>
-          <div style={S.swipeHint}>← swipe left to edit or delete</div>
+          <SwipeHint/>
           {(()=>{
             // Interleave readings and maintenance entries
             // Use logged_at for readings (precise datetime), date for maintenance (date only)
@@ -4231,26 +4340,98 @@ function Finance(){
             </div>
           </div>
 
-          {retProj.bridgeYears>0&&(
-            <div style={{...S.statusCard(retProj.drawdown.bridgeShortfall>0?COLORS.red:COLORS.amber),marginBottom:12}}>
-              <div style={{fontSize:12,fontWeight:700,marginBottom:4}}>🌉 Early Retirement Bridge — age {assump.retirement_age} to {retProj.drawdown.medicareAge}</div>
-              <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>
-                {retProj.bridgeYears} years before Medicare eligibility (age {retProj.drawdown.medicareAge}). Social Security separately assumed to start at age {retProj.drawdown.ssClaimAge}. Healthcare grows ~5.5%/yr for the full plan, spending grows with inflation.
-              </div>
-              <div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${COLORS.navyLight}`}}>
-                <div style={{fontSize:11,fontWeight:700,color:COLORS.white,marginBottom:2}}>Rule of 55</div>
-                <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>
-                  At projected balance, ~{Math.round(retProj.ruleOf55Share*100)}% of your accounts will be in 403(b)/401(k) — penalty-free to access at separation from service, even before 59½. The simulation draws bridge-year spending from this pool first, letting it compound the rest of the time.
+          {retProj.bridgeYears>0&&(()=>{
+            const d = retProj.drawdown;
+            const bridgeOk = d.bridgeShortfall<=0;
+            const r55Pct = Math.round(retProj.ruleOf55Share*100);
+            const spouseSSAge = assump.ss_claim_age_spouse||67;
+            const userSSAge   = assump.ss_claim_age||67;
+            const [showBridgeTable,setShowBridgeTable] = React.useState(false);
+
+            return(
+              <div style={{...S.card,borderTop:`3px solid ${bridgeOk?COLORS.amber:COLORS.red}`,marginBottom:12}}>
+                {/* Header */}
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+                  <div>
+                    <div style={{fontSize:11,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:3}}>Early Retirement Bridge</div>
+                    <div style={{fontSize:18,fontWeight:800,letterSpacing:"-0.3px"}}>Age {assump.retirement_age} → {d.medicareAge}</div>
+                    <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>{retProj.bridgeYears} year{retProj.bridgeYears!==1?"s":""} before Medicare</div>
+                  </div>
+                  <div style={{textAlign:"right",flexShrink:0,marginLeft:12}}>
+                    <div style={{fontSize:20,fontWeight:800,color:bridgeOk?COLORS.green:COLORS.red}}>{bridgeOk?"✓ Covered":"⚠️ Short"}</div>
+                    {!bridgeOk&&<div style={{fontSize:11,color:COLORS.red,marginTop:2}}>~{formatMoneyShort(d.bridgeShortfall)}</div>}
+                  </div>
+                </div>
+
+                {/* Phase timeline — what happens each phase */}
+                <div style={{background:COLORS.navyLight,borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+                  <div style={{fontSize:10,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>What Happens When</div>
+                  {[
+                    { age:assump.retirement_age, label:"Retire", detail:`Draw from Rule of 55 funds (${r55Pct}% of balance) — no 10% penalty`, color:COLORS.blue, icon:"🏁" },
+                    Math.min(userSSAge,spouseSSAge)<d.medicareAge ? { age:Math.min(userSSAge,spouseSSAge), label:"First SS Benefit", detail:`${userSSAge<=spouseSSAge?"Your":"Kalee's"} Social Security starts — ${formatMoneyShort(userSSAge<=spouseSSAge?(assump.social_security_estimate||0):(assump.social_security_estimate_spouse||0))}/yr`, color:COLORS.green, icon:"💰" } : null,
+                    { age:d.medicareAge, label:"Medicare Eligible", detail:`Healthcare coverage begins — private insurance no longer needed`, color:COLORS.blue, icon:"🏥" },
+                    Math.max(userSSAge,spouseSSAge)>=d.medicareAge ? { age:Math.max(userSSAge,spouseSSAge), label:`${userSSAge>=spouseSSAge?"Your":"Kalee's"} SS Starts`, detail:`${formatMoneyShort(userSSAge>=spouseSSAge?(assump.social_security_estimate||0):(assump.social_security_estimate_spouse||0))}/yr — full household SS now ${formatMoneyShort((assump.social_security_estimate||0)+(assump.social_security_estimate_spouse||0))}/yr`, color:COLORS.green, icon:"💰" } : null,
+                  ].filter(Boolean).map((phase,i,arr)=>(
+                    <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",paddingBottom:i<arr.length-1?8:0,marginBottom:i<arr.length-1?8:0,borderBottom:i<arr.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
+                      <div style={{width:28,height:28,borderRadius:8,background:phase.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>{phase.icon}</div>
+                      <div style={{flex:1}}>
+                        <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:2}}>
+                          <span style={{fontSize:12,fontWeight:700,color:phase.color}}>Age {phase.age}</span>
+                          <span style={{fontSize:12,fontWeight:600,color:COLORS.white}}>{phase.label}</span>
+                        </div>
+                        <div style={{fontSize:11,color:COLORS.slate,lineHeight:1.4}}>{phase.detail}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Rule of 55 explanation */}
+                <div style={{fontSize:12,color:COLORS.slateLight,lineHeight:1.6,marginBottom:10}}>
+                  <strong style={{color:COLORS.white}}>Rule of 55:</strong> If you leave your employer at age 55 or later, you can withdraw from that employer's 401(k)/403(b) penalty-free — even before 59½. Only accounts from the employer you separate from at or after 55 qualify. IRAs do not qualify.
+                </div>
+                <div style={{fontSize:12,color:COLORS.slateLight,lineHeight:1.6,marginBottom:12}}>
+                  ~{r55Pct}% of your current balance ({formatMoneyShort(retProj.ruleOf55Balance)}) is in Rule of 55-eligible accounts. The simulation draws bridge spending from this pool first, letting the rest compound untouched until Medicare age.
+                </div>
+
+                {/* Year-by-year table toggle */}
+                <button onClick={()=>setShowBridgeTable(p=>!p)} style={{fontSize:11,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,textDecoration:"underline",marginBottom:showBridgeTable?10:0}}>
+                  {showBridgeTable?"Hide year-by-year breakdown":"Show year-by-year breakdown →"}
+                </button>
+
+                {showBridgeTable&&d.bridgeSchedule&&d.bridgeSchedule.length>0&&(
+                  <div style={{marginTop:8}}>
+                    {/* Column headers */}
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:4,marginBottom:6}}>
+                      {["Age","Need","R55 Pool","Total"].map(h=>(
+                        <div key={h} style={{fontSize:9,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",textAlign:"right",paddingRight:4}}>{h}</div>
+                      ))}
+                    </div>
+                    {d.bridgeSchedule.map((row,i)=>{
+                      const isLast = i===d.bridgeSchedule.length-1;
+                      const lowBalance = row.ruleOf55Pool < row.needYear;
+                      return(
+                        <div key={row.age} style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:4,padding:"5px 0",borderBottom:!isLast?`1px solid ${COLORS.navyLight}`:"none"}}>
+                          <div style={{fontSize:11,fontWeight:600,color:COLORS.white}}>Age {row.age}</div>
+                          <div style={{fontSize:11,color:COLORS.slate,textAlign:"right",paddingRight:4}}>{formatMoneyShort(row.needYear)}</div>
+                          <div style={{fontSize:11,color:lowBalance?COLORS.red:COLORS.slate,textAlign:"right",paddingRight:4}}>{formatMoneyShort(row.ruleOf55Pool)}</div>
+                          <div style={{fontSize:11,fontWeight:600,color:row.balance>0?COLORS.white:COLORS.red,textAlign:"right",paddingRight:4}}>{formatMoneyShort(row.balance)}</div>
+                        </div>
+                      );
+                    })}
+                    <div style={{fontSize:10,color:COLORS.slate,marginTop:8,lineHeight:1.4}}>Need = spending + healthcare that year. R55 Pool = Rule of 55 balance remaining. Total = combined balance entering next year.</div>
+                  </div>
+                )}
+
+                {/* Bottom status */}
+                <div style={{marginTop:12,paddingTop:10,borderTop:`1px solid ${COLORS.navyLight}`}}>
+                  {bridgeOk
+                    ?<div style={{fontSize:12,color:COLORS.green,fontWeight:600}}>✓ Rule of 55 funds fully cover the bridge. No penalty withdrawals needed from IRAs or taxable accounts during this window.</div>
+                    :<div style={{fontSize:12,color:COLORS.red,fontWeight:600}}>⚠️ Bridge comes up ~{formatMoneyShort(d.bridgeShortfall)} short — you'll need to tap IRA early (10% penalty) or taxable savings to cover the gap. Consider building additional taxable savings before retiring.</div>
+                  }
                 </div>
               </div>
-              <div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${COLORS.navyLight}`}}>
-                {retProj.drawdown.bridgeShortfall>0
-                  ? <div style={{fontSize:12,color:COLORS.red,fontWeight:600}}>⚠️ Bridge years come up short by ~{formatMoneyShort(retProj.drawdown.bridgeShortfall)} even using Rule of 55 funds first.</div>
-                  : <div style={{fontSize:12,color:COLORS.green,fontWeight:600}}>✓ Rule of 55 funds fully cover the bridge years — extra retirement savings can be spent down during this window without penalty.</div>
-                }
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           <div style={{...S.statusCard(retProj.statusColor),marginBottom:12}}>
             <div style={{fontSize:12,fontWeight:700,marginBottom:4}}>📉 Full Retirement Drawdown — through age {retProj.drawdown.planEndAge}</div>
@@ -4491,7 +4672,7 @@ function Finance(){
         </>}
 
         <div style={S.sectionLabel}>Accounts</div>
-        <div style={S.swipeHint}>← swipe left to edit or delete</div>
+        <SwipeHint/>
         {accounts.data.map(a=>(
           <SwipeCard key={a.id} id={a.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
             onEdit={()=>openEdit("account",a)}
@@ -4553,7 +4734,7 @@ function Finance(){
         )}
 
         <div style={S.sectionLabel}>Per-Child Goals</div>
-        <div style={S.swipeHint}>← swipe left to edit or delete</div>
+        <SwipeHint/>
         {collegeGoal.data.map(g=>(
           <SwipeCard key={g.id} id={g.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
             onEdit={()=>{setEditItem(g);setForm({...g});setShowModal("college-goal-child");}}
@@ -4593,7 +4774,7 @@ function Finance(){
         )}
 
         <div style={S.sectionLabel}>Other Debt</div>
-        <div style={S.swipeHint}>← swipe left to edit or delete</div>
+        <SwipeHint/>
         {otherDebt.data.map(d=>{
           const months = calcPayoffMonths(d.balance, d.interest_rate, d.payment_frequency==="biweekly"?d.payment_amount*2.17:d.payment_amount);
           return(
@@ -4878,7 +5059,7 @@ function QuickAdd({onNavigate}){
     {/* Floating button — sits above the nav bar */}
     <button
       onClick={()=>setOpen(true)}
-      style={{position:"fixed",bottom:72,right:"calc(50% - 215px + 16px)",width:52,height:52,borderRadius:"50%",background:COLORS.blue,color:"#fff",border:"none",fontSize:26,fontWeight:300,cursor:"pointer",zIndex:30,boxShadow:"0 4px 16px #0007",display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1}}
+      style={{position:"fixed",bottom:80,right:20,width:52,height:52,borderRadius:"50%",background:COLORS.blue,color:"#fff",border:"none",fontSize:26,fontWeight:300,cursor:"pointer",zIndex:30,boxShadow:"0 4px 20px rgba(74,144,217,0.4)",display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1,WebkitTapHighlightColor:"transparent"}}
     >+</button>
 
     {open&&<div style={S.modal} onClick={e=>e.target===e.currentTarget&&close()}>
@@ -4956,6 +5137,20 @@ export default function App(){
   const [tab,setTab] = useState("home");
   const gc           = useGoogleCalendar();
 
+  // Scroll to top on every tab change — matches native app behavior
+  function switchTab(t){
+    setTab(t);
+    window.scrollTo({top:0,behavior:"instant"});
+  }
+
+  // Swipe hint: show once, then remember via sessionStorage
+  const [swipeHintSeen] = useState(()=>{
+    try{ return sessionStorage.getItem("swipeHintSeen")==="1"; }catch{ return false; }
+  });
+  function markSwipeHintSeen(){
+    try{ sessionStorage.setItem("swipeHintSeen","1"); }catch{}
+  }
+
   const TABS=[
     {id:"home",     label:"Home",     icon:I.home},
     {id:"finance",  label:"Finance",  icon:I.finance},
@@ -4970,8 +5165,17 @@ export default function App(){
       <style>{`
         *{box-sizing:border-box;}
         input[type=number]::-webkit-inner-spin-button{opacity:0.5;}
+        input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5);}
+        input[type=time]::-webkit-calendar-picker-indicator{filter:invert(0.5);}
         select option{background:#1A2540;}
         ::-webkit-scrollbar{width:0;}
+        @keyframes slideUp{from{transform:translateY(100%);opacity:0.8;}to{transform:translateY(0);opacity:1;}}
+        button:active{opacity:0.7 !important;transform:scale(0.98);}
+        a:active{opacity:0.7;}
+        input:focus{border-color:#4A90D9 !important;box-shadow:0 0 0 3px rgba(74,144,217,0.15);}
+        textarea:focus{border-color:#4A90D9 !important;box-shadow:0 0 0 3px rgba(74,144,217,0.15);}
+        button{-webkit-tap-highlight-color:transparent;}
+        *{-webkit-tap-highlight-color:transparent;}
       `}</style>
 
       <div style={S.header}>
@@ -4989,17 +5193,17 @@ export default function App(){
         </div>
       </div>
 
-      {tab==="home"     &&<Dashboard onNavigate={setTab} gc={gc}/>}
+      {tab==="home"     &&<Dashboard onNavigate={switchTab} gc={gc}/>}
       {tab==="college"  &&<College/>}
       {tab==="home-mgmt"&&<HomeMgmt/>}
       {tab==="pool"     &&<Pool/>}
       {tab==="finance"  &&<Finance/>}
 
-      <QuickAdd onNavigate={setTab}/>
+      <QuickAdd onNavigate={switchTab}/>
 
       <nav style={S.nav}>
         {TABS.map(t=>(
-          <button key={t.id} style={S.navItem(tab===t.id)} onClick={()=>setTab(t.id)}>
+          <button key={t.id} style={S.navItem(tab===t.id)} onClick={()=>switchTab(t.id)}>
             {t.icon(tab===t.id)}<span>{t.label}</span>
           </button>
         ))}
