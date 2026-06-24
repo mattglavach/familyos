@@ -1533,7 +1533,7 @@ const S={
 
   // ── Navigation ───────────────────────────────────────────────────────────────
   nav:{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:COLORS.navyMid,borderTop:`1px solid ${COLORS.navyLight}`,display:"flex",zIndex:20,paddingBottom:"env(safe-area-inset-bottom)"},
-  navItem:(a)=>({flex:1,display:"flex",flexDirection:"column",alignItems:"center",padding:"11px 0 9px",cursor:"pointer",background:"transparent",border:"none",color:a?COLORS.blue:COLORS.slate,fontSize:15,fontWeight:a?700:500,gap:4,borderTop:a?`2px solid ${COLORS.blue}`:"2px solid transparent",WebkitTapHighlightColor:"transparent",transition:"color 0.15s"}),
+  navItem:(a)=>({flex:1,display:"flex",flexDirection:"column",alignItems:"center",padding:"10px 2px 8px",cursor:"pointer",background:"transparent",border:"none",color:a?COLORS.blue:COLORS.slate,fontSize:10,fontWeight:a?700:500,gap:3,borderTop:a?`2px solid ${COLORS.blue}`:"2px solid transparent",WebkitTapHighlightColor:"transparent",transition:"color 0.15s",letterSpacing:"-0.1px"}),
 
   // ── Modals / sheets ───────────────────────────────────────────────────────────
   modal:{position:"fixed",inset:0,background:"#000d",zIndex:50,display:"flex",alignItems:"flex-end",justifyContent:"center"},
@@ -1576,9 +1576,10 @@ function Sparkline({data,color}){
 
 // ─── SWIPE CARD ───────────────────────────────────────────────────────────────
 function SwipeCard({children, onEdit, onDelete, style={}, activeId, setActiveId, id}){
-  const ref      = useRef(null);
-  const startX   = useRef(null);
-  const isOpen   = activeId === id;
+  const ref       = useRef(null);
+  const startX    = useRef(null);
+  const isOpen    = activeId === id;
+  const [confirming, setConfirming] = useState(false);
   const THRESHOLD = 60;
   const REVEAL    = 130;
 
@@ -1587,27 +1588,41 @@ function SwipeCard({children, onEdit, onDelete, style={}, activeId, setActiveId,
     if(startX.current===null)return;
     const dx = e.changedTouches[0].clientX - startX.current;
     if(dx < -THRESHOLD) setActiveId(id);
-    else if(dx > THRESHOLD) setActiveId(null);
+    else if(dx > THRESHOLD){ setActiveId(null); setConfirming(false); }
     startX.current=null;
   }
 
   return (
     <div style={{position:"relative",marginBottom:10,borderRadius:12,overflow:"hidden"}}>
+      {/* Action buttons revealed on swipe */}
       <div style={{position:"absolute",right:0,top:0,bottom:0,display:"flex",alignItems:"stretch",borderRadius:"0 12px 12px 0"}}>
-        <button onClick={onEdit} style={{width:65,background:COLORS.amber,color:"#fff",border:"none",fontSize:15,fontWeight:700,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3}}>
-          <span style={{fontSize:19}}>✏️</span>Edit
-        </button>
-        <button onClick={onDelete} style={{width:65,background:COLORS.red,color:"#fff",border:"none",fontSize:15,fontWeight:700,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,borderRadius:"0 12px 12px 0"}}>
-          <span style={{fontSize:19}}>🗑️</span>Delete
-        </button>
+        {!confirming
+          ?<>
+            <button onClick={()=>{onEdit();setActiveId(null);}} style={{width:65,background:COLORS.amber,color:"#fff",border:"none",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,WebkitTapHighlightColor:"transparent"}}>
+              <span style={{fontSize:18}}>✏️</span>Edit
+            </button>
+            <button onClick={()=>setConfirming(true)} style={{width:65,background:COLORS.red,color:"#fff",border:"none",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,borderRadius:"0 12px 12px 0",WebkitTapHighlightColor:"transparent"}}>
+              <span style={{fontSize:18}}>🗑️</span>Delete
+            </button>
+          </>
+          :<div style={{display:"flex",alignItems:"stretch"}}>
+            <button onClick={()=>setConfirming(false)} style={{width:65,background:COLORS.slate,color:"#fff",border:"none",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,WebkitTapHighlightColor:"transparent"}}>
+              <span style={{fontSize:18}}>✕</span>Cancel
+            </button>
+            <button onClick={()=>{setConfirming(false);setActiveId(null);onDelete();}} style={{width:80,background:COLORS.red,color:"#fff",border:"none",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,borderRadius:"0 12px 12px 0",WebkitTapHighlightColor:"transparent"}}>
+              <span style={{fontSize:18}}>🗑️</span>Confirm
+            </button>
+          </div>
+        }
       </div>
+      {/* Card content — slides left on swipe */}
       <div
         ref={ref}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
         style={{
           ...style,
-          transform:`translateX(${isOpen?-REVEAL:0}px)`,
+          transform:`translateX(${isOpen?-(confirming?145:REVEAL):0}px)`,
           transition:"transform 0.25s ease",
           position:"relative",
           zIndex:1,
@@ -1747,9 +1762,11 @@ function Dashboard({onNavigate,gc}){
   const poolMaint         =useTable("pool_maintenance","date");
   const assumptions       =useTable("retirement_assumptions","id",true);
   const accounts          =useTable("retirement_accounts","name",true);
+  const notes             =useTable("notes","created_at");
 
   const [showFullSchedule,setShowFullSchedule] = useState(false);
   const [showAllActions,setShowAllActions]     = useState(false);
+  const [showNotes,setShowNotes]               = useState(false);
   const [filter,setFilter]     = useState("All");
   const [overrides,setOverrides] = useState({});
   const [reassigning,setReassigning] = useState(null);
@@ -1920,7 +1937,7 @@ function Dashboard({onNavigate,gc}){
         </div>
         {gc.loading?<Loading/>:(
           eventsInWindow.length===0
-            ?<div style={{...S.empty,padding:"14px 0",marginBottom:10}}>No events {showFullSchedule?"in the next 30 days":"this week"}.</div>
+            ?<EmptyState icon="📅" title={showFullSchedule?"No events in the next 30 days":"No events this week"} detail="Connect your Google Calendar or add events to see them here."/>
             :visibleDays.map(day=>{
               const evs=filtered.filter(e=>e.date===day);
               if(!evs.length)return null;
@@ -1971,8 +1988,43 @@ function Dashboard({onNavigate,gc}){
           <div key={i} style={{display:"flex",gap:10,alignItems:"center",padding:"10px 0",borderBottom:i<recentActivity.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
             <span style={{fontSize:19,flexShrink:0}}>{a.icon}</span>
             <div style={{flex:1}}>
-              <div style={{fontSize:15,color:COLORS.slateLight}}>{a.text}</div>
-              <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>{formatDate(a.date)}</div>
+              <div style={{fontSize:14,color:COLORS.slateLight}}>{a.text}</div>
+              <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>{formatDate(a.date)}</div>
+            </div>
+          </div>
+        ))}
+      </>}
+
+      {/* ── NOTES ── */}
+      {notes.data.length>0&&<>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={S.sectionLabel}>Notes</div>
+          <button onClick={()=>setShowNotes(p=>!p)} style={{fontSize:12,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,marginBottom:12}}>
+            {showNotes?"Hide ↑":`${notes.data.length} note${notes.data.length!==1?"s":""} →`}
+          </button>
+        </div>
+        {/* Preview of most recent note when collapsed */}
+        {!showNotes&&notes.data[0]&&(
+          <div style={{...S.card,marginBottom:10,cursor:"pointer"}} onClick={()=>setShowNotes(true)}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{flex:1,minWidth:0}}>
+                {notes.data[0].title&&<div style={{fontSize:14,fontWeight:700,marginBottom:2}}>{notes.data[0].title}</div>}
+                <div style={{fontSize:13,color:COLORS.slate,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{notes.data[0].body}</div>
+              </div>
+              <span style={{...S.badge(COLORS.slate),flexShrink:0,marginLeft:10}}>{notes.data[0].tag||"General"}</span>
+            </div>
+          </div>
+        )}
+        {/* All notes when expanded */}
+        {showNotes&&notes.data.map((n,i)=>(
+          <div key={n.id} style={{...S.card,marginBottom:10}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+              <div style={{flex:1,minWidth:0}}>
+                {n.title&&<div style={{fontSize:14,fontWeight:700,marginBottom:4}}>{n.title}</div>}
+                <div style={{fontSize:13,color:COLORS.slateLight,lineHeight:1.5}}>{n.body}</div>
+                <div style={{fontSize:11,color:COLORS.slate,marginTop:8}}>{new Date(n.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
+              </div>
+              <span style={{...S.badge(COLORS.slate),flexShrink:0,marginLeft:10}}>{n.tag||"General"}</span>
             </div>
           </div>
         ))}
@@ -1982,7 +2034,7 @@ function Dashboard({onNavigate,gc}){
   );
 }
 
-// ─── COLLEGE ──────────────────────────────────────────────────────────────────
+
 
 // Junior year → application timeline milestones for Aubrey (Class of 2028)
 // Each milestone has a target date, category, and completion check based on data
@@ -2171,7 +2223,7 @@ function College(){
             {overdueDeadlines.map(d=>(
               <SwipeCard key={d.id} id={d.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
                 onEdit={()=>openEdit("deadline",d)}
-                onDelete={()=>{if(window.confirm("Delete this deadline?"))deadlines.remove(d.id);setActiveSwipe(null);}}
+                onDelete={()=>{deadlines.remove(d.id);setActiveSwipe(null);}}
                 style={S.statusCard(COLORS.red)}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div style={{flex:1,paddingRight:10}}>
@@ -2196,7 +2248,7 @@ function College(){
               return(
                 <SwipeCard key={d.id} id={d.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
                   onEdit={()=>openEdit("deadline",d)}
-                  onDelete={()=>{if(window.confirm("Delete this deadline?"))deadlines.remove(d.id);setActiveSwipe(null);}}
+                  onDelete={()=>{deadlines.remove(d.id);setActiveSwipe(null);}}
                   style={S.statusCard(COLORS.amber)}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                     <div style={{flex:1,paddingRight:10}}>
@@ -2222,7 +2274,7 @@ function College(){
               return(
                 <SwipeCard key={d.id} id={d.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
                   onEdit={()=>openEdit("deadline",d)}
-                  onDelete={()=>{if(window.confirm("Delete this deadline?"))deadlines.remove(d.id);setActiveSwipe(null);}}
+                  onDelete={()=>{deadlines.remove(d.id);setActiveSwipe(null);}}
                   style={S.statusCard(COLORS.blue)}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                     <div style={{flex:1,paddingRight:10}}>
@@ -2248,7 +2300,7 @@ function College(){
               return(
                 <SwipeCard key={d.id} id={d.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
                   onEdit={()=>openEdit("deadline",d)}
-                  onDelete={()=>{if(window.confirm("Delete this deadline?"))deadlines.remove(d.id);setActiveSwipe(null);}}
+                  onDelete={()=>{deadlines.remove(d.id);setActiveSwipe(null);}}
                   style={S.card}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                     <div style={{flex:1,paddingRight:10}}>
@@ -2276,7 +2328,7 @@ function College(){
             {showCompleted&&done.map(d=>(
               <SwipeCard key={d.id} id={d.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
                 onEdit={()=>openEdit("deadline",d)}
-                onDelete={()=>{if(window.confirm("Delete?"))deadlines.remove(d.id);setActiveSwipe(null);}}
+                onDelete={()=>{deadlines.remove(d.id);setActiveSwipe(null);}}
                 style={{...S.card,opacity:0.5}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div style={{fontSize:15,textDecoration:"line-through",color:COLORS.slate}}>{d.title}</div>
@@ -2296,32 +2348,42 @@ function College(){
           {["target","researching","applying","applied","accepted","rejected"].map(status=>{
             const group=schools.data.filter(s=>s.status===status);
             if(!group.length)return null;
+            const nextAction={
+              researching:"Next: Schedule a campus visit or virtual info session",
+              target:"Next: Start Common App school list — add supplement requirements",
+              applying:"Next: Draft supplemental essays and request recommendations",
+              applied:"Next: Monitor portal for interview invites or additional materials",
+              accepted:"Next: Compare financial aid packages and visit day",
+              rejected:null,
+            };
             return(
               <div key={status}>
                 <div style={S.sectionLabel}>{status.charAt(0).toUpperCase()+status.slice(1)}</div>
                 {group.map(s=>(
                   <SwipeCard key={s.id} id={s.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
                     onEdit={()=>openEdit("school",s)}
-                    onDelete={()=>{if(window.confirm("Remove this school?"))schools.remove(s.id);setActiveSwipe(null);}}
+                    onDelete={()=>{schools.remove(s.id);setActiveSwipe(null);}}
                     style={S.statusCard(statusColors[s.status])}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                       <div style={{fontSize:15,fontWeight:600}}>{s.name}</div>
                       <select value={s.status} onChange={e=>schools.update(s.id,{status:e.target.value})}
-                        style={{background:COLORS.navyLight,color:COLORS.slateLight,border:"none",borderRadius:6,padding:"4px 8px",fontSize:15,cursor:"pointer"}}>
+                        style={{background:COLORS.navyLight,color:COLORS.slateLight,border:"none",borderRadius:6,padding:"4px 8px",fontSize:13,cursor:"pointer"}}>
                         {["researching","target","applying","applied","accepted","rejected"].map(st=><option key={st} value={st}>{st}</option>)}
                       </select>
                     </div>
                     <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap",alignItems:"center"}}>
                       {s.match_level&&<span style={S.badge(matchColors[s.match_level]||COLORS.slate)}>{s.match_level}</span>}
                       {s.app_type&&<span style={S.badge(appTypeColors[s.app_type]||COLORS.slate)}>{s.app_type}</span>}
-                      {s.app_deadline&&<span style={{fontSize:15,color:COLORS.slate}}>Due {formatDate(s.app_deadline)}</span>}
+                      {s.app_deadline&&<span style={{fontSize:13,color:COLORS.slate}}>Due {formatDate(s.app_deadline)}</span>}
                     </div>
-                    {s.visit_notes&&<div style={{fontSize:15,color:COLORS.slateLight,marginTop:10,fontStyle:"italic",lineHeight:1.4}}>📝 {s.visit_notes}</div>}
+                    {s.visit_notes&&<div style={{fontSize:13,color:COLORS.slateLight,marginTop:10,fontStyle:"italic",lineHeight:1.4}}>📝 {s.visit_notes}</div>}
+                    {nextAction[s.status]&&<div style={{fontSize:12,color:statusColors[s.status]||COLORS.slate,marginTop:8,fontWeight:600}}>→ {nextAction[s.status]}</div>}
                   </SwipeCard>
                 ))}
               </div>
             );
           })}
+          {schools.data.length===0&&<EmptyState icon="🏫" title="No schools added yet" detail="Add schools to your list — reach, target, and safety."/>}
           <button style={S.btn} onClick={()=>{setForm({status:"researching",app_type:"Regular",match_level:"Target"});setShowModal("school");}}>+ Add School</button>
         </>}
       </>}
@@ -2341,7 +2403,7 @@ function College(){
                   return(
                     <SwipeCard key={e.id} id={e.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
                       onEdit={()=>openEdit("essay",e)}
-                      onDelete={()=>{if(window.confirm("Delete this essay?"))essays.remove(e.id);setActiveSwipe(null);}}
+                      onDelete={()=>{essays.remove(e.id);setActiveSwipe(null);}}
                       style={S.statusCard(essayStatusColors[e.status]||COLORS.slate)}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                         <div style={{flex:1}}>
@@ -2395,7 +2457,7 @@ function College(){
             return(
               <SwipeCard key={t.id} id={t.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
                 onEdit={()=>openEdit("test",t)}
-                onDelete={()=>{if(window.confirm("Delete this test plan?"))testPlan.remove(t.id);setActiveSwipe(null);}}
+                onDelete={()=>{testPlan.remove(t.id);setActiveSwipe(null);}}
                 style={S.statusCard(days<=14?COLORS.amber:COLORS.blue)}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div style={{flex:1}}>
@@ -2417,7 +2479,7 @@ function College(){
           {scores.data.map(s=>(
             <SwipeCard key={s.id} id={s.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
               onEdit={()=>openEdit("score",s)}
-              onDelete={()=>{if(window.confirm("Delete this score?"))scores.remove(s.id);setActiveSwipe(null);}}
+              onDelete={()=>{scores.remove(s.id);setActiveSwipe(null);}}
               style={S.card}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div>
@@ -2639,7 +2701,7 @@ function HomeMgmt(){
     return(
       <SwipeCard key={item.id} id={item.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
         onEdit={()=>openEdit(item)}
-        onDelete={()=>{if(window.confirm("Delete this item?"))maint.remove(item.id);setActiveSwipe(null);}}
+        onDelete={()=>{maint.remove(item.id);setActiveSwipe(null);}}
         style={S.statusCard(color)}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
           <div style={{flex:1}}>
@@ -3167,7 +3229,7 @@ function Pool(){
   const maintLog   = useTable("pool_maintenance","date");
   const schedule   = useTable("pool_schedule","title",true);
   const poolSettings = useTable("pool_settings","id",true);
-  const [tab,setTab]             = useState("trends");
+  const [tab,setTab]             = useState("schedule");
   const [showLog,setShowLog]     = useState(false);
   const [showMaint,setShowMaint] = useState(false);
   const [showScheduleEdit,setShowScheduleEdit] = useState(false);
@@ -3383,13 +3445,16 @@ function Pool(){
                     <div style={{fontSize:15,fontWeight:700,color:COLORS.white}}>{p.label}</div>
                     <div style={{fontSize:15,color:p.color,marginTop:1}}>{p.statusLabel}</div>
                   </div>
-                  {/* Value + trend */}
+                  {/* Value + trend + sparkline */}
                   <div style={{flex:"0 0 72px",textAlign:"right"}}>
                     <div style={{fontSize:15,fontWeight:700,color:p.value!==null&&p.value!==undefined?COLORS.white:COLORS.slate}}>
                       {p.value!==null&&p.value!==undefined?`${p.value}${p.unit}`:"—"}
                       {p.trendArrow&&<span style={{fontSize:15,marginLeft:3}}>{p.trendArrow}</span>}
                     </div>
-                    <div style={{fontSize:15,color:COLORS.slate,marginTop:1}}>{p.target}</div>
+                    <div style={{fontSize:11,color:COLORS.slate,marginTop:1}}>{p.target}</div>
+                    <div style={{marginTop:4,display:"flex",justifyContent:"flex-end"}}>
+                      <Sparkline data={[...readings.data].reverse().map(r=>r[p.key]).filter(v=>v!=null)} color={p.color}/>
+                    </div>
                   </div>
                   {/* Last tested / due */}
                   <div style={{flex:1,textAlign:"right"}}>
@@ -3497,33 +3562,11 @@ function Pool(){
       {/* Chemistry detail card — collapsed by default, now inside the banner toggle */}
 
       <div style={{...S.tabs,marginTop:16}}>
-        {["trends","schedule","history"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
+        {["schedule","history"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
       </div>
 
 
-      {tab==="trends"&&<>
-        {PARAMS.filter(p=>!["water_temp","filter_pressure","cc"].includes(p.k)).map(p=>{
-          const vals=[...readings.data].reverse().map(r=>r[p.k]).filter(v=>v!==null&&v!==undefined);
-          if(vals.length<2)return null;
-          const latest=vals[vals.length-1];
-          const s=poolStatus(p.k,latest);const col=statusColor(s);
-          return(
-            <div key={p.k} style={{...S.card,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div>
-                <div style={{fontSize:15,fontWeight:600}}>{p.l}</div>
-                <div style={{fontSize:15,color:COLORS.slate}}>Target: {p.target}{p.unit?" "+p.unit:""}</div>
-                <div style={{fontSize:20,fontWeight:700,color:col,marginTop:10}}>{latest}{p.unit&&p.unit!=="ppm"?p.unit:p.unit?" ppm":""}</div>
-              </div>
-              <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6}}>
-                <Sparkline data={vals} color={col}/>
-                <span style={{...S.badge(col),fontSize:15}}>{s==="green"?"OK":s==="amber"?"Watch":"Adjust"}</span>
-              </div>
-            </div>
-          );
-        })}
-      </>}
-
-      {tab==="schedule"&&<>
+            {tab==="schedule"&&<>
         {schedule.loading?<Loading/>:<>
           <SwipeHint/>
           {schedSorted.map(item=>{
@@ -3534,7 +3577,7 @@ function Pool(){
             return(
               <SwipeCard key={item.id} id={item.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
                 onEdit={()=>{setEditItem(item);setForm({...item});setShowScheduleEdit(true);setActiveSwipe(null);}}
-                onDelete={()=>{if(window.confirm("Remove this item?"))schedule.remove(item.id);setActiveSwipe(null);}}
+                onDelete={()=>{schedule.remove(item.id);setActiveSwipe(null);}}
                 style={S.statusCard(color)}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div style={{flex:1}}>
@@ -3578,7 +3621,7 @@ function Pool(){
                 return(
                   <SwipeCard key={`r-${item.id}`} id={`r-${item.id}`} activeId={activeSwipe} setActiveId={setActiveSwipe}
                     onEdit={()=>openEditReading(item)}
-                    onDelete={()=>{if(window.confirm("Delete this reading?"))readings.remove(item.id);setActiveSwipe(null);}}
+                    onDelete={()=>{readings.remove(item.id);setActiveSwipe(null);}}
                     style={S.card}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
@@ -3604,7 +3647,7 @@ function Pool(){
               return(
                 <SwipeCard key={`m-${item.id}`} id={`m-${item.id}`} activeId={activeSwipe} setActiveId={setActiveSwipe}
                   onEdit={()=>openEditMaint(item)}
-                  onDelete={()=>{if(window.confirm("Delete entry?"))maintLog.remove(item.id);setActiveSwipe(null);}}
+                  onDelete={()=>{maintLog.remove(item.id);setActiveSwipe(null);}}
                   style={S.card}>
                   <div style={{display:"flex",alignItems:"center",gap:6}}>
                     <span style={{fontSize:15,background:COLORS.green+"22",color:COLORS.green,borderRadius:4,padding:"1px 6px",fontWeight:700}}>Maintenance</span>
@@ -4221,7 +4264,8 @@ function Finance(){
           </div>
         )}
 
-        <div style={S.sectionLabel}>Goals at a Glance</div>
+        <div style={{...S.sectionLabel,marginTop:20}}>Goals at a Glance</div>
+        <div style={{height:1,background:COLORS.navyLight,marginBottom:16,marginTop:-8}}/>
 
         {retProj&&(
           <div style={{...S.card,borderLeft:`3px solid ${retProj.statusColor}`,marginBottom:10}}>
@@ -4747,7 +4791,7 @@ function Finance(){
         {accounts.data.map(a=>(
           <SwipeCard key={a.id} id={a.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
             onEdit={()=>openEdit("account",a)}
-            onDelete={()=>{if(window.confirm("Delete this account?"))accounts.remove(a.id);setActiveSwipe(null);}}
+            onDelete={()=>{accounts.remove(a.id);setActiveSwipe(null);}}
             style={{...S.card,borderLeft:`3px solid ${accountTypeColors[a.account_type]||COLORS.slate}`}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
               <div>
@@ -4809,7 +4853,7 @@ function Finance(){
         {collegeGoal.data.map(g=>(
           <SwipeCard key={g.id} id={g.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
             onEdit={()=>{setEditItem(g);setForm({...g});setShowModal("college-goal-child");}}
-            onDelete={()=>{if(window.confirm(`Remove ${g.child_name}'s college goal?`))collegeGoal.remove(g.id);setActiveSwipe(null);}}
+            onDelete={()=>{collegeGoal.remove(g.id);setActiveSwipe(null);}}
             style={{...S.card,borderLeft:`3px solid ${{Aubrey:COLORS.red,Blake:COLORS.green,Brayden:COLORS.amber}[g.child_name]||COLORS.slate}`}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
@@ -4851,7 +4895,7 @@ function Finance(){
           return(
             <SwipeCard key={d.id} id={d.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
               onEdit={()=>openEdit("debt",d)}
-              onDelete={()=>{if(window.confirm("Delete this debt?"))otherDebt.remove(d.id);setActiveSwipe(null);}}
+              onDelete={()=>{otherDebt.remove(d.id);setActiveSwipe(null);}}
               style={S.statusCard(COLORS.red)}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                 <div>
