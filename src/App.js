@@ -2158,7 +2158,7 @@ function College(){
       </div>
 
       <div style={S.tabs}>
-        {["deadlines","schools","essays","tests","scores","planning"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
+        {["deadlines","schools","essays","sat/act","planning"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
       </div>
 
       {tab==="deadlines"&&<>
@@ -2368,10 +2368,28 @@ function College(){
         </>}
       </>}
 
-      {tab==="tests"&&<>
+      {tab==="sat/act"&&<>
+        {/* Best score hero */}
+        {scores.data.length>0&&(()=>{
+          const best=scores.data.reduce((a,b)=>(b.total||0)>(a.total||0)?b:a,scores.data[0]);
+          return(
+            <div style={{...S.card,background:COLORS.navyLight,textAlign:"center",marginBottom:14}}>
+              <div style={{fontSize:11,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:6}}>Best Score</div>
+              <div style={{fontSize:40,fontWeight:800,letterSpacing:"-1px"}}>{best.total}</div>
+              <div style={{display:"flex",justifyContent:"center",gap:32,marginTop:12}}>
+                <div><div style={{fontSize:22,fontWeight:700}}>{best.math}</div><div style={{fontSize:13,color:COLORS.slate}}>Math</div></div>
+                <div style={{width:1,background:COLORS.navyLight}}/>
+                <div><div style={{fontSize:22,fontWeight:700}}>{best.verbal}</div><div style={{fontSize:13,color:COLORS.slate}}>Verbal</div></div>
+              </div>
+              <div style={{fontSize:13,color:COLORS.slate,marginTop:10}}>{scores.data.length} attempt{scores.data.length!==1?"s":""} logged</div>
+            </div>
+          );
+        })()}
+
+        <div style={S.sectionLabel}>Test Plan</div>
         {testPlan.loading?<Loading/>:<>
-          <div style={{fontSize:15,color:COLORS.slate,marginBottom:12,lineHeight:1.5}}>Plan upcoming SAT/ACT attempts — registration deadlines and target scores.</div>
           <SwipeHint/>
+          {testPlan.data.length===0&&<EmptyState icon="📅" title="No tests planned" detail="Add SAT/ACT dates to track registration deadlines and target scores."/>}
           {testPlan.data.map(t=>{
             const days=daysBetween(t.target_date);
             return(
@@ -2382,39 +2400,32 @@ function College(){
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div style={{flex:1}}>
                     <div style={{fontSize:15,fontWeight:600}}>{t.test_type} — Attempt {t.attempt_number}</div>
-                    <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>{formatDate(t.target_date)} · {days<0?"Past":`${days}d away`}{t.target_score?` · Target: ${t.target_score}`:""}</div>
-                    {t.notes&&<div style={{fontSize:15,color:COLORS.slate,marginTop:10,fontStyle:"italic"}}>{t.notes}</div>}
+                    <div style={{fontSize:13,color:COLORS.slate,marginTop:2}}>{formatDate(t.target_date)} · {days<0?"Past":`${days}d away`}{t.target_score?` · Target: ${t.target_score}`:""}</div>
+                    {t.notes&&<div style={{fontSize:13,color:COLORS.slate,marginTop:8,fontStyle:"italic"}}>{t.notes}</div>}
                   </div>
-                  <span style={S.badge(t.registered?COLORS.green:COLORS.amber)}>{t.registered?"Registered":"Not registered"}</span>
+                  <span style={S.badge(t.registered?COLORS.green:COLORS.amber)}>{t.registered?"Registered":"Not yet"}</span>
                 </div>
               </SwipeCard>
             );
           })}
-          <button style={S.btn} onClick={()=>{setForm({test_type:"SAT",attempt_number:1,registered:false});setShowModal("test");}}>+ Add Test Plan</button>
+          <button style={S.btn} onClick={()=>{setForm({test_type:"SAT",attempt_number:1,registered:false});setShowModal("test");}}>+ Add Test Date</button>
         </>}
-      </>}
 
-      {tab==="scores"&&<>
+        <div style={S.sectionLabel}>Score History</div>
         {scores.loading?<Loading/>:<>
-          {scores.data.length>0&&(
-            <div style={{...S.card,background:COLORS.navyLight,textAlign:"center",marginBottom:16}}>
-              <div style={{fontSize:36,fontWeight:800}}>{scores.data[0].total}</div>
-              <div style={{fontSize:15,color:COLORS.slate}}>Most Recent · {formatDate(scores.data[0].date)}</div>
-              <div style={{display:"flex",justifyContent:"center",gap:28,marginTop:12}}>
-                <div><div style={{fontSize:20,fontWeight:700}}>{scores.data[0].math}</div><div style={{fontSize:15,color:COLORS.slate}}>Math</div></div>
-                <div style={{width:1,background:COLORS.navyLight}}/>
-                <div><div style={{fontSize:20,fontWeight:700}}>{scores.data[0].verbal}</div><div style={{fontSize:15,color:COLORS.slate}}>Verbal</div></div>
-              </div>
-            </div>
-          )}
-          <SwipeHint/>
+          {scores.data.length===0&&<EmptyState icon="📊" title="No scores yet" detail="Log official and practice SAT/ACT scores to track progress."/>}
           {scores.data.map(s=>(
             <SwipeCard key={s.id} id={s.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
               onEdit={()=>openEdit("score",s)}
               onDelete={()=>{if(window.confirm("Delete this score?"))scores.remove(s.id);setActiveSwipe(null);}}
               style={S.card}>
-              <div style={{fontSize:15,fontWeight:700}}>{s.total} <span style={{fontSize:15,color:COLORS.slate}}>({s.math}M / {s.verbal}V)</span></div>
-              <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>{formatDate(s.date)}{s.notes?` · ${s.notes}`:""}</div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div>
+                  <div style={{fontSize:17,fontWeight:700}}>{s.total} <span style={{fontSize:13,color:COLORS.slate,fontWeight:400}}>({s.math}M / {s.verbal}V)</span></div>
+                  <div style={{fontSize:13,color:COLORS.slate,marginTop:2}}>{formatDate(s.date)}{s.notes?` · ${s.notes}`:""}</div>
+                </div>
+                {scores.data.length>0&&s.total===Math.max(...scores.data.map(x=>x.total||0))&&<span style={S.badge(COLORS.green)}>Best</span>}
+              </div>
             </SwipeCard>
           ))}
           <button style={S.btn} onClick={()=>{setForm({});setShowModal("score");}}>+ Log Score</button>
@@ -4015,7 +4026,7 @@ function Finance(){
   const snapshots   = useTable("net_worth_snapshots","date",false);
   const actionItems = useTable("finance_action_items","created_date",false);
 
-  const [tab,setTab]             = useState("overview");
+  const [tab,setTab]             = useState("summary");
   const [showModal,setShowModal] = useState(null);
   const [editItem,setEditItem]   = useState(null);
   const [form,setForm]           = useState({});
@@ -4173,10 +4184,10 @@ function Finance(){
       </div>
 
       <div style={S.tabs}>
-        {["overview","retirement","college","debt","milestones"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
+        {["summary","retire","college","debt","timeline"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
       </div>
 
-      {tab==="overview"&&<>
+      {tab==="summary"&&<>
         {/* Net Worth Hero */}
         {retProj&&(
           <div style={{background:COLORS.navyMid,borderRadius:16,padding:"20px 18px",marginBottom:16,border:`1px solid ${COLORS.navyLight}`,borderTop:`3px solid ${retProj.statusColor}`}}>
@@ -4288,7 +4299,7 @@ function Finance(){
         <button style={{...S.btnSm,width:"100%",marginTop:12}} onClick={()=>{setForm({date:TODAY_STR});setShowModal("snapshot");}}>📸 Save Snapshot</button>
       </>}
 
-            {tab==="retirement"&&<>
+            {tab==="retire"&&<>
         <div style={{display:"flex",justifyContent:"flex-end",marginBottom:10}}>
           <button onClick={()=>{setForm({...assump});setShowModal("assumptions");}} style={{background:COLORS.navyLight,border:`1px solid ${COLORS.navyLight}`,borderRadius:8,padding:"6px 12px",fontSize:15,fontWeight:700,color:COLORS.slateLight,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
             ⚙️ Edit Assumptions
@@ -4857,7 +4868,7 @@ function Finance(){
         <button style={S.btn} onClick={()=>{setForm({payment_frequency:"monthly",last_updated:TODAY_STR});setShowModal("debt");}}>+ Add Debt</button>
       </>}
 
-      {tab==="milestones"&&<>
+      {tab==="timeline"&&<>
         <div style={{fontSize:15,color:COLORS.slate,marginBottom:16,lineHeight:1.5}}>
           Every dated milestone tracked across Finance and College, in one timeline. Tap a college milestone to edit its target year.
         </div>
