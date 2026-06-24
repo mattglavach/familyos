@@ -222,6 +222,7 @@ function nextDueDate(last,interval){const d=new Date(last+"T00:00:00");d.setDate
 function formatDate(s){return new Date(s+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"});}
 function formatDateFull(s){return new Date(s+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});}
 function formatToday(){return new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});}
+function formatTodayShort(){return new Date().toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});}
 function poolStatus(param,value){
   if(value===null||value===undefined||isNaN(value))return"grey";
   const ranges={ph:{low:7.2,goodHigh:7.6,high:7.8},free_chlorine:{low:1.5,goodHigh:4.0,high:5.0},salt:{low:3200,goodHigh:3600,high:3800},cya:{low:50,goodHigh:80,high:90},alkalinity:{low:80,goodHigh:120,high:140}};
@@ -1500,7 +1501,7 @@ const S={
   headerRow:{display:"flex",justifyContent:"space-between",alignItems:"center"},
   logo:{fontSize:20,fontWeight:800,letterSpacing:"-0.6px"},
   logoAccent:{color:COLORS.blue},
-  dateLabel:{fontSize:15,color:COLORS.slate,marginTop:3},
+  dateLabel:{fontSize:13,color:COLORS.slate,marginTop:3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"},
   screen:{padding:"20px 16px 8px",background:COLORS.navy},
 
   // ── Section labels ───────────────────────────────────────────────────────────
@@ -1638,7 +1639,31 @@ function Modal({title,onClose,children}){
     </div>
   );
 }
-function Loading(){return <div style={S.empty}>Loading…</div>;}
+function Loading(){
+  return(
+    <div style={{padding:"4px 0"}}>
+      {[0.9,0.7,0.85].map((w,i)=>(
+        <div key={i} style={{background:COLORS.navyMid,borderRadius:16,padding:"18px 20px",marginBottom:12,border:`1px solid ${COLORS.navyLight}`,overflow:"hidden",position:"relative"}}>
+          <div style={{height:14,width:`${w*100}%`,borderRadius:6,background:COLORS.navyLight,marginBottom:10}}/>
+          <div style={{height:11,width:"55%",borderRadius:6,background:COLORS.navyLight,marginBottom:6}}/>
+          <div style={{height:11,width:"35%",borderRadius:6,background:COLORS.navyLight}}/>
+          <div style={{position:"absolute",inset:0,background:`linear-gradient(90deg,transparent 0%,${COLORS.navyLight}40 50%,transparent 100%)`,animation:"shimmer 1.5s infinite"}}/>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EmptyState({icon, title, detail, action, onAction}){
+  return(
+    <div style={{textAlign:"center",padding:"48px 24px 40px"}}>
+      <div style={{fontSize:40,marginBottom:14,opacity:0.6}}>{icon||"📋"}</div>
+      <div style={{fontSize:16,fontWeight:700,color:COLORS.slateLight,marginBottom:8}}>{title||"Nothing here yet"}</div>
+      {detail&&<div style={{fontSize:14,color:COLORS.slate,lineHeight:1.6,marginBottom:20,maxWidth:260,margin:"0 auto 20px"}}>{detail}</div>}
+      {action&&onAction&&<button style={{...S.btn,width:"auto",padding:"11px 24px",fontSize:14,marginTop:0}} onClick={onAction}>{action}</button>}
+    </div>
+  );
+}
 
 function SwipeHint(){
   const [seen,setSeen] = useState(()=>{
@@ -1795,7 +1820,8 @@ function Dashboard({onNavigate,gc}){
     ...readings.data.slice(0,2).map(r=>({date:r.date,icon:"🏊",text:`Pool — pH ${r.ph||"—"}, FC ${r.free_chlorine||"—"}`,color:COLORS.blue})),
     ...poolMaint.data.slice(0,2).map(m=>({date:m.date,icon:"🔧",text:m.type,color:COLORS.slate})),
     ...deadlines.filter(d=>d.completed).slice(0,2).map(d=>({date:d.due_date,icon:"🎓",text:`${d.title} completed`,color:COLORS.green})),
-  ].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,4);
+    ...homeMaint.filter(m=>m.last_completed&&m.last_completed>=new Date(Date.now()-7*86400000).toISOString().split("T")[0]).slice(0,2).map(m=>({date:m.last_completed,icon:"🏡",text:`${m.title} — done`,color:COLORS.green})),
+  ].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
 
   function ActionItem({item,i,total}){
     return(
@@ -1821,7 +1847,7 @@ function Dashboard({onNavigate,gc}){
             <div style={{fontSize:26,fontWeight:800,letterSpacing:"-0.5px",lineHeight:1.1,color:focusItems.length===0?COLORS.green:overdue.length>0?COLORS.red:COLORS.amber}}>
               {focusItems.length===0?"All clear 👋":overdue.length>0?`${overdue.length} need${overdue.length===1?"s":""} action now`:`${thisWeek.length} due this week`}
             </div>
-            <div style={{fontSize:15,color:COLORS.slate,marginTop:10}}>{formatToday()} · {totalEventsNext7} event{totalEventsNext7!==1?"s":""} this week</div>
+            <div style={{fontSize:13,color:COLORS.slate,marginTop:8,fontWeight:500,letterSpacing:"0.1px"}}>{formatToday()} · {totalEventsNext7} event{totalEventsNext7!==1?"s":""} this week</div>
           </div>
           {totalActions>0&&<div style={{textAlign:"right",flexShrink:0,marginLeft:12}}>
             <div style={{fontSize:24,fontWeight:800,color:overdue.length>0?COLORS.red:COLORS.amber}}>{totalActions}</div>
@@ -2244,7 +2270,7 @@ function College(){
             })}
           </>}
 
-          {pending.length===0&&<div style={{...S.card,textAlign:"center",padding:"24px 16px",color:COLORS.slate}}>No open deadlines — add one below.</div>}
+          {pending.length===0&&<EmptyState icon="✅" title="No open deadlines" detail="All caught up. Add SAT dates, application deadlines, and campus visits to track them here."/>}
 
           {/* Completed */}
           {done.length>0&&<>
@@ -2670,7 +2696,7 @@ function HomeMgmt(){
           </>}
         </>}
 
-        {maint.data.length===0&&<div style={S.empty}>No maintenance items yet. Add your first below.</div>}
+        {maint.data.length===0&&<EmptyState icon="🏠" title="No maintenance items" detail="Add your HVAC filters, pest control, and other recurring tasks to track them here."/>}
         <button style={{...S.btn,marginTop:12}} onClick={()=>{setForm({});setShowModal(true);}}>+ Add Item</button>
       </>}
 
@@ -3346,12 +3372,12 @@ function Pool(){
                   {/* Status dot */}
                   <div style={{width:8,height:8,borderRadius:"50%",background:p.color,flexShrink:0,marginTop:1}}/>
                   {/* Name + status */}
-                  <div style={{flex:"0 0 110px"}}>
+                  <div style={{flex:"0 0 120px",minWidth:0}}>
                     <div style={{fontSize:15,fontWeight:700,color:COLORS.white}}>{p.label}</div>
                     <div style={{fontSize:15,color:p.color,marginTop:1}}>{p.statusLabel}</div>
                   </div>
                   {/* Value + trend */}
-                  <div style={{flex:"0 0 70px",textAlign:"right"}}>
+                  <div style={{flex:"0 0 72px",textAlign:"right"}}>
                     <div style={{fontSize:15,fontWeight:700,color:p.value!==null&&p.value!==undefined?COLORS.white:COLORS.slate}}>
                       {p.value!==null&&p.value!==undefined?`${p.value}${p.unit}`:"—"}
                       {p.trendArrow&&<span style={{fontSize:15,marginLeft:3}}>{p.trendArrow}</span>}
@@ -3362,7 +3388,7 @@ function Pool(){
                   <div style={{flex:1,textAlign:"right"}}>
                     {p.lastTestedLabel&&<div style={{fontSize:15,color:COLORS.slate,lineHeight:1.3}}>{p.lastTestedLabel}</div>}
                     {p.testInfo&&<div style={{fontSize:15,color:p.testInfo.urgency==="red"?COLORS.red:p.testInfo.urgency==="amber"?COLORS.amber:COLORS.slate,marginTop:p.lastTestedLabel?2:0,lineHeight:1.3}}>{p.testInfo.dueLabel}</div>}
-                    {!p.lastTestedLabel&&!p.testInfo&&<div style={{fontSize:15,color:COLORS.slate}}>Every reading</div>}
+                    {!p.lastTestedLabel&&!p.testInfo&&<div style={{fontSize:11,color:COLORS.slate,whiteSpace:"nowrap"}}>Every reading</div>}
                   </div>
                 </div>
               ))}
@@ -3370,11 +3396,11 @@ function Pool(){
               {last.cc!==null&&last.cc!==undefined&&(
                 <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderTop:`1px solid ${COLORS.navyLight}`}}>
                   <div style={{width:8,height:8,borderRadius:"50%",background:last.cc>0.5?COLORS.red:last.cc>0?COLORS.amber:COLORS.green,flexShrink:0,marginTop:1}}/>
-                  <div style={{flex:"0 0 110px"}}>
+                  <div style={{flex:"0 0 120px",minWidth:0}}>
                     <div style={{fontSize:15,fontWeight:700,color:COLORS.white}}>Combined Chlorine</div>
                     <div style={{fontSize:15,color:last.cc>0.5?COLORS.red:last.cc>0?COLORS.amber:COLORS.green,marginTop:1}}>{last.cc===0?"None detected":last.cc<=0.5?"Acceptable":"Elevated"}</div>
                   </div>
-                  <div style={{flex:"0 0 70px",textAlign:"right"}}>
+                  <div style={{flex:"0 0 72px",textAlign:"right"}}>
                     <div style={{fontSize:15,fontWeight:700,color:COLORS.white}}>{last.cc} ppm</div>
                     <div style={{fontSize:15,color:COLORS.slate,marginTop:1}}>target: 0</div>
                   </div>
@@ -3536,7 +3562,7 @@ function Pool(){
             const readingsByDate = {};
             readings.data.forEach(r=>{ readingsByDate[r.date]=(readingsByDate[r.date]||0)+1; });
 
-            if(items.length===0) return <div style={S.empty}>No history yet.</div>;
+            if(items.length===0) return <EmptyState icon="📋" title="No history yet" detail="Log your first pool reading to start building a history."/>;
 
             return items.map(item=>{
               if(item._type==="reading"){
@@ -3804,6 +3830,7 @@ Phase 1 — Accumulation (now to age ${assumptions.retirement_age}, ${retProj.ye
 Phase 2 — Bridge years (age ${assumptions.retirement_age} to ${retProj.drawdown.medicareAge}, ${retProj.bridgeYears} years before Medicare eligibility):
 - Healthcare costs grow ~5.5%/year during this window and continue growing at that rate for the rest of the plan (Medicare reduces but doesn't eliminate above-inflation healthcare growth)
 - Bridge spending is drawn from the Rule of 55-eligible pool first (penalty-free), letting the rest compound untouched
+- Social Security: ${formatMoney(+(assumptions.social_security_estimate)||0)}/yr at age ${+(assumptions.ss_claim_age)||67} (Matt) + ${formatMoney(+(assumptions.social_security_estimate_spouse)||0)}/yr at age ${+(assumptions.ss_claim_age_spouse)||67} (Kalee) = ${formatMoney((+(assumptions.social_security_estimate)||0)+(+(assumptions.social_security_estimate_spouse)||0))}/yr combined household once both are claimed
 - Bridge shortfall (amount bridge spending exceeds what Rule of 55 funds can cover): ${retProj.drawdown.bridgeShortfall>0 ? formatMoney(retProj.drawdown.bridgeShortfall) : "none — fully covered"}
 - Combined balance remaining at end of bridge (age ${retProj.drawdown.medicareAge}): ${formatMoney(retProj.drawdown.balanceAtBridgeEnd)}
 - Social Security claiming age (separate from Medicare): ${retProj.drawdown.ssClaimAge} — no Social Security income assumed before this age
@@ -4834,7 +4861,7 @@ function Finance(){
         <div style={{fontSize:15,color:COLORS.slate,marginBottom:16,lineHeight:1.5}}>
           Every dated milestone tracked across Finance and College, in one timeline. Tap a college milestone to edit its target year.
         </div>
-        {familyMilestones.length===0&&<div style={S.empty}>Add a college goal, mortgage, or retirement assumptions to see your timeline.</div>}
+        {familyMilestones.length===0&&<EmptyState icon="🗓️" title="No milestones yet" detail="Add college goals, a mortgage, and retirement assumptions to see your family timeline here."/>}
         {familyMilestones.map((m,i)=>{
           const yearsAway = m.year - new Date().getFullYear();
           const isCollege = m.label.includes("starts college");
@@ -4850,14 +4877,14 @@ function Finance(){
                 onClick={()=>{ if(goalRecord){ setEditItem(goalRecord); setForm({...goalRecord}); setShowModal("college-goal-child"); } }}
               >
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                  <div>
-                    <div style={{fontSize:15,fontWeight:700}}>{m.icon} {m.label}</div>
-                    <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>{m.detail}</div>
-                    <div style={{fontSize:15,color:m.color,marginTop:3,fontWeight:600}}>
+                  <div style={{flex:1,paddingRight:12}}>
+                    <div style={{fontSize:15,fontWeight:700,letterSpacing:"-0.2px"}}>{m.icon} {m.label}</div>
+                    <div style={{fontSize:13,color:COLORS.slate,marginTop:4,lineHeight:1.4}}>{m.detail}</div>
+                    <div style={{fontSize:12,color:m.color,marginTop:6,fontWeight:700,letterSpacing:"0.2px",textTransform:"uppercase"}}>
                       {yearsAway<0?`${-yearsAway}y ago`:yearsAway===0?"this year":`in ${yearsAway}y`}
                     </div>
                   </div>
-                  <div style={{fontSize:15,fontWeight:800,color:m.color,flexShrink:0,marginLeft:10}}>{m.year}</div>
+                  <div style={{fontSize:22,fontWeight:800,color:m.color,flexShrink:0,letterSpacing:"-0.5px"}}>{m.year}</div>
                 </div>
               </div>
             </div>
@@ -5053,6 +5080,7 @@ function QuickAdd({onNavigate}){
   const readings = useTable("pool_readings","logged_at");
   const maintLog = useTable("pool_maintenance","date");
   const deadlines = useTable("college_deadlines","due_date",true);
+  const notes    = useTable("notes","created_at");
   const [form,setForm] = useState({});
   const [mode,setMode] = useState(null); // "pool"|"maint"|"college"|"note"
 
@@ -5066,6 +5094,19 @@ function QuickAdd({onNavigate}){
     {id:"college", icon:"🎓", label:"College Deadline", color:COLORS.purple},
     {id:"note",    icon:"📝", label:"Quick Note",       color:COLORS.slate},
   ];
+
+  const NOTE_TAGS = ["Pool","Home","College","Finance","General"];
+
+  async function saveNote(){
+    setSaveError(null);
+    if(!form.body?.trim()){setSaveError("Note body is required");return;}
+    const row={title:form.title||"",body:form.body.trim(),tag:form.tag||"General",created_at:new Date().toISOString()};
+    try{
+      const{error}=await sb.from("notes").insert(row);
+      if(error){setSaveError(`Save failed — ${error.message||JSON.stringify(error)}`);return;}
+      close();
+    }catch(e){setSaveError(`Error: ${e.message}`);}
+  }
 
   async function savePool(){
     setSaveError(null);
@@ -5219,10 +5260,21 @@ function QuickAdd({onNavigate}){
 
         {mode==="note"&&<>
           <div style={{...S.sheetTitle}}>📝 Quick Note</div>
-          <div style={{fontSize:15,color:COLORS.slate,marginBottom:16}}>Notes aren't stored yet — this will open the relevant module's form. Use this to navigate quickly.</div>
-          {[{label:"Log a pool reading",nav:"pool"},{label:"Add a home task",nav:"home-mgmt"},{label:"Track a college item",nav:"college"},{label:"Update finances",nav:"finance"}].map((o,i)=>(
-            <button key={i} onClick={()=>{close();onNavigate(o.nav);}} style={{...S.btnSm,width:"100%",marginBottom:10,textAlign:"left"}}>{o.label} →</button>
-          ))}
+          <label style={S.label}>Tag</label>
+          <div style={{marginBottom:14}}>
+            {NOTE_TAGS.map(t=><span key={t} style={S.chip(form.tag===t,COLORS.slate)} onClick={()=>setForm(p=>({...p,tag:t}))}>{t}</span>)}
+          </div>
+          <label style={S.label}>Title (optional)</label>
+          <input style={S.input} placeholder="e.g. Contractor quote, reminder, idea…" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
+          <label style={S.label}>Note</label>
+          <textarea
+            style={{...S.input,minHeight:120,resize:"none",lineHeight:1.5}}
+            placeholder="What do you want to remember?"
+            value={form.body||""}
+            onChange={e=>setForm(p=>({...p,body:e.target.value}))}
+          />
+          <button style={S.btn} onClick={saveNote}>Save Note</button>
+          {saveError&&<div style={{fontSize:14,color:COLORS.red,marginTop:10,lineHeight:1.4}}>{saveError}</div>}
           <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={()=>setMode(null)}>← Back</button>
         </>}
       </div>
@@ -5271,7 +5323,10 @@ export default function App(){
           from{transform:translateY(100%);opacity:0;}
           to{transform:translateY(0);opacity:1;}
         }
-        @keyframes fadeIn{
+        @keyframes shimmer{
+          from{transform:translateX(-100%);}
+          to{transform:translateX(100%);}
+        }
           from{opacity:0;transform:translateY(4px);}
           to{opacity:1;transform:translateY(0);}
         }
@@ -5289,7 +5344,7 @@ export default function App(){
         <div style={S.headerRow}>
           <div>
             <div style={S.logo}>{tab==="home"?<><span style={S.logoAccent}>Family</span>OS</>:TITLES[tab]}</div>
-            {tab==="home"&&<div style={S.dateLabel}>{formatToday()}</div>}
+            {tab==="home"&&<div style={S.dateLabel}>{formatTodayShort()}</div>}
           </div>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
             {gc.token
