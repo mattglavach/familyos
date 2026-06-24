@@ -482,20 +482,17 @@ function futureHealthcareCost(annualEstimate, years, growthPct=5.5, accelCapYear
 function householdSocialSecurityAtAge(assumptions, age, inflationPct) {
   const hasSpouseFields = assumptions.social_security_estimate_spouse!==undefined && assumptions.social_security_estimate_spouse!==null;
   if (!hasSpouseFields) {
-    // Legacy single combined estimate
-    const claimAge = assumptions.ss_claim_age || 67;
+    const claimAge = +(assumptions.ss_claim_age) || 67;
     if (age < claimAge) return 0;
-    return (assumptions.social_security_estimate||0) * Math.pow(1+inflationPct/100, age-claimAge);
+    return (+(assumptions.social_security_estimate)||0) * Math.pow(1+inflationPct/100, age-claimAge);
   }
   let total = 0;
-  const userClaimAge = assumptions.ss_claim_age || 67;
-  const userBenefit = assumptions.social_security_estimate || 0;
+  const userClaimAge   = +(assumptions.ss_claim_age) || 67;
+  const userBenefit    = +(assumptions.social_security_estimate) || 0;
   if (age >= userClaimAge) total += userBenefit * Math.pow(1+inflationPct/100, age-userClaimAge);
-
-  const spouseClaimAge = assumptions.ss_claim_age_spouse || 67;
-  const spouseBenefit = assumptions.social_security_estimate_spouse || 0;
+  const spouseClaimAge = +(assumptions.ss_claim_age_spouse) || 67;
+  const spouseBenefit  = +(assumptions.social_security_estimate_spouse) || 0;
   if (age >= spouseClaimAge) total += spouseBenefit * Math.pow(1+inflationPct/100, age-spouseClaimAge);
-
   return total;
 }
 
@@ -529,18 +526,22 @@ function randomNormal(mean, stdDev) {
 
 // Runs ONE randomized path through accumulation + bridge + drawdown, returns whether it lasted.
 function runOneMonteCarloPath(accounts, assumptions, retirementAgeOverride, meanReturn, stdDev) {
-  const totalBalance = accounts.reduce((s,a)=>s+(a.balance||0),0);
+  // Coerce all numeric fields — Supabase can return them as strings
+  const spending      = +(assumptions.annual_retirement_spending) || 110000;
+  const hcEstimate    = +(assumptions.healthcare_estimate) || 0;
+  const inflationPct  = +(assumptions.inflation_pct) || 3;
+  const contribGrowth = +(assumptions.contribution_increase_pct) || 0;
+  const retAge        = +(retirementAgeOverride || assumptions.retirement_age);
+  const currentAge    = +(assumptions.current_age) || 44;
+  const medicareAge   = +(assumptions.medicare_age || assumptions.bridge_end_age) || 65;
+  const planEndAge    = +(assumptions.plan_end_age) || 90;
+
+  const totalBalance = accounts.reduce((s,a)=>s+(+(a.balance)||0),0);
   const totalMonthly = accounts.reduce((s,a)=>s+effectiveMonthlyContribution(a),0);
-  const retirementAge = retirementAgeOverride || assumptions.retirement_age;
-  const accumYears = Math.max(0, retirementAge - assumptions.current_age);
-  const contribGrowth = assumptions.contribution_increase_pct || 0;
-  const inflationPct = assumptions.inflation_pct || 3;
-  const medicareAge = assumptions.medicare_age || assumptions.bridge_end_age || 65;
-  const ssClaimAge = assumptions.ss_claim_age || 67;
-  const planEndAge = assumptions.plan_end_age || 90;
+  const accumYears = Math.max(0, retAge - currentAge);
 
   const ruleOf55Share = totalBalance>0
-    ? accounts.filter(ruleOf55Eligible).reduce((s,a)=>s+(a.balance||0),0) / totalBalance
+    ? accounts.filter(ruleOf55Eligible).reduce((s,a)=>s+(+(a.balance)||0),0) / totalBalance
     : 0;
 
   // Accumulation — random return each year
@@ -553,22 +554,21 @@ function runOneMonteCarloPath(accounts, assumptions, retirementAgeOverride, mean
   }
 
   const taxableMix = accounts.reduce((acc,a)=>{
-    const share = totalBalance>0 ? (a.balance||0)/totalBalance : 0;
+    const share = totalBalance>0 ? (+(a.balance)||0)/totalBalance : 0;
     return acc + share * (a.tax_treatment==="Roth"||a.tax_treatment==="HSA" ? 0 : a.tax_treatment==="taxable" ? 0.10 : 0.18);
   },0);
   let spendable = balance * (1-taxableMix);
   let ruleOf55Pool = spendable * ruleOf55Share;
   let otherPool = spendable * (1-ruleOf55Share);
 
-  // Bridge years — random return each year, draw from Rule of 55 pool first.
-  // Healthcare uses the capped growth function (accelerated for ~20yrs, then general inflation).
-  const bridgeYears = Math.max(0, medicareAge - retirementAge);
-  const spendingAtRet = assumptions.annual_retirement_spending * Math.pow(1+inflationPct/100, accumYears);
+  // Bridge years — random return each year, draw from Rule of 55 pool first
+  const bridgeYears = Math.max(0, medicareAge - retAge);
+  const spendingAtRet = spending * Math.pow(1+inflationPct/100, accumYears);
 
   for (let y=0; y<bridgeYears; y++) {
     const yearReturn = randomNormal(meanReturn, stdDev) / 100;
     const totalYearsFromNow = accumYears + y;
-    const hcYear = futureHealthcareCost(assumptions.healthcare_estimate||0, totalYearsFromNow, 5.5, 20, inflationPct);
+    const hcYear = futureHealthcareCost(hcEstimate, totalYearsFromNow, 5.5, 20, inflationPct);
     const needYear = hcYear + spendingAtRet*Math.pow(1+inflationPct/100,y);
     ruleOf55Pool *= (1+yearReturn);
     otherPool *= (1+yearReturn);
@@ -581,11 +581,11 @@ function runOneMonteCarloPath(accounts, assumptions, retirementAgeOverride, mean
   const postBridgeYears = Math.max(0, planEndAge - medicareAge);
   for (let y=0; y<postBridgeYears; y++) {
     const age = medicareAge + y;
-    const yearsFromRet = age - retirementAge;
+    const yearsFromRet = age - retAge;
     const totalYearsFromNow = accumYears + bridgeYears + y;
     const yearReturn = randomNormal(meanReturn, stdDev) / 100;
-    const spendingThisYear = assumptions.annual_retirement_spending * Math.pow(1+inflationPct/100, yearsFromRet);
-    const hcYear = futureHealthcareCost(assumptions.healthcare_estimate||0, totalYearsFromNow, 5.5, 20, inflationPct);
+    const spendingThisYear = spending * Math.pow(1+inflationPct/100, yearsFromRet);
+    const hcYear = futureHealthcareCost(hcEstimate, totalYearsFromNow, 5.5, 20, inflationPct);
     const ssThisYear = householdSocialSecurityAtAge(assumptions, age, inflationPct);
     const spendYear = Math.max(0, spendingThisYear + hcYear - ssThisYear);
     runningBalance = runningBalance*(1+yearReturn) - spendYear;
@@ -596,8 +596,8 @@ function runOneMonteCarloPath(accounts, assumptions, retirementAgeOverride, mean
 
 // Runs N simulations for a given retirement age, returns success rate %.
 function runMonteCarloScenario(accounts, assumptions, retirementAgeOverride, numSimulations=1000) {
-  const meanReturn = assumptions.moderate_rate_pct || 7;
-  const stdDev = assumptions.return_volatility_pct || 15; // roughly matches historical S&P 500 annual volatility — lower if not 100% equities
+  const meanReturn = +(assumptions.moderate_rate_pct) || 7;
+  const stdDev     = +(assumptions.return_volatility_pct) || 15;
   let successes = 0;
   const finalBalances = [];
   for (let i=0; i<numSimulations; i++) {
@@ -635,7 +635,8 @@ function buildMonteCarloComparison(accounts, assumptions, numSimulations=1000) {
 // Answers: "what if we spend $10k less or more per year in retirement?"
 function buildSpendingSensitivity(accounts, assumptions, numSimulations=500) {
   if (!assumptions) return [];
-  const base = assumptions.annual_retirement_spending || 110000;
+  // Coerce to number — Supabase returns numeric columns as strings sometimes
+  const base = +(assumptions.annual_retirement_spending) || 110000;
   const variants = [
     { label: formatMoneyShort(base - 20000), spending: base - 20000 },
     { label: formatMoneyShort(base - 10000), spending: base - 10000 },
@@ -655,13 +656,6 @@ function buildSpendingSensitivity(accounts, assumptions, numSimulations=500) {
 // Answers: "what does saving $500 more per month actually do?"
 function buildContributionImpact(accounts, assumptions, numSimulations=500) {
   if (!assumptions) return [];
-  const currentMonthly = accounts.reduce((s,a) => {
-    const contrib = a.monthly_contribution || 0;
-    const match = a.employer_match || 0;
-    const freq = a.contribution_frequency || "monthly";
-    const monthly = freq==="biweekly" ? (contrib+match)*(26/12) : contrib+match;
-    return s + monthly;
-  }, 0);
 
   const variants = [
     { label: "Current", delta: 0, isCurrent: true },
@@ -671,9 +665,19 @@ function buildContributionImpact(accounts, assumptions, numSimulations=500) {
   ];
 
   return variants.map(v => {
-    // Build a fake extra account representing the additional contribution
+    // Add a new Roth contribution stream representing the extra savings
+    // Balance starts at 0, contributions start immediately — models new dedicated savings
     const modifiedAccounts = v.delta > 0
-      ? [...accounts, { balance: 0, monthly_contribution: v.delta, employer_match: 0, account_type: "brokerage", tax_treatment: "Roth", contribution_frequency: "monthly" }]
+      ? [...accounts, {
+          id: `extra-${v.delta}`,
+          balance: 0,
+          monthly_contribution: v.delta,
+          employer_match: 0,
+          account_type: "IRA",
+          tax_treatment: "Roth",
+          contribution_frequency: "monthly",
+          name: `Extra $${v.delta}/mo`
+        }]
       : accounts;
     const result = runMonteCarloScenario(modifiedAccounts, assumptions, null, numSimulations);
     return { ...result, label: v.label, delta: v.delta, isCurrent: v.isCurrent || false };
@@ -687,26 +691,24 @@ function buildContributionImpact(accounts, assumptions, numSimulations=500) {
 function simulateRetirementDrawdown(accounts, assumptions) {
   if (!assumptions) return null;
 
-  const totalBalance = accounts.reduce((s,a)=>s+(a.balance||0),0);
-  const totalMonthly = accounts.reduce((s,a)=>s+effectiveMonthlyContribution(a),0);
-  const accumYears = Math.max(0, assumptions.retirement_age - assumptions.current_age);
-  const contribGrowth = assumptions.contribution_increase_pct || 0;
-  const inflationPct = assumptions.inflation_pct || 3;
-  // Accumulation uses the moderate growth rate (while still contributing); drawdown uses a
-  // separate, typically more conservative rate reflecting de-risking once spending begins.
-  const accumRate = assumptions.moderate_rate_pct || 7;
-  const drawdownRate = assumptions.drawdown_rate_pct || 5;
-  const r = drawdownRate/100; // used for bridge + post-bridge phases below
-  const planEndAge = assumptions.plan_end_age || 90;
+  const totalBalance   = accounts.reduce((s,a)=>s+(+(a.balance)||0),0);
+  const totalMonthly   = accounts.reduce((s,a)=>s+effectiveMonthlyContribution(a),0);
+  const retirementAge  = +(assumptions.retirement_age) || 59;
+  const currentAge     = +(assumptions.current_age) || 44;
+  const accumYears     = Math.max(0, retirementAge - currentAge);
+  const contribGrowth  = +(assumptions.contribution_increase_pct) || 0;
+  const inflationPct   = +(assumptions.inflation_pct) || 3;
+  const accumRate      = +(assumptions.moderate_rate_pct) || 7;
+  const drawdownRate   = +(assumptions.drawdown_rate_pct) || 5;
+  const r              = drawdownRate/100;
+  const planEndAge     = +(assumptions.plan_end_age) || 90;
+  const medicareAge    = +(assumptions.medicare_age || assumptions.bridge_end_age) || 65;
+  const ssClaimAge     = +(assumptions.ss_claim_age) || 67;
+  const annualSpending = +(assumptions.annual_retirement_spending) || 110000;
+  const hcEstimate     = +(assumptions.healthcare_estimate) || 0;
 
-  // Medicare eligibility (drives bridge length) and Social Security claiming age (drives when SS offset begins)
-  // are separate — most people claim SS later than Medicare eligibility at 65
-  const medicareAge = assumptions.medicare_age || assumptions.bridge_end_age || 65;
-  const ssClaimAge = assumptions.ss_claim_age || 67;
-
-  // Split current balance proportionally between Rule-of-55-eligible and not
   const ruleOf55Share = totalBalance>0
-    ? accounts.filter(ruleOf55Eligible).reduce((s,a)=>s+(a.balance||0),0) / totalBalance
+    ? accounts.filter(ruleOf55Eligible).reduce((s,a)=>s+(+(a.balance)||0),0) / totalBalance
     : 0;
 
   // ── Phase 1: Accumulation (now → retirement_age) — track year by year for the full timeline ──
@@ -715,10 +717,10 @@ function simulateRetirementDrawdown(accounts, assumptions) {
     let bal = totalBalance;
     let contrib = totalMonthly;
     const rMonthly = accumRate/100/12;
-    accumSchedule.push({ age: assumptions.current_age, balance: Math.round(bal) });
+    accumSchedule.push({ age: currentAge, balance: Math.round(bal) });
     for (let y=1; y<=accumYears; y++) {
       for (let m=0; m<12; m++) bal = bal*(1+rMonthly) + contrib;
-      accumSchedule.push({ age: assumptions.current_age+y, balance: Math.round(bal) });
+      accumSchedule.push({ age: currentAge+y, balance: Math.round(bal) });
       contrib = contrib * (1 + contribGrowth/100);
     }
   }
@@ -735,14 +737,14 @@ function simulateRetirementDrawdown(accounts, assumptions) {
   let otherPool = spendableAtRetirement * (1 - ruleOf55Share);
 
   // ── Phase 2: Bridge (retirement_age → medicare_age) — draw from Rule of 55 pool first ──
-  const bridgeYears = Math.max(0, medicareAge - assumptions.retirement_age);
-  const spendingAtRetirement = assumptions.annual_retirement_spending * Math.pow(1+inflationPct/100, accumYears);
+  const bridgeYears = Math.max(0, medicareAge - retirementAge);
+  const spendingAtRetirement = annualSpending * Math.pow(1+inflationPct/100, accumYears);
 
   const bridgeSchedule = [];
   let bridgeShortfall = 0;
   for (let y=0; y<bridgeYears; y++) {
     const totalYearsFromNow = accumYears + y;
-    const hcYear = futureHealthcareCost(assumptions.healthcare_estimate||0, totalYearsFromNow, 5.5, 20, inflationPct);
+    const hcYear = futureHealthcareCost(hcEstimate, totalYearsFromNow, 5.5, 20, inflationPct);
     const spendYear = spendingAtRetirement * Math.pow(1+inflationPct/100, y);
     const needYear = hcYear + spendYear;
 
@@ -757,7 +759,7 @@ function simulateRetirementDrawdown(accounts, assumptions) {
       ruleOf55Pool = 0;
       otherPool = Math.max(0, otherPool - shortfall);
     }
-    bridgeSchedule.push({ age: assumptions.retirement_age+y, balance: Math.round(ruleOf55Pool+otherPool), ruleOf55Pool: Math.round(ruleOf55Pool), otherPool: Math.round(otherPool), needYear: Math.round(needYear) });
+    bridgeSchedule.push({ age: retirementAge+y, balance: Math.round(ruleOf55Pool+otherPool), ruleOf55Pool: Math.round(ruleOf55Pool), otherPool: Math.round(otherPool), needYear: Math.round(needYear) });
   }
 
   const balanceAtBridgeEnd = ruleOf55Pool + otherPool;
@@ -774,11 +776,11 @@ function simulateRetirementDrawdown(accounts, assumptions) {
 
   for (let y=0; y<postBridgeYears; y++) {
     const age = medicareAge + y;
-    const yearsFromRetirement = age - assumptions.retirement_age;
+    const yearsFromRetirement = age - retirementAge;
     const totalYearsFromNow = accumYears + bridgeYears + y;
 
-    const spendingThisYear = assumptions.annual_retirement_spending * Math.pow(1+inflationPct/100, yearsFromRetirement);
-    const hcYear = futureHealthcareCost(assumptions.healthcare_estimate||0, totalYearsFromNow, 5.5, 20, inflationPct);
+    const spendingThisYear = annualSpending * Math.pow(1+inflationPct/100, yearsFromRetirement);
+    const hcYear = futureHealthcareCost(hcEstimate, totalYearsFromNow, 5.5, 20, inflationPct);
     const ssThisYear = householdSocialSecurityAtAge(assumptions, age, inflationPct);
 
     const spendYear = Math.max(0, spendingThisYear + hcYear - ssThisYear);
@@ -814,7 +816,7 @@ function simulateRetirementDrawdown(accounts, assumptions) {
 // with the funding source(s) active in each, for the Income Timeline display.
 function buildIncomeTimeline(assumptions, drawdown) {
   if (!assumptions || !drawdown) return [];
-  const retAge = assumptions.retirement_age;
+  const retAge = retirementAge;
   const medicareAge = drawdown.medicareAge;
   const ssClaimAge = drawdown.ssClaimAge;
   const planEnd = drawdown.planEndAge;
@@ -846,7 +848,7 @@ function buildIncomeTimeline(assumptions, drawdown) {
       ageRange: `${medicareAge}–${ssClaimAge}`,
       sources: ["Medicare", "Portfolio withdrawals"],
       detail: "Healthcare costs drop with Medicare coverage. Still drawing from savings for living expenses — no Social Security yet.",
-      avgAnnual: assumptions.annual_retirement_spending,
+      avgAnnual: annualSpending,
       color: COLORS.blue,
     });
   } else {
@@ -855,7 +857,7 @@ function buildIncomeTimeline(assumptions, drawdown) {
       ageRange: `${medicareAge}+`,
       sources: ["Medicare", "Social Security", "Portfolio"],
       detail: "Medicare and Social Security both active alongside portfolio withdrawals.",
-      avgAnnual: Math.max(0, assumptions.annual_retirement_spending - (assumptions.social_security_estimate||0)),
+      avgAnnual: Math.max(0, annualSpending - (assumptions.social_security_estimate||0)),
       color: COLORS.blue,
     });
   }
@@ -866,7 +868,7 @@ function buildIncomeTimeline(assumptions, drawdown) {
       ageRange: `${ssClaimAge}–${planEnd}`,
       sources: ["Social Security", "Medicare", "Portfolio withdrawals"],
       detail: "Full income stack — Social Security and Medicare both active, portfolio covers the remaining gap.",
-      avgAnnual: Math.max(0, assumptions.annual_retirement_spending - (assumptions.social_security_estimate||0)),
+      avgAnnual: Math.max(0, annualSpending - (assumptions.social_security_estimate||0)),
       color: COLORS.green,
     });
   }
@@ -941,17 +943,26 @@ function buildFamilyMilestones(assump, collegeGoals, mort, mortMonths, retProj) 
 
 function calcRetirementProjection(accounts, assumptions) {
   if (!assumptions) return null;
-  const totalBalance = accounts.reduce((s,a)=>s+(a.balance||0),0);
+  const retirementAge  = +(assumptions.retirement_age) || 59;
+  const currentAge     = +(assumptions.current_age) || 44;
+  const contribGrowth  = +(assumptions.contribution_increase_pct) || 0;
+  const inflationPct   = +(assumptions.inflation_pct) || 3;
+  const annualSpending = +(assumptions.annual_retirement_spending) || 110000;
+  const hcEstimate     = +(assumptions.healthcare_estimate) || 0;
+  const ssEstimate     = +(assumptions.social_security_estimate) || 0;
+  const withdrawalRate = +(assumptions.withdrawal_rate_pct) || 4;
+  const medicareAge    = +(assumptions.medicare_age || assumptions.bridge_end_age) || 65;
+
+  const totalBalance = accounts.reduce((s,a)=>s+(+(a.balance)||0),0);
   const totalMonthly = accounts.reduce((s,a)=>s+effectiveMonthlyContribution(a),0);
-  const years = Math.max(0, assumptions.retirement_age - assumptions.current_age);
-  const growthRate = assumptions.contribution_increase_pct || 0;
-  const inflationPct = assumptions.inflation_pct || 3;
-  const deflator = Math.pow(1 + inflationPct/100, years); // converts future $ back to today's purchasing power
+  const years = Math.max(0, retirementAge - currentAge);
+  const growthRate = contribGrowth;
+  const deflator = Math.pow(1 + inflationPct/100, years);
 
   const scenarios = [
-    { label:"Conservative", rate:assumptions.conservative_rate_pct||5, color:COLORS.slate },
-    { label:"Moderate",     rate:assumptions.moderate_rate_pct||7,     color:COLORS.blue },
-    { label:"Aggressive",   rate:assumptions.aggressive_rate_pct||9,   color:COLORS.green },
+    { label:"Conservative", rate:+(assumptions.conservative_rate_pct)||5, color:COLORS.slate },
+    { label:"Moderate",     rate:+(assumptions.moderate_rate_pct)||7,     color:COLORS.blue },
+    { label:"Aggressive",   rate:+(assumptions.aggressive_rate_pct)||9,   color:COLORS.green },
   ].map(s => {
     const result = futureValueWithGrowth(totalBalance, totalMonthly, s.rate, years, growthRate);
     return { ...s, projected: result.finalBalance, trajectory: result.trajectory, projectedTodaysDollars: result.finalBalance / deflator };
@@ -969,14 +980,14 @@ function calcRetirementProjection(accounts, assumptions) {
   const spendableTodaysDollars = spendableProjected / deflator;
 
   // Target number — gross (pre-tax) and inflation-adjusted versions
-  const netAnnualNeed = Math.max(0, assumptions.annual_retirement_spending - assumptions.social_security_estimate);
-  const targetNumberToday = netAnnualNeed / (assumptions.withdrawal_rate_pct/100);
+  const netAnnualNeed = Math.max(0, annualSpending - ssEstimate);
+  const targetNumberToday = netAnnualNeed / (withdrawalRate/100);
   const targetNumberInflated = targetNumberToday * deflator;
 
   // Gap: both sides expressed in nominal dollars at the retirement year — apples to apples
   const gap = targetNumberInflated - spendableProjected;
 
-  const r = (assumptions.moderate_rate_pct||7)/100/12;
+  const r = (+(assumptions.moderate_rate_pct)||7)/100/12;
   const n = years*12;
   const fvOfCurrent = totalBalance * Math.pow(1+r, n);
   const remaining = targetNumberInflated - fvOfCurrent;
@@ -985,13 +996,13 @@ function calcRetirementProjection(accounts, assumptions) {
     : 0;
 
   // Early retirement bridge — healthcare grows faster than general spending
-  const medicareAge = assumptions.medicare_age || assumptions.bridge_end_age || 65;
+  const medicareAge = medicareAge;
   const bridgeEndAge = medicareAge; // kept for backward-compat display naming
-  const bridgeYears = Math.max(0, medicareAge - assumptions.retirement_age);
-  const spendingAtRetirement = assumptions.annual_retirement_spending * Math.pow(1+inflationPct/100, years);
+  const bridgeYears = Math.max(0, medicareAge - retirementAge);
+  const spendingAtRetirement = annualSpending * Math.pow(1+inflationPct/100, years);
   let bridgeTotalNeeded = 0;
   for (let y=0; y<bridgeYears; y++) {
-    const hcYear = futureHealthcareCost(assumptions.healthcare_estimate||0, years+y, 5.5, 20, inflationPct);
+    const hcYear = futureHealthcareCost(hcEstimate, years+y, 5.5, 20, inflationPct);
     const spendYear = spendingAtRetirement * Math.pow(1+inflationPct/100, y);
     bridgeTotalNeeded += hcYear + spendYear;
   }
@@ -1019,7 +1030,7 @@ function calcRetirementProjection(accounts, assumptions) {
     statusDetail = `Plan lasts through age ${drawdown.planEndAge||90}.`;
   } else if (drawdown.lastsFullPlan && !bridgeOk) {
     status="monitor"; statusLabel="On Track — Monitor Bridge Years"; statusColor=COLORS.amber;
-    statusDetail = `Full plan succeeds, but the ${assumptions.retirement_age}-${drawdown.medicareAge} bridge needs attention.`;
+    statusDetail = `Full plan succeeds, but the ${retirementAge}-${drawdown.medicareAge} bridge needs attention.`;
   } else if (drawdown.ranOutAtAge && drawdown.ranOutAtAge>=80) {
     status="monitor"; statusLabel="Monitor Closely"; statusColor=COLORS.amber;
     statusDetail = `Funds projected to run low around age ${drawdown.ranOutAtAge} — adjustable with modest changes.`;
@@ -1035,7 +1046,7 @@ function calcRetirementProjection(accounts, assumptions) {
   // Quick, non-AI recommendations based on the full drawdown picture
   const quickRecs = [];
   if (drawdown.bridgeShortfall>0) {
-    quickRecs.push(`Bridge years (age ${assumptions.retirement_age}-${drawdown.medicareAge}) come up ~${formatMoneyShort(drawdown.bridgeShortfall)} short even after using Rule of 55 funds — consider increasing contributions or building extra taxable savings earmarked for this window.`);
+    quickRecs.push(`Bridge years (age ${retirementAge}-${drawdown.medicareAge}) come up ~${formatMoneyShort(drawdown.bridgeShortfall)} short even after using Rule of 55 funds — consider increasing contributions or building extra taxable savings earmarked for this window.`);
   }
   if (!drawdown.lastsFullPlan) {
     quickRecs.push(`At current trajectory, savings are projected to run low around age ${drawdown.ranOutAtAge} — well before ${drawdown.planEndAge}. Consider increasing contributions, reducing planned spending, or delaying retirement age.`);
@@ -1484,44 +1495,67 @@ function getChemRecommendations(last, readings, filterBaseline) {
 
 // ─── STYLES ───────────────────────────────────────────────────────────────────
 const S={
-  app:{background:COLORS.navy,minHeight:"100vh",maxWidth:430,margin:"0 auto",fontFamily:"'Inter',system-ui,sans-serif",color:COLORS.white,position:"relative",paddingBottom:160},
-  header:{background:COLORS.navyMid,padding:"16px 20px 12px",paddingTop:"calc(env(safe-area-inset-top) + 16px)",borderBottom:`1px solid ${COLORS.navyLight}`,position:"sticky",top:0,zIndex:10},
+  // ── Layout ──────────────────────────────────────────────────────────────────
+  app:{background:COLORS.navy,minHeight:"100vh",maxWidth:430,margin:"0 auto",fontFamily:"'Inter',system-ui,-apple-system,sans-serif",color:COLORS.white,position:"relative",paddingBottom:160},
+  header:{background:COLORS.navyMid,padding:"16px 20px 14px",paddingTop:"calc(env(safe-area-inset-top) + 16px)",borderBottom:`1px solid ${COLORS.navyLight}`,position:"sticky",top:0,zIndex:10,backdropFilter:"blur(8px)"},
   headerRow:{display:"flex",justifyContent:"space-between",alignItems:"center"},
-  logo:{fontSize:18,fontWeight:700,letterSpacing:"-0.5px"},
+  logo:{fontSize:20,fontWeight:800,letterSpacing:"-0.6px"},
   logoAccent:{color:COLORS.blue},
-  dateLabel:{fontSize:12,color:COLORS.slate,marginTop:2},
-  screen:{padding:"20px 16px",background:COLORS.navy},
-  sectionLabel:{fontSize:10,fontWeight:700,letterSpacing:"1.2px",color:COLORS.slate,textTransform:"uppercase",marginBottom:12,marginTop:28},
-  card:{background:COLORS.navyMid,borderRadius:14,padding:"16px 18px",marginBottom:14,border:`1px solid ${COLORS.navyLight}`},
-  statusCard:(c)=>({background:COLORS.navyMid,borderRadius:14,padding:"16px 18px",marginBottom:14,border:`1px solid ${COLORS.navyLight}`,borderLeft:`3px solid ${c}`}),
-  badge:(c)=>({display:"inline-block",background:c+"22",color:c,borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:600}),
+  dateLabel:{fontSize:15,color:COLORS.slate,marginTop:3},
+  screen:{padding:"20px 16px 8px",background:COLORS.navy},
+
+  // ── Section labels ───────────────────────────────────────────────────────────
+  sectionLabel:{fontSize:15,fontWeight:700,letterSpacing:"1px",color:COLORS.slate,textTransform:"uppercase",marginBottom:12,marginTop:32},
+
+  // ── Cards ────────────────────────────────────────────────────────────────────
+  card:{background:COLORS.navyMid,borderRadius:16,padding:"18px 20px",marginBottom:12,border:`1px solid ${COLORS.navyLight}`},
+  statusCard:(c)=>({background:COLORS.navyMid,borderRadius:16,padding:"18px 20px",marginBottom:12,border:`1px solid ${COLORS.navyLight}`,borderLeft:`3px solid ${c}`}),
+
+  // ── Badges ───────────────────────────────────────────────────────────────────
+  badge:(c)=>({display:"inline-flex",alignItems:"center",background:c+"1a",color:c,borderRadius:20,padding:"3px 10px",fontSize:15,fontWeight:600,letterSpacing:"0.1px"}),
   memberDot:(m)=>({display:"inline-block",width:8,height:8,borderRadius:"50%",background:MEMBER_COLORS[m]||COLORS.slate,marginRight:6}),
-  btn:{background:COLORS.blue,color:"#fff",border:"none",borderRadius:10,padding:"13px 18px",fontSize:14,fontWeight:600,cursor:"pointer",width:"100%",marginTop:12,WebkitTapHighlightColor:"transparent",transition:"opacity 0.1s"},
-  btnSm:{background:COLORS.navyLight,color:COLORS.slateLight,border:"none",borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0,WebkitTapHighlightColor:"transparent"},
-  btnGreen:{background:COLORS.green+"22",color:COLORS.green,border:`1px solid ${COLORS.green}44`,borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0,WebkitTapHighlightColor:"transparent"},
-  btnCheck:{background:COLORS.green+"22",color:COLORS.green,border:`1px solid ${COLORS.green}44`,borderRadius:6,padding:"5px 9px",fontSize:13,fontWeight:700,cursor:"pointer",flexShrink:0,lineHeight:1,minWidth:28,textAlign:"center",WebkitTapHighlightColor:"transparent"},
-  btnRed:{background:COLORS.red+"22",color:COLORS.red,border:`1px solid ${COLORS.red}44`,borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0,WebkitTapHighlightColor:"transparent"},
-  btnAmber:{background:COLORS.amber+"22",color:COLORS.amber,border:`1px solid ${COLORS.amber}44`,borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0,WebkitTapHighlightColor:"transparent"},
-  input:{background:COLORS.navyLight,border:"1px solid #2a3a58",borderRadius:10,padding:"11px 14px",fontSize:14,color:COLORS.white,width:"100%",boxSizing:"border-box",outline:"none",marginBottom:12,transition:"border-color 0.15s"},
-  label:{fontSize:11,color:COLORS.slate,marginBottom:4,display:"block",fontWeight:600},
-  row:{display:"flex",gap:10},col:{flex:1},
-  statGrid:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8},
-  statCell:(c)=>({background:COLORS.navyMid,border:`1px solid ${COLORS.navyLight}`,borderTop:`3px solid ${c}`,borderRadius:10,padding:"12px 8px",textAlign:"center"}),
-  statVal:{fontSize:20,fontWeight:700,letterSpacing:"-0.2px"},statLbl:{fontSize:10,color:COLORS.slate,marginTop:2},statTarget:{fontSize:9,color:COLORS.slate,marginTop:1},
+
+  // ── Buttons ──────────────────────────────────────────────────────────────────
+  btn:{background:COLORS.blue,color:"#fff",border:"none",borderRadius:12,padding:"14px 20px",fontSize:15,fontWeight:600,cursor:"pointer",width:"100%",marginTop:12,WebkitTapHighlightColor:"transparent",transition:"opacity 0.1s",letterSpacing:"-0.1px"},
+  btnSm:{background:COLORS.navyLight,color:COLORS.slateLight,border:"none",borderRadius:10,padding:"8px 14px",fontSize:15,fontWeight:600,cursor:"pointer",flexShrink:0,WebkitTapHighlightColor:"transparent"},
+  btnGreen:{background:COLORS.green+"1a",color:COLORS.green,border:`1px solid ${COLORS.green}33`,borderRadius:10,padding:"8px 14px",fontSize:15,fontWeight:600,cursor:"pointer",flexShrink:0,WebkitTapHighlightColor:"transparent"},
+  btnCheck:{background:COLORS.green+"1a",color:COLORS.green,border:`1px solid ${COLORS.green}33`,borderRadius:8,padding:"6px 10px",fontSize:15,fontWeight:700,cursor:"pointer",flexShrink:0,lineHeight:1,minWidth:32,textAlign:"center",WebkitTapHighlightColor:"transparent"},
+  btnRed:{background:COLORS.red+"1a",color:COLORS.red,border:`1px solid ${COLORS.red}33`,borderRadius:10,padding:"8px 14px",fontSize:15,fontWeight:600,cursor:"pointer",flexShrink:0,WebkitTapHighlightColor:"transparent"},
+  btnAmber:{background:COLORS.amber+"1a",color:COLORS.amber,border:`1px solid ${COLORS.amber}33`,borderRadius:10,padding:"8px 14px",fontSize:15,fontWeight:600,cursor:"pointer",flexShrink:0,WebkitTapHighlightColor:"transparent"},
+
+  // ── Inputs ───────────────────────────────────────────────────────────────────
+  input:{background:"#1e2d4a",border:"1px solid #2d3f5c",borderRadius:12,padding:"13px 16px",fontSize:15,color:COLORS.white,width:"100%",boxSizing:"border-box",outline:"none",marginBottom:14,transition:"border-color 0.15s",WebkitAppearance:"none"},
+  label:{fontSize:15,color:COLORS.slate,marginBottom:10,display:"block",fontWeight:600,letterSpacing:"0.2px"},
+  row:{display:"flex",gap:12},col:{flex:1},
+
+  // ── Stat cells ───────────────────────────────────────────────────────────────
+  statGrid:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10},
+  statCell:(c)=>({background:COLORS.navyMid,border:`1px solid ${COLORS.navyLight}`,borderTop:`3px solid ${c}`,borderRadius:12,padding:"14px 8px",textAlign:"center"}),
+  statVal:{fontSize:22,fontWeight:700,letterSpacing:"-0.3px"},
+  statLbl:{fontSize:15,color:COLORS.slate,marginTop:3,fontWeight:500},
+  statTarget:{fontSize:15,color:COLORS.slate,marginTop:2},
+
+  // ── Navigation ───────────────────────────────────────────────────────────────
   nav:{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:COLORS.navyMid,borderTop:`1px solid ${COLORS.navyLight}`,display:"flex",zIndex:20,paddingBottom:"env(safe-area-inset-bottom)"},
-  navItem:(a)=>({flex:1,display:"flex",flexDirection:"column",alignItems:"center",padding:"10px 0 8px",cursor:"pointer",background:"transparent",border:"none",color:a?COLORS.blue:COLORS.slate,fontSize:10,fontWeight:a?700:500,gap:4,borderTop:a?`2px solid ${COLORS.blue}`:"2px solid transparent",WebkitTapHighlightColor:"transparent",transition:"color 0.15s"}),
-  modal:{position:"fixed",inset:0,background:"#000c",zIndex:50,display:"flex",alignItems:"flex-end",justifyContent:"center"},
-  sheet:{background:COLORS.navyMid,borderRadius:"20px 20px 0 0",padding:"12px 20px 48px",width:"100%",maxWidth:430,maxHeight:"92vh",overflowY:"auto",animation:"slideUp 0.25s ease-out"},
-  sheetHandle:{width:40,height:4,borderRadius:2,background:COLORS.navyLight,margin:"0 auto 16px"},
-  sheetTitle:{fontSize:18,fontWeight:700,marginBottom:18},
-  chip:(a,c)=>({display:"inline-block",padding:"4px 12px",borderRadius:20,fontSize:12,fontWeight:600,cursor:"pointer",border:`1px solid ${a?c:COLORS.navyLight}`,background:a?c+"22":"transparent",color:a?c:COLORS.slate,marginRight:6,marginBottom:6,WebkitTapHighlightColor:"transparent",transition:"all 0.12s"}),
-  tabs:{display:"flex",background:COLORS.navyMid,borderRadius:10,padding:3,marginBottom:16,border:`1px solid ${COLORS.navyLight}`},
-  tabBtn:(a)=>({flex:1,border:"none",borderRadius:8,padding:"8px 0",cursor:"pointer",background:a?COLORS.blue:"transparent",color:a?"#fff":COLORS.slate,fontSize:12,fontWeight:700,textTransform:"capitalize",transition:"all 0.15s",WebkitTapHighlightColor:"transparent"}),
-  empty:{textAlign:"center",padding:"40px 20px",color:COLORS.slate,fontSize:14},
-  progress:{height:3,background:COLORS.navyLight,borderRadius:2,marginTop:8,overflow:"hidden"},
+  navItem:(a)=>({flex:1,display:"flex",flexDirection:"column",alignItems:"center",padding:"11px 0 9px",cursor:"pointer",background:"transparent",border:"none",color:a?COLORS.blue:COLORS.slate,fontSize:15,fontWeight:a?700:500,gap:4,borderTop:a?`2px solid ${COLORS.blue}`:"2px solid transparent",WebkitTapHighlightColor:"transparent",transition:"color 0.15s"}),
+
+  // ── Modals / sheets ───────────────────────────────────────────────────────────
+  modal:{position:"fixed",inset:0,background:"#000d",zIndex:50,display:"flex",alignItems:"flex-end",justifyContent:"center"},
+  sheet:{background:COLORS.navyMid,borderRadius:"24px 24px 0 0",padding:"12px 20px 52px",width:"100%",maxWidth:430,maxHeight:"93vh",overflowY:"auto",animation:"slideUp 0.28s cubic-bezier(0.34,1.06,0.64,1)"},
+  sheetHandle:{width:44,height:4,borderRadius:2,background:COLORS.navyLight,margin:"0 auto 18px"},
+  sheetTitle:{fontSize:20,fontWeight:700,marginBottom:20,letterSpacing:"-0.3px"},
+
+  // ── Chips / tabs ─────────────────────────────────────────────────────────────
+  chip:(a,c)=>({display:"inline-block",padding:"5px 13px",borderRadius:20,fontSize:15,fontWeight:600,cursor:"pointer",border:`1px solid ${a?c:COLORS.navyLight}`,background:a?c+"1a":"transparent",color:a?c:COLORS.slate,marginRight:6,marginBottom:10,WebkitTapHighlightColor:"transparent",transition:"all 0.12s"}),
+  tabs:{display:"flex",background:COLORS.navyMid,borderRadius:12,padding:4,marginBottom:18,border:`1px solid ${COLORS.navyLight}`},
+  tabBtn:(a)=>({flex:1,border:"none",borderRadius:9,padding:"9px 0",cursor:"pointer",background:a?COLORS.blue:"transparent",color:a?"#fff":COLORS.slate,fontSize:15,fontWeight:700,textTransform:"capitalize",transition:"all 0.15s",WebkitTapHighlightColor:"transparent",letterSpacing:"0.1px"}),
+
+  // ── Misc ─────────────────────────────────────────────────────────────────────
+  empty:{textAlign:"center",padding:"48px 20px",color:COLORS.slate,fontSize:15},
+  progress:{height:4,background:COLORS.navyLight,borderRadius:2,marginTop:10,overflow:"hidden"},
   progressFill:(pct,c)=>({height:"100%",width:`${Math.min(100,Math.max(0,pct))}%`,background:c,borderRadius:2,transition:"width 0.4s ease-out"}),
-  gcBanner:{background:COLORS.blue+"18",border:`1px solid ${COLORS.blue}44`,borderRadius:14,padding:"14px 18px",marginBottom:16},
-  swipeHint:{fontSize:10,color:COLORS.slate,textAlign:"center",marginBottom:8,letterSpacing:"0.5px"},
+  gcBanner:{background:COLORS.blue+"15",border:`1px solid ${COLORS.blue}33`,borderRadius:16,padding:"16px 20px",marginBottom:16},
+  swipeHint:{fontSize:15,color:COLORS.slate,textAlign:"center",marginBottom:10,letterSpacing:"0.3px"},
 };
 // ─── ICONS ────────────────────────────────────────────────────────────────────
 const I={
@@ -1564,11 +1598,11 @@ function SwipeCard({children, onEdit, onDelete, style={}, activeId, setActiveId,
   return (
     <div style={{position:"relative",marginBottom:10,borderRadius:12,overflow:"hidden"}}>
       <div style={{position:"absolute",right:0,top:0,bottom:0,display:"flex",alignItems:"stretch",borderRadius:"0 12px 12px 0"}}>
-        <button onClick={onEdit} style={{width:65,background:COLORS.amber,color:"#fff",border:"none",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3}}>
-          <span style={{fontSize:16}}>✏️</span>Edit
+        <button onClick={onEdit} style={{width:65,background:COLORS.amber,color:"#fff",border:"none",fontSize:15,fontWeight:700,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3}}>
+          <span style={{fontSize:19}}>✏️</span>Edit
         </button>
-        <button onClick={onDelete} style={{width:65,background:COLORS.red,color:"#fff",border:"none",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,borderRadius:"0 12px 12px 0"}}>
-          <span style={{fontSize:16}}>🗑️</span>Delete
+        <button onClick={onDelete} style={{width:65,background:COLORS.red,color:"#fff",border:"none",fontSize:15,fontWeight:700,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,borderRadius:"0 12px 12px 0"}}>
+          <span style={{fontSize:19}}>🗑️</span>Delete
         </button>
       </div>
       <div
@@ -1663,8 +1697,8 @@ function CalendarBanner({gc}){
     <div style={S.gcBanner}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
-          <div style={{fontSize:12,fontWeight:700,color:COLORS.blue,marginBottom:2}}>✓ Google Calendar connected</div>
-          <div style={{fontSize:11,color:COLORS.slate}}>{gc.events.length} events loaded · {gc.loading?"Refreshing…":"Up to date"}</div>
+          <div style={{fontSize:15,fontWeight:700,color:COLORS.blue,marginBottom:2}}>✓ Google Calendar connected</div>
+          <div style={{fontSize:15,color:COLORS.slate}}>{gc.events.length} events loaded · {gc.loading?"Refreshing…":"Up to date"}</div>
         </div>
         <div style={{display:"flex",gap:6}}>
           <button style={S.btnSm} onClick={gc.refresh}>{I.refresh()} Sync</button>
@@ -1675,9 +1709,9 @@ function CalendarBanner({gc}){
   );
   return(
     <div style={S.gcBanner}>
-      <div style={{fontSize:13,fontWeight:700,color:COLORS.blue,marginBottom:4}}>Connect Google Calendar</div>
-      <div style={{fontSize:12,color:COLORS.slateLight,marginBottom:12,lineHeight:1.5}}>Sign in with Google to load your real family events automatically.</div>
-      {gc.error&&<div style={{fontSize:11,color:COLORS.red,marginBottom:8}}>{gc.error}</div>}
+      <div style={{fontSize:15,fontWeight:700,color:COLORS.blue,marginBottom:10}}>Connect Google Calendar</div>
+      <div style={{fontSize:15,color:COLORS.slateLight,marginBottom:12,lineHeight:1.5}}>Sign in with Google to load your real family events automatically.</div>
+      {gc.error&&<div style={{fontSize:15,color:COLORS.red,marginBottom:10}}>{gc.error}</div>}
       <button onClick={gc.signIn} style={{...S.btn,marginTop:0,display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:COLORS.white,color:COLORS.navy}}>
         {I.google()} Sign in with Google
       </button>
@@ -1769,10 +1803,10 @@ function Dashboard({onNavigate,gc}){
       <button onClick={()=>onNavigate(item.nav)} style={{display:"flex",alignItems:"center",gap:10,width:"100%",background:"none",border:"none",padding:"10px 0",borderBottom:i<total-1?`1px solid ${COLORS.navyLight}`:"none",cursor:"pointer",textAlign:"left"}}>
         <div style={{width:32,height:32,borderRadius:8,background:item.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>{item.icon}</div>
         <div style={{flex:1,minWidth:0}}>
-          <div style={{fontSize:13,fontWeight:600,color:COLORS.white,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.text}</div>
-          {item.detail&&<div style={{fontSize:11,color:item.color,marginTop:1}}>{item.detail}</div>}
+          <div style={{fontSize:15,fontWeight:600,color:COLORS.white,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.text}</div>
+          {item.detail&&<div style={{fontSize:15,color:item.color,marginTop:1}}>{item.detail}</div>}
         </div>
-        <div style={{fontSize:12,color:COLORS.slate,flexShrink:0}}>›</div>
+        <div style={{fontSize:15,color:COLORS.slate,flexShrink:0}}>›</div>
       </button>
     );
   }
@@ -1784,15 +1818,15 @@ function Dashboard({onNavigate,gc}){
       <div style={{background:COLORS.navyMid,borderRadius:16,padding:"20px 18px",marginBottom:16,border:`1px solid ${COLORS.navyLight}`,borderTop:`3px solid ${focusItems.length===0?COLORS.green:overdue.length>0?COLORS.red:COLORS.amber}`}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:focusItems.length>0?14:0}}>
           <div>
-            <div style={{fontSize:10,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4}}>Today's Focus</div>
+            <div style={{fontSize:15,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>Today's Focus</div>
             <div style={{fontSize:26,fontWeight:800,letterSpacing:"-0.5px",lineHeight:1.1,color:focusItems.length===0?COLORS.green:overdue.length>0?COLORS.red:COLORS.amber}}>
               {focusItems.length===0?"All clear 👋":overdue.length>0?`${overdue.length} need${overdue.length===1?"s":""} action now`:`${thisWeek.length} due this week`}
             </div>
-            <div style={{fontSize:12,color:COLORS.slate,marginTop:4}}>{formatToday()} · {totalEventsNext7} event{totalEventsNext7!==1?"s":""} this week</div>
+            <div style={{fontSize:15,color:COLORS.slate,marginTop:10}}>{formatToday()} · {totalEventsNext7} event{totalEventsNext7!==1?"s":""} this week</div>
           </div>
           {totalActions>0&&<div style={{textAlign:"right",flexShrink:0,marginLeft:12}}>
             <div style={{fontSize:24,fontWeight:800,color:overdue.length>0?COLORS.red:COLORS.amber}}>{totalActions}</div>
-            <div style={{fontSize:10,color:COLORS.slate}}>actions</div>
+            <div style={{fontSize:15,color:COLORS.slate}}>actions</div>
           </div>}
         </div>
         {focusItems.length>0&&focusItems.map((item,i)=><ActionItem key={i} item={item} i={i} total={focusItems.length}/>)}
@@ -1808,39 +1842,39 @@ function Dashboard({onNavigate,gc}){
           {label:"College",...collegeSt, nav:"college"},
         ].map((s,i)=>(
           <button key={i} onClick={()=>onNavigate(s.nav)} style={{background:COLORS.navyMid,border:`1px solid ${COLORS.navyLight}`,borderTop:`3px solid ${s.color}`,borderRadius:12,padding:"12px 14px",cursor:"pointer",textAlign:"left"}}>
-            <div style={{fontSize:10,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>{s.label}</div>
-            <div style={{fontSize:13,fontWeight:700,color:s.color,marginTop:4}}>{s.label}</div>
-            <div style={{fontSize:11,color:COLORS.slate,marginTop:2,lineHeight:1.3}}>{s.detail}</div>
+            <div style={{fontSize:15,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>{s.label}</div>
+            <div style={{fontSize:15,fontWeight:700,color:s.color,marginTop:10}}>{s.label}</div>
+            <div style={{fontSize:15,color:COLORS.slate,marginTop:2,lineHeight:1.3}}>{s.detail}</div>
           </button>
         ))}
       </div>
 
       {/* ── 3. ACTION CENTER ── */}
       {totalActions>0&&<>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
           <div style={S.sectionLabel}>Action Center</div>
-          {totalActions>5&&<button onClick={()=>setShowAllActions(p=>!p)} style={{fontSize:11,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,marginBottom:12}}>{showAllActions?"Less ↑":`All ${totalActions} →`}</button>}
+          {totalActions>5&&<button onClick={()=>setShowAllActions(p=>!p)} style={{fontSize:15,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,marginBottom:12}}>{showAllActions?"Less ↑":`All ${totalActions} →`}</button>}
         </div>
 
         {overdue.length>0&&(
           <div style={{...S.card,background:COLORS.red+"11",borderColor:COLORS.red+"33",marginBottom:10}}>
-            <div style={{fontSize:10,fontWeight:700,color:COLORS.red,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:6}}>⚠️ Overdue · {overdue.length}</div>
+            <div style={{fontSize:15,fontWeight:700,color:COLORS.red,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>⚠️ Overdue · {overdue.length}</div>
             {overdue.slice(0,showAllActions?99:3).map((item,i)=><ActionItem key={i} item={item} i={i} total={Math.min(overdue.length,showAllActions?99:3)}/>)}
-            {!showAllActions&&overdue.length>3&&<div style={{fontSize:11,color:COLORS.slate,paddingTop:6}}>+{overdue.length-3} more — tap "All" above</div>}
+            {!showAllActions&&overdue.length>3&&<div style={{fontSize:15,color:COLORS.slate,paddingTop:6}}>+{overdue.length-3} more — tap "All" above</div>}
           </div>
         )}
 
         {thisWeek.length>0&&(
           <div style={{...S.card,background:COLORS.amber+"11",borderColor:COLORS.amber+"33",marginBottom:10}}>
-            <div style={{fontSize:10,fontWeight:700,color:COLORS.amber,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:6}}>📅 Due This Week · {thisWeek.length}</div>
+            <div style={{fontSize:15,fontWeight:700,color:COLORS.amber,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>📅 Due This Week · {thisWeek.length}</div>
             {thisWeek.slice(0,showAllActions?99:3).map((item,i)=><ActionItem key={i} item={item} i={i} total={Math.min(thisWeek.length,showAllActions?99:3)}/>)}
-            {!showAllActions&&thisWeek.length>3&&<div style={{fontSize:11,color:COLORS.slate,paddingTop:6}}>+{thisWeek.length-3} more</div>}
+            {!showAllActions&&thisWeek.length>3&&<div style={{fontSize:15,color:COLORS.slate,paddingTop:6}}>+{thisWeek.length-3} more</div>}
           </div>
         )}
 
         {upcoming.length>0&&(showAllActions||overdue.length+thisWeek.length<=3)&&(
           <div style={{...S.card,background:COLORS.navyLight,marginBottom:10}}>
-            <div style={{fontSize:10,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:6}}>🔮 Upcoming · {upcoming.length}</div>
+            <div style={{fontSize:15,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>🔮 Upcoming · {upcoming.length}</div>
             {upcoming.slice(0,3).map((item,i)=><ActionItem key={i} item={item} i={i} total={Math.min(upcoming.length,3)}/>)}
           </div>
         )}
@@ -1848,9 +1882,9 @@ function Dashboard({onNavigate,gc}){
 
       {totalActions===0&&(
         <div style={{...S.card,background:COLORS.green+"11",borderColor:COLORS.green+"33",textAlign:"center",padding:"20px 16px",marginBottom:16}}>
-          <div style={{fontSize:20,marginBottom:6}}>✅</div>
-          <div style={{fontSize:14,fontWeight:700,color:COLORS.green}}>Nothing needs attention</div>
-          <div style={{fontSize:12,color:COLORS.slate,marginTop:4}}>All modules are current.</div>
+          <div style={{fontSize:20,marginBottom:10}}>✅</div>
+          <div style={{fontSize:15,fontWeight:700,color:COLORS.green}}>Nothing needs attention</div>
+          <div style={{fontSize:15,color:COLORS.slate,marginTop:10}}>All modules are current.</div>
         </div>
       )}
 
@@ -1858,35 +1892,35 @@ function Dashboard({onNavigate,gc}){
       {gc.token&&<>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div style={S.sectionLabel}>This Week</div>
-          <button onClick={()=>setShowFullSchedule(p=>!p)} style={{fontSize:11,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,marginBottom:12}}>{showFullSchedule?"Collapse ↑":"30 days →"}</button>
+          <button onClick={()=>setShowFullSchedule(p=>!p)} style={{fontSize:15,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,marginBottom:12}}>{showFullSchedule?"Collapse ↑":"30 days →"}</button>
         </div>
         <div style={{marginBottom:10}}>
           {members.map(m=><span key={m} style={S.chip(filter===m,MEMBER_COLORS[m]||COLORS.blue)} onClick={()=>setFilter(m)}>{m}</span>)}
         </div>
         {gc.loading?<Loading/>:(
           eventsInWindow.length===0
-            ?<div style={{...S.empty,padding:"14px 0",marginBottom:8}}>No events {showFullSchedule?"in the next 30 days":"this week"}.</div>
+            ?<div style={{...S.empty,padding:"14px 0",marginBottom:10}}>No events {showFullSchedule?"in the next 30 days":"this week"}.</div>
             :visibleDays.map(day=>{
               const evs=filtered.filter(e=>e.date===day);
               if(!evs.length)return null;
               const isToday=day===TODAY_STR;
               return(
                 <div key={day}>
-                  <div style={{fontSize:10,fontWeight:700,color:isToday?COLORS.blue:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:6,marginTop:10}}>{isToday?"Today":formatDateFull(day)}</div>
+                  <div style={{fontSize:15,fontWeight:700,color:isToday?COLORS.blue:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10,marginTop:10}}>{isToday?"Today":formatDateFull(day)}</div>
                   {evs.map(e=>(
-                    <div key={e.id} style={{...S.card,borderLeft:`3px solid ${MEMBER_COLORS[e.member]||COLORS.slate}`,marginBottom:8,padding:"12px 14px"}}>
+                    <div key={e.id} style={{...S.card,borderLeft:`3px solid ${MEMBER_COLORS[e.member]||COLORS.slate}`,marginBottom:10,padding:"12px 14px"}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                         <div style={{flex:1}}>
-                          <div style={{fontSize:13,fontWeight:600}}>{e.title}</div>
-                          <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{e.time||"All day"}{e.location?` · ${e.location}`:""}</div>
+                          <div style={{fontSize:15,fontWeight:600}}>{e.title}</div>
+                          <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>{e.time||"All day"}{e.location?` · ${e.location}`:""}</div>
                         </div>
                         <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
                           <span style={S.badge(MEMBER_COLORS[e.member]||COLORS.slate)}>{e.member}</span>
-                          <button style={{...S.btnSm,fontSize:10,padding:"3px 8px"}} onClick={()=>setReassigning(reassigning===e.id?null:e.id)}>reassign</button>
+                          <button style={{...S.btnSm,fontSize:15,padding:"3px 8px"}} onClick={()=>setReassigning(reassigning===e.id?null:e.id)}>reassign</button>
                         </div>
                       </div>
                       {reassigning===e.id&&(
-                        <div style={{marginTop:8,display:"flex",flexWrap:"wrap",gap:6}}>
+                        <div style={{marginTop:10,display:"flex",flexWrap:"wrap",gap:6}}>
                           {["Aubrey","Blake","Brayden","Matt","Kalee"].map(m=>(
                             <span key={m} style={S.chip(e.member===m,MEMBER_COLORS[m])} onClick={()=>{setOverrides(p=>({...p,[e.id]:m}));setReassigning(null);}}>{m}</span>
                           ))}
@@ -1901,9 +1935,9 @@ function Dashboard({onNavigate,gc}){
       </>}
 
       {!gc.token&&(
-        <div style={{...S.statusCard(COLORS.blue),marginBottom:8}}>
+        <div style={{...S.statusCard(COLORS.blue),marginBottom:10}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div style={{fontSize:12,color:COLORS.slateLight}}>Connect Calendar to see your week here.</div>
+            <div style={{fontSize:15,color:COLORS.slateLight}}>Connect Calendar to see your week here.</div>
             <button style={S.btnSm} onClick={gc.signIn}>Connect</button>
           </div>
         </div>
@@ -1913,11 +1947,11 @@ function Dashboard({onNavigate,gc}){
       {recentActivity.length>0&&<>
         <div style={S.sectionLabel}>Recent Activity</div>
         {recentActivity.map((a,i)=>(
-          <div key={i} style={{display:"flex",gap:10,alignItems:"center",padding:"8px 0",borderBottom:i<recentActivity.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
-            <span style={{fontSize:16,flexShrink:0}}>{a.icon}</span>
+          <div key={i} style={{display:"flex",gap:10,alignItems:"center",padding:"10px 0",borderBottom:i<recentActivity.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
+            <span style={{fontSize:19,flexShrink:0}}>{a.icon}</span>
             <div style={{flex:1}}>
-              <div style={{fontSize:12,color:COLORS.slateLight}}>{a.text}</div>
-              <div style={{fontSize:10,color:COLORS.slate,marginTop:2}}>{formatDate(a.date)}</div>
+              <div style={{fontSize:15,color:COLORS.slateLight}}>{a.text}</div>
+              <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>{formatDate(a.date)}</div>
             </div>
           </div>
         ))}
@@ -2057,41 +2091,41 @@ function College(){
 
       {/* ── Aubrey header card with timeline progress ── */}
       <div style={{...S.card,background:COLORS.navyLight,borderLeft:`3px solid ${MEMBER_COLORS.Aubrey}`,marginBottom:16}}>
-        <div style={{fontSize:11,color:COLORS.red,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase"}}>Aubrey · Class of 2028</div>
-        <div style={{fontSize:16,fontWeight:700,marginTop:2}}>Junior Year — College Planning</div>
-        <div style={{fontSize:12,color:COLORS.slate,marginTop:4}}>
+        <div style={{fontSize:15,color:COLORS.red,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase"}}>Aubrey · Class of 2028</div>
+        <div style={{fontSize:19,fontWeight:700,marginTop:2}}>Junior Year — College Planning</div>
+        <div style={{fontSize:15,color:COLORS.slate,marginTop:10}}>
           {schools.data.filter(s=>s.status==="target"||s.status==="applying").length} target schools · {pending.length} open deadline{pending.length!==1?"s":""}
         </div>
 
         {/* Progress bar */}
         <div style={{marginTop:12}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-            <div style={{fontSize:11,color:COLORS.slate,fontWeight:600}}>{completedMilestones} of {timeline.length} milestones complete</div>
-            <div style={{fontSize:11,color:COLORS.blue}}>{Math.round(completedMilestones/timeline.length*100)}%</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <div style={{fontSize:15,color:COLORS.slate,fontWeight:600}}>{completedMilestones} of {timeline.length} milestones complete</div>
+            <div style={{fontSize:15,color:COLORS.blue}}>{Math.round(completedMilestones/timeline.length*100)}%</div>
           </div>
           <div style={S.progress}>
             <div style={S.progressFill(completedMilestones/timeline.length*100, COLORS.blue)}/>
           </div>
-          {nextMilestone&&<div style={{fontSize:11,color:COLORS.slateLight,marginTop:6}}>
+          {nextMilestone&&<div style={{fontSize:15,color:COLORS.slateLight,marginTop:10}}>
             Next: <span style={{color:COLORS.white,fontWeight:600}}>{nextMilestone.label}</span>
             {nextMilestone.daysAway>0?` — in ${nextMilestone.daysAway}d`:nextMilestone.daysAway===0?" — Today":" — Overdue"}
           </div>}
         </div>
 
-        <button onClick={()=>setShowTimeline(p=>!p)} style={{fontSize:11,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,marginTop:10,textDecoration:"underline"}}>
+        <button onClick={()=>setShowTimeline(p=>!p)} style={{fontSize:15,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,marginTop:10,textDecoration:"underline"}}>
           {showTimeline?"Hide timeline":"View full timeline →"}
         </button>
 
         {showTimeline&&(
           <div style={{marginTop:12}}>
             {timeline.map((m,i)=>(
-              <div key={m.id} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"8px 0",borderBottom:i<timeline.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
-                <div style={{width:20,height:20,borderRadius:"50%",background:m.completed?COLORS.green:m.isPast&&!m.completed?COLORS.red:COLORS.navyLight,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,flexShrink:0,marginTop:1}}>
+              <div key={m.id} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"10px 0",borderBottom:i<timeline.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
+                <div style={{width:20,height:20,borderRadius:"50%",background:m.completed?COLORS.green:m.isPast&&!m.completed?COLORS.red:COLORS.navyLight,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0,marginTop:1}}>
                   {m.completed?"✓":m.isPast?"!":""}
                 </div>
                 <div style={{flex:1}}>
-                  <div style={{fontSize:12,fontWeight:600,color:m.completed?COLORS.slate:m.isPast?COLORS.red:COLORS.white}}>{m.label}</div>
-                  <div style={{fontSize:10,color:COLORS.slate,marginTop:1}}>
+                  <div style={{fontSize:15,fontWeight:600,color:m.completed?COLORS.slate:m.isPast?COLORS.red:COLORS.white}}>{m.label}</div>
+                  <div style={{fontSize:15,color:COLORS.slate,marginTop:1}}>
                     {formatDate(m.date)} · {m.detail}
                   </div>
                 </div>
@@ -2112,7 +2146,7 @@ function College(){
 
           {/* Overdue */}
           {overdueDeadlines.length>0&&<>
-            <div style={{fontSize:10,fontWeight:700,color:COLORS.red,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8,marginTop:4}}>⚠️ Overdue · {overdueDeadlines.length}</div>
+            <div style={{fontSize:15,fontWeight:700,color:COLORS.red,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10,marginTop:10}}>⚠️ Overdue · {overdueDeadlines.length}</div>
             {overdueDeadlines.map(d=>(
               <SwipeCard key={d.id} id={d.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
                 onEdit={()=>openEdit("deadline",d)}
@@ -2120,11 +2154,11 @@ function College(){
                 style={S.statusCard(COLORS.red)}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div style={{flex:1,paddingRight:10}}>
-                    <div style={{fontSize:13,fontWeight:600}}>{d.title}</div>
-                    {d.school&&<div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{d.school}</div>}
-                    <div style={{display:"flex",gap:6,marginTop:6,alignItems:"center"}}>
+                    <div style={{fontSize:15,fontWeight:600}}>{d.title}</div>
+                    {d.school&&<div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>{d.school}</div>}
+                    <div style={{display:"flex",gap:6,marginTop:10,alignItems:"center"}}>
                       <span style={S.badge(catColor[d.category]||COLORS.slate)}>{d.category}</span>
-                      <span style={{fontSize:11,color:COLORS.red,fontWeight:700}}>{Math.abs(daysBetween(d.due_date))}d overdue</span>
+                      <span style={{fontSize:15,color:COLORS.red,fontWeight:700}}>{Math.abs(daysBetween(d.due_date))}d overdue</span>
                     </div>
                   </div>
                   <button style={S.btnCheck} onClick={()=>deadlines.update(d.id,{completed:true})}>✓</button>
@@ -2135,7 +2169,7 @@ function College(){
 
           {/* Due this week */}
           {thisWeekDeadlines.length>0&&<>
-            <div style={{fontSize:10,fontWeight:700,color:COLORS.amber,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8,marginTop:overdueDeadlines.length>0?16:4}}>📅 Due This Week · {thisWeekDeadlines.length}</div>
+            <div style={{fontSize:15,fontWeight:700,color:COLORS.amber,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10,marginTop:overdueDeadlines.length>0?16:4}}>📅 Due This Week · {thisWeekDeadlines.length}</div>
             {thisWeekDeadlines.map(d=>{
               const days=daysBetween(d.due_date);
               return(
@@ -2145,11 +2179,11 @@ function College(){
                   style={S.statusCard(COLORS.amber)}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                     <div style={{flex:1,paddingRight:10}}>
-                      <div style={{fontSize:13,fontWeight:600}}>{d.title}</div>
-                      {d.school&&<div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{d.school}</div>}
-                      <div style={{display:"flex",gap:6,marginTop:6,alignItems:"center"}}>
+                      <div style={{fontSize:15,fontWeight:600}}>{d.title}</div>
+                      {d.school&&<div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>{d.school}</div>}
+                      <div style={{display:"flex",gap:6,marginTop:10,alignItems:"center"}}>
                         <span style={S.badge(catColor[d.category]||COLORS.slate)}>{d.category}</span>
-                        <span style={{fontSize:11,color:COLORS.amber,fontWeight:700}}>{days===0?"Today":`in ${days}d`}</span>
+                        <span style={{fontSize:15,color:COLORS.amber,fontWeight:700}}>{days===0?"Today":`in ${days}d`}</span>
                       </div>
                     </div>
                     <button style={S.btnCheck} onClick={()=>deadlines.update(d.id,{completed:true})}>✓</button>
@@ -2161,7 +2195,7 @@ function College(){
 
           {/* Due this month */}
           {soonDeadlines.length>0&&<>
-            <div style={{fontSize:10,fontWeight:700,color:COLORS.blue,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8,marginTop:16}}>📌 This Month · {soonDeadlines.length}</div>
+            <div style={{fontSize:15,fontWeight:700,color:COLORS.blue,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10,marginTop:16}}>📌 This Month · {soonDeadlines.length}</div>
             {soonDeadlines.map(d=>{
               const days=daysBetween(d.due_date);
               return(
@@ -2171,11 +2205,11 @@ function College(){
                   style={S.statusCard(COLORS.blue)}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                     <div style={{flex:1,paddingRight:10}}>
-                      <div style={{fontSize:13,fontWeight:600}}>{d.title}</div>
-                      {d.school&&<div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{d.school}</div>}
-                      <div style={{display:"flex",gap:6,marginTop:6,alignItems:"center"}}>
+                      <div style={{fontSize:15,fontWeight:600}}>{d.title}</div>
+                      {d.school&&<div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>{d.school}</div>}
+                      <div style={{display:"flex",gap:6,marginTop:10,alignItems:"center"}}>
                         <span style={S.badge(catColor[d.category]||COLORS.slate)}>{d.category}</span>
-                        <span style={{fontSize:11,color:COLORS.slate}}>{formatDate(d.due_date)} · in {days}d</span>
+                        <span style={{fontSize:15,color:COLORS.slate}}>{formatDate(d.due_date)} · in {days}d</span>
                       </div>
                     </div>
                     <button style={S.btnCheck} onClick={()=>deadlines.update(d.id,{completed:true})}>✓</button>
@@ -2187,7 +2221,7 @@ function College(){
 
           {/* Upcoming */}
           {upcomingDeadlines.length>0&&<>
-            <div style={{fontSize:10,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8,marginTop:16}}>🔮 Upcoming · {upcomingDeadlines.length}</div>
+            <div style={{fontSize:15,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10,marginTop:16}}>🔮 Upcoming · {upcomingDeadlines.length}</div>
             {upcomingDeadlines.map(d=>{
               const days=daysBetween(d.due_date);
               return(
@@ -2197,11 +2231,11 @@ function College(){
                   style={S.card}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                     <div style={{flex:1,paddingRight:10}}>
-                      <div style={{fontSize:13,fontWeight:600}}>{d.title}</div>
-                      {d.school&&<div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{d.school}</div>}
-                      <div style={{display:"flex",gap:6,marginTop:6,alignItems:"center"}}>
+                      <div style={{fontSize:15,fontWeight:600}}>{d.title}</div>
+                      {d.school&&<div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>{d.school}</div>}
+                      <div style={{display:"flex",gap:6,marginTop:10,alignItems:"center"}}>
                         <span style={S.badge(catColor[d.category]||COLORS.slate)}>{d.category}</span>
-                        <span style={{fontSize:11,color:COLORS.slate}}>{formatDate(d.due_date)} · in {days}d</span>
+                        <span style={{fontSize:15,color:COLORS.slate}}>{formatDate(d.due_date)} · in {days}d</span>
                       </div>
                     </div>
                     <button style={S.btnCheck} onClick={()=>deadlines.update(d.id,{completed:true})}>✓</button>
@@ -2215,7 +2249,7 @@ function College(){
 
           {/* Completed */}
           {done.length>0&&<>
-            <button onClick={()=>setShowCompleted(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"center",marginTop:12,marginBottom:4}}>
+            <button onClick={()=>setShowCompleted(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"center",marginTop:12,marginBottom:10}}>
               {showCompleted?"Hide":"Show"} {done.length} completed
             </button>
             {showCompleted&&done.map(d=>(
@@ -2224,7 +2258,7 @@ function College(){
                 onDelete={()=>{if(window.confirm("Delete?"))deadlines.remove(d.id);setActiveSwipe(null);}}
                 style={{...S.card,opacity:0.5}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div style={{fontSize:13,textDecoration:"line-through",color:COLORS.slate}}>{d.title}</div>
+                  <div style={{fontSize:15,textDecoration:"line-through",color:COLORS.slate}}>{d.title}</div>
                   <button style={S.btnSm} onClick={()=>deadlines.update(d.id,{completed:false})}>Undo</button>
                 </div>
               </SwipeCard>
@@ -2250,18 +2284,18 @@ function College(){
                     onDelete={()=>{if(window.confirm("Remove this school?"))schools.remove(s.id);setActiveSwipe(null);}}
                     style={S.statusCard(statusColors[s.status])}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      <div style={{fontSize:14,fontWeight:600}}>{s.name}</div>
+                      <div style={{fontSize:15,fontWeight:600}}>{s.name}</div>
                       <select value={s.status} onChange={e=>schools.update(s.id,{status:e.target.value})}
-                        style={{background:COLORS.navyLight,color:COLORS.slateLight,border:"none",borderRadius:6,padding:"4px 8px",fontSize:11,cursor:"pointer"}}>
+                        style={{background:COLORS.navyLight,color:COLORS.slateLight,border:"none",borderRadius:6,padding:"4px 8px",fontSize:15,cursor:"pointer"}}>
                         {["researching","target","applying","applied","accepted","rejected"].map(st=><option key={st} value={st}>{st}</option>)}
                       </select>
                     </div>
-                    <div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap",alignItems:"center"}}>
+                    <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap",alignItems:"center"}}>
                       {s.match_level&&<span style={S.badge(matchColors[s.match_level]||COLORS.slate)}>{s.match_level}</span>}
                       {s.app_type&&<span style={S.badge(appTypeColors[s.app_type]||COLORS.slate)}>{s.app_type}</span>}
-                      {s.app_deadline&&<span style={{fontSize:11,color:COLORS.slate}}>Due {formatDate(s.app_deadline)}</span>}
+                      {s.app_deadline&&<span style={{fontSize:15,color:COLORS.slate}}>Due {formatDate(s.app_deadline)}</span>}
                     </div>
-                    {s.visit_notes&&<div style={{fontSize:11,color:COLORS.slateLight,marginTop:6,fontStyle:"italic",lineHeight:1.4}}>📝 {s.visit_notes}</div>}
+                    {s.visit_notes&&<div style={{fontSize:15,color:COLORS.slateLight,marginTop:10,fontStyle:"italic",lineHeight:1.4}}>📝 {s.visit_notes}</div>}
                   </SwipeCard>
                 ))}
               </div>
@@ -2273,7 +2307,7 @@ function College(){
 
       {tab==="essays"&&<>
         {essays.loading?<Loading/>:<>
-          <div style={{fontSize:12,color:COLORS.slate,marginBottom:12,lineHeight:1.5}}>Track Common App and supplemental essays — status and due dates.</div>
+          <div style={{fontSize:15,color:COLORS.slate,marginBottom:12,lineHeight:1.5}}>Track Common App and supplemental essays — status and due dates.</div>
           <SwipeHint/>
           {["not started","drafting","review","submitted"].map(status=>{
             const group=essays.data.filter(e=>(e.status||"not started")===status);
@@ -2290,16 +2324,16 @@ function College(){
                       style={S.statusCard(essayStatusColors[e.status]||COLORS.slate)}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                         <div style={{flex:1}}>
-                          <div style={{fontSize:14,fontWeight:600}}>{e.title}</div>
-                          {e.school&&<div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{e.school}</div>}
-                          <div style={{display:"flex",gap:8,marginTop:4,alignItems:"center"}}>
-                            {e.due_date&&<span style={{fontSize:11,color:days<0?COLORS.red:days<=7?COLORS.amber:COLORS.slate}}>Due {formatDate(e.due_date)}{days!==null?` (${days<0?`${-days}d overdue`:`${days}d`})`:""}</span>}
-                            {e.word_count&&<span style={{fontSize:11,color:COLORS.slate}}>{e.word_count} words</span>}
+                          <div style={{fontSize:15,fontWeight:600}}>{e.title}</div>
+                          {e.school&&<div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>{e.school}</div>}
+                          <div style={{display:"flex",gap:8,marginTop:10,alignItems:"center"}}>
+                            {e.due_date&&<span style={{fontSize:15,color:days<0?COLORS.red:days<=7?COLORS.amber:COLORS.slate}}>Due {formatDate(e.due_date)}{days!==null?` (${days<0?`${-days}d overdue`:`${days}d`})`:""}</span>}
+                            {e.word_count&&<span style={{fontSize:15,color:COLORS.slate}}>{e.word_count} words</span>}
                           </div>
-                          {e.notes&&<div style={{fontSize:11,color:COLORS.slateLight,marginTop:4,fontStyle:"italic"}}>{e.notes}</div>}
+                          {e.notes&&<div style={{fontSize:15,color:COLORS.slateLight,marginTop:10,fontStyle:"italic"}}>{e.notes}</div>}
                         </div>
                         <select value={e.status||"not started"} onChange={ev=>essays.update(e.id,{status:ev.target.value})}
-                          style={{background:COLORS.navyLight,color:COLORS.slateLight,border:"none",borderRadius:6,padding:"4px 8px",fontSize:11,cursor:"pointer",flexShrink:0}}>
+                          style={{background:COLORS.navyLight,color:COLORS.slateLight,border:"none",borderRadius:6,padding:"4px 8px",fontSize:15,cursor:"pointer",flexShrink:0}}>
                           {["not started","drafting","review","submitted"].map(st=><option key={st} value={st}>{st}</option>)}
                         </select>
                       </div>
@@ -2315,7 +2349,7 @@ function College(){
 
       {tab==="tests"&&<>
         {testPlan.loading?<Loading/>:<>
-          <div style={{fontSize:12,color:COLORS.slate,marginBottom:12,lineHeight:1.5}}>Plan upcoming SAT/ACT attempts — registration deadlines and target scores.</div>
+          <div style={{fontSize:15,color:COLORS.slate,marginBottom:12,lineHeight:1.5}}>Plan upcoming SAT/ACT attempts — registration deadlines and target scores.</div>
           <SwipeHint/>
           {testPlan.data.map(t=>{
             const days=daysBetween(t.target_date);
@@ -2326,9 +2360,9 @@ function College(){
                 style={S.statusCard(days<=14?COLORS.amber:COLORS.blue)}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div style={{flex:1}}>
-                    <div style={{fontSize:14,fontWeight:600}}>{t.test_type} — Attempt {t.attempt_number}</div>
-                    <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>{formatDate(t.target_date)} · {days<0?"Past":`${days}d away`}{t.target_score?` · Target: ${t.target_score}`:""}</div>
-                    {t.notes&&<div style={{fontSize:11,color:COLORS.slate,marginTop:4,fontStyle:"italic"}}>{t.notes}</div>}
+                    <div style={{fontSize:15,fontWeight:600}}>{t.test_type} — Attempt {t.attempt_number}</div>
+                    <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>{formatDate(t.target_date)} · {days<0?"Past":`${days}d away`}{t.target_score?` · Target: ${t.target_score}`:""}</div>
+                    {t.notes&&<div style={{fontSize:15,color:COLORS.slate,marginTop:10,fontStyle:"italic"}}>{t.notes}</div>}
                   </div>
                   <span style={S.badge(t.registered?COLORS.green:COLORS.amber)}>{t.registered?"Registered":"Not registered"}</span>
                 </div>
@@ -2344,11 +2378,11 @@ function College(){
           {scores.data.length>0&&(
             <div style={{...S.card,background:COLORS.navyLight,textAlign:"center",marginBottom:16}}>
               <div style={{fontSize:36,fontWeight:800}}>{scores.data[0].total}</div>
-              <div style={{fontSize:12,color:COLORS.slate}}>Most Recent · {formatDate(scores.data[0].date)}</div>
+              <div style={{fontSize:15,color:COLORS.slate}}>Most Recent · {formatDate(scores.data[0].date)}</div>
               <div style={{display:"flex",justifyContent:"center",gap:28,marginTop:12}}>
-                <div><div style={{fontSize:20,fontWeight:700}}>{scores.data[0].math}</div><div style={{fontSize:11,color:COLORS.slate}}>Math</div></div>
+                <div><div style={{fontSize:20,fontWeight:700}}>{scores.data[0].math}</div><div style={{fontSize:15,color:COLORS.slate}}>Math</div></div>
                 <div style={{width:1,background:COLORS.navyLight}}/>
-                <div><div style={{fontSize:20,fontWeight:700}}>{scores.data[0].verbal}</div><div style={{fontSize:11,color:COLORS.slate}}>Verbal</div></div>
+                <div><div style={{fontSize:20,fontWeight:700}}>{scores.data[0].verbal}</div><div style={{fontSize:15,color:COLORS.slate}}>Verbal</div></div>
               </div>
             </div>
           )}
@@ -2358,8 +2392,8 @@ function College(){
               onEdit={()=>openEdit("score",s)}
               onDelete={()=>{if(window.confirm("Delete this score?"))scores.remove(s.id);setActiveSwipe(null);}}
               style={S.card}>
-              <div style={{fontSize:15,fontWeight:700}}>{s.total} <span style={{fontSize:11,color:COLORS.slate}}>({s.math}M / {s.verbal}V)</span></div>
-              <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>{formatDate(s.date)}{s.notes?` · ${s.notes}`:""}</div>
+              <div style={{fontSize:15,fontWeight:700}}>{s.total} <span style={{fontSize:15,color:COLORS.slate}}>({s.math}M / {s.verbal}V)</span></div>
+              <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>{formatDate(s.date)}{s.notes?` · ${s.notes}`:""}</div>
             </SwipeCard>
           ))}
           <button style={S.btn} onClick={()=>{setForm({});setShowModal("score");}}>+ Log Score</button>
@@ -2368,9 +2402,9 @@ function College(){
 
       {tab==="planning"&&<>
         <div style={{...S.card,background:COLORS.navyLight,marginBottom:16}}>
-          <div style={{fontSize:11,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4}}>Future Planning</div>
+          <div style={{fontSize:15,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>Future Planning</div>
           <div style={{fontSize:15,fontWeight:700}}>Blake & Brayden</div>
-          <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>Years until college start · 529 funding status</div>
+          <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>Years until college start · 529 funding status</div>
         </div>
 
         {(()=>{
@@ -2414,32 +2448,32 @@ function College(){
               <div key={child.name} style={{...S.card,borderTop:`3px solid ${child.color}`,marginBottom:14}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
                   <div>
-                    <div style={{fontSize:16,fontWeight:800,color:child.color}}>{child.name}</div>
-                    <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>Age {child.age} · {yearsAway} year{yearsAway!==1?"s":""} until college · Class of {child.startYear}</div>
+                    <div style={{fontSize:19,fontWeight:800,color:child.color}}>{child.name}</div>
+                    <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>Age {child.age} · {yearsAway} year{yearsAway!==1?"s":""} until college · Class of {child.startYear}</div>
                   </div>
                   <div style={{textAlign:"right",flexShrink:0,marginLeft:12}}>
                     <div style={{fontSize:20,fontWeight:800,color:pct>=80?COLORS.green:pct>=50?COLORS.amber:COLORS.red}}>{pct}%</div>
-                    <div style={{fontSize:10,color:COLORS.slate}}>funded est.</div>
+                    <div style={{fontSize:15,color:COLORS.slate}}>funded est.</div>
                   </div>
                 </div>
 
                 {/* 529 progress */}
-                <div style={{fontSize:11,color:COLORS.slate,marginBottom:4}}>
+                <div style={{fontSize:15,color:COLORS.slate,marginBottom:10}}>
                   Target: {formatMoneyShort(targetAmount)} · Pool grows to ~{formatMoneyShort(futurePoolEstimate)} by {child.startYear}
                 </div>
                 <div style={S.progress}><div style={S.progressFill(pct, pct>=80?COLORS.green:pct>=50?COLORS.amber:COLORS.red)}/></div>
 
                 {/* Milestone timeline */}
                 <div style={{marginTop:14}}>
-                  <div style={{fontSize:10,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:8}}>Planning Timeline</div>
+                  <div style={{fontSize:15,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:10}}>Planning Timeline</div>
                   {child.milestones.map((m,i)=>{
                     const isPast = m.year < currentYear;
                     const isCurrent = m.year === currentYear;
                     return(
-                      <div key={i} style={{display:"flex",gap:10,alignItems:"center",padding:"6px 0",borderBottom:i<child.milestones.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
+                      <div key={i} style={{display:"flex",gap:10,alignItems:"center",padding:"8px 0",borderBottom:i<child.milestones.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
                         <div style={{width:8,height:8,borderRadius:"50%",background:isPast?child.color:isCurrent?child.color:COLORS.navyLight,flexShrink:0}}/>
-                        <div style={{flex:1,fontSize:12,color:isPast?COLORS.slate:isCurrent?COLORS.white:COLORS.slate,fontWeight:isCurrent?700:400}}>{m.label}</div>
-                        <div style={{fontSize:11,color:COLORS.slate,flexShrink:0}}>{m.year}</div>
+                        <div style={{flex:1,fontSize:15,color:isPast?COLORS.slate:isCurrent?COLORS.white:COLORS.slate,fontWeight:isCurrent?700:400}}>{m.label}</div>
+                        <div style={{fontSize:15,color:COLORS.slate,flexShrink:0}}>{m.year}</div>
                       </div>
                     );
                   })}
@@ -2449,8 +2483,8 @@ function College(){
           });
         })()}
 
-        <div style={{...S.card,background:COLORS.navyLight,marginTop:4}}>
-          <div style={{fontSize:12,color:COLORS.slate,lineHeight:1.6}}>
+        <div style={{...S.card,background:COLORS.navyLight,marginTop:10}}>
+          <div style={{fontSize:15,color:COLORS.slate,lineHeight:1.6}}>
             📌 529 estimates assume the shared pool grows at 7%/yr and is available sequentially — Aubrey first (2027), then Blake (2032), then Brayden (2035). Update per-child target amounts in Finance → College.
           </div>
         </div>
@@ -2577,8 +2611,8 @@ function HomeMgmt(){
         style={S.statusCard(color)}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
           <div style={{flex:1}}>
-            <div style={{fontSize:14,fontWeight:600}}>{item.title}</div>
-            <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>
+            <div style={{fontSize:15,fontWeight:600}}>{item.title}</div>
+            <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>
               {st==="overdue"?`Overdue by ${-days}d`:st==="due-soon"?`Due in ${days}d`:`Due ${formatDate(nd)}`}
               {item.notes?` · ${item.notes}`:""}
             </div>
@@ -2600,7 +2634,7 @@ function HomeMgmt(){
             <div style={{fontSize:22,fontWeight:800,color:overdue.length>0?COLORS.red:COLORS.amber,letterSpacing:"-0.3px"}}>
               {overdue.length>0?`${overdue.length} overdue`:`${dueSoon.length} due soon`}
             </div>
-            <div style={{fontSize:12,color:COLORS.slate,marginTop:4}}>
+            <div style={{fontSize:15,color:COLORS.slate,marginTop:10}}>
               {overdue.length>0&&dueSoon.length>0?`+ ${dueSoon.length} due this week`:
                overdue.length>0?"tap ✓ to mark done":"all within the next 7 days"}
             </div>
@@ -2610,19 +2644,19 @@ function HomeMgmt(){
         {overdue.length===0&&dueSoon.length===0&&maint.data.length>0&&(
           <div style={{...S.card,background:COLORS.green+"11",borderColor:COLORS.green+"33",marginBottom:14,textAlign:"center",padding:"16px"}}>
             <div style={{fontSize:15,fontWeight:700,color:COLORS.green}}>✅ All maintenance current</div>
-            <div style={{fontSize:12,color:COLORS.slate,marginTop:4}}>Nothing overdue or due this week.</div>
+            <div style={{fontSize:15,color:COLORS.slate,marginTop:10}}>Nothing overdue or due this week.</div>
           </div>
         )}
 
         {/* Overdue */}
         {overdue.length>0&&<>
-          <div style={{fontSize:10,fontWeight:700,color:COLORS.red,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8}}>⚠️ Overdue · {overdue.length}</div>
+          <div style={{fontSize:15,fontWeight:700,color:COLORS.red,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>⚠️ Overdue · {overdue.length}</div>
           {overdue.map(item=><MaintCard key={item.id} item={item}/>)}
         </>}
 
         {/* Due soon */}
         {dueSoon.length>0&&<>
-          <div style={{fontSize:10,fontWeight:700,color:COLORS.amber,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8,marginTop:overdue.length>0?16:0}}>📅 Due This Week · {dueSoon.length}</div>
+          <div style={{fontSize:15,fontWeight:700,color:COLORS.amber,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10,marginTop:overdue.length>0?16:0}}>📅 Due This Week · {dueSoon.length}</div>
           {dueSoon.map(item=><MaintCard key={item.id} item={item}/>)}
         </>}
 
@@ -2632,7 +2666,7 @@ function HomeMgmt(){
             {showOk?`Hide ${ok.length} current items`:`Show ${ok.length} current item${ok.length!==1?"s":""} ↓`}
           </button>
           {showOk&&<>
-            <div style={{fontSize:10,fontWeight:700,color:COLORS.green,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8,marginTop:4}}>✓ Current · {ok.length}</div>
+            <div style={{fontSize:15,fontWeight:700,color:COLORS.green,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10,marginTop:10}}>✓ Current · {ok.length}</div>
             {ok.map(item=><MaintCard key={item.id} item={item}/>)}
           </>}
         </>}
@@ -2645,7 +2679,7 @@ function HomeMgmt(){
         <label style={S.label}>Item Name</label>
         <input style={S.input} placeholder="e.g. HVAC Filter" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
         <label style={S.label}>Interval</label>
-        <div style={{marginBottom:8}}>
+        <div style={{marginBottom:10}}>
           {[14,30,60,90,180,365].map(d=><span key={d} style={S.chip(+form.interval_days===d,COLORS.blue)} onClick={()=>setForm(p=>({...p,interval_days:d}))}>{d}d</span>)}
         </div>
         <input type="number" style={S.input} placeholder="Or enter custom days" value={form.interval_days||""} onChange={e=>setForm(p=>({...p,interval_days:e.target.value}))}/>
@@ -2653,7 +2687,7 @@ function HomeMgmt(){
         <input type="date" style={S.input} value={form.last_completed||""} onChange={e=>setForm(p=>({...p,last_completed:e.target.value}))}/>
         <label style={S.label}>Notes (optional)</label>
         <input style={S.input} placeholder="e.g. 16x25x1, check Grainger" value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
-        <button style={{...S.btn,marginTop:8}} onClick={save}>{editItem?"Save Changes":"Add Item"}</button>
+        <button style={{...S.btn,marginTop:10}} onClick={save}>{editItem?"Save Changes":"Add Item"}</button>
       </Modal>}
     </div>
   );
@@ -2831,13 +2865,13 @@ Keep the ENTIRE brief under 150 words total. Bullets only, no exceptions.`;
     if(!text) return null;
     return text.split(String.fromCharCode(10)).map((line, i) => {
       if(line.startsWith('**') && line.endsWith('**')) {
-        return <div key={i} style={{fontSize:11,fontWeight:700,color:COLORS.blue,letterSpacing:"0.8px",textTransform:"uppercase",marginTop:16,marginBottom:6}}>{line.replace(/\*\*/g,'')}</div>;
+        return <div key={i} style={{fontSize:15,fontWeight:700,color:COLORS.blue,letterSpacing:"0.8px",textTransform:"uppercase",marginTop:16,marginBottom:10}}>{line.replace(/\*\*/g,'')}</div>;
       }
       if(line.startsWith('•') || line.startsWith('-')) {
-        return <div key={i} style={{fontSize:13,color:COLORS.white,lineHeight:1.6,marginBottom:4,paddingLeft:8}}>• {line.replace(/^[•-]\s*/,'')}</div>;
+        return <div key={i} style={{fontSize:15,color:COLORS.white,lineHeight:1.6,marginBottom:10,paddingLeft:8}}>• {line.replace(/^[•-]\s*/,'')}</div>;
       }
       if(line.trim()==='') return <div key={i} style={{height:4}}/>;
-      return <div key={i} style={{fontSize:13,color:COLORS.slateLight,lineHeight:1.6,marginBottom:4}}>{line}</div>;
+      return <div key={i} style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.6,marginBottom:10}}>{line}</div>;
     });
   }
 
@@ -2901,7 +2935,7 @@ Keep the ENTIRE brief under 150 words total. Bullets only, no exceptions.`;
     <Modal title="🤖 Pool Brief" onClose={onClose}>
       {history.length > 0 && (
         <>
-          <div style={{fontSize:10,color:COLORS.slate,marginBottom:6,letterSpacing:"0.5px"}}>PAST BRIEFS — tap to view without regenerating</div>
+          <div style={{fontSize:15,color:COLORS.slate,marginBottom:10,letterSpacing:"0.5px"}}>PAST BRIEFS — tap to view without regenerating</div>
           <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
             <span style={S.chip(viewingHistory===null,COLORS.purple)} onClick={()=>setViewingHistory(null)}>Latest</span>
             {history.map((h,i)=>(
@@ -2915,15 +2949,15 @@ Keep the ENTIRE brief under 150 words total. Bullets only, no exceptions.`;
 
       {loading && viewingHistory===null && (
         <div style={{textAlign:"center",padding:"40px 20px"}}>
-          <div style={{fontSize:14,color:COLORS.slate,marginBottom:8}}>Analyzing your pool history + Summerville weather…</div>
-          <div style={{fontSize:12,color:COLORS.slate}}>This takes about 10 seconds</div>
+          <div style={{fontSize:15,color:COLORS.slate,marginBottom:10}}>Analyzing your pool history + Summerville weather…</div>
+          <div style={{fontSize:15,color:COLORS.slate}}>This takes about 10 seconds</div>
         </div>
       )}
-      {error && viewingHistory===null && <div style={{fontSize:13,color:COLORS.red,padding:"20px 0"}}>{error}</div>}
+      {error && viewingHistory===null && <div style={{fontSize:15,color:COLORS.red,padding:"20px 0"}}>{error}</div>}
 
       {!hasRun && !loading && viewingHistory===null && (
         <div style={{textAlign:"center",padding:"30px 20px"}}>
-          <div style={{fontSize:13,color:COLORS.slate,marginBottom:16,lineHeight:1.5}}>
+          <div style={{fontSize:15,color:COLORS.slate,marginBottom:16,lineHeight:1.5}}>
             Run a fresh analysis of your pool chemistry, recent treatments, and current Summerville weather.
           </div>
           <button style={S.btn} onClick={generateBrief}>▶️ Run Analysis</button>
@@ -2944,13 +2978,13 @@ Keep the ENTIRE brief under 150 words total. Bullets only, no exceptions.`;
             <>
               <div style={S.sectionLabel}>Ask a follow-up</div>
               {chatMessages.map((m,i)=>(
-                <div key={i} style={{marginBottom:8,display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
-                  <div style={{maxWidth:"85%",background:m.role==="user"?COLORS.blue:COLORS.navyLight,color:m.role==="user"?"#fff":COLORS.white,borderRadius:10,padding:"8px 12px",fontSize:13,lineHeight:1.5}}>
+                <div key={i} style={{marginBottom:10,display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
+                  <div style={{maxWidth:"85%",background:m.role==="user"?COLORS.blue:COLORS.navyLight,color:m.role==="user"?"#fff":COLORS.white,borderRadius:10,padding:"8px 12px",fontSize:15,lineHeight:1.5}}>
                     {m.text}
                   </div>
                 </div>
               ))}
-              {askingFollowUp && <div style={{fontSize:12,color:COLORS.slate,marginBottom:8}}>Thinking…</div>}
+              {askingFollowUp && <div style={{fontSize:15,color:COLORS.slate,marginBottom:10}}>Thinking…</div>}
               <div style={{display:"flex",gap:8}}>
                 <input
                   style={{...S.input,marginBottom:0,flex:1}}
@@ -3025,30 +3059,30 @@ function TreatmentLogModal({last, recs, onSave, onClose}) {
 
   return(
     <Modal title="Log Treatment" onClose={onClose}>
-      <div style={{fontSize:12,color:COLORS.slate,marginBottom:14,lineHeight:1.5}}>
+      <div style={{fontSize:15,color:COLORS.slate,marginBottom:14,lineHeight:1.5}}>
         Check what you did. Edit the description to match exactly what you actually used or adjusted.
       </div>
 
       {/* Recommendation-based items */}
       {actionItems.length>0&&<>
-        <div style={{fontSize:10,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8}}>Recommended Actions</div>
+        <div style={{fontSize:15,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>Recommended Actions</div>
         {actionItems.map((r,i)=>(
-          <div key={i} style={{...S.card,borderLeft:`3px solid ${checked[i]?COLORS.green:r.color}`,marginBottom:8,padding:"12px 14px"}}>
+          <div key={i} style={{...S.card,borderLeft:`3px solid ${checked[i]?COLORS.green:r.color}`,marginBottom:10,padding:"12px 14px"}}>
             <div style={{display:"flex",gap:10,alignItems:"flex-start"}} onClick={()=>toggle(i)}>
               <div style={{width:20,height:20,borderRadius:6,border:`2px solid ${checked[i]?COLORS.green:COLORS.slate}`,background:checked[i]?COLORS.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1,cursor:"pointer"}}>
-                {checked[i]&&<span style={{color:"#fff",fontSize:11,lineHeight:1}}>✓</span>}
+                {checked[i]&&<span style={{color:"#fff",fontSize:15,lineHeight:1}}>✓</span>}
               </div>
               <div style={{flex:1}}>
-                <div style={{fontSize:13,fontWeight:600,color:checked[i]?COLORS.white:COLORS.slateLight}}>{r.icon} {r.action}</div>
-                {!checked[i]&&<div style={{fontSize:11,color:COLORS.slate,marginTop:2,lineHeight:1.4}}>{r.detail}</div>}
+                <div style={{fontSize:15,fontWeight:600,color:checked[i]?COLORS.white:COLORS.slateLight}}>{r.icon} {r.action}</div>
+                {!checked[i]&&<div style={{fontSize:15,color:COLORS.slate,marginTop:2,lineHeight:1.4}}>{r.detail}</div>}
               </div>
             </div>
             {/* Editable detail when checked */}
             {checked[i]&&(
-              <div style={{marginTop:8}}>
-                <label style={{...S.label,marginBottom:4}}>What you actually did</label>
+              <div style={{marginTop:10}}>
+                <label style={{...S.label,marginBottom:10}}>What you actually did</label>
                 <input
-                  style={{...S.input,marginBottom:0,fontSize:12}}
+                  style={{...S.input,marginBottom:0,fontSize:15}}
                   value={details[i]||""}
                   placeholder="e.g. Added 10 oz muriatic acid (not 11)"
                   onChange={e=>setDetails(p=>({...p,[i]:e.target.value}))}
@@ -3060,21 +3094,21 @@ function TreatmentLogModal({last, recs, onSave, onClose}) {
       </>}
 
       {/* Custom / additional treatments */}
-      <div style={{fontSize:10,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginTop:14,marginBottom:8}}>Additional Treatments</div>
+      <div style={{fontSize:15,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginTop:14,marginBottom:10}}>Additional Treatments</div>
       {custom.map((c,i)=>(
-        <div key={i} style={{...S.card,marginBottom:8,padding:"12px 14px"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+        <div key={i} style={{...S.card,marginBottom:10,padding:"12px 14px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
             <label style={{...S.label,marginBottom:0}}>Treatment type</label>
-            <button onClick={()=>removeCustom(i)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:14,padding:0}}>✕</button>
+            <button onClick={()=>removeCustom(i)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:15,padding:0}}>✕</button>
           </div>
-          <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
+          <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>
             {COMMON_TREATMENTS.map(t=>(
               <span key={t} style={S.chip(c.type===t,COLORS.blue)} onClick={()=>updateCustom(i,"type",c.type===t?"":t)}>{t}</span>
             ))}
           </div>
           <label style={S.label}>Details / amount</label>
           <input
-            style={{...S.input,marginBottom:0,fontSize:12}}
+            style={{...S.input,marginBottom:0,fontSize:15}}
             placeholder="e.g. 2 lbs, raised SWG from 40% to 50%, etc."
             value={c.detail}
             onChange={e=>updateCustom(i,"detail",e.target.value)}
@@ -3090,7 +3124,7 @@ function TreatmentLogModal({last, recs, onSave, onClose}) {
       >
         {saving?"Saving…":"Log Treatment"}
       </button>
-      {!hasAnything&&<div style={{fontSize:11,color:COLORS.slate,textAlign:"center",marginTop:8}}>Check an item or add a treatment above</div>}
+      {!hasAnything&&<div style={{fontSize:15,color:COLORS.slate,textAlign:"center",marginTop:10}}>Check an item or add a treatment above</div>}
     </Modal>
   );
 }
@@ -3263,7 +3297,7 @@ function Pool(){
               <div style={{fontSize:24,fontWeight:800,color:health.overallColor,letterSpacing:"-0.3px"}}>
                 {health.overallEmoji} Pool Health: {health.score}/100
               </div>
-              <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>
+              <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>
                 {formatDate(last.date)}{last.logged_at?` · ${new Date(last.logged_at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}`:""}{last.water_temp?` · ${last.water_temp}°F`:""}
               </div>
             </div>
@@ -3273,37 +3307,37 @@ function Pool(){
               border:`1px solid ${health.safeToSwim?(health.maintenanceNeeded?COLORS.amber:COLORS.green):COLORS.red}44`,
               borderRadius:10,padding:"8px 12px",textAlign:"center",flexShrink:0,marginLeft:12
             }}>
-              <div style={{fontSize:10,color:COLORS.slate,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.5px"}}>Safe to Swim</div>
+              <div style={{fontSize:15,color:COLORS.slate,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.5px"}}>Safe to Swim</div>
               <div style={{fontSize:15,fontWeight:800,color:health.safeToSwim?(health.maintenanceNeeded?COLORS.amber:COLORS.green):COLORS.red,marginTop:2}}>
                 {health.safeToSwim?(health.maintenanceNeeded?"🟡 Yes":"✅ Yes"):"❌ No"}
               </div>
-              {health.safeToSwim&&health.maintenanceNeeded&&<div style={{fontSize:9,color:COLORS.amber,marginTop:2,maxWidth:90,lineHeight:1.3}}>maintenance recommended</div>}
-              {!health.safeToSwim&&<div style={{fontSize:9,color:COLORS.red,marginTop:2,maxWidth:90,lineHeight:1.3}}>{health.notSafeReasons[0]}</div>}
+              {health.safeToSwim&&health.maintenanceNeeded&&<div style={{fontSize:15,color:COLORS.amber,marginTop:2,maxWidth:90,lineHeight:1.3}}>maintenance recommended</div>}
+              {!health.safeToSwim&&<div style={{fontSize:15,color:COLORS.red,marginTop:2,maxWidth:90,lineHeight:1.3}}>{health.notSafeReasons[0]}</div>}
             </div>
           </div>
           {/* Line 2: Executive summary */}
-          <div style={{fontSize:13,color:COLORS.slateLight,lineHeight:1.5,marginBottom:10}}>{health.summary}</div>
+          <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5,marginBottom:10}}>{health.summary}</div>
           {/* Today's Action — inside banner, above chemistry toggle per #5 */}
           {highRecs.length>0&&(
             <div style={{background:highRecs[0].color+"18",border:`1px solid ${highRecs[0].color}44`,borderRadius:10,padding:"12px 14px",marginBottom:10}}>
-              <div style={{fontSize:9,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4}}>Today's Action</div>
+              <div style={{fontSize:15,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>Today's Action</div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                 <div style={{flex:1,paddingRight:6}}>
-                  <div style={{fontSize:14,fontWeight:700,color:highRecs[0].color}}>{highRecs[0].icon} {highRecs[0].action}</div>
-                  <div style={{fontSize:11,color:COLORS.slateLight,marginTop:3,lineHeight:1.4}}>{highRecs[0].detail}</div>
+                  <div style={{fontSize:15,fontWeight:700,color:highRecs[0].color}}>{highRecs[0].icon} {highRecs[0].action}</div>
+                  <div style={{fontSize:15,color:COLORS.slateLight,marginTop:3,lineHeight:1.4}}>{highRecs[0].detail}</div>
                 </div>
-                <button onClick={()=>dismissRec(highRecs[0].param)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:14,padding:2,flexShrink:0}}>✕</button>
+                <button onClick={()=>dismissRec(highRecs[0].param)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:15,padding:2,flexShrink:0}}>✕</button>
               </div>
             </div>
           )}
           {/* Footer row: chemistry toggle + quick actions */}
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4}}>
-            <button onClick={()=>setShowChemDetails(p=>!p)} style={{fontSize:11,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,textDecoration:"underline"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:10}}>
+            <button onClick={()=>setShowChemDetails(p=>!p)} style={{fontSize:15,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,textDecoration:"underline"}}>
               {showChemDetails?"Hide details":"View chemistry details"}
             </button>
             <div style={{display:"flex",gap:12}}>
-              <button onClick={()=>setShowTreatment(true)} style={{fontSize:11,color:COLORS.green,background:"none",border:"none",cursor:"pointer",padding:0}}>✓ Log Treatment</button>
-              <button onClick={()=>setShowBrief(true)} style={{fontSize:11,color:COLORS.purple,background:"none",border:"none",cursor:"pointer",padding:0}}>🤖 Brief</button>
+              <button onClick={()=>setShowTreatment(true)} style={{fontSize:15,color:COLORS.green,background:"none",border:"none",cursor:"pointer",padding:0}}>✓ Log Treatment</button>
+              <button onClick={()=>setShowBrief(true)} style={{fontSize:15,color:COLORS.purple,background:"none",border:"none",cursor:"pointer",padding:0}}>🤖 Brief</button>
             </div>
           </div>
           {showChemDetails&&(
@@ -3314,22 +3348,22 @@ function Pool(){
                   <div style={{width:8,height:8,borderRadius:"50%",background:p.color,flexShrink:0,marginTop:1}}/>
                   {/* Name + status */}
                   <div style={{flex:"0 0 110px"}}>
-                    <div style={{fontSize:12,fontWeight:700,color:COLORS.white}}>{p.label}</div>
-                    <div style={{fontSize:11,color:p.color,marginTop:1}}>{p.statusLabel}</div>
+                    <div style={{fontSize:15,fontWeight:700,color:COLORS.white}}>{p.label}</div>
+                    <div style={{fontSize:15,color:p.color,marginTop:1}}>{p.statusLabel}</div>
                   </div>
                   {/* Value + trend */}
                   <div style={{flex:"0 0 70px",textAlign:"right"}}>
-                    <div style={{fontSize:14,fontWeight:700,color:p.value!==null&&p.value!==undefined?COLORS.white:COLORS.slate}}>
+                    <div style={{fontSize:15,fontWeight:700,color:p.value!==null&&p.value!==undefined?COLORS.white:COLORS.slate}}>
                       {p.value!==null&&p.value!==undefined?`${p.value}${p.unit}`:"—"}
-                      {p.trendArrow&&<span style={{fontSize:11,marginLeft:3}}>{p.trendArrow}</span>}
+                      {p.trendArrow&&<span style={{fontSize:15,marginLeft:3}}>{p.trendArrow}</span>}
                     </div>
-                    <div style={{fontSize:10,color:COLORS.slate,marginTop:1}}>{p.target}</div>
+                    <div style={{fontSize:15,color:COLORS.slate,marginTop:1}}>{p.target}</div>
                   </div>
                   {/* Last tested / due */}
                   <div style={{flex:1,textAlign:"right"}}>
-                    {p.lastTestedLabel&&<div style={{fontSize:10,color:COLORS.slate,lineHeight:1.3}}>{p.lastTestedLabel}</div>}
-                    {p.testInfo&&<div style={{fontSize:10,color:p.testInfo.urgency==="red"?COLORS.red:p.testInfo.urgency==="amber"?COLORS.amber:COLORS.slate,marginTop:p.lastTestedLabel?2:0,lineHeight:1.3}}>{p.testInfo.dueLabel}</div>}
-                    {!p.lastTestedLabel&&!p.testInfo&&<div style={{fontSize:10,color:COLORS.slate}}>Every reading</div>}
+                    {p.lastTestedLabel&&<div style={{fontSize:15,color:COLORS.slate,lineHeight:1.3}}>{p.lastTestedLabel}</div>}
+                    {p.testInfo&&<div style={{fontSize:15,color:p.testInfo.urgency==="red"?COLORS.red:p.testInfo.urgency==="amber"?COLORS.amber:COLORS.slate,marginTop:p.lastTestedLabel?2:0,lineHeight:1.3}}>{p.testInfo.dueLabel}</div>}
+                    {!p.lastTestedLabel&&!p.testInfo&&<div style={{fontSize:15,color:COLORS.slate}}>Every reading</div>}
                   </div>
                 </div>
               ))}
@@ -3338,15 +3372,15 @@ function Pool(){
                 <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderTop:`1px solid ${COLORS.navyLight}`}}>
                   <div style={{width:8,height:8,borderRadius:"50%",background:last.cc>0.5?COLORS.red:last.cc>0?COLORS.amber:COLORS.green,flexShrink:0,marginTop:1}}/>
                   <div style={{flex:"0 0 110px"}}>
-                    <div style={{fontSize:12,fontWeight:700,color:COLORS.white}}>Combined Chlorine</div>
-                    <div style={{fontSize:11,color:last.cc>0.5?COLORS.red:last.cc>0?COLORS.amber:COLORS.green,marginTop:1}}>{last.cc===0?"None detected":last.cc<=0.5?"Acceptable":"Elevated"}</div>
+                    <div style={{fontSize:15,fontWeight:700,color:COLORS.white}}>Combined Chlorine</div>
+                    <div style={{fontSize:15,color:last.cc>0.5?COLORS.red:last.cc>0?COLORS.amber:COLORS.green,marginTop:1}}>{last.cc===0?"None detected":last.cc<=0.5?"Acceptable":"Elevated"}</div>
                   </div>
                   <div style={{flex:"0 0 70px",textAlign:"right"}}>
-                    <div style={{fontSize:14,fontWeight:700,color:COLORS.white}}>{last.cc} ppm</div>
-                    <div style={{fontSize:10,color:COLORS.slate,marginTop:1}}>target: 0</div>
+                    <div style={{fontSize:15,fontWeight:700,color:COLORS.white}}>{last.cc} ppm</div>
+                    <div style={{fontSize:15,color:COLORS.slate,marginTop:1}}>target: 0</div>
                   </div>
                   <div style={{flex:1,textAlign:"right"}}>
-                    <div style={{fontSize:10,color:COLORS.slate}}>Every reading</div>
+                    <div style={{fontSize:15,color:COLORS.slate}}>Every reading</div>
                   </div>
                 </div>
               )}
@@ -3358,22 +3392,22 @@ function Pool(){
       {/* No reading yet */}
       {!last&&(
         <div style={{...S.card,textAlign:"center",padding:"32px 20px",marginBottom:14}}>
-          <div style={{fontSize:32,marginBottom:8}}>🏊</div>
-          <div style={{fontSize:15,fontWeight:700,marginBottom:6}}>No readings yet</div>
-          <div style={{fontSize:13,color:COLORS.slate,marginBottom:16}}>Log your first pool reading to see health status and recommendations.</div>
+          <div style={{fontSize:32,marginBottom:10}}>🏊</div>
+          <div style={{fontSize:15,fontWeight:700,marginBottom:10}}>No readings yet</div>
+          <div style={{fontSize:15,color:COLORS.slate,marginBottom:16}}>Log your first pool reading to see health status and recommendations.</div>
           <button onClick={()=>{setForm({date:TODAY_STR});setShowLog(true);}} style={S.btn}>+ Log First Reading</button>
         </div>
       )}
 
       {/* Remaining high priority actions (beyond the first, already shown in banner) */}
       {highRecs.slice(1).map((r,i)=>(
-        <div key={i} style={{...S.statusCard(r.color),marginBottom:8}}>
+        <div key={i} style={{...S.statusCard(r.color),marginBottom:10}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
             <div style={{flex:1,paddingRight:8}}>
-              <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>{r.icon} {r.action}</div>
-              <div style={{fontSize:12,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
+              <div style={{fontSize:15,fontWeight:700,marginBottom:10}}>{r.icon} {r.action}</div>
+              <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
             </div>
-            <button onClick={()=>dismissRec(r.param)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:16,padding:2,flexShrink:0}}>✕</button>
+            <button onClick={()=>dismissRec(r.param)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:19,padding:2,flexShrink:0}}>✕</button>
           </div>
         </div>
       ))}
@@ -3382,13 +3416,13 @@ function Pool(){
       {medRecs.length>0&&<>
         <div style={S.sectionLabel}>This Week</div>
         {medRecs.map((r,i)=>(
-          <div key={i} style={{...S.statusCard(r.color),marginBottom:8}}>
+          <div key={i} style={{...S.statusCard(r.color),marginBottom:10}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
               <div style={{flex:1,paddingRight:8}}>
-                <div style={{fontSize:12,fontWeight:700,marginBottom:3}}>{r.icon} {r.action}</div>
-                <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
+                <div style={{fontSize:15,fontWeight:700,marginBottom:3}}>{r.icon} {r.action}</div>
+                <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
               </div>
-              <button onClick={()=>dismissRec(r.param)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:14,padding:2,flexShrink:0}}>✕</button>
+              <button onClick={()=>dismissRec(r.param)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:15,padding:2,flexShrink:0}}>✕</button>
             </div>
           </div>
         ))}
@@ -3398,32 +3432,32 @@ function Pool(){
       {last&&highRecs.length===0&&medRecs.length===0&&(
         <div style={{...S.card,background:COLORS.green+"11",borderColor:COLORS.green+"33",textAlign:"center",padding:"16px"}}>
           <div style={{fontSize:15,fontWeight:700,color:COLORS.green}}>✅ No actions needed</div>
-          <div style={{fontSize:12,color:COLORS.slate,marginTop:4}}>Chemistry looks balanced — keep up with regular testing.</div>
+          <div style={{fontSize:15,color:COLORS.slate,marginTop:10}}>Chemistry looks balanced — keep up with regular testing.</div>
         </div>
       )}
 
       {/* Low priority notes */}
       {lowRecs.length>0&&(
-        <button onClick={()=>setShowLow(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"center",marginBottom:8,marginTop:4}}>
+        <button onClick={()=>setShowLow(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"center",marginBottom:10,marginTop:10}}>
           {showLow?"Hide":"Show"} {lowRecs.length} additional note{lowRecs.length!==1?"s":""}
         </button>
       )}
       {showLow&&lowRecs.map((r,i)=>(
-        <div key={i} style={{...S.statusCard(r.color),marginBottom:8}}>
-          <div style={{fontSize:11,fontWeight:700,marginBottom:3}}>{r.icon} {r.action}</div>
-          <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
+        <div key={i} style={{...S.statusCard(r.color),marginBottom:10}}>
+          <div style={{fontSize:15,fontWeight:700,marginBottom:3}}>{r.icon} {r.action}</div>
+          <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
         </div>
       ))}
 
       {/* Seasonal tip — moved below actions (#4) */}
       {!seasonDismissed&&season&&(
-        <div style={{...S.statusCard(COLORS.blue),marginBottom:14,marginTop:4}}>
+        <div style={{...S.statusCard(COLORS.blue),marginBottom:14,marginTop:10}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
             <div style={{flex:1,paddingRight:8}}>
-              <div style={{fontSize:12,fontWeight:700,marginBottom:3}}>🗓️ {season.label} — target SWG {season.swg}</div>
-              <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>{season.note}</div>
+              <div style={{fontSize:15,fontWeight:700,marginBottom:3}}>🗓️ {season.label} — target SWG {season.swg}</div>
+              <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5}}>{season.note}</div>
             </div>
-            <button onClick={dismissSeason} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:14,padding:2,flexShrink:0}}>✕</button>
+            <button onClick={dismissSeason} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:15,padding:2,flexShrink:0}}>✕</button>
           </div>
         </div>
       )}
@@ -3444,13 +3478,13 @@ function Pool(){
           return(
             <div key={p.k} style={{...S.card,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
-                <div style={{fontSize:14,fontWeight:600}}>{p.l}</div>
-                <div style={{fontSize:11,color:COLORS.slate}}>Target: {p.target}{p.unit?" "+p.unit:""}</div>
-                <div style={{fontSize:20,fontWeight:700,color:col,marginTop:4}}>{latest}{p.unit&&p.unit!=="ppm"?p.unit:p.unit?" ppm":""}</div>
+                <div style={{fontSize:15,fontWeight:600}}>{p.l}</div>
+                <div style={{fontSize:15,color:COLORS.slate}}>Target: {p.target}{p.unit?" "+p.unit:""}</div>
+                <div style={{fontSize:20,fontWeight:700,color:col,marginTop:10}}>{latest}{p.unit&&p.unit!=="ppm"?p.unit:p.unit?" ppm":""}</div>
               </div>
               <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6}}>
                 <Sparkline data={vals} color={col}/>
-                <span style={{...S.badge(col),fontSize:10}}>{s==="green"?"OK":s==="amber"?"Watch":"Adjust"}</span>
+                <span style={{...S.badge(col),fontSize:15}}>{s==="green"?"OK":s==="amber"?"Watch":"Adjust"}</span>
               </div>
             </div>
           );
@@ -3472,8 +3506,8 @@ function Pool(){
                 style={S.statusCard(color)}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div style={{flex:1}}>
-                    <div style={{fontSize:14,fontWeight:600}}>{item.title}</div>
-                    <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>
+                    <div style={{fontSize:15,fontWeight:600}}>{item.title}</div>
+                    <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>
                       {st==="overdue"?`Overdue by ${-days}d`:st==="due-soon"?`Due in ${days}d`:`Due ${formatDate(nd)}`}
                       {item.notes?` · ${item.notes}`:""}
                     </div>
@@ -3516,22 +3550,22 @@ function Pool(){
                     style={S.card}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      <span style={{fontSize:10,background:COLORS.blue+"22",color:COLORS.blue,borderRadius:4,padding:"1px 6px",fontWeight:700}}>Reading</span>
-                      <div style={{fontSize:13,fontWeight:700}}>{formatDate(item.date)}{timeLabel?` · ${timeLabel}`:""}</div>
+                      <span style={{fontSize:15,background:COLORS.blue+"22",color:COLORS.blue,borderRadius:4,padding:"1px 6px",fontWeight:700}}>Reading</span>
+                      <div style={{fontSize:15,fontWeight:700}}>{formatDate(item.date)}{timeLabel?` · ${timeLabel}`:""}</div>
                     </div>
-                    <div style={{fontSize:11,color:COLORS.slate,textAlign:"right"}}>
+                    <div style={{fontSize:15,color:COLORS.slate,textAlign:"right"}}>
                       {item.water_temp?`${item.water_temp}°F`:""}
                       {item.swg_setting?` · SWG ${item.swg_setting}%`:""}
                     </div>
                   </div>
-                  <div style={{display:"flex",gap:10,marginTop:8,flexWrap:"wrap"}}>
+                  <div style={{display:"flex",gap:10,marginTop:10,flexWrap:"wrap"}}>
                     {PARAMS.filter(p=>!["water_temp","filter_pressure"].includes(p.k)).map(p=>{
                       const v=item[p.k];
                       const s=poolStatus(p.k,v);
-                      return <div key={p.k}><div style={{fontSize:13,fontWeight:600,color:v!==null&&v!==undefined?statusColor(s):COLORS.slate}}>{v!==null&&v!==undefined?v:"—"}</div><div style={{fontSize:10,color:COLORS.slate}}>{p.l}</div></div>;
+                      return <div key={p.k}><div style={{fontSize:15,fontWeight:600,color:v!==null&&v!==undefined?statusColor(s):COLORS.slate}}>{v!==null&&v!==undefined?v:"—"}</div><div style={{fontSize:15,color:COLORS.slate}}>{p.l}</div></div>;
                     })}
                   </div>
-                  {item.notes&&<div style={{fontSize:11,color:COLORS.slate,marginTop:6,fontStyle:"italic"}}>{item.notes}</div>}
+                  {item.notes&&<div style={{fontSize:15,color:COLORS.slate,marginTop:10,fontStyle:"italic"}}>{item.notes}</div>}
                 </SwipeCard>
               );
               }
@@ -3541,11 +3575,11 @@ function Pool(){
                   onDelete={()=>{if(window.confirm("Delete entry?"))maintLog.remove(item.id);setActiveSwipe(null);}}
                   style={S.card}>
                   <div style={{display:"flex",alignItems:"center",gap:6}}>
-                    <span style={{fontSize:10,background:COLORS.green+"22",color:COLORS.green,borderRadius:4,padding:"1px 6px",fontWeight:700}}>Maintenance</span>
-                    <div style={{fontSize:12,fontWeight:700,color:item.type==="Treatment applied"?COLORS.green:COLORS.white}}>{item.type}</div>
+                    <span style={{fontSize:15,background:COLORS.green+"22",color:COLORS.green,borderRadius:4,padding:"1px 6px",fontWeight:700}}>Maintenance</span>
+                    <div style={{fontSize:15,fontWeight:700,color:item.type==="Treatment applied"?COLORS.green:COLORS.white}}>{item.type}</div>
                   </div>
-                  <div style={{fontSize:11,color:COLORS.slate,marginTop:3}}>{formatDate(item.date)}</div>
-                  {item.notes&&<div style={{fontSize:11,color:COLORS.slate,marginTop:4,lineHeight:1.5,fontStyle:"italic"}}>{item.notes}</div>}
+                  <div style={{fontSize:15,color:COLORS.slate,marginTop:3}}>{formatDate(item.date)}</div>
+                  {item.notes&&<div style={{fontSize:15,color:COLORS.slate,marginTop:10,lineHeight:1.5,fontStyle:"italic"}}>{item.notes}</div>}
                 </SwipeCard>
               );
             });
@@ -3565,7 +3599,7 @@ function Pool(){
           </div>
         </div>
 
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
           <label style={{...S.label,marginBottom:0}}>Free Chlorine</label>
           <div style={{display:"flex",gap:6}}>
             <span style={S.chip(!useDrops,COLORS.blue)} onClick={()=>setUseDrops(false)}>ppm</span>
@@ -3573,7 +3607,7 @@ function Pool(){
           </div>
         </div>
         <input type="number" step="0.5" style={S.input} placeholder={useDrops?"e.g. 11 drops (= 5.5 ppm)":"e.g. 5.5"} value={form.free_chlorine||""} onChange={e=>setForm(p=>({...p,free_chlorine:e.target.value}))}/>
-        {useDrops&&form.free_chlorine&&<div style={{fontSize:11,color:COLORS.purple,marginTop:-6,marginBottom:8}}>= {(+form.free_chlorine*0.5).toFixed(1)} ppm FC</div>}
+        {useDrops&&form.free_chlorine&&<div style={{fontSize:15,color:COLORS.purple,marginTop:-6,marginBottom:10}}>= {(+form.free_chlorine*0.5).toFixed(1)} ppm FC</div>}
 
         <label style={S.label}>CC (Combined Chlorine)</label>
         <input type="number" step="0.5" style={S.input} placeholder="" value={form.cc!==undefined?form.cc:""} onChange={e=>setForm(p=>({...p,cc:e.target.value}))}/>
@@ -3588,9 +3622,9 @@ function Pool(){
               <label style={{...S.label,marginBottom:0}}>CYA (ppm)</label>
               {(()=>{
                 const d=nextTestDue(readings.data,"cya",30);
-                if(!d) return <span style={{fontSize:9,color:COLORS.slate}}>never tested</span>;
+                if(!d) return <span style={{fontSize:15,color:COLORS.slate}}>never tested</span>;
                 const overdue=d.days<0;
-                return <span style={{fontSize:9,color:overdue?COLORS.red:d.days<=3?COLORS.amber:COLORS.slate}}>{overdue?"overdue":`due ${formatDate(d.due)}`}</span>;
+                return <span style={{fontSize:15,color:overdue?COLORS.red:d.days<=3?COLORS.amber:COLORS.slate}}>{overdue?"overdue":`due ${formatDate(d.due)}`}</span>;
               })()}
             </div>
             <input type="number" style={S.input} placeholder="" value={form.cya||""} onChange={e=>setForm(p=>({...p,cya:e.target.value}))}/>
@@ -3600,9 +3634,9 @@ function Pool(){
               <label style={{...S.label,marginBottom:0}}>TA (ppm)</label>
               {(()=>{
                 const d=nextTestDue(readings.data,"alkalinity",14);
-                if(!d) return <span style={{fontSize:9,color:COLORS.slate}}>never tested</span>;
+                if(!d) return <span style={{fontSize:15,color:COLORS.slate}}>never tested</span>;
                 const overdue=d.days<0;
-                return <span style={{fontSize:9,color:overdue?COLORS.red:d.days<=3?COLORS.amber:COLORS.slate}}>{overdue?"overdue":`due ${formatDate(d.due)}`}</span>;
+                return <span style={{fontSize:15,color:overdue?COLORS.red:d.days<=3?COLORS.amber:COLORS.slate}}>{overdue?"overdue":`due ${formatDate(d.due)}`}</span>;
               })()}
             </div>
             <input type="number" style={S.input} placeholder="" value={form.alkalinity||""} onChange={e=>setForm(p=>({...p,alkalinity:e.target.value}))}/>
@@ -3614,9 +3648,9 @@ function Pool(){
               <label style={{...S.label,marginBottom:0}}>Calcium Hardness (ppm)</label>
               {(()=>{
                 const d=nextTestDue(readings.data,"calcium_hardness",90);
-                if(!d) return <span style={{fontSize:9,color:COLORS.slate}}>never tested</span>;
+                if(!d) return <span style={{fontSize:15,color:COLORS.slate}}>never tested</span>;
                 const overdue=d.days<0;
-                return <span style={{fontSize:9,color:overdue?COLORS.red:d.days<=7?COLORS.amber:COLORS.slate}}>{overdue?"overdue":`due ${formatDate(d.due)}`}</span>;
+                return <span style={{fontSize:15,color:overdue?COLORS.red:d.days<=7?COLORS.amber:COLORS.slate}}>{overdue?"overdue":`due ${formatDate(d.due)}`}</span>;
               })()}
             </div>
             <input type="number" style={S.input} placeholder="target 150-250" value={form.calcium_hardness||""} onChange={e=>setForm(p=>({...p,calcium_hardness:e.target.value}))}/>
@@ -3630,7 +3664,7 @@ function Pool(){
           <div style={S.col}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <label style={{...S.label,marginBottom:0}}>Filter Pressure (psi)</label>
-              {filterBaseline&&<span style={{fontSize:9,color:COLORS.slate}}>baseline {filterBaseline}</span>}
+              {filterBaseline&&<span style={{fontSize:15,color:COLORS.slate}}>baseline {filterBaseline}</span>}
             </div>
             <input type="number" style={S.input} placeholder="" value={form.filter_pressure||""} onChange={e=>setForm(p=>({...p,filter_pressure:e.target.value}))}/>
           </div>
@@ -3642,7 +3676,7 @@ function Pool(){
 
         <label style={S.label}>Notes</label>
         <input style={S.input} placeholder="Optional" value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
-        <button style={{...S.btn,marginTop:8}} onClick={saveReading}>{editItem?"Save Changes":"Save Reading"}</button>
+        <button style={{...S.btn,marginTop:10}} onClick={saveReading}>{editItem?"Save Changes":"Save Reading"}</button>
       </Modal>}
 
       {showMaint&&<Modal title={editItem?"Edit Entry":"Log Pool Entry"} onClose={closeMaint}>
@@ -3652,9 +3686,9 @@ function Pool(){
         {["Check water level","Clean skimmer basket","Brushed walls & floor","Added salt","Cleaned cartridge filter","Cleaned salt cell","Checked flow switch","Inspected O-rings","Rain event","Other"].map(t=>(
           <span key={t} style={S.chip(form.type===t,COLORS.blue)} onClick={()=>setForm(p=>({...p,type:t}))}>{t}</span>
         ))}
-        <label style={{...S.label,marginTop:8}}>Notes (optional)</label>
+        <label style={{...S.label,marginTop:10}}>Notes (optional)</label>
         <input style={S.input} placeholder="Any details" value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
-        <button style={{...S.btn,marginTop:8}} onClick={saveMaint}>{editItem?"Save Changes":"Save"}</button>
+        <button style={{...S.btn,marginTop:10}} onClick={saveMaint}>{editItem?"Save Changes":"Save"}</button>
       </Modal>}
 
       {showBrief&&<PoolBrief readings={readings.data} maintLog={maintLog.data} onClose={()=>setShowBrief(false)}/>}
@@ -3672,16 +3706,16 @@ function Pool(){
         <input type="date" style={S.input} value={form.last_completed||""} onChange={e=>setForm(p=>({...p,last_completed:e.target.value}))}/>
         <label style={S.label}>Notes (optional)</label>
         <input style={S.input} value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
-        <button style={{...S.btn,marginTop:8}} onClick={saveScheduleItem}>{editItem?"Save Changes":"Add Item"}</button>
+        <button style={{...S.btn,marginTop:10}} onClick={saveScheduleItem}>{editItem?"Save Changes":"Add Item"}</button>
       </Modal>}
 
       {showFilterBaseline&&<Modal title="Set Filter Clean Baseline" onClose={()=>setShowFilterBaseline(false)}>
-        <div style={{fontSize:12,color:COLORS.slate,marginBottom:16,lineHeight:1.5}}>
+        <div style={{fontSize:15,color:COLORS.slate,marginBottom:16,lineHeight:1.5}}>
           Log the filter pressure right after cleaning the cartridge. Future readings will be compared as "+X psi above clean" instead of a flat threshold — more accurate since every filter's clean baseline is a little different.
         </div>
         <label style={S.label}>Clean Baseline (psi)</label>
         <input type="number" style={S.input} placeholder="e.g. 12" value={form.filter_clean_baseline_psi||""} onChange={e=>setForm(p=>({...p,filter_clean_baseline_psi:e.target.value}))}/>
-        <button style={{...S.btn,marginTop:8}} onClick={async()=>{
+        <button style={{...S.btn,marginTop:10}} onClick={async()=>{
           try{
             const val = form.filter_clean_baseline_psi!==undefined&&form.filter_clean_baseline_psi!=='' ? +form.filter_clean_baseline_psi : null;
             const row = {filter_clean_baseline_psi: val};
@@ -3868,13 +3902,13 @@ Keep the ENTIRE brief under 210 words total. Bullets only, no exceptions.`;
     if(!text) return null;
     return text.split(String.fromCharCode(10)).map((line, i) => {
       if(line.startsWith('**') && line.endsWith('**')) {
-        return <div key={i} style={{fontSize:11,fontWeight:700,color:COLORS.blue,letterSpacing:"0.8px",textTransform:"uppercase",marginTop:16,marginBottom:6}}>{line.replace(/\*\*/g,'')}</div>;
+        return <div key={i} style={{fontSize:15,fontWeight:700,color:COLORS.blue,letterSpacing:"0.8px",textTransform:"uppercase",marginTop:16,marginBottom:10}}>{line.replace(/\*\*/g,'')}</div>;
       }
       if(line.startsWith('•') || line.startsWith('-')) {
-        return <div key={i} style={{fontSize:13,color:COLORS.white,lineHeight:1.6,marginBottom:4,paddingLeft:8}}>• {line.replace(/^[•-]\s*/,'')}</div>;
+        return <div key={i} style={{fontSize:15,color:COLORS.white,lineHeight:1.6,marginBottom:10,paddingLeft:8}}>• {line.replace(/^[•-]\s*/,'')}</div>;
       }
       if(line.trim()==='') return <div key={i} style={{height:4}}/>;
-      return <div key={i} style={{fontSize:13,color:COLORS.slateLight,lineHeight:1.6,marginBottom:4}}>{line}</div>;
+      return <div key={i} style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.6,marginBottom:10}}>{line}</div>;
     });
   }
 
@@ -3885,7 +3919,7 @@ Keep the ENTIRE brief under 210 words total. Bullets only, no exceptions.`;
     <Modal title="🤖 Retirement Brief" onClose={onClose}>
       {history.length > 0 && (
         <>
-          <div style={{fontSize:10,color:COLORS.slate,marginBottom:6,letterSpacing:"0.5px"}}>PAST BRIEFS — tap to view without regenerating</div>
+          <div style={{fontSize:15,color:COLORS.slate,marginBottom:10,letterSpacing:"0.5px"}}>PAST BRIEFS — tap to view without regenerating</div>
           <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
             <span style={S.chip(viewingHistory===null,COLORS.purple)} onClick={()=>setViewingHistory(null)}>Latest</span>
             {history.map((h,i)=>(
@@ -3899,14 +3933,14 @@ Keep the ENTIRE brief under 210 words total. Bullets only, no exceptions.`;
 
       {loading && viewingHistory===null && (
         <div style={{textAlign:"center",padding:"40px 20px"}}>
-          <div style={{fontSize:14,color:COLORS.slate}}>Analyzing your retirement trajectory…</div>
+          <div style={{fontSize:15,color:COLORS.slate}}>Analyzing your retirement trajectory…</div>
         </div>
       )}
-      {error && viewingHistory===null && <div style={{fontSize:13,color:COLORS.red,padding:"20px 0"}}>{error}</div>}
+      {error && viewingHistory===null && <div style={{fontSize:15,color:COLORS.red,padding:"20px 0"}}>{error}</div>}
 
       {!hasRun && !loading && viewingHistory===null && (
         <div style={{textAlign:"center",padding:"30px 20px"}}>
-          <div style={{fontSize:13,color:COLORS.slate,marginBottom:16,lineHeight:1.5}}>
+          <div style={{fontSize:15,color:COLORS.slate,marginBottom:16,lineHeight:1.5}}>
             Run an analysis of your retirement trajectory, contribution rate, and bridge gap.
           </div>
           <button style={S.btn} onClick={generateBrief}>▶️ Run Analysis</button>
@@ -3924,13 +3958,13 @@ Keep the ENTIRE brief under 210 words total. Bullets only, no exceptions.`;
             <>
               <div style={S.sectionLabel}>Ask a follow-up</div>
               {chatMessages.map((m,i)=>(
-                <div key={i} style={{marginBottom:8,display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
-                  <div style={{maxWidth:"85%",background:m.role==="user"?COLORS.blue:COLORS.navyLight,color:m.role==="user"?"#fff":COLORS.white,borderRadius:10,padding:"8px 12px",fontSize:13,lineHeight:1.5}}>
+                <div key={i} style={{marginBottom:10,display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
+                  <div style={{maxWidth:"85%",background:m.role==="user"?COLORS.blue:COLORS.navyLight,color:m.role==="user"?"#fff":COLORS.white,borderRadius:10,padding:"8px 12px",fontSize:15,lineHeight:1.5}}>
                     {m.text}
                   </div>
                 </div>
               ))}
-              {askingFollowUp && <div style={{fontSize:12,color:COLORS.slate,marginBottom:8}}>Thinking…</div>}
+              {askingFollowUp && <div style={{fontSize:15,color:COLORS.slate,marginBottom:10}}>Thinking…</div>}
               <div style={{display:"flex",gap:8}}>
                 <input
                   style={{...S.input,marginBottom:0,flex:1}}
@@ -4107,9 +4141,9 @@ function Finance(){
   return(
     <div style={S.screen}>
       <div style={{...S.card,background:COLORS.navyLight,borderLeft:`3px solid ${COLORS.green}`,marginBottom:16}}>
-        <div style={{fontSize:11,color:COLORS.green,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase"}}>Net Worth</div>
+        <div style={{fontSize:15,color:COLORS.green,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase"}}>Net Worth</div>
         <div style={{fontSize:30,fontWeight:800,marginTop:2}}>{formatMoney(netWorth)}</div>
-        <div style={{fontSize:12,color:COLORS.slate,marginTop:4}}>{formatMoney(totalAssets)} assets · {formatMoney(totalLiabilities)} liabilities</div>
+        <div style={{fontSize:15,color:COLORS.slate,marginTop:10}}>{formatMoney(totalAssets)} assets · {formatMoney(totalLiabilities)} liabilities</div>
       </div>
 
       <div style={S.tabs}>
@@ -4120,21 +4154,21 @@ function Finance(){
         {/* Net Worth Hero */}
         {retProj&&(
           <div style={{background:COLORS.navyMid,borderRadius:16,padding:"20px 18px",marginBottom:16,border:`1px solid ${COLORS.navyLight}`,borderTop:`3px solid ${retProj.statusColor}`}}>
-            <div style={{fontSize:10,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4}}>Financial Snapshot</div>
+            <div style={{fontSize:15,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>Financial Snapshot</div>
             <div style={{fontSize:28,fontWeight:800,letterSpacing:"-0.5px"}}>{formatMoneyShort(netWorth)}</div>
-            <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>estimated net worth</div>
+            <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>estimated net worth</div>
             <div style={{display:"flex",gap:16,marginTop:14,flexWrap:"wrap"}}>
               <div>
-                <div style={{fontSize:11,color:COLORS.slate}}>Retirement</div>
-                <div style={{fontSize:14,fontWeight:700,marginTop:2}}>{formatMoneyShort(retProj.totalBalance)}</div>
+                <div style={{fontSize:15,color:COLORS.slate}}>Retirement</div>
+                <div style={{fontSize:15,fontWeight:700,marginTop:2}}>{formatMoneyShort(retProj.totalBalance)}</div>
               </div>
               {collegeS&&<div>
-                <div style={{fontSize:11,color:COLORS.slate}}>College 529</div>
-                <div style={{fontSize:14,fontWeight:700,marginTop:2}}>{formatMoneyShort(collegeS.balance)}</div>
+                <div style={{fontSize:15,color:COLORS.slate}}>College 529</div>
+                <div style={{fontSize:15,fontWeight:700,marginTop:2}}>{formatMoneyShort(collegeS.balance)}</div>
               </div>}
               {mort&&<div>
-                <div style={{fontSize:11,color:COLORS.slate}}>Mortgage</div>
-                <div style={{fontSize:14,fontWeight:700,color:COLORS.red,marginTop:2}}>({formatMoneyShort(mort.current_balance)})</div>
+                <div style={{fontSize:15,color:COLORS.slate}}>Mortgage</div>
+                <div style={{fontSize:15,fontWeight:700,color:COLORS.red,marginTop:2}}>({formatMoneyShort(mort.current_balance)})</div>
               </div>}
             </div>
           </div>
@@ -4143,10 +4177,10 @@ function Finance(){
         {/* Staleness warnings */}
         {(retStale.stale||collegeStale.stale||mortStale.stale)&&(
           <div style={{...S.card,background:COLORS.amber+"11",borderColor:COLORS.amber+"33",marginBottom:12}}>
-            <div style={{fontSize:11,fontWeight:700,color:COLORS.amber,marginBottom:6}}>⚠️ Some balances may be out of date</div>
-            {retStale.stale&&<div style={{fontSize:11,color:COLORS.slateLight,marginBottom:2}}>• Retirement: {retStale.days?`${retStale.days}d ago`:"never updated"}</div>}
-            {collegeStale.stale&&<div style={{fontSize:11,color:COLORS.slateLight,marginBottom:2}}>• College: {collegeStale.days?`${collegeStale.days}d ago`:"never updated"}</div>}
-            {mortStale.stale&&<div style={{fontSize:11,color:COLORS.slateLight}}>• Mortgage: {mortStale.days?`${mortStale.days}d ago`:"never updated"}</div>}
+            <div style={{fontSize:15,fontWeight:700,color:COLORS.amber,marginBottom:10}}>⚠️ Some balances may be out of date</div>
+            {retStale.stale&&<div style={{fontSize:15,color:COLORS.slateLight,marginBottom:2}}>• Retirement: {retStale.days?`${retStale.days}d ago`:"never updated"}</div>}
+            {collegeStale.stale&&<div style={{fontSize:15,color:COLORS.slateLight,marginBottom:2}}>• College: {collegeStale.days?`${collegeStale.days}d ago`:"never updated"}</div>}
+            {mortStale.stale&&<div style={{fontSize:15,color:COLORS.slateLight}}>• Mortgage: {mortStale.days?`${mortStale.days}d ago`:"never updated"}</div>}
           </div>
         )}
 
@@ -4155,13 +4189,13 @@ function Finance(){
         {retProj&&(
           <div style={{...S.card,borderLeft:`3px solid ${retProj.statusColor}`,marginBottom:10}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{fontSize:13,fontWeight:700}}>🏦 Retirement</div>
-              <span style={{fontSize:12,color:retProj.statusColor,fontWeight:700}}>{retProj.statusLabel.split("—")[0].trim()}</span>
+              <div style={{fontSize:15,fontWeight:700}}>🏦 Retirement</div>
+              <span style={{fontSize:15,color:retProj.statusColor,fontWeight:700}}>{retProj.statusLabel.split("—")[0].trim()}</span>
             </div>
-            <div style={{fontSize:11,color:COLORS.slate,marginTop:4}}>Age {assump.retirement_age} · {formatMoneyShort(retProj.spendableTodaysDollars)} projected vs {formatMoneyShort(retProj.targetNumberToday)} needed (today's $)</div>
+            <div style={{fontSize:15,color:COLORS.slate,marginTop:10}}>Age {assump.retirement_age} · {formatMoneyShort(retProj.spendableTodaysDollars)} projected vs {formatMoneyShort(retProj.targetNumberToday)} needed (today's $)</div>
             {retProj.gap>0
-              ?<div style={{fontSize:11,color:COLORS.amber,marginTop:4,fontWeight:600}}>Gap: {formatMoneyShort(retProj.gap)} — ~{formatMoney(retProj.monthlyNeeded)}/mo more</div>
-              :<div style={{fontSize:11,color:COLORS.green,marginTop:4,fontWeight:600}}>On track — surplus {formatMoneyShort(-retProj.gap)}</div>
+              ?<div style={{fontSize:15,color:COLORS.amber,marginTop:10,fontWeight:600}}>Gap: {formatMoneyShort(retProj.gap)} — ~{formatMoney(retProj.monthlyNeeded)}/mo more</div>
+              :<div style={{fontSize:15,color:COLORS.green,marginTop:10,fontWeight:600}}>On track — surplus {formatMoneyShort(-retProj.gap)}</div>
             }
             <div style={S.progress}><div style={S.progressFill(Math.min(100,retProj.totalBalance/retProj.targetNumberInflated*100), retProj.statusColor)}/></div>
           </div>
@@ -4170,11 +4204,11 @@ function Finance(){
         {pooledCollegeProj&&(
           <div style={{...S.card,borderLeft:`3px solid ${pooledCollegeProj.anyShortfall?COLORS.amber:COLORS.green}`,marginBottom:10}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{fontSize:13,fontWeight:700}}>🎓 College (3 kids)</div>
-              <span style={{fontSize:12,color:pooledCollegeProj.anyShortfall?COLORS.amber:COLORS.green,fontWeight:700}}>{pooledCollegeProj.anyShortfall?`${pooledCollegeProj.perChild.filter(c=>!c.fullyFunded).length} short`:"On track ✓"}</span>
+              <div style={{fontSize:15,fontWeight:700}}>🎓 College (3 kids)</div>
+              <span style={{fontSize:15,color:pooledCollegeProj.anyShortfall?COLORS.amber:COLORS.green,fontWeight:700}}>{pooledCollegeProj.anyShortfall?`${pooledCollegeProj.perChild.filter(c=>!c.fullyFunded).length} short`:"On track ✓"}</span>
             </div>
-            <div style={{fontSize:11,color:COLORS.slate,marginTop:4}}>{pooledCollegeProj.perChild.map(c=>`${c.child_name} ${c.target_year}`).join(" → ")} · {formatMoneyShort(pooledCollegeProj.totalTargets)} total</div>
-            {pooledCollegeProj.anyShortfall&&<div style={{fontSize:11,color:COLORS.amber,marginTop:4,fontWeight:600}}>Increase to ~{formatMoney(pooledCollegeProj.suggestedMonthly)}/mo to fund all three</div>}
+            <div style={{fontSize:15,color:COLORS.slate,marginTop:10}}>{pooledCollegeProj.perChild.map(c=>`${c.child_name} ${c.target_year}`).join(" → ")} · {formatMoneyShort(pooledCollegeProj.totalTargets)} total</div>
+            {pooledCollegeProj.anyShortfall&&<div style={{fontSize:15,color:COLORS.amber,marginTop:10,fontWeight:600}}>Increase to ~{formatMoney(pooledCollegeProj.suggestedMonthly)}/mo to fund all three</div>}
             <div style={S.progress}><div style={S.progressFill(Math.min(100,(collegeS?.balance||0)/pooledCollegeProj.totalTargets*100), pooledCollegeProj.anyShortfall?COLORS.amber:COLORS.green)}/></div>
           </div>
         )}
@@ -4182,10 +4216,10 @@ function Finance(){
         {mort&&mortMonths&&(
           <div style={{...S.card,borderLeft:`3px solid ${COLORS.blue}`,marginBottom:10}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{fontSize:13,fontWeight:700}}>🏠 Mortgage</div>
-              <span style={{fontSize:12,color:COLORS.blue,fontWeight:700}}>{monthsToDate(mortMonths)}</span>
+              <div style={{fontSize:15,fontWeight:700}}>🏠 Mortgage</div>
+              <span style={{fontSize:15,color:COLORS.blue,fontWeight:700}}>{monthsToDate(mortMonths)}</span>
             </div>
-            <div style={{fontSize:11,color:COLORS.slate,marginTop:4}}>{formatMoney(mort.current_balance)} remaining at {mort.interest_rate}% · {formatMoney(mort.monthly_payment)}/mo</div>
+            <div style={{fontSize:15,color:COLORS.slate,marginTop:10}}>{formatMoney(mort.current_balance)} remaining at {mort.interest_rate}% · {formatMoney(mort.monthly_payment)}/mo</div>
             <div style={S.progress}><div style={S.progressFill(Math.min(100,100-(mort.current_balance/(mort.original_balance||mort.current_balance*1.5))*100), COLORS.blue)}/></div>
           </div>
         )}
@@ -4195,10 +4229,10 @@ function Finance(){
           return(
             <div key={d.id} style={{...S.card,borderLeft:`3px solid ${COLORS.red}`,marginBottom:10}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div style={{fontSize:13,fontWeight:700}}>💳 {d.name}</div>
-                <span style={{fontSize:12,color:COLORS.red,fontWeight:700}}>{months?monthsToDate(months):"—"}</span>
+                <div style={{fontSize:15,fontWeight:700}}>💳 {d.name}</div>
+                <span style={{fontSize:15,color:COLORS.red,fontWeight:700}}>{months?monthsToDate(months):"—"}</span>
               </div>
-              <div style={{fontSize:11,color:COLORS.slate,marginTop:4}}>{formatMoney(d.balance)} at {d.interest_rate}%</div>
+              <div style={{fontSize:15,color:COLORS.slate,marginTop:10}}>{formatMoney(d.balance)} at {d.interest_rate}%</div>
             </div>
           );
         })}
@@ -4208,20 +4242,20 @@ function Finance(){
           {actionItems.data.filter(a=>!a.completed).map(a=>(
             <div key={a.id} style={S.statusCard(priorityColors[a.priority])}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div style={{fontSize:13,fontWeight:600,flex:1,paddingRight:10}}>{a.title}</div>
+                <div style={{fontSize:15,fontWeight:600,flex:1,paddingRight:10}}>{a.title}</div>
                 <button style={S.btnCheck} onClick={()=>actionItems.update(a.id,{completed:true})}>✓</button>
               </div>
             </div>
           ))}
         </>}
-        <button style={{...S.btnSm,width:"100%",marginTop:8}} onClick={()=>{setForm({priority:"med",category:"other"});setShowModal("action");}}>+ Add Action Item</button>
+        <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={()=>{setForm({priority:"med",category:"other"});setShowModal("action");}}>+ Add Action Item</button>
 
         {snapshots.data.length>0&&<>
           <div style={S.sectionLabel}>Net Worth History</div>
           {snapshots.data.slice(0,5).map(s=>(
-            <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${COLORS.navyLight}`}}>
-              <div style={{fontSize:12,color:COLORS.slate}}>{formatDate(s.date)}</div>
-              <div style={{fontSize:13,fontWeight:700}}>{formatMoney(s.net_worth)}</div>
+            <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${COLORS.navyLight}`}}>
+              <div style={{fontSize:15,color:COLORS.slate}}>{formatDate(s.date)}</div>
+              <div style={{fontSize:15,fontWeight:700}}>{formatMoney(s.net_worth)}</div>
             </div>
           ))}
         </>}
@@ -4229,8 +4263,8 @@ function Finance(){
       </>}
 
             {tab==="retirement"&&<>
-        <div style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}>
-          <button onClick={()=>{setForm({...assump});setShowModal("assumptions");}} style={{background:COLORS.navyLight,border:`1px solid ${COLORS.navyLight}`,borderRadius:8,padding:"6px 12px",fontSize:11,fontWeight:700,color:COLORS.slateLight,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
+        <div style={{display:"flex",justifyContent:"flex-end",marginBottom:10}}>
+          <button onClick={()=>{setForm({...assump});setShowModal("assumptions");}} style={{background:COLORS.navyLight,border:`1px solid ${COLORS.navyLight}`,borderRadius:8,padding:"6px 12px",fontSize:15,fontWeight:700,color:COLORS.slateLight,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
             ⚙️ Edit Assumptions
           </button>
         </div>
@@ -4240,23 +4274,23 @@ function Finance(){
               <div style={{width:14,height:14,borderRadius:"50%",background:retProj.statusColor,flexShrink:0}}/>
               <div>
                 <div style={{fontSize:22,fontWeight:800,color:retProj.statusColor,letterSpacing:"-0.3px"}}>{retProj.statusLabel}</div>
-                <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>
+                <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>
                   {retProj.statusDetail}
                 </div>
-                <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>
+                <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>
                   {retProj.drawdown.lastsFullPlan
                     ? `~${formatMoneyShort(retProj.drawdown.finalBalance)} expected remaining at age ${retProj.drawdown.planEndAge}`
                     : ""
                   }
                 </div>
-                <div style={{fontSize:10,color:COLORS.slate,marginTop:3,fontStyle:"italic"}}>
+                <div style={{fontSize:15,color:COLORS.slate,marginTop:3,fontStyle:"italic"}}>
                   At a steady {assump.drawdown_rate_pct||5}% return every year — real markets vary. See Probability of Success below for a more realistic range.
                 </div>
               </div>
             </div>
             <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${retProj.statusColor}33`}}>
               {retProj.quickRecs.map((rec,i)=>(
-                <div key={i} style={{fontSize:12,color:COLORS.slateLight,lineHeight:1.5,marginBottom:i<retProj.quickRecs.length-1?6:0}}>• {rec}</div>
+                <div key={i} style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5,marginBottom:i<retProj.quickRecs.length-1?6:0}}>• {rec}</div>
               ))}
             </div>
             {monteCarloResults&&(()=>{
@@ -4266,9 +4300,9 @@ function Finance(){
               const diverges = (isPositiveStatus && current.successRate<75) || (!isPositiveStatus && current.successRate>=85);
               return(
                 <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${retProj.statusColor}33`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div style={{fontSize:11,color:COLORS.slateLight}}>
+                  <div style={{fontSize:15,color:COLORS.slateLight}}>
                     🎲 Realistic success rate: <strong style={{color:current.successRate>=85?COLORS.green:current.successRate>=70?COLORS.amber:COLORS.red}}>{current.successRate}%</strong>
-                    {diverges&&<div style={{fontSize:10,color:COLORS.amber,marginTop:2}}>⚠️ Differs meaningfully from the steady-return badge above — market variation matters here.</div>}
+                    {diverges&&<div style={{fontSize:15,color:COLORS.amber,marginTop:2}}>⚠️ Differs meaningfully from the steady-return badge above — market variation matters here.</div>}
                   </div>
                 </div>
               );
@@ -4278,16 +4312,16 @@ function Finance(){
 
         {readinessChecklist.length>0&&(
           <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
-            <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>Retirement Readiness</div>
+            <div style={{fontSize:15,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>Retirement Readiness</div>
             {readinessChecklist.map((item,i)=>{
               const icon = item.status==="good"?"✅":item.status==="watch"?"⚠️":item.status==="risk"?"🔴":"❔";
               const color = item.status==="good"?COLORS.green:item.status==="watch"?COLORS.amber:item.status==="risk"?COLORS.red:COLORS.slate;
               return(
                 <div key={i} style={{display:"flex",gap:10,padding:"7px 0",borderBottom:i<readinessChecklist.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
-                  <span style={{fontSize:14,flexShrink:0}}>{icon}</span>
+                  <span style={{fontSize:15,flexShrink:0}}>{icon}</span>
                   <div style={{flex:1}}>
-                    <div style={{fontSize:12,fontWeight:700,color}}>{item.label}</div>
-                    <div style={{fontSize:11,color:COLORS.slate,marginTop:1,lineHeight:1.4}}>{item.detail}</div>
+                    <div style={{fontSize:15,fontWeight:700,color}}>{item.label}</div>
+                    <div style={{fontSize:15,color:COLORS.slate,marginTop:1,lineHeight:1.4}}>{item.detail}</div>
                   </div>
                 </div>
               );
@@ -4297,46 +4331,46 @@ function Finance(){
         )}
 
         <div style={{display:"flex",gap:8,marginBottom:12}}>
-          <button onClick={()=>setShowRetBrief(true)} style={{flex:1,background:COLORS.purple,color:"#fff",border:"none",borderRadius:10,padding:"12px 6px",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+          <button onClick={()=>setShowRetBrief(true)} style={{flex:1,background:COLORS.purple,color:"#fff",border:"none",borderRadius:10,padding:"12px 6px",fontSize:15,fontWeight:700,cursor:"pointer"}}>
             🤖 Retirement Brief
           </button>
         </div>
 
         <div style={{display:"flex",gap:8,marginBottom:12}}>
           <div style={{...S.card,flex:1,marginBottom:0,textAlign:"center"}}>
-            <div style={{fontSize:10,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.5px"}}>Total Balance</div>
-            <div style={{fontSize:22,fontWeight:800,marginTop:4,letterSpacing:"-0.3px"}}>{formatMoneyShort(retProj?.totalBalance||0)}</div>
+            <div style={{fontSize:15,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.5px"}}>Total Balance</div>
+            <div style={{fontSize:22,fontWeight:800,marginTop:10,letterSpacing:"-0.3px"}}>{formatMoneyShort(retProj?.totalBalance||0)}</div>
           </div>
           <div style={{...S.card,flex:1,marginBottom:0,textAlign:"center"}}>
-            <div style={{fontSize:10,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.5px"}}>Monthly Contribution</div>
-            <div style={{fontSize:22,fontWeight:800,marginTop:4,letterSpacing:"-0.3px"}}>{formatMoney(retProj?.totalMonthly||0)}</div>
+            <div style={{fontSize:15,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.5px"}}>Monthly Contribution</div>
+            <div style={{fontSize:22,fontWeight:800,marginTop:10,letterSpacing:"-0.3px"}}>{formatMoney(retProj?.totalMonthly||0)}</div>
           </div>
         </div>
 
         {retProj&&<>
           <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-              <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase"}}>Projection at Age {assump.retirement_age} ({retProj.years} years)</div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <div style={{fontSize:15,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase"}}>Projection at Age {assump.retirement_age} ({retProj.years} years)</div>
               <Sparkline data={retProj.trajectory.map(t=>t.balance)} color={COLORS.blue}/>
             </div>
             
             {retProj.scenarios.map(s=>(
-              <div key={s.label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${COLORS.navyLight}`}}>
-                <div style={{fontSize:12,color:COLORS.slateLight}}>{s.label} ({s.rate}%)</div>
+              <div key={s.label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${COLORS.navyLight}`}}>
+                <div style={{fontSize:15,color:COLORS.slateLight}}>{s.label} ({s.rate}%)</div>
                 <div style={{textAlign:"right"}}>
                   <div style={{fontSize:15,fontWeight:700,color:s.color}}>{formatMoneyShort(s.projectedTodaysDollars)}</div>
-                  <div style={{fontSize:10,color:COLORS.slate}}>{formatMoneyShort(s.projected)} future $</div>
+                  <div style={{fontSize:15,color:COLORS.slate}}>{formatMoneyShort(s.projected)} future $</div>
                 </div>
               </div>
             ))}
             <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${COLORS.navyLight}`}}>
-              <div style={{fontSize:12,color:COLORS.slate}}>Target (today's $): <strong style={{color:COLORS.white}}>{formatMoneyShort(retProj.targetNumberToday)}</strong></div>
-              <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>Spendable after tax (~{Math.round(retProj.taxableMix*100)}% blended rate): <strong style={{color:COLORS.white}}>{formatMoneyShort(retProj.spendableTodaysDollars)}</strong> <span style={{color:COLORS.slate}}>today's $</span></div>
-              <div style={{fontSize:11,color:COLORS.slate,marginTop:6}}>Future dollars (what the account will actually say): {formatMoneyShort(retProj.spendableProjected)} spendable vs. {formatMoneyShort(retProj.targetNumberInflated)} target</div>
-              <div style={{fontSize:12,color:retProj.gap>0?COLORS.amber:COLORS.green,marginTop:6,fontWeight:600}}>
+              <div style={{fontSize:15,color:COLORS.slate}}>Target (today's $): <strong style={{color:COLORS.white}}>{formatMoneyShort(retProj.targetNumberToday)}</strong></div>
+              <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>Spendable after tax (~{Math.round(retProj.taxableMix*100)}% blended rate): <strong style={{color:COLORS.white}}>{formatMoneyShort(retProj.spendableTodaysDollars)}</strong> <span style={{color:COLORS.slate}}>today's $</span></div>
+              <div style={{fontSize:15,color:COLORS.slate,marginTop:10}}>Future dollars (what the account will actually say): {formatMoneyShort(retProj.spendableProjected)} spendable vs. {formatMoneyShort(retProj.targetNumberInflated)} target</div>
+              <div style={{fontSize:15,color:retProj.gap>0?COLORS.amber:COLORS.green,marginTop:10,fontWeight:600}}>
                 {retProj.gap>0?`Gap: ${formatMoneyShort(retProj.gap)} — consider increasing contribution by ~${formatMoney(retProj.monthlyNeeded)}/mo`:`On track — projected surplus of ${formatMoneyShort(-retProj.gap)}`}
               </div>
-              {assump.contribution_increase_pct>0&&<div style={{fontSize:11,color:COLORS.slate,marginTop:6}}>Assumes contributions grow {assump.contribution_increase_pct}%/year</div>}
+              {assump.contribution_increase_pct>0&&<div style={{fontSize:15,color:COLORS.slate,marginTop:10}}>Assumes contributions grow {assump.contribution_increase_pct}%/year</div>}
               
             </div>
           </div>
@@ -4353,19 +4387,19 @@ function Finance(){
                 {/* Header */}
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
                   <div>
-                    <div style={{fontSize:11,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:3}}>Early Retirement Bridge</div>
-                    <div style={{fontSize:18,fontWeight:800,letterSpacing:"-0.3px"}}>Age {assump.retirement_age} → {d.medicareAge}</div>
-                    <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>{retProj.bridgeYears} year{retProj.bridgeYears!==1?"s":""} before Medicare</div>
+                    <div style={{fontSize:15,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:3}}>Early Retirement Bridge</div>
+                    <div style={{fontSize:19,fontWeight:800,letterSpacing:"-0.3px"}}>Age {assump.retirement_age} → {d.medicareAge}</div>
+                    <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>{retProj.bridgeYears} year{retProj.bridgeYears!==1?"s":""} before Medicare</div>
                   </div>
                   <div style={{textAlign:"right",flexShrink:0,marginLeft:12}}>
                     <div style={{fontSize:20,fontWeight:800,color:bridgeOk?COLORS.green:COLORS.red}}>{bridgeOk?"✓ Covered":"⚠️ Short"}</div>
-                    {!bridgeOk&&<div style={{fontSize:11,color:COLORS.red,marginTop:2}}>~{formatMoneyShort(d.bridgeShortfall)}</div>}
+                    {!bridgeOk&&<div style={{fontSize:15,color:COLORS.red,marginTop:2}}>~{formatMoneyShort(d.bridgeShortfall)}</div>}
                   </div>
                 </div>
 
                 {/* Phase timeline — what happens each phase */}
                 <div style={{background:COLORS.navyLight,borderRadius:10,padding:"12px 14px",marginBottom:12}}>
-                  <div style={{fontSize:10,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>What Happens When</div>
+                  <div style={{fontSize:15,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>What Happens When</div>
                   {[
                     { age:assump.retirement_age, label:"Retire", detail:`Draw from Rule of 55 funds (${r55Pct}% of balance) — no 10% penalty`, color:COLORS.blue, icon:"🏁" },
                     Math.min(userSSAge,spouseSSAge)<d.medicareAge ? { age:Math.min(userSSAge,spouseSSAge), label:"First SS Benefit", detail:`${userSSAge<=spouseSSAge?"Your":"Kalee's"} Social Security starts — ${formatMoneyShort(userSSAge<=spouseSSAge?(assump.social_security_estimate||0):(assump.social_security_estimate_spouse||0))}/yr`, color:COLORS.green, icon:"💰" } : null,
@@ -4373,37 +4407,37 @@ function Finance(){
                     Math.max(userSSAge,spouseSSAge)>=d.medicareAge ? { age:Math.max(userSSAge,spouseSSAge), label:`${userSSAge>=spouseSSAge?"Your":"Kalee's"} SS Starts`, detail:`${formatMoneyShort(userSSAge>=spouseSSAge?(assump.social_security_estimate||0):(assump.social_security_estimate_spouse||0))}/yr — full household SS now ${formatMoneyShort((assump.social_security_estimate||0)+(assump.social_security_estimate_spouse||0))}/yr`, color:COLORS.green, icon:"💰" } : null,
                   ].filter(Boolean).map((phase,i,arr)=>(
                     <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",paddingBottom:i<arr.length-1?8:0,marginBottom:i<arr.length-1?8:0,borderBottom:i<arr.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
-                      <div style={{width:28,height:28,borderRadius:8,background:phase.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>{phase.icon}</div>
+                      <div style={{width:28,height:28,borderRadius:8,background:phase.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>{phase.icon}</div>
                       <div style={{flex:1}}>
                         <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:2}}>
-                          <span style={{fontSize:12,fontWeight:700,color:phase.color}}>Age {phase.age}</span>
-                          <span style={{fontSize:12,fontWeight:600,color:COLORS.white}}>{phase.label}</span>
+                          <span style={{fontSize:15,fontWeight:700,color:phase.color}}>Age {phase.age}</span>
+                          <span style={{fontSize:15,fontWeight:600,color:COLORS.white}}>{phase.label}</span>
                         </div>
-                        <div style={{fontSize:11,color:COLORS.slate,lineHeight:1.4}}>{phase.detail}</div>
+                        <div style={{fontSize:15,color:COLORS.slate,lineHeight:1.4}}>{phase.detail}</div>
                       </div>
                     </div>
                   ))}
                 </div>
 
                 {/* Rule of 55 explanation */}
-                <div style={{fontSize:12,color:COLORS.slateLight,lineHeight:1.6,marginBottom:10}}>
+                <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.6,marginBottom:10}}>
                   <strong style={{color:COLORS.white}}>Rule of 55:</strong> If you leave your employer at age 55 or later, you can withdraw from that employer's 401(k)/403(b) penalty-free — even before 59½. Only accounts from the employer you separate from at or after 55 qualify. IRAs do not qualify.
                 </div>
-                <div style={{fontSize:12,color:COLORS.slateLight,lineHeight:1.6,marginBottom:12}}>
+                <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.6,marginBottom:12}}>
                   ~{r55Pct}% of your current balance ({formatMoneyShort(retProj.ruleOf55Balance)}) is in Rule of 55-eligible accounts. The simulation draws bridge spending from this pool first, letting the rest compound untouched until Medicare age.
                 </div>
 
                 {/* Year-by-year table toggle */}
-                <button onClick={()=>setShowBridgeTable(p=>!p)} style={{fontSize:11,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,textDecoration:"underline",marginBottom:showBridgeTable?10:0}}>
+                <button onClick={()=>setShowBridgeTable(p=>!p)} style={{fontSize:15,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,textDecoration:"underline",marginBottom:showBridgeTable?10:0}}>
                   {showBridgeTable?"Hide year-by-year breakdown":"Show year-by-year breakdown →"}
                 </button>
 
                 {showBridgeTable&&d.bridgeSchedule&&d.bridgeSchedule.length>0&&(
-                  <div style={{marginTop:8}}>
+                  <div style={{marginTop:10}}>
                     {/* Column headers */}
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:4,marginBottom:6}}>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:4,marginBottom:10}}>
                       {["Age","Need","R55 Pool","Total"].map(h=>(
-                        <div key={h} style={{fontSize:9,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",textAlign:"right",paddingRight:4}}>{h}</div>
+                        <div key={h} style={{fontSize:15,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",textAlign:"right",paddingRight:4}}>{h}</div>
                       ))}
                     </div>
                     {d.bridgeSchedule.map((row,i)=>{
@@ -4411,22 +4445,22 @@ function Finance(){
                       const lowBalance = row.ruleOf55Pool < row.needYear;
                       return(
                         <div key={row.age} style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:4,padding:"5px 0",borderBottom:!isLast?`1px solid ${COLORS.navyLight}`:"none"}}>
-                          <div style={{fontSize:11,fontWeight:600,color:COLORS.white}}>Age {row.age}</div>
-                          <div style={{fontSize:11,color:COLORS.slate,textAlign:"right",paddingRight:4}}>{formatMoneyShort(row.needYear)}</div>
-                          <div style={{fontSize:11,color:lowBalance?COLORS.red:COLORS.slate,textAlign:"right",paddingRight:4}}>{formatMoneyShort(row.ruleOf55Pool)}</div>
-                          <div style={{fontSize:11,fontWeight:600,color:row.balance>0?COLORS.white:COLORS.red,textAlign:"right",paddingRight:4}}>{formatMoneyShort(row.balance)}</div>
+                          <div style={{fontSize:15,fontWeight:600,color:COLORS.white}}>Age {row.age}</div>
+                          <div style={{fontSize:15,color:COLORS.slate,textAlign:"right",paddingRight:4}}>{formatMoneyShort(row.needYear)}</div>
+                          <div style={{fontSize:15,color:lowBalance?COLORS.red:COLORS.slate,textAlign:"right",paddingRight:4}}>{formatMoneyShort(row.ruleOf55Pool)}</div>
+                          <div style={{fontSize:15,fontWeight:600,color:row.balance>0?COLORS.white:COLORS.red,textAlign:"right",paddingRight:4}}>{formatMoneyShort(row.balance)}</div>
                         </div>
                       );
                     })}
-                    <div style={{fontSize:10,color:COLORS.slate,marginTop:8,lineHeight:1.4}}>Need = spending + healthcare that year. R55 Pool = Rule of 55 balance remaining. Total = combined balance entering next year.</div>
+                    <div style={{fontSize:15,color:COLORS.slate,marginTop:10,lineHeight:1.4}}>Need = spending + healthcare that year. R55 Pool = Rule of 55 balance remaining. Total = combined balance entering next year.</div>
                   </div>
                 )}
 
                 {/* Bottom status */}
                 <div style={{marginTop:12,paddingTop:10,borderTop:`1px solid ${COLORS.navyLight}`}}>
                   {bridgeOk
-                    ?<div style={{fontSize:12,color:COLORS.green,fontWeight:600}}>✓ Rule of 55 funds fully cover the bridge. No penalty withdrawals needed from IRAs or taxable accounts during this window.</div>
-                    :<div style={{fontSize:12,color:COLORS.red,fontWeight:600}}>⚠️ Bridge comes up ~{formatMoneyShort(d.bridgeShortfall)} short — you'll need to tap IRA early (10% penalty) or taxable savings to cover the gap. Consider building additional taxable savings before retiring.</div>
+                    ?<div style={{fontSize:15,color:COLORS.green,fontWeight:600}}>✓ Rule of 55 funds fully cover the bridge. No penalty withdrawals needed from IRAs or taxable accounts during this window.</div>
+                    :<div style={{fontSize:15,color:COLORS.red,fontWeight:600}}>⚠️ Bridge comes up ~{formatMoneyShort(d.bridgeShortfall)} short — you'll need to tap IRA early (10% penalty) or taxable savings to cover the gap. Consider building additional taxable savings before retiring.</div>
                   }
                 </div>
               </div>
@@ -4434,20 +4468,20 @@ function Finance(){
           })()}
 
           <div style={{...S.statusCard(retProj.statusColor),marginBottom:12}}>
-            <div style={{fontSize:12,fontWeight:700,marginBottom:4}}>📉 Full Retirement Drawdown — through age {retProj.drawdown.planEndAge}</div>
-            <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5}}>
+            <div style={{fontSize:15,fontWeight:700,marginBottom:10}}>📉 Full Retirement Drawdown — through age {retProj.drawdown.planEndAge}</div>
+            <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5}}>
               Simulates spending from age {assump.retirement_age} through {retProj.drawdown.planEndAge} at the drawdown rate ({assump.drawdown_rate_pct||5}%) — bridge years from Rule of 55 funds first, Social Security starting at {retProj.drawdown.ssClaimAge}, healthcare growing ~5.5%/yr the whole way.
             </div>
-            <div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${COLORS.navyLight}`}}>
+            <div style={{marginTop:10,paddingTop:8,borderTop:`1px solid ${COLORS.navyLight}`}}>
               {retProj.drawdown.lastsFullPlan
-                ? <div style={{fontSize:12,color:COLORS.green,fontWeight:600}}>✓ Projected to last through age {retProj.drawdown.planEndAge}, with ~{formatMoneyShort(retProj.drawdown.finalBalance)} remaining.</div>
-                : <div style={{fontSize:12,color:COLORS.red,fontWeight:600}}>⚠️ Projected to run low around age {retProj.drawdown.ranOutAtAge} — {retProj.drawdown.planEndAge-retProj.drawdown.ranOutAtAge} years before the age-{retProj.drawdown.planEndAge} horizon.</div>
+                ? <div style={{fontSize:15,color:COLORS.green,fontWeight:600}}>✓ Projected to last through age {retProj.drawdown.planEndAge}, with ~{formatMoneyShort(retProj.drawdown.finalBalance)} remaining.</div>
+                : <div style={{fontSize:15,color:COLORS.red,fontWeight:600}}>⚠️ Projected to run low around age {retProj.drawdown.ranOutAtAge} — {retProj.drawdown.planEndAge-retProj.drawdown.ranOutAtAge} years before the age-{retProj.drawdown.planEndAge} horizon.</div>
               }
             </div>
           </div>
 
           <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
-            <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>Projected Balance Over Time</div>
+            <div style={{fontSize:15,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>Projected Balance Over Time</div>
             {(()=>{
               const tl = retProj.drawdown.fullTimeline;
               const currentAge = assump.current_age;
@@ -4468,12 +4502,12 @@ function Finance(){
                 return (
                   <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:i<checkpoints.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      <span style={{fontSize:12,color:COLORS.slateLight}}>Age {cp.age}</span>
+                      <span style={{fontSize:15,color:COLORS.slateLight}}>Age {cp.age}</span>
                       {isRetirement&&<span style={S.badge(COLORS.blue)}>retire</span>}
                       {isMedicare&&!isRetirement&&<span style={S.badge(COLORS.purple)}>medicare</span>}
                       {isRanOut&&<span style={S.badge(COLORS.red)}>runs out</span>}
                     </div>
-                    <span style={{fontSize:13,fontWeight:700,color:isPlanEnd?retProj.statusColor:COLORS.white}}>
+                    <span style={{fontSize:15,fontWeight:700,color:isPlanEnd?retProj.statusColor:COLORS.white}}>
                       {formatMoneyShort(cp.balance)}
                     </span>
                   </div>
@@ -4485,17 +4519,17 @@ function Finance(){
 
           {incomeTimeline.length>0&&(
             <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
-              <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>📋 Retirement Income Timeline</div>
+              <div style={{fontSize:15,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>📋 Retirement Income Timeline</div>
               {incomeTimeline.map((band,i)=>(
                 <div key={i} style={{display:"flex",gap:10,marginBottom:i<incomeTimeline.length-1?12:0}}>
                   <div style={{width:3,background:band.color,borderRadius:2,flexShrink:0}}/>
                   <div style={{flex:1}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      <span style={{fontSize:13,fontWeight:700,color:band.color}}>Age {band.ageRange}</span>
-                      {band.avgAnnual!=null&&<span style={{fontSize:12,fontWeight:700,color:COLORS.white}}>~{formatMoneyShort(band.avgAnnual)}/yr</span>}
+                      <span style={{fontSize:15,fontWeight:700,color:band.color}}>Age {band.ageRange}</span>
+                      {band.avgAnnual!=null&&<span style={{fontSize:15,fontWeight:700,color:COLORS.white}}>~{formatMoneyShort(band.avgAnnual)}/yr</span>}
                     </div>
-                    <div style={{fontSize:12,color:COLORS.white,marginTop:2,fontWeight:600}}>{band.sources.join(" + ")}</div>
-                    <div style={{fontSize:11,color:COLORS.slate,marginTop:2,lineHeight:1.4}}>{band.detail}</div>
+                    <div style={{fontSize:15,color:COLORS.white,marginTop:2,fontWeight:600}}>{band.sources.join(" + ")}</div>
+                    <div style={{fontSize:15,color:COLORS.slate,marginTop:2,lineHeight:1.4}}>{band.detail}</div>
                   </div>
                 </div>
               ))}
@@ -4505,22 +4539,22 @@ function Finance(){
 
           {retProj?.drawdown&&(
             <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
-              <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>🔓 Rule of 55 Dashboard</div>
+              <div style={{fontSize:15,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>🔓 Rule of 55 Dashboard</div>
               <div style={S.statGrid}>
                 <div style={S.statCell(COLORS.purple)}>
-                  <div style={{...S.statVal,fontSize:14}}>{Math.round(retProj.drawdown.ruleOf55Share*100)}%</div>
+                  <div style={{...S.statVal,fontSize:15}}>{Math.round(retProj.drawdown.ruleOf55Share*100)}%</div>
                   <div style={S.statLbl}>of balance eligible</div>
                 </div>
                 <div style={S.statCell(COLORS.blue)}>
-                  <div style={{...S.statVal,fontSize:14}}>{retProj.bridgeYears}</div>
+                  <div style={{...S.statVal,fontSize:15}}>{retProj.bridgeYears}</div>
                   <div style={S.statLbl}>bridge years</div>
                 </div>
                 <div style={S.statCell(retProj.drawdown.bridgeShortfall>0?COLORS.red:COLORS.green)}>
-                  <div style={{...S.statVal,fontSize:14}}>{retProj.drawdown.bridgeShortfall>0?"⚠️":"✓"}</div>
+                  <div style={{...S.statVal,fontSize:15}}>{retProj.drawdown.bridgeShortfall>0?"⚠️":"✓"}</div>
                   <div style={S.statLbl}>{retProj.drawdown.bridgeShortfall>0?"shortfall":"covered"}</div>
                 </div>
               </div>
-              <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${COLORS.navyLight}`,fontSize:11,color:COLORS.slateLight,lineHeight:1.6}}>
+              <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${COLORS.navyLight}`,fontSize:15,color:COLORS.slateLight,lineHeight:1.6}}>
                 Current Rule of 55 eligible accounts (403b/401k): <strong style={{color:COLORS.white}}>{formatMoney(accounts.data.filter(ruleOf55Eligible).reduce((s,a)=>s+(a.balance||0),0))}</strong>
                 <br/>Projected at retirement (age {assump.retirement_age}): <strong style={{color:COLORS.white}}>~{formatMoneyShort(retProj.drawdown.spendableAtRetirement * retProj.drawdown.ruleOf55Share)}</strong>
                 <br/>Bridge coverage: <strong style={{color:retProj.drawdown.bridgeShortfall>0?COLORS.red:COLORS.green}}>
@@ -4535,14 +4569,14 @@ function Finance(){
                   </button>
                   {showBridgeMath&&(
                     <div style={{marginTop:10}}>
-                      <div style={{fontSize:10,color:COLORS.slate,marginBottom:8,lineHeight:1.5}}>
+                      <div style={{fontSize:15,color:COLORS.slate,marginBottom:10,lineHeight:1.5}}>
                         Spending and healthcare both inflate every year — by the last bridge year, the annual need is meaningfully higher than today's numbers. This is why a balance that looks like it should easily cover "spending × years" often doesn't.
                       </div>
                       {retProj.drawdown.bridgeSchedule.map((b,i)=>(
-                        <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:i<retProj.drawdown.bridgeSchedule.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
-                          <div style={{fontSize:11,color:COLORS.slateLight}}>Age {b.age}</div>
-                          <div style={{fontSize:11,color:COLORS.slate}}>need {formatMoneyShort(b.needYear)}</div>
-                          <div style={{fontSize:11,fontWeight:700,color:b.balance>0?COLORS.white:COLORS.red}}>pool {formatMoneyShort(b.balance)}</div>
+                        <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<retProj.drawdown.bridgeSchedule.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
+                          <div style={{fontSize:15,color:COLORS.slateLight}}>Age {b.age}</div>
+                          <div style={{fontSize:15,color:COLORS.slate}}>need {formatMoneyShort(b.needYear)}</div>
+                          <div style={{fontSize:15,fontWeight:700,color:b.balance>0?COLORS.white:COLORS.red}}>pool {formatMoneyShort(b.balance)}</div>
                         </div>
                       ))}
                     </div>
@@ -4556,8 +4590,8 @@ function Finance(){
                 const extraMonthlyNeeded = retProj.drawdown.bridgeShortfall / (yearsToClose*12*(1+(assump.moderate_rate_pct||7)/100)); // rough, conservative
                 return(
                   <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${COLORS.red}33`}}>
-                    <div style={{fontSize:12,color:COLORS.red,fontWeight:700}}>⚠️ Quick fix</div>
-                    <div style={{fontSize:11,color:COLORS.slateLight,marginTop:3,lineHeight:1.5}}>
+                    <div style={{fontSize:15,color:COLORS.red,fontWeight:700}}>⚠️ Quick fix</div>
+                    <div style={{fontSize:15,color:COLORS.slateLight,marginTop:3,lineHeight:1.5}}>
                       Increasing 403(b)/401(k) contributions by ~{formatMoney(extraMonthlyNeeded)}/mo would close most of this gap by retirement age, assuming moderate growth.
                     </div>
                   </div>
@@ -4567,8 +4601,8 @@ function Finance(){
           )}
 
           <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
-            <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:8}}>🎲 Probability of Success</div>
-            <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5,marginBottom:10}}>
+            <div style={{fontSize:15,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>🎲 Probability of Success</div>
+            <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5,marginBottom:10}}>
               Runs 1,000 simulations with randomized year-to-year returns (mean {assump.moderate_rate_pct||7}%, ±{assump.return_volatility_pct||15}% volatility) instead of one fixed rate — shows what % of possible market paths never run out of money for your current plan.
             </div>
             {!monteCarloResults&&!monteCarloRunning&&(
@@ -4576,7 +4610,7 @@ function Finance(){
             )}
             {monteCarloRunning&&(
               <div style={{textAlign:"center",padding:"16px 0"}}>
-                <div style={{fontSize:13,color:COLORS.slate}}>Running 4,000 simulated paths…</div>
+                <div style={{fontSize:15,color:COLORS.slate}}>Running 4,000 simulated paths…</div>
               </div>
             )}
             {monteCarloResults&&!monteCarloRunning&&(()=>{
@@ -4584,13 +4618,13 @@ function Finance(){
               if(!current) return null;
               return(
                 <>
-                  <div style={{textAlign:"center",padding:"8px 0"}}>
+                  <div style={{textAlign:"center",padding:"10px 0"}}>
                     <div style={{fontSize:36,fontWeight:800,color:current.successRate>=90?COLORS.green:current.successRate>=75?COLORS.amber:COLORS.red}}>{current.successRate}%</div>
-                    <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>of simulated paths last through age {assump.plan_end_age||90}</div>
-                    <div style={{fontSize:10,color:COLORS.slate,marginTop:2}}>median ending balance {formatMoneyShort(current.medianFinalBalance)}</div>
+                    <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>of simulated paths last through age {assump.plan_end_age||90}</div>
+                    <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>median ending balance {formatMoneyShort(current.medianFinalBalance)}</div>
                   </div>
                   <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={runMonteCarlo}>🔄 Re-run</button>
-                  <div style={{fontSize:10,color:COLORS.slate,marginTop:8,fontStyle:"italic"}}>Industry convention treats 85-95%+ as a generally safe plan.</div>
+                  <div style={{fontSize:15,color:COLORS.slate,marginTop:10,fontStyle:"italic"}}>Industry convention treats 85-95%+ as a generally safe plan.</div>
                 </>
               );
             })()}
@@ -4598,17 +4632,17 @@ function Finance(){
 
           {monteCarloResults&&!monteCarloRunning&&(
             <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
-              <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:8}}>🤔 What If I Retire Earlier or Later?</div>
-              <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5,marginBottom:10}}>
+              <div style={{fontSize:15,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>🤔 What If I Retire Earlier or Later?</div>
+              <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5,marginBottom:10}}>
                 Same 1,000-simulation approach, compared across a few retirement ages around your current plan.
               </div>
               {monteCarloResults.map((r,i)=>(
                 <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:i<monteCarloResults.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
                   <div>
-                    <div style={{fontSize:13,fontWeight:600,color:r.label==="Current Plan"?COLORS.blue:COLORS.white}}>{r.label}</div>
-                    <div style={{fontSize:10,color:COLORS.slate}}>age {r.retirementAge} · median {formatMoneyShort(r.medianFinalBalance)}</div>
+                    <div style={{fontSize:15,fontWeight:600,color:r.label==="Current Plan"?COLORS.blue:COLORS.white}}>{r.label}</div>
+                    <div style={{fontSize:15,color:COLORS.slate}}>age {r.retirementAge} · median {formatMoneyShort(r.medianFinalBalance)}</div>
                   </div>
-                  <div style={{fontSize:18,fontWeight:800,color:r.successRate>=90?COLORS.green:r.successRate>=75?COLORS.amber:COLORS.red}}>
+                  <div style={{fontSize:19,fontWeight:800,color:r.successRate>=90?COLORS.green:r.successRate>=75?COLORS.amber:COLORS.red}}>
                     {r.successRate}%
                   </div>
                 </div>
@@ -4619,23 +4653,23 @@ function Finance(){
 
           {/* Spending Sensitivity */}
           <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
-            <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:8}}>💸 What If We Spend More or Less?</div>
-            <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5,marginBottom:10}}>
+            <div style={{fontSize:15,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>💸 What If We Spend More or Less?</div>
+            <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5,marginBottom:10}}>
               How does annual retirement spending affect success probability? Each row is {500} simulated paths at a different spending level.
             </div>
             {!spendingResults&&!spendingRunning&&(
               <button style={S.btn} onClick={runSpendingSensitivity}>▶️ Run Spending Analysis</button>
             )}
-            {spendingRunning&&<div style={{textAlign:"center",padding:"14px 0",fontSize:13,color:COLORS.slate}}>Running simulations…</div>}
+            {spendingRunning&&<div style={{textAlign:"center",padding:"14px 0",fontSize:15,color:COLORS.slate}}>Running simulations…</div>}
             {spendingResults&&!spendingRunning&&(
               <>
                 {spendingResults.map((r,i)=>(
                   <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:i<spendingResults.length-1?`1px solid ${COLORS.navyLight}`:"none",background:r.isCurrent?COLORS.blue+"11":"transparent",borderRadius:r.isCurrent?6:0,paddingLeft:r.isCurrent?8:0,paddingRight:r.isCurrent?8:0}}>
                     <div>
-                      <div style={{fontSize:13,fontWeight:r.isCurrent?700:500,color:r.isCurrent?COLORS.blue:COLORS.white}}>{r.label}/yr</div>
-                      <div style={{fontSize:10,color:COLORS.slate}}>median {formatMoneyShort(r.medianFinalBalance)} at age {assump.plan_end_age||90}</div>
+                      <div style={{fontSize:15,fontWeight:r.isCurrent?700:500,color:r.isCurrent?COLORS.blue:COLORS.white}}>{r.label}/yr</div>
+                      <div style={{fontSize:15,color:COLORS.slate}}>median {formatMoneyShort(r.medianFinalBalance)} at age {assump.plan_end_age||90}</div>
                     </div>
-                    <div style={{fontSize:18,fontWeight:800,color:r.successRate>=85?COLORS.green:r.successRate>=70?COLORS.amber:COLORS.red}}>{r.successRate}%</div>
+                    <div style={{fontSize:19,fontWeight:800,color:r.successRate>=85?COLORS.green:r.successRate>=70?COLORS.amber:COLORS.red}}>{r.successRate}%</div>
                   </div>
                 ))}
                 <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={runSpendingSensitivity}>🔄 Re-run</button>
@@ -4645,23 +4679,23 @@ function Finance(){
 
           {/* Contribution Impact */}
           <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
-            <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:8}}>📈 What If We Save More?</div>
-            <div style={{fontSize:11,color:COLORS.slateLight,lineHeight:1.5,marginBottom:10}}>
+            <div style={{fontSize:15,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>📈 What If We Save More?</div>
+            <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5,marginBottom:10}}>
               How does increasing monthly contributions affect success probability? Each row adds to your current total contribution.
             </div>
             {!contribResults&&!contribRunning&&(
               <button style={S.btn} onClick={runContribImpact}>▶️ Run Contribution Analysis</button>
             )}
-            {contribRunning&&<div style={{textAlign:"center",padding:"14px 0",fontSize:13,color:COLORS.slate}}>Running simulations…</div>}
+            {contribRunning&&<div style={{textAlign:"center",padding:"14px 0",fontSize:15,color:COLORS.slate}}>Running simulations…</div>}
             {contribResults&&!contribRunning&&(
               <>
                 {contribResults.map((r,i)=>(
                   <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:i<contribResults.length-1?`1px solid ${COLORS.navyLight}`:"none",background:r.isCurrent?COLORS.blue+"11":"transparent",borderRadius:r.isCurrent?6:0,paddingLeft:r.isCurrent?8:0,paddingRight:r.isCurrent?8:0}}>
                     <div>
-                      <div style={{fontSize:13,fontWeight:r.isCurrent?700:500,color:r.isCurrent?COLORS.blue:COLORS.white}}>{r.label}</div>
-                      <div style={{fontSize:10,color:COLORS.slate}}>median {formatMoneyShort(r.medianFinalBalance)} at age {assump.plan_end_age||90}</div>
+                      <div style={{fontSize:15,fontWeight:r.isCurrent?700:500,color:r.isCurrent?COLORS.blue:COLORS.white}}>{r.label}</div>
+                      <div style={{fontSize:15,color:COLORS.slate}}>median {formatMoneyShort(r.medianFinalBalance)} at age {assump.plan_end_age||90}</div>
                     </div>
-                    <div style={{fontSize:18,fontWeight:800,color:r.successRate>=85?COLORS.green:r.successRate>=70?COLORS.amber:COLORS.red}}>{r.successRate}%</div>
+                    <div style={{fontSize:19,fontWeight:800,color:r.successRate>=85?COLORS.green:r.successRate>=70?COLORS.amber:COLORS.red}}>{r.successRate}%</div>
                   </div>
                 ))}
                 <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={runContribImpact}>🔄 Re-run</button>
@@ -4680,15 +4714,15 @@ function Finance(){
             style={{...S.card,borderLeft:`3px solid ${accountTypeColors[a.account_type]||COLORS.slate}`}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
               <div>
-                <div style={{fontSize:14,fontWeight:600}}>{a.name}</div>
-                <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>
+                <div style={{fontSize:15,fontWeight:600}}>{a.name}</div>
+                <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>
                   {formatMoney(a.monthly_contribution)}{a.contribution_frequency==="biweekly"?"/paycheck":"/mo"}
                   {a.employer_match?` + ${formatMoney(a.employer_match)} match`:""}
                   {a.contribution_frequency==="biweekly"?` (≈${formatMoney(effectiveMonthlyContribution(a))}/mo)`:""}
                 </div>
-                {a.notes&&<div style={{fontSize:11,color:COLORS.slate,marginTop:2,fontStyle:"italic"}}>{a.notes}</div>}
+                {a.notes&&<div style={{fontSize:15,color:COLORS.slate,marginTop:2,fontStyle:"italic"}}>{a.notes}</div>}
               </div>
-              <div style={{fontSize:16,fontWeight:700}}>{formatMoneyShort(a.balance)}</div>
+              <div style={{fontSize:19,fontWeight:700}}>{formatMoneyShort(a.balance)}</div>
             </div>
           </SwipeCard>
         ))}
@@ -4700,34 +4734,34 @@ function Finance(){
       {tab==="college"&&<>
         {collegeS&&(
           <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
-            <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:8}}>Shared 529 Plan</div>
+            <div style={{fontSize:15,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>Shared 529 Plan</div>
             <div style={{fontSize:28,fontWeight:800}}>{formatMoneyShort(collegeS.balance)}</div>
-            <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>{formatMoney(collegeS.monthly_contribution)}/mo combined contribution</div>
+            <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>{formatMoney(collegeS.monthly_contribution)}/mo combined contribution</div>
           </div>
         )}
 
         {pooledCollegeProj&&(
           <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
-            <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>Funding Sequence — one pool, three kids</div>
-            <div style={{fontSize:11,color:COLORS.slate,marginBottom:12,lineHeight:1.5}}>
+            <div style={{fontSize:15,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>Funding Sequence — one pool, three kids</div>
+            <div style={{fontSize:15,color:COLORS.slate,marginBottom:12,lineHeight:1.5}}>
               The shared fund grows until each child's start year, their target is withdrawn, and the remainder keeps growing for the next.
             </div>
             {pooledCollegeProj.perChild.map((c,i)=>(
               <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"9px 0",borderBottom:i<pooledCollegeProj.perChild.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
                 <div>
-                  <div style={{fontSize:13,fontWeight:700}}>{c.child_name} — {c.target_year}</div>
-                  <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>Pool at start: {formatMoneyShort(c.poolBalanceAtStart)} · Needs {formatMoneyShort(c.target_amount)}</div>
+                  <div style={{fontSize:15,fontWeight:700}}>{c.child_name} — {c.target_year}</div>
+                  <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>Pool at start: {formatMoneyShort(c.poolBalanceAtStart)} · Needs {formatMoneyShort(c.target_amount)}</div>
                 </div>
                 <span style={S.badge(c.fullyFunded?COLORS.green:COLORS.red)}>{c.fullyFunded?"funded":`short ${formatMoneyShort(c.shortfall)}`}</span>
               </div>
             ))}
             <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${COLORS.navyLight}`}}>
               {pooledCollegeProj.anyShortfall ? (
-                <div style={{fontSize:12,color:COLORS.amber,fontWeight:600}}>
+                <div style={{fontSize:15,color:COLORS.amber,fontWeight:600}}>
                   ⚠️ At current contributions ({formatMoney(pooledCollegeProj.currentContribution)}/mo), one or more kids come up short. Increasing to ~{formatMoney(pooledCollegeProj.suggestedMonthly)}/mo would fund all three in sequence.
                 </div>
               ) : (
-                <div style={{fontSize:12,color:COLORS.green,fontWeight:600}}>✓ Current contribution funds all three kids in sequence.</div>
+                <div style={{fontSize:15,color:COLORS.green,fontWeight:600}}>✓ Current contribution funds all three kids in sequence.</div>
               )}
             </div>
           </div>
@@ -4742,15 +4776,15 @@ function Finance(){
             style={{...S.card,borderLeft:`3px solid ${{Aubrey:COLORS.red,Blake:COLORS.green,Brayden:COLORS.amber}[g.child_name]||COLORS.slate}`}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
-                <div style={{fontSize:14,fontWeight:600}}>{g.child_name}</div>
-                <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{g.target_year} · {formatMoneyShort(g.target_amount)} target</div>
+                <div style={{fontSize:15,fontWeight:600}}>{g.child_name}</div>
+                <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>{g.target_year} · {formatMoneyShort(g.target_amount)} target</div>
               </div>
             </div>
-            {g.notes&&<div style={{fontSize:11,color:COLORS.slateLight,marginTop:4,fontStyle:"italic"}}>{g.notes}</div>}
+            {g.notes&&<div style={{fontSize:15,color:COLORS.slateLight,marginTop:10,fontStyle:"italic"}}>{g.notes}</div>}
           </SwipeCard>
         ))}
 
-        <div style={{display:"flex",gap:8,marginTop:8}}>
+        <div style={{display:"flex",gap:8,marginTop:10}}>
           <button style={{...S.btnSm,flex:1}} onClick={()=>{setForm({...collegeS,last_updated:TODAY_STR});setShowModal("college-savings");}}>Update Pool Balance</button>
         </div>
       </>}
@@ -4758,15 +4792,15 @@ function Finance(){
       {tab==="debt"&&<>
         {mort&&(
           <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
-            <div style={{fontSize:11,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:8}}>Mortgage</div>
+            <div style={{fontSize:15,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>Mortgage</div>
             <div style={{fontSize:26,fontWeight:800}}>{formatMoney(mort.current_balance)}</div>
-            <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>{mort.interest_rate}% · {formatMoney(mort.monthly_payment)}/mo{mort.extra_payment_monthly>0?` + ${formatMoney(mort.extra_payment_monthly)} extra`:""}</div>
-            {mortMonths&&<div style={{fontSize:12,color:COLORS.green,marginTop:8,fontWeight:600}}>Payoff: {monthsToDate(mortMonths)} ({mortMonths} months)</div>}
-            {interestSaved>0&&<div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>Extra payments save ~{formatMoney(interestSaved)} in interest</div>}
+            <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>{mort.interest_rate}% · {formatMoney(mort.monthly_payment)}/mo{mort.extra_payment_monthly>0?` + ${formatMoney(mort.extra_payment_monthly)} extra`:""}</div>
+            {mortMonths&&<div style={{fontSize:15,color:COLORS.green,marginTop:10,fontWeight:600}}>Payoff: {monthsToDate(mortMonths)} ({mortMonths} months)</div>}
+            {interestSaved>0&&<div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>Extra payments save ~{formatMoney(interestSaved)} in interest</div>}
             {homeValue>0&&(
               <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${COLORS.navyLight}`,display:"flex",justifyContent:"space-between"}}>
-                <div style={{fontSize:12,color:COLORS.slate}}>Home value {formatMoney(homeValue)}</div>
-                <div style={{fontSize:13,fontWeight:700,color:COLORS.green}}>{formatMoney(homeEquity)} equity</div>
+                <div style={{fontSize:15,color:COLORS.slate}}>Home value {formatMoney(homeValue)}</div>
+                <div style={{fontSize:15,fontWeight:700,color:COLORS.green}}>{formatMoney(homeEquity)} equity</div>
               </div>
             )}
             <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={()=>{setForm({...mort,last_updated:TODAY_STR});setShowModal("mortgage");}}>Update Mortgage</button>
@@ -4784,12 +4818,12 @@ function Finance(){
               style={S.statusCard(COLORS.red)}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                 <div>
-                  <div style={{fontSize:14,fontWeight:600}}>{d.name}</div>
-                  <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{d.interest_rate}% · {formatMoney(d.payment_amount)} {d.payment_frequency}</div>
-                  {months&&<div style={{fontSize:11,color:COLORS.amber,marginTop:2,fontWeight:600}}>Payoff: {monthsToDate(months)}</div>}
-                  {d.notes&&<div style={{fontSize:11,color:COLORS.slate,marginTop:2,fontStyle:"italic"}}>{d.notes}</div>}
+                  <div style={{fontSize:15,fontWeight:600}}>{d.name}</div>
+                  <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>{d.interest_rate}% · {formatMoney(d.payment_amount)} {d.payment_frequency}</div>
+                  {months&&<div style={{fontSize:15,color:COLORS.amber,marginTop:2,fontWeight:600}}>Payoff: {monthsToDate(months)}</div>}
+                  {d.notes&&<div style={{fontSize:15,color:COLORS.slate,marginTop:2,fontStyle:"italic"}}>{d.notes}</div>}
                 </div>
-                <div style={{fontSize:16,fontWeight:700,color:COLORS.red}}>{formatMoney(d.balance)}</div>
+                <div style={{fontSize:19,fontWeight:700,color:COLORS.red}}>{formatMoney(d.balance)}</div>
               </div>
             </SwipeCard>
           );
@@ -4798,7 +4832,7 @@ function Finance(){
       </>}
 
       {tab==="milestones"&&<>
-        <div style={{fontSize:12,color:COLORS.slate,marginBottom:16,lineHeight:1.5}}>
+        <div style={{fontSize:15,color:COLORS.slate,marginBottom:16,lineHeight:1.5}}>
           Every dated milestone tracked across Finance and College, in one timeline. Tap a college milestone to edit its target year.
         </div>
         {familyMilestones.length===0&&<div style={S.empty}>Add a college goal, mortgage, or retirement assumptions to see your timeline.</div>}
@@ -4809,8 +4843,8 @@ function Finance(){
           return(
             <div key={i} style={{display:"flex",gap:12,marginBottom:i<familyMilestones.length-1?4:0}}>
               <div style={{display:"flex",flexDirection:"column",alignItems:"center",width:24,flexShrink:0}}>
-                <div style={{width:10,height:10,borderRadius:"50%",background:m.color,flexShrink:0,marginTop:4}}/>
-                {i<familyMilestones.length-1&&<div style={{width:2,flex:1,background:COLORS.navyLight,marginTop:4}}/>}
+                <div style={{width:10,height:10,borderRadius:"50%",background:m.color,flexShrink:0,marginTop:10}}/>
+                {i<familyMilestones.length-1&&<div style={{width:2,flex:1,background:COLORS.navyLight,marginTop:10}}/>}
               </div>
               <div
                 style={{...S.card,flex:1,borderLeft:`3px solid ${m.color}`,cursor:goalRecord?"pointer":"default",opacity:yearsAway<0?0.5:yearsAway>10?0.7:1}}
@@ -4818,9 +4852,9 @@ function Finance(){
               >
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div>
-                    <div style={{fontSize:14,fontWeight:700}}>{m.icon} {m.label}</div>
-                    <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{m.detail}</div>
-                    <div style={{fontSize:10,color:m.color,marginTop:3,fontWeight:600}}>
+                    <div style={{fontSize:15,fontWeight:700}}>{m.icon} {m.label}</div>
+                    <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>{m.detail}</div>
+                    <div style={{fontSize:15,color:m.color,marginTop:3,fontWeight:600}}>
                       {yearsAway<0?`${-yearsAway}y ago`:yearsAway===0?"this year":`in ${yearsAway}y`}
                     </div>
                   </div>
@@ -4855,7 +4889,7 @@ function Finance(){
         <div>{["403b","401k","IRA","HSA","brokerage","cash","other"].map(t=><span key={t} style={S.chip(form.account_type===t,accountTypeColors[t]||COLORS.slate)} onClick={()=>setForm(p=>({...p,account_type:t}))}>{t}</span>)}</div>
         <label style={S.label}>Current Balance</label>
         <input type="number" style={S.input} placeholder="" value={form.balance||""} onChange={e=>setForm(p=>({...p,balance:e.target.value}))}/>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
           <label style={{...S.label,marginBottom:0}}>Contribution Frequency</label>
           <div style={{display:"flex",gap:6}}>
             <span style={S.chip((form.contribution_frequency||"monthly")==="monthly",COLORS.blue)} onClick={()=>setForm(p=>({...p,contribution_frequency:"monthly"}))}>monthly</span>
@@ -4873,7 +4907,7 @@ function Finance(){
           </div>
         </div>
         {form.contribution_frequency==="biweekly"&&form.monthly_contribution&&(
-          <div style={{fontSize:11,color:COLORS.purple,marginTop:-6,marginBottom:8}}>
+          <div style={{fontSize:15,color:COLORS.purple,marginTop:-6,marginBottom:10}}>
             ≈ {formatMoney((+form.monthly_contribution+(+form.employer_match||0))*26/12)}/mo equivalent
           </div>
         )}
@@ -4905,7 +4939,7 @@ function Finance(){
           <div style={S.col}><label style={S.label}>Kalee: Est. (annual)</label><input type="number" style={S.input} value={form.social_security_estimate_spouse||""} onChange={e=>setForm(p=>({...p,social_security_estimate_spouse:e.target.value}))}/></div>
           <div style={S.col}><label style={S.label}>Kalee: Claim Age</label><input type="number" style={S.input} placeholder="67" value={form.ss_claim_age_spouse||""} onChange={e=>setForm(p=>({...p,ss_claim_age_spouse:e.target.value}))}/></div>
         </div>
-        <div style={{fontSize:10,color:COLORS.slate,marginTop:-4,marginBottom:10,lineHeight:1.4}}>Each benefit starts independently at that person's claim age — most couples don't claim simultaneously. Estimates available at ssa.gov/myaccount.</div>
+        <div style={{fontSize:15,color:COLORS.slate,marginTop:-4,marginBottom:10,lineHeight:1.4}}>Each benefit starts independently at that person's claim age — most couples don't claim simultaneously. Estimates available at ssa.gov/myaccount.</div>
 
         <label style={S.label}>Healthcare Est. (annual)</label>
         <input type="number" style={S.input} value={form.healthcare_estimate||""} onChange={e=>setForm(p=>({...p,healthcare_estimate:e.target.value}))}/>
@@ -4926,13 +4960,13 @@ function Finance(){
         </div>
         <label style={S.label}>Drawdown Rate (%) — used during retirement spending</label>
         <input type="number" step="0.5" style={S.input} placeholder="5" value={form.drawdown_rate_pct||""} onChange={e=>setForm(p=>({...p,drawdown_rate_pct:e.target.value}))}/>
-        <div style={{fontSize:10,color:COLORS.slate,marginTop:-4,marginBottom:10,lineHeight:1.4}}>Set these based on your actual fund allocation. Defaults assume a balanced (not 100% equity) portfolio, and a more conservative rate once spending down in retirement than while accumulating.</div>
+        <div style={{fontSize:15,color:COLORS.slate,marginTop:-4,marginBottom:10,lineHeight:1.4}}>Set these based on your actual fund allocation. Defaults assume a balanced (not 100% equity) portfolio, and a more conservative rate once spending down in retirement than while accumulating.</div>
 
         <label style={S.label}>Return Volatility (%) — used by Monte Carlo simulation</label>
         <input type="number" step="1" style={S.input} placeholder="15" value={form.return_volatility_pct||""} onChange={e=>setForm(p=>({...p,return_volatility_pct:e.target.value}))}/>
-        <div style={{fontSize:10,color:COLORS.slate,marginTop:-4,marginBottom:10,lineHeight:1.4}}>Default 15% roughly matches 100% equities historically. A 60/40 stock/bond mix runs closer to 10-12%. Lower volatility = higher Monte Carlo success rates.</div>
+        <div style={{fontSize:15,color:COLORS.slate,marginTop:-4,marginBottom:10,lineHeight:1.4}}>Default 15% roughly matches 100% equities historically. A 60/40 stock/bond mix runs closer to 10-12%. Lower volatility = higher Monte Carlo success rates.</div>
 
-        <div style={{fontSize:11,color:COLORS.slate,marginTop:8,lineHeight:1.5}}>Healthcare costs are modeled at ~5.5%/year growth for the full plan, faster than general inflation. Medicare eligibility and Social Security claiming age are tracked separately since most people claim SS later than 65.</div>
+        <div style={{fontSize:15,color:COLORS.slate,marginTop:10,lineHeight:1.5}}>Healthcare costs are modeled at ~5.5%/year growth for the full plan, faster than general inflation. Medicare eligibility and Social Security claiming age are tracked separately since most people claim SS later than 65.</div>
         <button style={{...S.btn,marginTop:16}} onClick={saveAssumptions}>Save Assumptions</button>
       </Modal>}
 
@@ -4991,7 +5025,7 @@ function Finance(){
       </Modal>}
 
       {showModal==="snapshot"&&<Modal title="Save Net Worth Snapshot" onClose={closeModal}>
-        <div style={{fontSize:13,color:COLORS.slateLight,marginBottom:12,lineHeight:1.5}}>
+        <div style={{fontSize:15,color:COLORS.slateLight,marginBottom:12,lineHeight:1.5}}>
           Captures current totals: {formatMoney(totalAssets)} assets, {formatMoney(totalLiabilities)} liabilities, {formatMoney(netWorth)} net worth.
         </div>
         <label style={S.label}>Date</label>
@@ -5037,7 +5071,19 @@ function QuickAdd({onNavigate}){
   async function savePool(){
     setSaveError(null);
     function num(v){return(v===undefined||v===null||v==='') ? null : +v;}
-    const row={date:form.date||TODAY_STR,logged_at:new Date().toISOString(),ph:num(form.ph),free_chlorine:num(form.free_chlorine),cc:num(form.cc)||0,salt:num(form.salt),cya:num(form.cya),alkalinity:num(form.alkalinity),calcium_hardness:num(form.calcium_hardness),water_temp:num(form.water_temp),filter_pressure:num(form.filter_pressure),swg_setting:num(form.swg_setting),pump_hours:num(form.pump_hours),notes:form.notes||""};
+    let fc = num(form.free_chlorine);
+    if(form._drops && fc!==null) fc = Math.round(fc * 0.5 * 10) / 10;
+    const d = form.date||TODAY_STR;
+    const timeStr = form.time || new Date().toTimeString().slice(0,5);
+    const loggedAt = new Date(`${d}T${timeStr}:00`).toISOString();
+    const row={
+      date:d, logged_at:loggedAt,
+      ph:num(form.ph), free_chlorine:fc, cc:num(form.cc),
+      salt:num(form.salt), cya:num(form.cya), alkalinity:num(form.alkalinity),
+      calcium_hardness:num(form.calcium_hardness), water_temp:num(form.water_temp),
+      filter_pressure:num(form.filter_pressure), swg_setting:num(form.swg_setting),
+      pump_hours:num(form.pump_hours), notes:form.notes||""
+    };
     try{
       const{data,error}=await sb.from("pool_readings").insert(row);
       if(error){setSaveError(`Save failed — ${error.message||JSON.stringify(error)}`);return;}
@@ -5073,24 +5119,77 @@ function QuickAdd({onNavigate}){
               <span style={{fontSize:15,fontWeight:600}}>{o.label}</span>
             </button>
           ))}
-          <button onClick={close} style={{...S.btnSm,width:"100%",marginTop:8}}>Cancel</button>
+          <button onClick={close} style={{...S.btnSm,width:"100%",marginTop:10}}>Cancel</button>
         </>}
 
         {mode==="pool"&&<>
           <div style={{...S.sheetTitle}}>🏊 Pool Reading</div>
+
+          {/* Date + Time */}
+          <div style={S.row}>
+            <div style={S.col}>
+              <label style={S.label}>Date</label>
+              <input type="date" style={S.input} value={form.date||TODAY_STR} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/>
+            </div>
+            <div style={{flex:"0 0 100px"}}>
+              <label style={S.label}>Time</label>
+              <input type="time" style={S.input} value={form.time||new Date().toTimeString().slice(0,5)} onChange={e=>setForm(p=>({...p,time:e.target.value}))}/>
+            </div>
+          </div>
+
+          {/* FC with K-2006 toggle */}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <label style={{...S.label,marginBottom:0}}>Free Chlorine</label>
+            <div style={{display:"flex",gap:6}}>
+              <span style={S.chip(!form._drops,COLORS.blue)} onClick={()=>setForm(p=>({...p,_drops:false}))}>ppm</span>
+              <span style={S.chip(!!form._drops,COLORS.purple)} onClick={()=>setForm(p=>({...p,_drops:true}))}>K-2006</span>
+            </div>
+          </div>
+          <input type="number" step="0.5" style={S.input}
+            placeholder={form._drops?"e.g. 11 drops":"e.g. 5.5"}
+            value={form.free_chlorine||""}
+            onChange={e=>setForm(p=>({...p,free_chlorine:e.target.value}))}/>
+          {form._drops&&form.free_chlorine&&<div style={{fontSize:15,color:COLORS.purple,marginTop:-6,marginBottom:10}}>= {(+form.free_chlorine*0.5).toFixed(1)} ppm FC</div>}
+
+          {/* CC */}
+          <label style={S.label}>CC (Combined Chlorine)</label>
+          <input type="number" step="0.5" style={S.input} placeholder="0" value={form.cc!==undefined?form.cc:""} onChange={e=>setForm(p=>({...p,cc:e.target.value}))}/>
+
+          {/* pH + Salt */}
           <div style={S.row}>
             <div style={S.col}><label style={S.label}>pH</label><input type="number" step="0.1" style={S.input} value={form.ph||""} onChange={e=>setForm(p=>({...p,ph:e.target.value}))}/></div>
-            <div style={S.col}><label style={S.label}>FC (ppm)</label><input type="number" step="0.5" style={S.input} value={form.free_chlorine||""} onChange={e=>setForm(p=>({...p,free_chlorine:e.target.value}))}/></div>
-          </div>
-          <div style={S.row}>
             <div style={S.col}><label style={S.label}>Salt (ppm)</label><input type="number" style={S.input} value={form.salt||""} onChange={e=>setForm(p=>({...p,salt:e.target.value}))}/></div>
-            <div style={S.col}><label style={S.label}>CYA (ppm)</label><input type="number" style={S.input} value={form.cya||""} onChange={e=>setForm(p=>({...p,cya:e.target.value}))}/></div>
           </div>
+
+          {/* CYA + TA */}
+          <div style={S.row}>
+            <div style={S.col}><label style={S.label}>CYA (ppm)</label><input type="number" style={S.input} value={form.cya||""} onChange={e=>setForm(p=>({...p,cya:e.target.value}))}/></div>
+            <div style={S.col}><label style={S.label}>TA (ppm)</label><input type="number" style={S.input} value={form.alkalinity||""} onChange={e=>setForm(p=>({...p,alkalinity:e.target.value}))}/></div>
+          </div>
+
+          {/* Calcium + Water Temp */}
+          <div style={S.row}>
+            <div style={S.col}><label style={S.label}>Calcium (ppm)</label><input type="number" style={S.input} placeholder="150–250" value={form.calcium_hardness||""} onChange={e=>setForm(p=>({...p,calcium_hardness:e.target.value}))}/></div>
+            <div style={S.col}><label style={S.label}>Water Temp (°F)</label><input type="number" style={S.input} value={form.water_temp||""} onChange={e=>setForm(p=>({...p,water_temp:e.target.value}))}/></div>
+          </div>
+
+          {/* Filter PSI + SWG */}
+          <div style={S.row}>
+            <div style={S.col}><label style={S.label}>Filter PSI</label><input type="number" style={S.input} value={form.filter_pressure||""} onChange={e=>setForm(p=>({...p,filter_pressure:e.target.value}))}/></div>
+            <div style={S.col}><label style={S.label}>SWG (%)</label><input type="number" style={S.input} value={form.swg_setting||""} onChange={e=>setForm(p=>({...p,swg_setting:e.target.value}))}/></div>
+          </div>
+
+          {/* Pump hours */}
+          <div style={S.row}>
+            <div style={S.col}><label style={S.label}>Pump Hours/Day</label><input type="number" style={S.input} value={form.pump_hours||""} onChange={e=>setForm(p=>({...p,pump_hours:e.target.value}))}/></div>
+            <div style={S.col}/>
+          </div>
+
           <label style={S.label}>Notes</label>
           <input style={S.input} value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
           <button style={S.btn} onClick={savePool}>Save Reading</button>
-          {saveError&&<div style={{fontSize:11,color:COLORS.red,marginTop:8,lineHeight:1.4}}>{saveError}</div>}
-          <button style={{...S.btnSm,width:"100%",marginTop:8}} onClick={()=>setMode(null)}>← Back</button>
+          {saveError&&<div style={{fontSize:15,color:COLORS.red,marginTop:10,lineHeight:1.4}}>{saveError}</div>}
+          <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={()=>setMode(null)}>← Back</button>
         </>}
 
         {mode==="maint"&&<>
@@ -5104,7 +5203,7 @@ function QuickAdd({onNavigate}){
           <label style={S.label}>Notes</label>
           <input style={S.input} value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
           <button style={S.btn} onClick={saveMaint}>Log Task</button>
-          <button style={{...S.btnSm,width:"100%",marginTop:8}} onClick={()=>setMode(null)}>← Back</button>
+          <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={()=>setMode(null)}>← Back</button>
         </>}
 
         {mode==="college"&&<>
@@ -5116,16 +5215,16 @@ function QuickAdd({onNavigate}){
           <label style={S.label}>School (optional)</label>
           <input style={S.input} value={form.school||""} onChange={e=>setForm(p=>({...p,school:e.target.value}))}/>
           <button style={S.btn} onClick={saveCollege}>Add Deadline</button>
-          <button style={{...S.btnSm,width:"100%",marginTop:8}} onClick={()=>setMode(null)}>← Back</button>
+          <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={()=>setMode(null)}>← Back</button>
         </>}
 
         {mode==="note"&&<>
           <div style={{...S.sheetTitle}}>📝 Quick Note</div>
-          <div style={{fontSize:13,color:COLORS.slate,marginBottom:16}}>Notes aren't stored yet — this will open the relevant module's form. Use this to navigate quickly.</div>
+          <div style={{fontSize:15,color:COLORS.slate,marginBottom:16}}>Notes aren't stored yet — this will open the relevant module's form. Use this to navigate quickly.</div>
           {[{label:"Log a pool reading",nav:"pool"},{label:"Add a home task",nav:"home-mgmt"},{label:"Track a college item",nav:"college"},{label:"Update finances",nav:"finance"}].map((o,i)=>(
-            <button key={i} onClick={()=>{close();onNavigate(o.nav);}} style={{...S.btnSm,width:"100%",marginBottom:8,textAlign:"left"}}>{o.label} →</button>
+            <button key={i} onClick={()=>{close();onNavigate(o.nav);}} style={{...S.btnSm,width:"100%",marginBottom:10,textAlign:"left"}}>{o.label} →</button>
           ))}
-          <button style={{...S.btnSm,width:"100%",marginTop:4}} onClick={()=>setMode(null)}>← Back</button>
+          <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={()=>setMode(null)}>← Back</button>
         </>}
       </div>
     </div>}
@@ -5163,19 +5262,28 @@ export default function App(){
   return(
     <div style={S.app}>
       <style>{`
-        *{box-sizing:border-box;}
-        input[type=number]::-webkit-inner-spin-button{opacity:0.5;}
+        *{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+        input[type=number]::-webkit-inner-spin-button{opacity:0.4;}
         input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5);}
         input[type=time]::-webkit-calendar-picker-indicator{filter:invert(0.5);}
         select option{background:#1A2540;}
         ::-webkit-scrollbar{width:0;}
-        @keyframes slideUp{from{transform:translateY(100%);opacity:0.8;}to{transform:translateY(0);opacity:1;}}
-        button:active{opacity:0.7 !important;transform:scale(0.98);}
-        a:active{opacity:0.7;}
-        input:focus{border-color:#4A90D9 !important;box-shadow:0 0 0 3px rgba(74,144,217,0.15);}
-        textarea:focus{border-color:#4A90D9 !important;box-shadow:0 0 0 3px rgba(74,144,217,0.15);}
+        @keyframes slideUp{
+          from{transform:translateY(100%);opacity:0;}
+          to{transform:translateY(0);opacity:1;}
+        }
+        @keyframes fadeIn{
+          from{opacity:0;transform:translateY(4px);}
+          to{opacity:1;transform:translateY(0);}
+        }
+        button:active{opacity:0.65 !important;transform:scale(0.97);}
+        input:focus,textarea:focus,select:focus{
+          border-color:#4A90D9 !important;
+          box-shadow:0 0 0 3px rgba(74,144,217,0.18) !important;
+        }
         button{-webkit-tap-highlight-color:transparent;}
         *{-webkit-tap-highlight-color:transparent;}
+        ::placeholder{color:#4a5a78;}
       `}</style>
 
       <div style={S.header}>
@@ -5186,8 +5294,8 @@ export default function App(){
           </div>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
             {gc.token
-              ?<div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:6,height:6,borderRadius:"50%",background:COLORS.green}}/><span style={{fontSize:10,color:COLORS.slate}}>Synced</span></div>
-              :<button onClick={gc.signIn} style={{background:COLORS.blue+"22",color:COLORS.blue,border:`1px solid ${COLORS.blue}44`,borderRadius:6,padding:"3px 8px",fontSize:10,fontWeight:700,cursor:"pointer"}}>Connect</button>
+              ?<div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:6,height:6,borderRadius:"50%",background:COLORS.green}}/><span style={{fontSize:15,color:COLORS.slate}}>Synced</span></div>
+              :<button onClick={gc.signIn} style={{background:COLORS.blue+"22",color:COLORS.blue,border:`1px solid ${COLORS.blue}44`,borderRadius:6,padding:"3px 8px",fontSize:15,fontWeight:700,cursor:"pointer"}}>Connect</button>
             }
           </div>
         </div>
