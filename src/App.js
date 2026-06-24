@@ -1874,15 +1874,15 @@ function Dashboard({onNavigate,gc}){
       <div style={S.sectionLabel}>Family Health</div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:20}}>
         {[
-          {label:"Pool",   ...poolSt,   nav:"pool"},
-          {label:"House",  ...homeSt,   nav:"home-mgmt"},
-          {label:"Finance",...financeSt, nav:"finance"},
-          {label:"College",...collegeSt, nav:"college"},
+          {module:"Pool",    ...poolSt,    nav:"pool"},
+          {module:"House",   ...homeSt,    nav:"home-mgmt"},
+          {module:"Finance", ...financeSt, nav:"finance"},
+          {module:"College", ...collegeSt, nav:"college"},
         ].map((s,i)=>(
           <button key={i} onClick={()=>onNavigate(s.nav)} style={{background:COLORS.navyMid,border:`1px solid ${COLORS.navyLight}`,borderTop:`3px solid ${s.color}`,borderRadius:12,padding:"12px 14px",cursor:"pointer",textAlign:"left"}}>
-            <div style={{fontSize:15,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>{s.label}</div>
-            <div style={{fontSize:15,fontWeight:700,color:s.color,marginTop:10}}>{s.label}</div>
-            <div style={{fontSize:15,color:COLORS.slate,marginTop:2,lineHeight:1.3}}>{s.detail}</div>
+            <div style={{fontSize:11,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px"}}>{s.module}</div>
+            <div style={{fontSize:14,fontWeight:700,color:s.color,marginTop:6}}>{s.label}</div>
+            <div style={{fontSize:12,color:COLORS.slate,marginTop:3,lineHeight:1.3}}>{s.detail}</div>
           </button>
         ))}
       </div>
@@ -4077,6 +4077,8 @@ function Finance(){
   const [showRetBrief,setShowRetBrief] = useState(false);
   const [showBridgeMath,setShowBridgeMath] = useState(false);
   const [showBridgeTable,setShowBridgeTable] = useState(false);
+  const [showAnalysis,setShowAnalysis] = useState(false);
+  const [showTimeline,setShowTimeline] = useState(false);
   const [monteCarloResults,setMonteCarloResults] = useState(null);
   const [monteCarloRunning,setMonteCarloRunning] = useState(false);
   const [spendingResults,setSpendingResults] = useState(null);
@@ -4344,470 +4346,302 @@ function Finance(){
       </>}
 
             {tab==="retire"&&<>
-        <div style={{display:"flex",justifyContent:"flex-end",marginBottom:10}}>
-          <button onClick={()=>{setForm({...assump});setShowModal("assumptions");}} style={{background:COLORS.navyLight,border:`1px solid ${COLORS.navyLight}`,borderRadius:8,padding:"6px 12px",fontSize:15,fontWeight:700,color:COLORS.slateLight,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
+        {/* ── Settings button ── */}
+        <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12}}>
+          <button onClick={()=>{setForm({...assump});setShowModal("assumptions");}} style={{background:COLORS.navyLight,border:`1px solid ${COLORS.navyLight}`,borderRadius:8,padding:"6px 12px",fontSize:13,fontWeight:700,color:COLORS.slateLight,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
             ⚙️ Edit Assumptions
           </button>
         </div>
-        {retProj&&(
-          <div style={{...S.card,background:retProj.statusColor+"18",borderColor:retProj.statusColor+"44",marginBottom:12}}>
-            <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <div style={{width:14,height:14,borderRadius:"50%",background:retProj.statusColor,flexShrink:0}}/>
-              <div>
-                <div style={{fontSize:22,fontWeight:800,color:retProj.statusColor,letterSpacing:"-0.3px"}}>{retProj.statusLabel}</div>
-                <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>
-                  {retProj.statusDetail}
-                </div>
-                <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>
-                  {retProj.drawdown.lastsFullPlan
-                    ? `~${formatMoneyShort(retProj.drawdown.finalBalance)} expected remaining at age ${retProj.drawdown.planEndAge}`
-                    : ""
-                  }
-                </div>
-                <div style={{fontSize:15,color:COLORS.slate,marginTop:3,fontStyle:"italic"}}>
-                  At a steady {assump.drawdown_rate_pct||5}% return every year — real markets vary. See Probability of Success below for a more realistic range.
-                </div>
-              </div>
-            </div>
-            <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${retProj.statusColor}33`}}>
-              {retProj.quickRecs.map((rec,i)=>(
-                <div key={i} style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5,marginBottom:i<retProj.quickRecs.length-1?6:0}}>• {rec}</div>
-              ))}
-            </div>
-            {monteCarloResults&&(()=>{
-              const current = monteCarloResults.find(r=>r.label==="Current Plan");
-              if(!current) return null;
-              const isPositiveStatus = retProj.status==="excellent" || retProj.status==="ontrack";
-              const diverges = (isPositiveStatus && current.successRate<75) || (!isPositiveStatus && current.successRate>=85);
-              return(
-                <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${retProj.statusColor}33`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div style={{fontSize:15,color:COLORS.slateLight}}>
-                    🎲 Realistic success rate: <strong style={{color:current.successRate>=85?COLORS.green:current.successRate>=70?COLORS.amber:COLORS.red}}>{current.successRate}%</strong>
-                    {diverges&&<div style={{fontSize:15,color:COLORS.amber,marginTop:2}}>⚠️ Differs meaningfully from the steady-return badge above — market variation matters here.</div>}
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        )}
-
-        {readinessChecklist.length>0&&(
-          <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
-            <div style={{fontSize:15,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>Retirement Readiness</div>
-            {readinessChecklist.map((item,i)=>{
-              const icon = item.status==="good"?"✅":item.status==="watch"?"⚠️":item.status==="risk"?"🔴":"❔";
-              const color = item.status==="good"?COLORS.green:item.status==="watch"?COLORS.amber:item.status==="risk"?COLORS.red:COLORS.slate;
-              return(
-                <div key={i} style={{display:"flex",gap:10,padding:"7px 0",borderBottom:i<readinessChecklist.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
-                  <span style={{fontSize:15,flexShrink:0}}>{icon}</span>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:15,fontWeight:700,color}}>{item.label}</div>
-                    <div style={{fontSize:15,color:COLORS.slate,marginTop:1,lineHeight:1.4}}>{item.detail}</div>
-                  </div>
-                </div>
-              );
-            })}
-            
-          </div>
-        )}
-
-        <div style={{display:"flex",gap:8,marginBottom:12}}>
-          <button onClick={()=>setShowRetBrief(true)} style={{flex:1,background:COLORS.purple,color:"#fff",border:"none",borderRadius:10,padding:"12px 6px",fontSize:15,fontWeight:700,cursor:"pointer"}}>
-            🤖 Retirement Brief
-          </button>
-        </div>
-
-        <div style={{display:"flex",gap:8,marginBottom:12}}>
-          <div style={{...S.card,flex:1,marginBottom:0,textAlign:"center"}}>
-            <div style={{fontSize:15,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.5px"}}>Total Balance</div>
-            <div style={{fontSize:22,fontWeight:800,marginTop:10,letterSpacing:"-0.3px"}}>{formatMoneyShort(retProj?.totalBalance||0)}</div>
-          </div>
-          <div style={{...S.card,flex:1,marginBottom:0,textAlign:"center"}}>
-            <div style={{fontSize:15,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.5px"}}>Monthly Contribution</div>
-            <div style={{fontSize:22,fontWeight:800,marginTop:10,letterSpacing:"-0.3px"}}>{formatMoney(retProj?.totalMonthly||0)}</div>
-          </div>
-        </div>
 
         {retProj&&<>
-          <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-              <div style={{fontSize:15,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase"}}>Projection at Age {assump.retirement_age} ({retProj.years} years)</div>
-              <Sparkline data={retProj.trajectory.map(t=>t.balance)} color={COLORS.blue}/>
+        {/* ── 1. STATUS HERO ── */}
+        <div style={{...S.card,background:retProj.statusColor+"18",borderColor:retProj.statusColor+"44",marginBottom:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+            <div style={{flex:1}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                <div style={{width:12,height:12,borderRadius:"50%",background:retProj.statusColor,flexShrink:0}}/>
+                <div style={{fontSize:20,fontWeight:800,color:retProj.statusColor,letterSpacing:"-0.3px"}}>{retProj.statusLabel}</div>
+              </div>
+              <div style={{fontSize:13,color:COLORS.slate,lineHeight:1.5}}>{retProj.statusDetail}</div>
+              {retProj.drawdown.lastsFullPlan&&<div style={{fontSize:12,color:COLORS.slate,marginTop:4}}>~{formatMoneyShort(retProj.drawdown.finalBalance)} expected at age {retProj.drawdown.planEndAge}</div>}
+              <div style={{fontSize:11,color:COLORS.slate,marginTop:6,fontStyle:"italic"}}>Steady {assump.drawdown_rate_pct||5}% return — see Simulations below for realistic range</div>
             </div>
-            
-            {retProj.scenarios.map(s=>(
-              <div key={s.label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${COLORS.navyLight}`}}>
-                <div style={{fontSize:15,color:COLORS.slateLight}}>{s.label} ({s.rate}%)</div>
+          </div>
+          {retProj.quickRecs.length>0&&<div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${retProj.statusColor}33`}}>
+            {retProj.quickRecs.map((rec,i)=><div key={i} style={{fontSize:13,color:COLORS.slateLight,lineHeight:1.5,marginBottom:i<retProj.quickRecs.length-1?4:0}}>• {rec}</div>)}
+          </div>}
+          {/* MC success rate inline when available */}
+          {monteCarloResults&&(()=>{
+            const cur=monteCarloResults.find(r=>r.label==="Current Plan");
+            if(!cur)return null;
+            const diverges=(retProj.status==="excellent"||retProj.status==="ontrack")&&cur.successRate<75||!(retProj.status==="excellent"||retProj.status==="ontrack")&&cur.successRate>=85;
+            return(<div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${retProj.statusColor}33`}}>
+              <span style={{fontSize:14,color:COLORS.slateLight}}>🎲 Realistic success rate: </span>
+              <strong style={{color:cur.successRate>=85?COLORS.green:cur.successRate>=70?COLORS.amber:COLORS.red,fontSize:15}}>{cur.successRate}%</strong>
+              {diverges&&<div style={{fontSize:12,color:COLORS.amber,marginTop:4}}>⚠️ Differs from steady-return badge — see Simulations below</div>}
+            </div>);
+          })()}
+        </div>
+
+        {/* ── 2. KEY NUMBERS ── */}
+        <div style={{display:"flex",gap:8,marginBottom:12}}>
+          <div style={{...S.card,flex:1,marginBottom:0,textAlign:"center",padding:"14px 8px"}}>
+            <div style={{fontSize:11,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.5px",fontWeight:700}}>Balance</div>
+            <div style={{fontSize:20,fontWeight:800,marginTop:6,letterSpacing:"-0.3px"}}>{formatMoneyShort(retProj.totalBalance)}</div>
+          </div>
+          <div style={{...S.card,flex:1,marginBottom:0,textAlign:"center",padding:"14px 8px"}}>
+            <div style={{fontSize:11,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.5px",fontWeight:700}}>Monthly</div>
+            <div style={{fontSize:20,fontWeight:800,marginTop:6,letterSpacing:"-0.3px"}}>{formatMoney(retProj.totalMonthly)}</div>
+          </div>
+          <div style={{...S.card,flex:1,marginBottom:0,textAlign:"center",padding:"14px 8px"}}>
+            <div style={{fontSize:11,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.5px",fontWeight:700}}>Gap</div>
+            <div style={{fontSize:20,fontWeight:800,marginTop:6,letterSpacing:"-0.3px",color:retProj.gap>0?COLORS.amber:COLORS.green}}>{retProj.gap>0?formatMoneyShort(retProj.gap):"✓"}</div>
+          </div>
+        </div>
+
+        {/* ── 3. BRIEF BUTTON ── */}
+        <button onClick={()=>setShowRetBrief(true)} style={{width:"100%",background:COLORS.purple,color:"#fff",border:"none",borderRadius:12,padding:"13px",fontSize:15,fontWeight:700,cursor:"pointer",marginBottom:12}}>
+          🤖 Retirement Brief
+        </button>
+
+        {/* ── 4. PROJECTION + READINESS (collapsible) ── */}
+        {(()=>{
+          return(<div style={{...S.card,marginBottom:12}}>
+            <button onClick={()=>setShowAnalysis(p=>!p)} style={{width:"100%",background:"none",border:"none",cursor:"pointer",textAlign:"left",padding:0,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{fontSize:14,fontWeight:700,color:COLORS.white}}>📊 Projection Scenarios</div>
+              <div style={{fontSize:13,color:COLORS.blue}}>{showAnalysis?"▲ Hide":"▼ Show"}</div>
+            </button>
+            {showAnalysis&&<>
+              <div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${COLORS.navyLight}`}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                  <div style={{fontSize:13,color:COLORS.slate}}>At age {assump.retirement_age} ({retProj.years}y away)</div>
+                  <Sparkline data={retProj.trajectory.map(t=>t.balance)} color={COLORS.blue}/>
+                </div>
+                {retProj.scenarios.map(s=>(
+                  <div key={s.label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${COLORS.navyLight}`}}>
+                    <div style={{fontSize:13,color:COLORS.slateLight}}>{s.label} ({s.rate}%)</div>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontSize:14,fontWeight:700,color:s.color}}>{formatMoneyShort(s.projectedTodaysDollars)}</div>
+                      <div style={{fontSize:11,color:COLORS.slate}}>{formatMoneyShort(s.projected)} future $</div>
+                    </div>
+                  </div>
+                ))}
+                <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${COLORS.navyLight}`}}>
+                  <div style={{fontSize:13,color:COLORS.slate}}>Target (today's $): <strong style={{color:COLORS.white}}>{formatMoneyShort(retProj.targetNumberToday)}</strong></div>
+                  <div style={{fontSize:13,color:COLORS.slate,marginTop:3}}>Spendable after tax: <strong style={{color:COLORS.white}}>{formatMoneyShort(retProj.spendableTodaysDollars)}</strong></div>
+                  <div style={{fontSize:13,color:retProj.gap>0?COLORS.amber:COLORS.green,marginTop:8,fontWeight:600}}>
+                    {retProj.gap>0?`Gap: ${formatMoneyShort(retProj.gap)} — +${formatMoney(retProj.monthlyNeeded)}/mo needed`:`Surplus: ${formatMoneyShort(-retProj.gap)}`}
+                  </div>
+                </div>
+              </div>
+              {readinessChecklist.length>0&&<>
+                <div style={{fontSize:13,fontWeight:700,color:COLORS.blue,textTransform:"uppercase",letterSpacing:"0.5px",marginTop:14,marginBottom:8}}>Readiness Checklist</div>
+                {readinessChecklist.map((item,i)=>{
+                  const icon=item.status==="good"?"✅":item.status==="watch"?"⚠️":item.status==="risk"?"🔴":"❔";
+                  const color=item.status==="good"?COLORS.green:item.status==="watch"?COLORS.amber:item.status==="risk"?COLORS.red:COLORS.slate;
+                  return(<div key={i} style={{display:"flex",gap:8,padding:"6px 0",borderBottom:i<readinessChecklist.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
+                    <span style={{fontSize:14,flexShrink:0}}>{icon}</span>
+                    <div><div style={{fontSize:13,fontWeight:700,color}}>{item.label}</div><div style={{fontSize:12,color:COLORS.slate,marginTop:1,lineHeight:1.4}}>{item.detail}</div></div>
+                  </div>);
+                })}
+              </>}
+            </>}
+        </div>
+
+        {/* ── 5. BRIDGE YEARS ── */}
+        {retProj.bridgeYears>0&&(()=>{
+          const d=retProj.drawdown;
+          const bridgeOk=d.bridgeShortfall<=0;
+          const r55Pct=Math.round(retProj.ruleOf55Share*100);
+          const spouseSSAge=assump.ss_claim_age_spouse||67;
+          const userSSAge=assump.ss_claim_age||67;
+          return(
+            <div style={{...S.card,borderTop:`3px solid ${bridgeOk?COLORS.amber:COLORS.red}`,marginBottom:12}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+                <div>
+                  <div style={{fontSize:11,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:3}}>Early Retirement Bridge</div>
+                  <div style={{fontSize:18,fontWeight:800,letterSpacing:"-0.3px"}}>Age {assump.retirement_age} → {d.medicareAge}</div>
+                  <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>{retProj.bridgeYears} year{retProj.bridgeYears!==1?"s":""} before Medicare</div>
+                </div>
+                <div style={{textAlign:"right",flexShrink:0,marginLeft:12}}>
+                  <div style={{fontSize:18,fontWeight:800,color:bridgeOk?COLORS.green:COLORS.red}}>{bridgeOk?"✓ Covered":"⚠️ Short"}</div>
+                  {!bridgeOk&&<div style={{fontSize:12,color:COLORS.red,marginTop:2}}>~{formatMoneyShort(d.bridgeShortfall)}</div>}
+                </div>
+              </div>
+              <div style={{background:COLORS.navyLight,borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+                <div style={{fontSize:10,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>Phase Timeline</div>
+                {[
+                  {age:assump.retirement_age,label:"Retire",detail:`Rule of 55 funds (${r55Pct}% of balance)`,color:COLORS.blue,icon:"🏁"},
+                  Math.min(userSSAge,spouseSSAge)<d.medicareAge?{age:Math.min(userSSAge,spouseSSAge),label:"First SS",detail:`${userSSAge<=spouseSSAge?"Your":"Kalee's"} SS starts — ${formatMoneyShort(userSSAge<=spouseSSAge?(+(assump.social_security_estimate)||0):(+(assump.social_security_estimate_spouse)||0))}/yr`,color:COLORS.green,icon:"💰"}:null,
+                  {age:d.medicareAge,label:"Medicare",detail:"Healthcare coverage begins",color:COLORS.blue,icon:"🏥"},
+                  Math.max(userSSAge,spouseSSAge)>=d.medicareAge?{age:Math.max(userSSAge,spouseSSAge),label:`${userSSAge>=spouseSSAge?"Your":"Kalee's"} SS`,detail:`Full household SS: ${formatMoneyShort((+(assump.social_security_estimate)||0)+(+(assump.social_security_estimate_spouse)||0))}/yr`,color:COLORS.green,icon:"💰"}:null,
+                ].filter(Boolean).map((phase,i,arr)=>(
+                  <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",paddingBottom:i<arr.length-1?8:0,marginBottom:i<arr.length-1?8:0,borderBottom:i<arr.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
+                    <div style={{width:26,height:26,borderRadius:8,background:phase.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,flexShrink:0}}>{phase.icon}</div>
+                    <div style={{flex:1}}>
+                      <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:2}}>
+                        <span style={{fontSize:12,fontWeight:700,color:phase.color}}>Age {phase.age}</span>
+                        <span style={{fontSize:12,fontWeight:600,color:COLORS.white}}>{phase.label}</span>
+                      </div>
+                      <div style={{fontSize:11,color:COLORS.slate,lineHeight:1.4}}>{phase.detail}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{fontSize:12,color:COLORS.slateLight,lineHeight:1.6,marginBottom:8}}>
+                <strong style={{color:COLORS.white}}>Rule of 55:</strong> Penalty-free withdrawals from current employer's 403(b)/401(k) when leaving at 55+. ~{r55Pct}% of your balance ({formatMoneyShort(retProj.ruleOf55Balance)}) qualifies.
+              </div>
+              <button onClick={()=>setShowBridgeTable(p=>!p)} style={{fontSize:12,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,textDecoration:"underline",marginBottom:showBridgeTable?10:0}}>
+                {showBridgeTable?"Hide year-by-year":"Year-by-year breakdown →"}
+              </button>
+              {showBridgeTable&&d.bridgeSchedule&&d.bridgeSchedule.length>0&&(
+                <div style={{marginTop:8}}>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:4,marginBottom:6}}>
+                    {["Age","Need","R55","Total"].map(h=><div key={h} style={{fontSize:10,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",textAlign:"right",paddingRight:4}}>{h}</div>)}
+                  </div>
+                  {d.bridgeSchedule.map((row,i)=>{
+                    const low=row.ruleOf55Pool<row.needYear;
+                    return(<div key={row.age} style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:4,padding:"4px 0",borderBottom:i<d.bridgeSchedule.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
+                      <div style={{fontSize:11,fontWeight:600}}>Age {row.age}</div>
+                      <div style={{fontSize:11,color:COLORS.slate,textAlign:"right",paddingRight:4}}>{formatMoneyShort(row.needYear)}</div>
+                      <div style={{fontSize:11,color:low?COLORS.red:COLORS.slate,textAlign:"right",paddingRight:4}}>{formatMoneyShort(row.ruleOf55Pool)}</div>
+                      <div style={{fontSize:11,fontWeight:600,color:row.balance>0?COLORS.white:COLORS.red,textAlign:"right",paddingRight:4}}>{formatMoneyShort(row.balance)}</div>
+                    </div>);
+                  })}
+                </div>
+              )}
+              <div style={{marginTop:12,paddingTop:10,borderTop:`1px solid ${COLORS.navyLight}`}}>
+                {bridgeOk
+                  ?<div style={{fontSize:12,color:COLORS.green,fontWeight:600}}>✓ Rule of 55 funds fully cover the bridge. No penalty withdrawals needed.</div>
+                  :<div style={{fontSize:12,color:COLORS.red,fontWeight:600}}>⚠️ Bridge short by ~{formatMoneyShort(d.bridgeShortfall)} — will need IRA early withdrawal (10% penalty) or taxable savings.</div>
+                }
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── 6. SIMULATIONS (all grouped) ── */}
+        <div style={{...S.card,borderTop:`3px solid ${COLORS.purple}`,marginBottom:12}}>
+          <div style={{fontSize:14,fontWeight:700,color:COLORS.white,marginBottom:4}}>🎲 Simulations</div>
+          <div style={{fontSize:12,color:COLORS.slate,marginBottom:14,lineHeight:1.5}}>1,000 randomized-return paths per scenario. More realistic than steady-return projections above.</div>
+
+          {/* Probability of Success */}
+          <div style={{fontSize:11,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>Probability of Success (age {assump.retirement_age} scenarios)</div>
+          {!monteCarloResults&&!monteCarloRunning&&(
+            <button onClick={runMonteCarlo} style={{...S.btn,background:COLORS.purple,marginTop:0,marginBottom:12,fontSize:14}}>Run Monte Carlo</button>
+          )}
+          {monteCarloRunning&&<div style={{textAlign:"center",padding:"16px 0",color:COLORS.slate,fontSize:13,marginBottom:12}}>Running 4,000 simulations…</div>}
+          {monteCarloResults&&!monteCarloRunning&&(()=>{
+            const successColor=r=>r>=85?COLORS.green:r>=70?COLORS.amber:COLORS.red;
+            return(<>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8,marginBottom:12}}>
+                {monteCarloResults.map(r=>(
+                  <div key={r.label} style={{background:COLORS.navyLight,borderRadius:10,padding:"12px",textAlign:"center"}}>
+                    <div style={{fontSize:11,color:COLORS.slate,marginBottom:4,fontWeight:600}}>{r.label}</div>
+                    <div style={{fontSize:22,fontWeight:800,color:successColor(r.successRate)}}>{r.successRate}%</div>
+                    <div style={{fontSize:10,color:COLORS.slate,marginTop:2}}>Age {r.retirementAge}</div>
+                    {r.medianFinalBalance>0&&<div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{formatMoneyShort(r.medianFinalBalance)} median</div>}
+                  </div>
+                ))}
+              </div>
+              <button onClick={runMonteCarlo} style={{...S.btnSm,width:"100%",textAlign:"center",marginBottom:12}}>↺ Re-run</button>
+            </>);
+          })()}
+
+          {/* What-If retirement age */}
+          <div style={{borderTop:`1px solid ${COLORS.navyLight}`,paddingTop:14,marginBottom:14}}>
+            <div style={{fontSize:11,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>What-If Retirement Age</div>
+            {[assump.retirement_age-2,assump.retirement_age-1,assump.retirement_age,assump.retirement_age+1,assump.retirement_age+2].map(age=>{
+              const proj=calcRetirementProjection(accounts.data,{...assump,retirement_age:age});
+              if(!proj)return null;
+              const isCurrent=age==assump.retirement_age;
+              return(<div key={age} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${COLORS.navyLight}`,background:isCurrent?COLORS.navyLight:"transparent",borderRadius:isCurrent?6:0,paddingLeft:isCurrent?8:0,paddingRight:isCurrent?8:0}}>
+                <div style={{fontSize:13,fontWeight:isCurrent?700:400,color:isCurrent?COLORS.white:COLORS.slateLight}}>Age {age}{isCurrent?" ◀ current":""}</div>
                 <div style={{textAlign:"right"}}>
-                  <div style={{fontSize:15,fontWeight:700,color:s.color}}>{formatMoneyShort(s.projectedTodaysDollars)}</div>
-                  <div style={{fontSize:15,color:COLORS.slate}}>{formatMoneyShort(s.projected)} future $</div>
+                  <div style={{fontSize:13,fontWeight:700,color:proj.statusColor}}>{formatMoneyShort(proj.spendableTodaysDollars)}</div>
+                  <div style={{fontSize:11,color:COLORS.slate}}>{proj.statusLabel.split("—")[0].trim()}</div>
+                </div>
+              </div>);
+            })}
+          </div>
+
+          {/* Spending sensitivity */}
+          <div style={{borderTop:`1px solid ${COLORS.navyLight}`,paddingTop:14,marginBottom:14}}>
+            <div style={{fontSize:11,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>Spending Sensitivity</div>
+            {!spendingResults&&!spendingRunning&&<button onClick={runSpendingSensitivity} style={{...S.btnSm,width:"100%",textAlign:"center",marginBottom:12}}>Run Spending Analysis</button>}
+            {spendingRunning&&<div style={{textAlign:"center",padding:"12px 0",color:COLORS.slate,fontSize:13}}>Running…</div>}
+            {spendingResults&&!spendingRunning&&spendingResults.map(r=>(
+              <div key={r.label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${COLORS.navyLight}`,background:r.isCurrent?COLORS.navyLight:"transparent",borderRadius:r.isCurrent?6:0,paddingLeft:r.isCurrent?8:0,paddingRight:r.isCurrent?8:0}}>
+                <div style={{fontSize:13,fontWeight:r.isCurrent?700:400,color:r.isCurrent?COLORS.white:COLORS.slateLight}}>{r.label}{r.isCurrent?" ◀":""}</div>
+                <div style={{fontSize:13,fontWeight:700,color:r.successRate>=85?COLORS.green:r.successRate>=70?COLORS.amber:COLORS.red}}>{r.successRate}%</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Contribution impact */}
+          <div style={{borderTop:`1px solid ${COLORS.navyLight}`,paddingTop:14}}>
+            <div style={{fontSize:11,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>Contribution Impact</div>
+            {!contribResults&&!contribRunning&&<button onClick={runContribImpact} style={{...S.btnSm,width:"100%",textAlign:"center",marginBottom:12}}>Run Contribution Analysis</button>}
+            {contribRunning&&<div style={{textAlign:"center",padding:"12px 0",color:COLORS.slate,fontSize:13}}>Running…</div>}
+            {contribResults&&!contribRunning&&contribResults.map(r=>(
+              <div key={r.label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${COLORS.navyLight}`,background:r.isCurrent?COLORS.navyLight:"transparent",borderRadius:r.isCurrent?6:0,paddingLeft:r.isCurrent?8:0,paddingRight:r.isCurrent?8:0}}>
+                <div style={{fontSize:13,fontWeight:r.isCurrent?700:400,color:r.isCurrent?COLORS.white:COLORS.slateLight}}>{r.label}{r.isCurrent?" ◀":""}</div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontSize:13,fontWeight:700,color:r.successRate>=85?COLORS.green:r.successRate>=70?COLORS.amber:COLORS.red}}>{r.successRate}%</div>
+                  {r.medianFinalBalance>0&&<div style={{fontSize:11,color:COLORS.slate}}>{formatMoneyShort(r.medianFinalBalance)}</div>}
                 </div>
               </div>
             ))}
-            <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${COLORS.navyLight}`}}>
-              <div style={{fontSize:15,color:COLORS.slate}}>Target (today's $): <strong style={{color:COLORS.white}}>{formatMoneyShort(retProj.targetNumberToday)}</strong></div>
-              <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>Spendable after tax (~{Math.round(retProj.taxableMix*100)}% blended rate): <strong style={{color:COLORS.white}}>{formatMoneyShort(retProj.spendableTodaysDollars)}</strong> <span style={{color:COLORS.slate}}>today's $</span></div>
-              <div style={{fontSize:15,color:COLORS.slate,marginTop:10}}>Future dollars (what the account will actually say): {formatMoneyShort(retProj.spendableProjected)} spendable vs. {formatMoneyShort(retProj.targetNumberInflated)} target</div>
-              <div style={{fontSize:15,color:retProj.gap>0?COLORS.amber:COLORS.green,marginTop:10,fontWeight:600}}>
-                {retProj.gap>0?`Gap: ${formatMoneyShort(retProj.gap)} — consider increasing contribution by ~${formatMoney(retProj.monthlyNeeded)}/mo`:`On track — projected surplus of ${formatMoneyShort(-retProj.gap)}`}
-              </div>
-              {assump.contribution_increase_pct>0&&<div style={{fontSize:15,color:COLORS.slate,marginTop:10}}>Assumes contributions grow {assump.contribution_increase_pct}%/year</div>}
-              
-            </div>
           </div>
+        </div>
 
-          {retProj.bridgeYears>0&&(()=>{
-            const d = retProj.drawdown;
-            const bridgeOk = d.bridgeShortfall<=0;
-            const r55Pct = Math.round(retProj.ruleOf55Share*100);
-            const spouseSSAge = assump.ss_claim_age_spouse||67;
-            const userSSAge   = assump.ss_claim_age||67;
-
-            return(
-              <div style={{...S.card,borderTop:`3px solid ${bridgeOk?COLORS.amber:COLORS.red}`,marginBottom:12}}>
-                {/* Header */}
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
-                  <div>
-                    <div style={{fontSize:15,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:3}}>Early Retirement Bridge</div>
-                    <div style={{fontSize:19,fontWeight:800,letterSpacing:"-0.3px"}}>Age {assump.retirement_age} → {d.medicareAge}</div>
-                    <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>{retProj.bridgeYears} year{retProj.bridgeYears!==1?"s":""} before Medicare</div>
-                  </div>
-                  <div style={{textAlign:"right",flexShrink:0,marginLeft:12}}>
-                    <div style={{fontSize:20,fontWeight:800,color:bridgeOk?COLORS.green:COLORS.red}}>{bridgeOk?"✓ Covered":"⚠️ Short"}</div>
-                    {!bridgeOk&&<div style={{fontSize:15,color:COLORS.red,marginTop:2}}>~{formatMoneyShort(d.bridgeShortfall)}</div>}
-                  </div>
-                </div>
-
-                {/* Phase timeline — what happens each phase */}
-                <div style={{background:COLORS.navyLight,borderRadius:10,padding:"12px 14px",marginBottom:12}}>
-                  <div style={{fontSize:15,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>What Happens When</div>
-                  {[
-                    { age:assump.retirement_age, label:"Retire", detail:`Draw from Rule of 55 funds (${r55Pct}% of balance) — no 10% penalty`, color:COLORS.blue, icon:"🏁" },
-                    Math.min(userSSAge,spouseSSAge)<d.medicareAge ? { age:Math.min(userSSAge,spouseSSAge), label:"First SS Benefit", detail:`${userSSAge<=spouseSSAge?"Your":"Kalee's"} Social Security starts — ${formatMoneyShort(userSSAge<=spouseSSAge?(assump.social_security_estimate||0):(assump.social_security_estimate_spouse||0))}/yr`, color:COLORS.green, icon:"💰" } : null,
-                    { age:d.medicareAge, label:"Medicare Eligible", detail:`Healthcare coverage begins — private insurance no longer needed`, color:COLORS.blue, icon:"🏥" },
-                    Math.max(userSSAge,spouseSSAge)>=d.medicareAge ? { age:Math.max(userSSAge,spouseSSAge), label:`${userSSAge>=spouseSSAge?"Your":"Kalee's"} SS Starts`, detail:`${formatMoneyShort(userSSAge>=spouseSSAge?(assump.social_security_estimate||0):(assump.social_security_estimate_spouse||0))}/yr — full household SS now ${formatMoneyShort((assump.social_security_estimate||0)+(assump.social_security_estimate_spouse||0))}/yr`, color:COLORS.green, icon:"💰" } : null,
-                  ].filter(Boolean).map((phase,i,arr)=>(
-                    <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",paddingBottom:i<arr.length-1?8:0,marginBottom:i<arr.length-1?8:0,borderBottom:i<arr.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
-                      <div style={{width:28,height:28,borderRadius:8,background:phase.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>{phase.icon}</div>
-                      <div style={{flex:1}}>
-                        <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:2}}>
-                          <span style={{fontSize:15,fontWeight:700,color:phase.color}}>Age {phase.age}</span>
-                          <span style={{fontSize:15,fontWeight:600,color:COLORS.white}}>{phase.label}</span>
-                        </div>
-                        <div style={{fontSize:15,color:COLORS.slate,lineHeight:1.4}}>{phase.detail}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Rule of 55 explanation */}
-                <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.6,marginBottom:10}}>
-                  <strong style={{color:COLORS.white}}>Rule of 55:</strong> If you leave your employer at age 55 or later, you can withdraw from that employer's 401(k)/403(b) penalty-free — even before 59½. Only accounts from the employer you separate from at or after 55 qualify. IRAs do not qualify.
-                </div>
-                <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.6,marginBottom:12}}>
-                  ~{r55Pct}% of your current balance ({formatMoneyShort(retProj.ruleOf55Balance)}) is in Rule of 55-eligible accounts. The simulation draws bridge spending from this pool first, letting the rest compound untouched until Medicare age.
-                </div>
-
-                {/* Year-by-year table toggle */}
-                <button onClick={()=>setShowBridgeTable(p=>!p)} style={{fontSize:15,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,textDecoration:"underline",marginBottom:showBridgeTable?10:0}}>
-                  {showBridgeTable?"Hide year-by-year breakdown":"Show year-by-year breakdown →"}
-                </button>
-
-                {showBridgeTable&&d.bridgeSchedule&&d.bridgeSchedule.length>0&&(
-                  <div style={{marginTop:10}}>
-                    {/* Column headers */}
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:4,marginBottom:10}}>
-                      {["Age","Need","R55 Pool","Total"].map(h=>(
-                        <div key={h} style={{fontSize:15,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",textAlign:"right",paddingRight:4}}>{h}</div>
-                      ))}
-                    </div>
-                    {d.bridgeSchedule.map((row,i)=>{
-                      const isLast = i===d.bridgeSchedule.length-1;
-                      const lowBalance = row.ruleOf55Pool < row.needYear;
-                      return(
-                        <div key={row.age} style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:4,padding:"5px 0",borderBottom:!isLast?`1px solid ${COLORS.navyLight}`:"none"}}>
-                          <div style={{fontSize:15,fontWeight:600,color:COLORS.white}}>Age {row.age}</div>
-                          <div style={{fontSize:15,color:COLORS.slate,textAlign:"right",paddingRight:4}}>{formatMoneyShort(row.needYear)}</div>
-                          <div style={{fontSize:15,color:lowBalance?COLORS.red:COLORS.slate,textAlign:"right",paddingRight:4}}>{formatMoneyShort(row.ruleOf55Pool)}</div>
-                          <div style={{fontSize:15,fontWeight:600,color:row.balance>0?COLORS.white:COLORS.red,textAlign:"right",paddingRight:4}}>{formatMoneyShort(row.balance)}</div>
-                        </div>
-                      );
-                    })}
-                    <div style={{fontSize:15,color:COLORS.slate,marginTop:10,lineHeight:1.4}}>Need = spending + healthcare that year. R55 Pool = Rule of 55 balance remaining. Total = combined balance entering next year.</div>
-                  </div>
-                )}
-
-                {/* Bottom status */}
-                <div style={{marginTop:12,paddingTop:10,borderTop:`1px solid ${COLORS.navyLight}`}}>
-                  {bridgeOk
-                    ?<div style={{fontSize:15,color:COLORS.green,fontWeight:600}}>✓ Rule of 55 funds fully cover the bridge. No penalty withdrawals needed from IRAs or taxable accounts during this window.</div>
-                    :<div style={{fontSize:15,color:COLORS.red,fontWeight:600}}>⚠️ Bridge comes up ~{formatMoneyShort(d.bridgeShortfall)} short — you'll need to tap IRA early (10% penalty) or taxable savings to cover the gap. Consider building additional taxable savings before retiring.</div>
-                  }
-                </div>
-              </div>
-            );
-          })()}
-
-          <div style={{...S.statusCard(retProj.statusColor),marginBottom:12}}>
-            <div style={{fontSize:15,fontWeight:700,marginBottom:10}}>📉 Full Retirement Drawdown — through age {retProj.drawdown.planEndAge}</div>
-            <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5}}>
-              Simulates spending from age {assump.retirement_age} through {retProj.drawdown.planEndAge} at the drawdown rate ({assump.drawdown_rate_pct||5}%) — bridge years from Rule of 55 funds first, Social Security starting at {retProj.drawdown.ssClaimAge}, healthcare growing ~5.5%/yr the whole way.
-            </div>
-            <div style={{marginTop:10,paddingTop:8,borderTop:`1px solid ${COLORS.navyLight}`}}>
-              {retProj.drawdown.lastsFullPlan
-                ? <div style={{fontSize:15,color:COLORS.green,fontWeight:600}}>✓ Projected to last through age {retProj.drawdown.planEndAge}, with ~{formatMoneyShort(retProj.drawdown.finalBalance)} remaining.</div>
-                : <div style={{fontSize:15,color:COLORS.red,fontWeight:600}}>⚠️ Projected to run low around age {retProj.drawdown.ranOutAtAge} — {retProj.drawdown.planEndAge-retProj.drawdown.ranOutAtAge} years before the age-{retProj.drawdown.planEndAge} horizon.</div>
-              }
-            </div>
-          </div>
-
-          <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
-            <div style={{fontSize:15,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>Projected Balance Over Time</div>
-            {(()=>{
-              const tl = retProj.drawdown.fullTimeline;
-              const currentAge = assump.current_age;
-              const checkpoints = [];
-              for (let age=currentAge; age<=retProj.drawdown.planEndAge; age+=5) {
-                const entry = tl.find(t=>t.age===age) || tl.reduce((closest,t)=> Math.abs(t.age-age)<Math.abs(closest.age-age)?t:closest, tl[0]);
-                if (entry) checkpoints.push(entry);
-              }
-              // Always include the final plan-end-age entry even if not a multiple of 5
-              const lastEntry = tl[tl.length-1];
-              if (lastEntry && checkpoints[checkpoints.length-1]?.age !== lastEntry.age) checkpoints.push(lastEntry);
-
-              return checkpoints.map((cp,i)=>{
-                const isRetirement = cp.age===assump.retirement_age;
-                const isMedicare = cp.age===retProj.drawdown.medicareAge;
-                const isPlanEnd = cp.age===retProj.drawdown.planEndAge;
-                const isRanOut = retProj.drawdown.ranOutAtAge && cp.age===retProj.drawdown.ranOutAtAge;
-                return (
-                  <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:i<checkpoints.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      <span style={{fontSize:15,color:COLORS.slateLight}}>Age {cp.age}</span>
-                      {isRetirement&&<span style={S.badge(COLORS.blue)}>retire</span>}
-                      {isMedicare&&!isRetirement&&<span style={S.badge(COLORS.purple)}>medicare</span>}
-                      {isRanOut&&<span style={S.badge(COLORS.red)}>runs out</span>}
-                    </div>
-                    <span style={{fontSize:15,fontWeight:700,color:isPlanEnd?retProj.statusColor:COLORS.white}}>
-                      {formatMoneyShort(cp.balance)}
-                    </span>
-                  </div>
-                );
-              });
-            })()}
-            
-          </div>
-
-          {incomeTimeline.length>0&&(
-            <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
-              <div style={{fontSize:15,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>📋 Retirement Income Timeline</div>
+        {/* ── 7. INCOME TIMELINE (collapsible) ── */}
+        {incomeTimeline.length>0&&(()=>{
+          return(<div style={{...S.card,marginBottom:12}}>
+            <button onClick={()=>setShowTimeline(p=>!p)} style={{width:"100%",background:"none",border:"none",cursor:"pointer",textAlign:"left",padding:0,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{fontSize:14,fontWeight:700,color:COLORS.white}}>📈 Income by Phase</div>
+              <div style={{fontSize:13,color:COLORS.blue}}>{showTimeline?"▲ Hide":"▼ Show"}</div>
+            </button>
+            {showTimeline&&<div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${COLORS.navyLight}`}}>
               {incomeTimeline.map((band,i)=>(
-                <div key={i} style={{display:"flex",gap:10,marginBottom:i<incomeTimeline.length-1?12:0}}>
-                  <div style={{width:3,background:band.color,borderRadius:2,flexShrink:0}}/>
-                  <div style={{flex:1}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      <span style={{fontSize:15,fontWeight:700,color:band.color}}>Age {band.ageRange}</span>
-                      {band.avgAnnual!=null&&<span style={{fontSize:15,fontWeight:700,color:COLORS.white}}>~{formatMoneyShort(band.avgAnnual)}/yr</span>}
-                    </div>
-                    <div style={{fontSize:15,color:COLORS.white,marginTop:2,fontWeight:600}}>{band.sources.join(" + ")}</div>
-                    <div style={{fontSize:15,color:COLORS.slate,marginTop:2,lineHeight:1.4}}>{band.detail}</div>
+                <div key={i} style={{paddingBottom:i<incomeTimeline.length-1?12:0,marginBottom:i<incomeTimeline.length-1?12:0,borderBottom:i<incomeTimeline.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                    <div style={{fontSize:14,fontWeight:700,color:band.color}}>Ages {band.ageRange}</div>
+                    {band.avgAnnual&&<div style={{fontSize:13,color:COLORS.slateLight}}>{formatMoneyShort(band.avgAnnual)}/yr need</div>}
                   </div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:6}}>
+                    {band.sources.map(src=><span key={src} style={S.badge(band.color)}>{src}</span>)}
+                  </div>
+                  <div style={{fontSize:12,color:COLORS.slate,lineHeight:1.4}}>{band.detail}</div>
                 </div>
               ))}
-              
-            </div>
-          )}
+            </div>}
+        </div>}
 
-          {retProj?.drawdown&&(
-            <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
-              <div style={{fontSize:15,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>🔓 Rule of 55 Dashboard</div>
-              <div style={S.statGrid}>
-                <div style={S.statCell(COLORS.purple)}>
-                  <div style={{...S.statVal,fontSize:15}}>{Math.round(retProj.drawdown.ruleOf55Share*100)}%</div>
-                  <div style={S.statLbl}>of balance eligible</div>
-                </div>
-                <div style={S.statCell(COLORS.blue)}>
-                  <div style={{...S.statVal,fontSize:15}}>{retProj.bridgeYears}</div>
-                  <div style={S.statLbl}>bridge years</div>
-                </div>
-                <div style={S.statCell(retProj.drawdown.bridgeShortfall>0?COLORS.red:COLORS.green)}>
-                  <div style={{...S.statVal,fontSize:15}}>{retProj.drawdown.bridgeShortfall>0?"⚠️":"✓"}</div>
-                  <div style={S.statLbl}>{retProj.drawdown.bridgeShortfall>0?"shortfall":"covered"}</div>
-                </div>
-              </div>
-              <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${COLORS.navyLight}`,fontSize:15,color:COLORS.slateLight,lineHeight:1.6}}>
-                Current Rule of 55 eligible accounts (403b/401k): <strong style={{color:COLORS.white}}>{formatMoney(accounts.data.filter(ruleOf55Eligible).reduce((s,a)=>s+(a.balance||0),0))}</strong>
-                <br/>Projected at retirement (age {assump.retirement_age}): <strong style={{color:COLORS.white}}>~{formatMoneyShort(retProj.drawdown.spendableAtRetirement * retProj.drawdown.ruleOf55Share)}</strong>
-                <br/>Bridge coverage: <strong style={{color:retProj.drawdown.bridgeShortfall>0?COLORS.red:COLORS.green}}>
-                  {retProj.drawdown.bridgeShortfall>0 ? `short by ${formatMoneyShort(retProj.drawdown.bridgeShortfall)}` : `fully funded`}
-                </strong>
-              </div>
-
-              {retProj.drawdown.bridgeSchedule&&retProj.drawdown.bridgeSchedule.length>0&&(
-                <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${COLORS.navyLight}`}}>
-                  <button onClick={()=>setShowBridgeMath(p=>!p)} style={{...S.btnSm,width:"100%"}}>
-                    {showBridgeMath?"Hide":"Show"} year-by-year bridge math
-                  </button>
-                  {showBridgeMath&&(
-                    <div style={{marginTop:10}}>
-                      <div style={{fontSize:15,color:COLORS.slate,marginBottom:10,lineHeight:1.5}}>
-                        Spending and healthcare both inflate every year — by the last bridge year, the annual need is meaningfully higher than today's numbers. This is why a balance that looks like it should easily cover "spending × years" often doesn't.
-                      </div>
-                      {retProj.drawdown.bridgeSchedule.map((b,i)=>(
-                        <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<retProj.drawdown.bridgeSchedule.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
-                          <div style={{fontSize:15,color:COLORS.slateLight}}>Age {b.age}</div>
-                          <div style={{fontSize:15,color:COLORS.slate}}>need {formatMoneyShort(b.needYear)}</div>
-                          <div style={{fontSize:15,fontWeight:700,color:b.balance>0?COLORS.white:COLORS.red}}>pool {formatMoneyShort(b.balance)}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {retProj.drawdown.bridgeShortfall>0&&(()=>{
-                // Rough fix estimate: extra monthly contribution to Rule of 55-eligible accounts to close the bridge shortfall by retirement
-                const yearsToClose = Math.max(1, retProj.years);
-                const extraMonthlyNeeded = retProj.drawdown.bridgeShortfall / (yearsToClose*12*(1+(assump.moderate_rate_pct||7)/100)); // rough, conservative
-                return(
-                  <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${COLORS.red}33`}}>
-                    <div style={{fontSize:15,color:COLORS.red,fontWeight:700}}>⚠️ Quick fix</div>
-                    <div style={{fontSize:15,color:COLORS.slateLight,marginTop:3,lineHeight:1.5}}>
-                      Increasing 403(b)/401(k) contributions by ~{formatMoney(extraMonthlyNeeded)}/mo would close most of this gap by retirement age, assuming moderate growth.
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          )}
-
-          <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
-            <div style={{fontSize:15,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>🎲 Probability of Success</div>
-            <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5,marginBottom:10}}>
-              Runs 1,000 simulations with randomized year-to-year returns (mean {assump.moderate_rate_pct||7}%, ±{assump.return_volatility_pct||15}% volatility) instead of one fixed rate — shows what % of possible market paths never run out of money for your current plan.
-            </div>
-            {!monteCarloResults&&!monteCarloRunning&&(
-              <button style={S.btn} onClick={runMonteCarlo}>▶️ Run Simulation</button>
-            )}
-            {monteCarloRunning&&(
-              <div style={{textAlign:"center",padding:"16px 0"}}>
-                <div style={{fontSize:15,color:COLORS.slate}}>Running 4,000 simulated paths…</div>
-              </div>
-            )}
-            {monteCarloResults&&!monteCarloRunning&&(()=>{
-              const current = monteCarloResults.find(r=>r.label==="Current Plan");
-              if(!current) return null;
-              return(
-                <>
-                  <div style={{textAlign:"center",padding:"10px 0"}}>
-                    <div style={{fontSize:36,fontWeight:800,color:current.successRate>=90?COLORS.green:current.successRate>=75?COLORS.amber:COLORS.red}}>{current.successRate}%</div>
-                    <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>of simulated paths last through age {assump.plan_end_age||90}</div>
-                    <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>median ending balance {formatMoneyShort(current.medianFinalBalance)}</div>
-                  </div>
-                  <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={runMonteCarlo}>🔄 Re-run</button>
-                  <div style={{fontSize:15,color:COLORS.slate,marginTop:10,fontStyle:"italic"}}>Industry convention treats 85-95%+ as a generally safe plan.</div>
-                </>
-              );
-            })()}
-          </div>
-
-          {monteCarloResults&&!monteCarloRunning&&(
-            <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
-              <div style={{fontSize:15,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>🤔 What If I Retire Earlier or Later?</div>
-              <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5,marginBottom:10}}>
-                Same 1,000-simulation approach, compared across a few retirement ages around your current plan.
-              </div>
-              {monteCarloResults.map((r,i)=>(
-                <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:i<monteCarloResults.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
-                  <div>
-                    <div style={{fontSize:15,fontWeight:600,color:r.label==="Current Plan"?COLORS.blue:COLORS.white}}>{r.label}</div>
-                    <div style={{fontSize:15,color:COLORS.slate}}>age {r.retirementAge} · median {formatMoneyShort(r.medianFinalBalance)}</div>
-                  </div>
-                  <div style={{fontSize:19,fontWeight:800,color:r.successRate>=90?COLORS.green:r.successRate>=75?COLORS.amber:COLORS.red}}>
-                    {r.successRate}%
-                  </div>
-                </div>
-              ))}
-              
-            </div>
-          )}
-
-          {/* Spending Sensitivity */}
-          <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
-            <div style={{fontSize:15,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>💸 What If We Spend More or Less?</div>
-            <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5,marginBottom:10}}>
-              How does annual retirement spending affect success probability? Each row is {500} simulated paths at a different spending level.
-            </div>
-            {!spendingResults&&!spendingRunning&&(
-              <button style={S.btn} onClick={runSpendingSensitivity}>▶️ Run Spending Analysis</button>
-            )}
-            {spendingRunning&&<div style={{textAlign:"center",padding:"14px 0",fontSize:15,color:COLORS.slate}}>Running simulations…</div>}
-            {spendingResults&&!spendingRunning&&(
-              <>
-                {spendingResults.map((r,i)=>(
-                  <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:i<spendingResults.length-1?`1px solid ${COLORS.navyLight}`:"none",background:r.isCurrent?COLORS.blue+"11":"transparent",borderRadius:r.isCurrent?6:0,paddingLeft:r.isCurrent?8:0,paddingRight:r.isCurrent?8:0}}>
-                    <div>
-                      <div style={{fontSize:15,fontWeight:r.isCurrent?700:500,color:r.isCurrent?COLORS.blue:COLORS.white}}>{r.label}/yr</div>
-                      <div style={{fontSize:15,color:COLORS.slate}}>median {formatMoneyShort(r.medianFinalBalance)} at age {assump.plan_end_age||90}</div>
-                    </div>
-                    <div style={{fontSize:19,fontWeight:800,color:r.successRate>=85?COLORS.green:r.successRate>=70?COLORS.amber:COLORS.red}}>{r.successRate}%</div>
-                  </div>
-                ))}
-                <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={runSpendingSensitivity}>🔄 Re-run</button>
-              </>
-            )}
-          </div>
-
-          {/* Contribution Impact */}
-          <div style={{...S.card,background:COLORS.navyLight,marginBottom:12}}>
-            <div style={{fontSize:15,color:COLORS.blue,fontWeight:700,letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:10}}>📈 What If We Save More?</div>
-            <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5,marginBottom:10}}>
-              How does increasing monthly contributions affect success probability? Each row adds to your current total contribution.
-            </div>
-            {!contribResults&&!contribRunning&&(
-              <button style={S.btn} onClick={runContribImpact}>▶️ Run Contribution Analysis</button>
-            )}
-            {contribRunning&&<div style={{textAlign:"center",padding:"14px 0",fontSize:15,color:COLORS.slate}}>Running simulations…</div>}
-            {contribResults&&!contribRunning&&(
-              <>
-                {contribResults.map((r,i)=>(
-                  <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:i<contribResults.length-1?`1px solid ${COLORS.navyLight}`:"none",background:r.isCurrent?COLORS.blue+"11":"transparent",borderRadius:r.isCurrent?6:0,paddingLeft:r.isCurrent?8:0,paddingRight:r.isCurrent?8:0}}>
-                    <div>
-                      <div style={{fontSize:15,fontWeight:r.isCurrent?700:500,color:r.isCurrent?COLORS.blue:COLORS.white}}>{r.label}</div>
-                      <div style={{fontSize:15,color:COLORS.slate}}>median {formatMoneyShort(r.medianFinalBalance)} at age {assump.plan_end_age||90}</div>
-                    </div>
-                    <div style={{fontSize:19,fontWeight:800,color:r.successRate>=85?COLORS.green:r.successRate>=70?COLORS.amber:COLORS.red}}>{r.successRate}%</div>
-                  </div>
-                ))}
-                <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={runContribImpact}>🔄 Re-run</button>
-              </>
-            )}
-          </div>
-
-        </>}
-
+        {/* ── 8. ACCOUNTS ── */}
         <div style={S.sectionLabel}>Accounts</div>
-        <SwipeHint/>
         {accounts.data.map(a=>(
           <SwipeCard key={a.id} id={a.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
             onEdit={()=>openEdit("account",a)}
             onDelete={()=>{accounts.remove(a.id);setActiveSwipe(null);}}
-            style={{...S.card,borderLeft:`3px solid ${accountTypeColors[a.account_type]||COLORS.slate}`}}>
+            style={S.card}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-              <div>
-                <div style={{fontSize:15,fontWeight:600}}>{a.name}</div>
-                <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>
-                  {formatMoney(a.monthly_contribution)}{a.contribution_frequency==="biweekly"?"/paycheck":"/mo"}
-                  {a.employer_match?` + ${formatMoney(a.employer_match)} match`:""}
-                  {a.contribution_frequency==="biweekly"?` (≈${formatMoney(effectiveMonthlyContribution(a))}/mo)`:""}
+              <div style={{flex:1}}>
+                <div style={{fontSize:14,fontWeight:700}}>{a.name}</div>
+                <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
+                  <span style={S.badge(COLORS.blue)}>{a.account_type}</span>
+                  <span style={S.badge(a.tax_treatment==="Roth"?COLORS.green:COLORS.amber)}>{a.tax_treatment}</span>
+                  {ruleOf55Eligible(a)&&<span style={S.badge(COLORS.purple)}>Rule of 55</span>}
                 </div>
-                {a.notes&&<div style={{fontSize:15,color:COLORS.slate,marginTop:2,fontStyle:"italic"}}>{a.notes}</div>}
+                <div style={{fontSize:12,color:COLORS.slate,marginTop:6}}>{formatMoney(a.monthly_contribution)}/mo{a.employer_match>0?` + ${formatMoney(a.employer_match)} match`:""}</div>
               </div>
-              <div style={{fontSize:19,fontWeight:700}}>{formatMoneyShort(a.balance)}</div>
+              <div style={{fontSize:19,fontWeight:700,textAlign:"right",flexShrink:0,marginLeft:12}}>{formatMoneyShort(a.balance)}</div>
             </div>
           </SwipeCard>
         ))}
-        <button style={S.btn} onClick={()=>{setForm({account_type:"401k",contribution_frequency:"monthly",tax_treatment:"pre-tax",last_updated:TODAY_STR});setShowModal("account");}}>+ Add Account</button>
+        {accounts.data.length===0&&<EmptyState icon="🏦" title="No accounts added" detail="Add your 401(k), IRA, and other retirement accounts to run projections."/>}
+        <button style={S.btn} onClick={()=>{setForm({account_type:"401k",tax_treatment:"pre-tax",contribution_frequency:"biweekly"});setShowModal("account");}}>+ Add Account</button>
+        </>}
 
         {showRetBrief&&<RetirementBrief accounts={accounts.data} assumptions={assump} retProj={retProj} monteCarloResults={monteCarloResults} onClose={()=>setShowRetBrief(false)}/>}
       </>}
