@@ -817,21 +817,20 @@ function simulateRetirementDrawdown(accounts, assumptions) {
 // with the funding source(s) active in each, for the Income Timeline display.
 function buildIncomeTimeline(assumptions, drawdown) {
   if (!assumptions || !drawdown) return [];
-  const retAge = retirementAge;
+  const retAge      = +(assumptions.retirement_age) || 59;
+  const annualSpend = +(assumptions.annual_retirement_spending) || 110000;
   const medicareAge = drawdown.medicareAge;
-  const ssClaimAge = drawdown.ssClaimAge;
-  const planEnd = drawdown.planEndAge;
+  const ssClaimAge  = drawdown.ssClaimAge;
+  const planEnd     = drawdown.planEndAge;
 
-  // Average annual spend need for a given age range, pulled from the actual schedules already simulated
   function avgNeedForRange(startAge, endAge) {
     const bridgeVals = (drawdown.bridgeSchedule||[]).filter(b=>b.age>=startAge && b.age<endAge).map(b=>b.needYear);
     if (bridgeVals.length) return bridgeVals.reduce((a,b)=>a+b,0)/bridgeVals.length;
-    return null; // post-bridge years don't track needYear directly in drawdownSchedule, only balance
+    return null;
   }
 
   const bands = [];
 
-  // Band 1: retirement age → medicare age (bridge years, Rule of 55 funds)
   if (medicareAge > retAge) {
     const avgNeed = avgNeedForRange(retAge, medicareAge);
     bands.push({
@@ -843,33 +842,30 @@ function buildIncomeTimeline(assumptions, drawdown) {
     });
   }
 
-  // Band 2: medicare age → SS claim age (Medicare active, no SS yet)
   if (ssClaimAge > medicareAge) {
     bands.push({
       ageRange: `${medicareAge}–${ssClaimAge}`,
       sources: ["Medicare", "Portfolio withdrawals"],
       detail: "Healthcare costs drop with Medicare coverage. Still drawing from savings for living expenses — no Social Security yet.",
-      avgAnnual: annualSpending,
+      avgAnnual: annualSpend,
       color: COLORS.blue,
     });
   } else {
-    // SS claimed at or before medicare age — merge bands conceptually
     bands.push({
       ageRange: `${medicareAge}+`,
       sources: ["Medicare", "Social Security", "Portfolio"],
       detail: "Medicare and Social Security both active alongside portfolio withdrawals.",
-      avgAnnual: Math.max(0, annualSpending - (assumptions.social_security_estimate||0)),
+      avgAnnual: Math.max(0, annualSpend - (+(assumptions.social_security_estimate)||0)),
       color: COLORS.blue,
     });
   }
 
-  // Band 3: SS claim age → plan end (full income stack)
   if (ssClaimAge >= medicareAge && ssClaimAge < planEnd) {
     bands.push({
       ageRange: `${ssClaimAge}–${planEnd}`,
       sources: ["Social Security", "Medicare", "Portfolio withdrawals"],
       detail: "Full income stack — Social Security and Medicare both active, portfolio covers the remaining gap.",
-      avgAnnual: Math.max(0, annualSpending - (assumptions.social_security_estimate||0)),
+      avgAnnual: Math.max(0, annualSpend - (+(assumptions.social_security_estimate)||0)),
       color: COLORS.green,
     });
   }
@@ -4034,7 +4030,17 @@ function Finance(){
   const [contribResults,setContribResults] = useState(null);
   const [contribRunning,setContribRunning] = useState(false);
 
+  function openEdit(modal,item){ setEditItem(item); setForm({...item}); setShowModal(modal); setActiveSwipe(null); }
+  function closeModal(){ setShowModal(null); setEditItem(null); setForm({}); }
+
+  // Declare assump early so run functions can close over it correctly
+  const assump = assumptions.data[0];
+  const collegeS = collegeSav.data[0];
+  const collegeG = collegeGoal.data.find(g=>g.child_name==="Aubrey") || collegeGoal.data[0];
+  const mort = mortgage.data[0];
+
   function runMonteCarlo() {
+    if(!assump) return;
     setMonteCarloRunning(true);
     setMonteCarloResults(null);
     setTimeout(() => {
@@ -4045,6 +4051,7 @@ function Finance(){
   }
 
   function runSpendingSensitivity() {
+    if(!assump) return;
     setSpendingRunning(true);
     setSpendingResults(null);
     setTimeout(() => {
@@ -4055,6 +4062,7 @@ function Finance(){
   }
 
   function runContribImpact() {
+    if(!assump) return;
     setContribRunning(true);
     setContribResults(null);
     setTimeout(() => {
@@ -4063,14 +4071,6 @@ function Finance(){
       setContribRunning(false);
     }, 50);
   }
-
-  function openEdit(modal,item){ setEditItem(item); setForm({...item}); setShowModal(modal); setActiveSwipe(null); }
-  function closeModal(){ setShowModal(null); setEditItem(null); setForm({}); }
-
-  const assump = assumptions.data[0];
-  const collegeS = collegeSav.data[0];
-  const collegeG = collegeGoal.data.find(g=>g.child_name==="Aubrey") || collegeGoal.data[0];
-  const mort = mortgage.data[0];
 
   const retProj = assump ? calcRetirementProjection(accounts.data, assump) : null;
   const readinessChecklist = retProj && assump ? buildReadinessChecklist(retProj, monteCarloResults, assump) : [];
