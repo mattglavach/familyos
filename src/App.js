@@ -996,7 +996,6 @@ function calcRetirementProjection(accounts, assumptions) {
     : 0;
 
   // Early retirement bridge — healthcare grows faster than general spending
-  const medicareAge = medicareAge;
   const bridgeEndAge = medicareAge; // kept for backward-compat display naming
   const bridgeYears = Math.max(0, medicareAge - retirementAge);
   const spendingAtRetirement = annualSpending * Math.pow(1+inflationPct/100, years);
