@@ -943,7 +943,7 @@ function buildFamilyMilestones(assump, collegeGoals, mort, mortMonths, retProj) 
 }
 
 function calcRetirementProjection(accounts, assumptions) {
-  if (!assumptions) return null;
+  if (!assumptions || !accounts) return null;
   const retirementAge  = +(assumptions.retirement_age) || 59;
   const currentAge     = +(assumptions.current_age) || 44;
   const contribGrowth  = +(assumptions.contribution_increase_pct) || 0;
@@ -4072,7 +4072,7 @@ function Finance(){
   const collegeG = collegeGoal.data.find(g=>g.child_name==="Aubrey") || collegeGoal.data[0];
   const mort = mortgage.data[0];
 
-  const retProj = calcRetirementProjection(accounts.data, assump);
+  const retProj = assump ? calcRetirementProjection(accounts.data, assump) : null;
   const readinessChecklist = retProj && assump ? buildReadinessChecklist(retProj, monteCarloResults, assump) : [];
   const collegeProj = calcCollegeProjection(collegeS, collegeG);
   const pooledCollegeProj = calcPooledCollegeProjection(collegeS, collegeGoal.data);
@@ -4085,7 +4085,7 @@ function Finance(){
     : null;
 
   const incomeTimeline = assump && retProj?.drawdown ? buildIncomeTimeline(assump, retProj.drawdown) : [];
-  const familyMilestones = buildFamilyMilestones(assump, collegeGoal.data, mort, mortMonths, retProj);
+  const familyMilestones = assump ? buildFamilyMilestones(assump, collegeGoal.data, mort, mortMonths, retProj) : [];
 
   const totalRetirement = accounts.data.reduce((s,a)=>s+(a.balance||0),0);
   const totalCollege = collegeS?.balance || 0;
