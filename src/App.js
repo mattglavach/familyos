@@ -310,23 +310,20 @@ function calcPoolHealth(last, shockMin, readings) {
   const anyRed=params.some(p=>p.icon===" "),anyAmber=params.some(p=>p.icon===" ");
   const overallColor=anyRed?COLORS.red:anyAmber?COLORS.amber:COLORS.green;
   // Unified swim status   single signal, no contradiction
-  const swimStatus = !safeToSwim ? {label:"Do Not Swim", color:COLORS.red, emoji:" "} :
-    anyRed ? {label:"Swim OK   Fix Today", color:COLORS.amber, emoji:" "} :
-    anyAmber ? {label:"Swim OK   Monitor", color:COLORS.amber, emoji:" "} :
-    {label:"Swim Ready", color:COLORS.green, emoji:" "};
+  const swimStatus = !safeToSwim ? {label:"Do Not Swim", color:COLORS.red, emoji:"[X]"} :
+    anyRed ? {label:"Swim OK - Fix Today", color:COLORS.amber, emoji:"[!]"} :
+    anyAmber ? {label:"Swim OK - Monitor", color:COLORS.amber, emoji:"[~]"} :
+    {label:"Swim Ready", color:COLORS.green, emoji:"[OK]"};
   const overallLabel=swimStatus.label;
   const overallEmoji=swimStatus.emoji;
   // Short status-only summary   actions surface in rec cards below
   let summary = "";
-  const issues = params.filter(p=>p.icon===" "||p.icon===" ").map(p=>p.shortLabel||p.label);
+  const issues = params.filter(p=>p.color===COLORS.red||p.color===COLORS.amber).map(p=>p.shortLabel||p.label);
   if(!safeToSwim) summary = notSafeReasons[0]||"Check chemistry before swimming.";
   else if(issues.length===0) summary = "All tested parameters in range.";
   else if(issues.length===1) summary = `${issues[0]} needs attention   see action below.`;
   else summary = `${issues.slice(0,-1).join(", ")} and ${issues[issues.length-1]} need attention.`;
-  // Staleness note
-  const daysSinceReading = daysAgo(lastRaw?.date||TODAY_STR);
-  const staleNote = daysSinceReading >= 3 ? ` Reading from ${daysSinceReading}d ago.` : "";
-  if(staleNote) summary += staleNote;
+
   return{safeToSwim,notSafeReasons,maintenanceNeeded,maintenanceReasons,params,overallColor,overallLabel,overallEmoji,score,summary};
 }
 function lastTestedDate(readings,paramKey){for(const r of readings){if(r[paramKey]!==null&&r[paramKey]!==undefined)return r.date;}return null;}
