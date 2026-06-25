@@ -430,6 +430,25 @@ Low pH now triggers amber rec at <7.4 (not just <7.2)
 CC: amber at >0.2, red at >0.5 with better action text
 FC target label changed to "CYA÷10 min" (dynamic)
 
+Failed to compile.
+[eslint]
+src/App.js
+Syntax error: Unterminated regular expression. (2:1) (2:1)
+Error: Command "npm run build" exited with 1
+
+7:30 AM
+The IIFE pattern with (()=>{...})() inside JSX is causing the ESLint issue. Let me find and fix it.
+
+
+Ran 16 commands, read a file
+Ran 16 commands, read a file
+Two root causes fixed:
+
+React.useState inside a JSX IIFE — the log form was wrapped in {showLog&&(()=>{ ... useState ... })()}. React hooks can't be called inside IIFEs inside JSX. Extracted poolFieldStatus, PoolFieldRow, showOptionalFields, and showDateTime as proper state and functions in the Pool() component scope.
+JSX block comments {/* ... */} — 23 of them were scattered through the new code. CRA's ESLint config can choke on these. Removed all of them.
+The 2 remaining IIFEs (savingsBalance in College planning tab, items combined list in Pool history) were in the original codebase and compiled fine before — left untouched.
+
+
 
 
 
@@ -1896,16 +1915,13 @@ function Tasks(){
     const total = todayItems.length + urgentMaint.length;
 
     return(<>
-      {/* Hero banner */}
-      <div style={{...S.card,background:total===0?COLORS.green+"11":COLORS.amber+"11",borderColor:total===0?COLORS.green+"33":COLORS.amber+"33",marginBottom:14}}>
+<div style={{...S.card,background:total===0?COLORS.green+"11":COLORS.amber+"11",borderColor:total===0?COLORS.green+"33":COLORS.amber+"33",marginBottom:14}}>
         <div style={{fontSize:24,fontWeight:800,color:total===0?COLORS.green:COLORS.amber,letterSpacing:"-0.3px"}}>
           {total===0?"All clear 👋":`${total} item${total!==1?"s":""} need attention`}
         </div>
         <div style={{fontSize:13,color:COLORS.slate,marginTop:6}}>{formatToday()}</div>
       </div>
-
-      {/* Microsoft To Do banner */}
-      {showMsDo&&(
+{showMsDo&&(
         <div style={{...S.gcBanner,marginBottom:14}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
             <div style={{flex:1}}>
@@ -1916,33 +1932,23 @@ function Tasks(){
           </div>
         </div>
       )}
-
-      {/* Overdue tasks */}
-      {todayItems.filter(t=>taskStatus(t)==="overdue").length>0&&<>
+{todayItems.filter(t=>taskStatus(t)==="overdue").length>0&&<>
         <SectionHeader label="⚠️ Overdue" count={todayItems.filter(t=>taskStatus(t)==="overdue").length} color={COLORS.red}/>
         {todayItems.filter(t=>taskStatus(t)==="overdue").map(t=><TaskCard key={t.id} item={t}/>)}
       </>}
-
-      {/* Home maintenance overdue */}
-      {maintOverdue.length>0&&<>
+{maintOverdue.length>0&&<>
         <SectionHeader label="🏠 Maintenance Overdue" count={maintOverdue.length} color={COLORS.red}/>
         {maintOverdue.map(m=><MaintCard key={m.id} item={m}/>)}
       </>}
-
-      {/* Today */}
-      {todayItems.filter(t=>taskStatus(t)==="today"&&!t.is_important).length>0&&<>
+{todayItems.filter(t=>taskStatus(t)==="today"&&!t.is_important).length>0&&<>
         <SectionHeader label="📅 Due Today" count={todayItems.filter(t=>taskStatus(t)==="today"&&!t.is_important).length} color={COLORS.amber}/>
         {todayItems.filter(t=>taskStatus(t)==="today"&&!t.is_important).map(t=><TaskCard key={t.id} item={t}/>)}
       </>}
-
-      {/* Important (no due date) */}
-      {todayItems.filter(t=>t.is_important&&taskStatus(t)!=="overdue"&&taskStatus(t)!=="today").length>0&&<>
+{todayItems.filter(t=>t.is_important&&taskStatus(t)!=="overdue"&&taskStatus(t)!=="today").length>0&&<>
         <SectionHeader label="⭐ Important" count={todayItems.filter(t=>t.is_important&&taskStatus(t)!=="overdue"&&taskStatus(t)!=="today").length} color={COLORS.purple}/>
         {todayItems.filter(t=>t.is_important&&taskStatus(t)!=="overdue"&&taskStatus(t)!=="today").map(t=><TaskCard key={t.id} item={t}/>)}
       </>}
-
-      {/* Home maintenance due soon */}
-      {maintDueSoon.length>0&&<>
+{maintDueSoon.length>0&&<>
         <SectionHeader label="📅 Maintenance Due This Week" count={maintDueSoon.length} color={COLORS.amber}/>
         {maintDueSoon.map(m=><MaintCard key={m.id} item={m}/>)}
       </>}
@@ -1957,31 +1963,22 @@ function Tasks(){
   // ── List tab ───────────────────────────────────────────────────────────────
   function ListView() {
     return(<>
-      {/* Category filter */}
-      <div style={{marginBottom:12}}>
+<div style={{marginBottom:12}}>
         {CATS.map(c=><span key={c} style={S.chip(catFilter===c, CAT_COLORS[c]||COLORS.slate)} onClick={()=>setCatFilter(c)}>{c}</span>)}
       </div>
-
-      {/* This week */}
-      {thisWeekItems.length>0&&<>
+{thisWeekItems.length>0&&<>
         <SectionHeader label="📅 This Week" count={thisWeekItems.length} color={COLORS.blue}/>
         {thisWeekItems.map(t=><TaskCard key={t.id} item={t}/>)}
       </>}
-
-      {/* Upcoming */}
-      {upcomingItems.length>0&&<>
+{upcomingItems.length>0&&<>
         <SectionHeader label="🔮 Upcoming" count={upcomingItems.length} color={COLORS.slate}/>
         {upcomingItems.map(t=><TaskCard key={t.id} item={t}/>)}
       </>}
-
-      {/* Backlog — no due date, not important */}
-      {backlogItems.length>0&&<>
+{backlogItems.length>0&&<>
         <SectionHeader label="📋 Backlog" count={backlogItems.length} color={COLORS.slate}/>
         {backlogItems.map(t=><TaskCard key={t.id} item={t}/>)}
       </>}
-
-      {/* Home maintenance — all (collapsed if all ok) */}
-      {catFilter==="All"||catFilter==="Home"&&<>
+{catFilter==="All"||catFilter==="Home"&&<>
         {(maintOverdue.length>0||maintDueSoon.length>0)&&<>
           <SectionHeader label="🏠 Maintenance" count={homeMaint.data.length} color={COLORS.amber}/>
           {[...maintOverdue,...maintDueSoon].map(m=><MaintCard key={m.id} item={m}/>)}
@@ -1998,9 +1995,7 @@ function Tasks(){
       </>}
 
       {filteredIsEmpty()&&<EmptyState icon="✅" title="No tasks here" detail={catFilter==="All"?"Add a task to get started.":`No ${catFilter} tasks yet.`}/>}
-
-      {/* Completed */}
-      {completedItems.length>0&&<>
+{completedItems.length>0&&<>
         <button onClick={()=>setShowCompleted(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"center",marginTop:12,marginBottom:showCompleted?8:0}}>
           {showCompleted?`Hide ${completedItems.length} completed`:`Show ${completedItems.length} completed`}
         </button>
@@ -2032,8 +2027,7 @@ function Tasks(){
 
   return(
     <div style={S.screen}>
-      {/* Header with MS To Do connect */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
         <div style={{fontSize:13,color:COLORS.slate}}>{tasks.data.length} tasks · {homeMaint.data.length} maintenance</div>
         <button onClick={()=>setShowMsDo(p=>!p)} style={{...S.btnSm,fontSize:12,padding:"5px 10px"}}>📋 MS To Do</button>
       </div>
@@ -2047,12 +2041,8 @@ function Tasks(){
         {tab==="today"&&<TodayView/>}
         {tab==="list"&&<ListView/>}
       </>}
-
-      {/* FAB — add task */}
-      <button style={{...S.btn,marginTop:16}} onClick={()=>{setForm({category:"Home",priority:"med",is_important:false});setShowModal("task");}}>+ Add Task</button>
-
-      {/* Task modal */}
-      {showModal==="task"&&<Modal title={editItem?"Edit Task":"Add Task"} onClose={closeModal}>
+<button style={{...S.btn,marginTop:16}} onClick={()=>{setForm({category:"Home",priority:"med",is_important:false});setShowModal("task");}}>+ Add Task</button>
+{showModal==="task"&&<Modal title={editItem?"Edit Task":"Add Task"} onClose={closeModal}>
         <label style={S.label}>Title</label>
         <input style={S.input} placeholder="e.g. Mow front yard" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
 
@@ -2085,9 +2075,7 @@ function Tasks(){
 
         <button style={{...S.btn,marginTop:16}} onClick={saveTask}>{editItem?"Save Changes":"Add Task"}</button>
       </Modal>}
-
-      {/* Maintenance edit modal */}
-      {showModal==="maint"&&<Modal title={editItem?.id?"Edit Maintenance Item":"Add Maintenance Item"} onClose={()=>{setShowModal(false);setEditItem(null);setForm({});}}>
+{showModal==="maint"&&<Modal title={editItem?.id?"Edit Maintenance Item":"Add Maintenance Item"} onClose={()=>{setShowModal(false);setEditItem(null);setForm({});}}>
         <label style={S.label}>Item Name</label>
         <input style={S.input} placeholder="e.g. HVAC Filter" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
         <label style={S.label}>Interval</label>
@@ -2465,6 +2453,8 @@ function Pool(){
   const [form,setForm]           = useState({});
   const [useDrops,setUseDrops]   = useState(false);
   const [activeSwipe,setActiveSwipe] = useState(null);
+  const [showOptionalFields,setShowOptionalFields] = useState(false);
+  const [showDateTime,setShowDateTime] = useState(false);
 
   const PARAMS=[
     {k:"ph",l:"pH",unit:"",target:"7.4–7.6"},
@@ -2532,7 +2522,7 @@ function Pool(){
     setEditItem(r); setForm({...r, time:timeVal}); setShowLog(true); setActiveSwipe(null);
   }
   function openEditMaint(m){setEditItem(m);setForm({...m});setShowMaint(true);setActiveSwipe(null);}
-  function closeLog(){setShowLog(false);setEditItem(null);setForm({});setUseDrops(false);}
+  function closeLog(){setShowLog(false);setEditItem(null);setForm({});setUseDrops(false);setShowOptionalFields(false);setShowDateTime(false);}
   function closeMaint(){setShowMaint(false);setEditItem(null);setForm({});}
 
   async function markScheduleDone(item){
@@ -2565,6 +2555,55 @@ function Pool(){
     await maintLog.insert({date:TODAY_STR,type:"Treatment applied",notes:note});
   }
 
+  // ─── Log form helpers ──────────────────────────────────────────────────────
+  function poolFieldStatus(key, val, formCya) {
+    const v = (val===undefined||val===null||val==="") ? null : +val;
+    if(v===null) return null;
+    if(key==="ph"){
+      if(v<7.0||v>8.5) return {color:COLORS.red, text:"Extreme — target 7.4–7.6"};
+      if(v<7.4) return {color:COLORS.amber, text:"Low — target 7.4–7.6"};
+      if(v>7.8) return {color:COLORS.red, text:"High — add acid"};
+      if(v>7.6) return {color:COLORS.amber, text:"Elevated — target 7.4–7.6"};
+      return {color:COLORS.green, text:"Good (7.4–7.6)"};
+    }
+    if(key==="cc"){
+      if(v===0) return {color:COLORS.green, text:"None — ideal"};
+      if(v<=0.2) return {color:COLORS.green, text:"Trace — acceptable"};
+      if(v<=0.5) return {color:COLORS.amber, text:"Watch — raise FC"};
+      return {color:COLORS.red, text:"Elevated — chloramines"};
+    }
+    if(key==="free_chlorine"){
+      const cyaVal = formCya ? +formCya : (last?.cya||60);
+      const minFC = Math.round(cyaVal/10);
+      if(v<minFC) return {color:COLORS.red, text:"Below min for CYA "+cyaVal+" (need ≥"+minFC+")"};
+      if(v>8) return {color:COLORS.amber, text:"High — lower SWG"};
+      return {color:COLORS.green, text:"Good (≥"+minFC+" ppm)"};
+    }
+    const ranges = {
+      salt:{low:3200,ok:3600,high:3800},
+      cya:{low:60,ok:80,high:90},
+      alkalinity:{low:80,ok:120,high:140},
+    };
+    const r = ranges[key]; if(!r) return null;
+    if(v<r.low||v>r.high) return {color:COLORS.red, text:"Out of range"};
+    if(v>r.ok) return {color:COLORS.amber, text:"Slightly high"};
+    return {color:COLORS.green, text:"Good"};
+  }
+
+  function PoolFieldRow({label, fieldKey, step, placeholder}) {
+    const val = form[fieldKey];
+    const status = poolFieldStatus(fieldKey, val, form.cya);
+    return(
+      <div style={{marginBottom:14}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+          <label style={{...S.label,marginBottom:0,fontSize:14}}>{label}</label>
+          {status&&<span style={{fontSize:12,color:status.color,fontWeight:600}}>{status.text}</span>}
+        </div>
+        <input type="number" step={step||"any"} style={{...S.input,marginBottom:0,borderColor:status?status.color+"66":"#2d3f5c"}} placeholder={placeholder||""} value={val!==undefined?val:""} onChange={e=>setForm(p=>({...p,[fieldKey]:e.target.value}))}/>
+      </div>
+    );
+  }
+
   const schedSorted=[...schedule.data].sort((a,b)=>{
     const o={overdue:0,"due-soon":1,ok:2};
     return o[maintStatus(a)]-o[maintStatus(b)];
@@ -2575,35 +2614,26 @@ function Pool(){
     <div style={S.screen}>
       {health&&(
         <div style={{...S.card,background:health.overallColor+"0e",borderColor:health.overallColor+"33",borderTop:`3px solid ${health.overallColor}`,marginBottom:8,padding:"16px 18px"}}>
-          {/* Status row — single unified signal */}
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
             <div style={{fontSize:22,fontWeight:800,color:health.overallColor,letterSpacing:"-0.3px"}}>
               {health.overallEmoji} {health.overallLabel}
             </div>
-            {(()=>{
-              const loggedNow=["ph","free_chlorine","salt","cya","alkalinity","cc"].filter(k=>lastRaw[k]!==null&&lastRaw[k]!==undefined);
-              const isPartial=loggedNow.length>0&&loggedNow.length<4;
-              const daysSince=daysAgo(lastRaw.date);
-              return isPartial
-                ? <span style={{fontSize:11,background:COLORS.slate+"22",color:COLORS.slate,borderRadius:6,padding:"3px 8px",fontWeight:600}}>⚠️ FC from {lastRaw.date!==readings.data.find(r=>r.free_chlorine!=null)?.date?formatDate(readings.data.find(r=>r.free_chlorine!=null)?.date||lastRaw.date):"prior"}</span>
-                : daysSince>=3 ? <span style={{fontSize:11,background:COLORS.amber+"22",color:COLORS.amber,borderRadius:6,padding:"3px 8px",fontWeight:600}}>⚠️ {daysSince}d ago</span>
-                : null;
-            })()}
+            {(readings.data[0]&&["ph","free_chlorine","salt","cya","alkalinity","cc"].filter(k=>readings.data[0][k]!==null&&readings.data[0][k]!==undefined).length<4)
+              ? <span style={{fontSize:11,background:COLORS.slate+"22",color:COLORS.slate,borderRadius:6,padding:"3px 8px",fontWeight:600}}>⚠️ Partial reading</span>
+              : daysAgo(lastRaw.date)>=3
+              ? <span style={{fontSize:11,background:COLORS.amber+"22",color:COLORS.amber,borderRadius:6,padding:"3px 8px",fontWeight:600}}>⚠️ {daysAgo(lastRaw.date)}d ago</span>
+              : null}
           </div>
-          {/* Date + temp — small secondary */}
-          <div style={{fontSize:12,color:COLORS.slate,marginBottom:10}}>
+<div style={{fontSize:12,color:COLORS.slate,marginBottom:10}}>
             {formatDate(last.date)}{last.logged_at?` · ${new Date(last.logged_at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}`:""}{last.water_temp?` · ${last.water_temp}°F`:""}
           </div>
-          {/* One-line summary */}
-          <div style={{fontSize:14,color:COLORS.slateLight,lineHeight:1.5,marginBottom:12}}>{health.summary}</div>
-          {/* Action buttons row */}
-          <div style={{display:"flex",gap:8,marginBottom:12}}>
+<div style={{fontSize:14,color:COLORS.slateLight,lineHeight:1.5,marginBottom:12}}>{health.summary}</div>
+<div style={{display:"flex",gap:8,marginBottom:12}}>
             <button onClick={()=>{setForm({date:TODAY_STR});setShowLog(true);}} style={{flex:1,background:COLORS.blue+"22",color:COLORS.blue,border:`1px solid ${COLORS.blue}44`,borderRadius:10,padding:"9px 0",fontSize:13,fontWeight:700,cursor:"pointer"}}>+ Log Reading</button>
             <button onClick={()=>setShowTreatment(true)} style={{flex:1,background:COLORS.green+"22",color:COLORS.green,border:`1px solid ${COLORS.green}44`,borderRadius:10,padding:"9px 0",fontSize:13,fontWeight:700,cursor:"pointer"}}>✓ Treatment</button>
             <button onClick={()=>setShowBrief(true)} style={{flex:1,background:COLORS.purple+"22",color:COLORS.purple,border:`1px solid ${COLORS.purple}44`,borderRadius:10,padding:"9px 0",fontSize:13,fontWeight:700,cursor:"pointer"}}>🤖 Brief</button>
           </div>
-          {/* Chemistry details toggle */}
-          <button onClick={()=>setShowChemDetails(p=>!p)} style={{width:"100%",background:COLORS.navyLight,border:"none",borderRadius:8,padding:"8px 12px",fontSize:13,fontWeight:600,color:COLORS.slateLight,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+<button onClick={()=>setShowChemDetails(p=>!p)} style={{width:"100%",background:COLORS.navyLight,border:"none",borderRadius:8,padding:"8px 12px",fontSize:13,fontWeight:600,color:COLORS.slateLight,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <span>Chemistry Details</span><span>{showChemDetails?"▲":"▼"}</span>
           </button>
           {showChemDetails&&(
@@ -2658,8 +2688,7 @@ function Pool(){
           <button onClick={()=>{setForm({date:TODAY_STR});setShowLog(true);}} style={S.btn}>+ Log First Reading</button>
         </div>
       )}
-      {/* All high priority recs as standalone cards */}
-      {highRecs.map((r,i)=>(
+{highRecs.map((r,i)=>(
         <div key={i} style={{...S.statusCard(r.color),marginBottom:8}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
             <div style={{flex:1,paddingRight:8}}>
@@ -2766,17 +2795,13 @@ function Pool(){
                     onDelete={()=>{readings.remove(item.id);setActiveSwipe(null);}}
                     style={S.card}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                      {(()=>{
-                        const loggedFields=["ph","free_chlorine","salt","cya","alkalinity","cc","water_temp","filter_pressure","swg_setting"].filter(k=>item[k]!==null&&item[k]!==undefined);
-                        const isPartial=loggedFields.length<=2;
-                        return(
-                          <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
                             <span style={{fontSize:15,background:COLORS.blue+"22",color:COLORS.blue,borderRadius:4,padding:"1px 6px",fontWeight:700}}>Reading</span>
                             <div style={{fontSize:15,fontWeight:700}}>{formatDate(item.date)}{timeLabel?` · ${timeLabel}`:""}</div>
-                            {isPartial&&<span style={{fontSize:11,background:COLORS.slate+"22",color:COLORS.slate,borderRadius:4,padding:"1px 6px"}}>partial · {loggedFields.join(", ")}</span>}
+                            {["ph","free_chlorine","salt","cya","alkalinity","cc"].filter(k=>item[k]!==null&&item[k]!==undefined).length<=2&&(
+                              <span style={{fontSize:11,background:COLORS.slate+"22",color:COLORS.slate,borderRadius:4,padding:"1px 6px"}}>partial · {["ph","free_chlorine","salt","cya","alkalinity","cc"].filter(k=>item[k]!==null&&item[k]!==undefined).join(", ")}</span>
+                            )}
                           </div>
-                        );
-                      })()}
                       <div style={{fontSize:15,color:COLORS.slate,textAlign:"right"}}>
                         {item.water_temp?`${item.water_temp}°F`:""}{item.swg_setting?` · SWG ${item.swg_setting}%`:""}
                       </div>
@@ -2810,114 +2835,54 @@ function Pool(){
           <button style={S.btn} onClick={()=>{setForm({date:TODAY_STR});setShowMaint(true);}}>+ Log Maintenance</button>
         </>}
       </>}
-      {showLog&&(()=>{
-        // Inline validation helper
-        function fieldStatus(key, val) {
-          const v = val===undefined||val===null||val==="" ? null : +val;
-          if(v===null) return null;
-          const ranges = {
-            ph:{low:7.4,ok:7.6,high:7.8,label:"pH",unit:""},
-            free_chlorine:{low:1,ok:6,high:8,label:"FC",unit:" ppm"},
-            cc:{low:0,ok:0.2,high:0.5,label:"CC",unit:" ppm"},
-            salt:{low:3200,ok:3600,high:3800,label:"Salt",unit:" ppm"},
-            cya:{low:60,ok:80,high:90,label:"CYA",unit:" ppm"},
-            alkalinity:{low:80,ok:120,high:140,label:"TA",unit:" ppm"},
-          };
-          const r = ranges[key]; if(!r) return null;
-          if(key==="ph"){
-            if(v<7.0||v>8.5) return {color:COLORS.red, text:`Extreme — target 7.4–7.6`};
-            if(v<7.4) return {color:COLORS.amber, text:`Low — target 7.4–7.6`};
-            if(v>7.6&&v<=7.8) return {color:COLORS.amber, text:`Elevated — target 7.4–7.6`};
-            if(v>7.8) return {color:COLORS.red, text:`High — add acid`};
-            return {color:COLORS.green, text:`Good (7.4–7.6)`};
-          }
-          if(key==="cc"){
-            if(v===0) return {color:COLORS.green, text:"None — ideal"};
-            if(v<=0.2) return {color:COLORS.green, text:"Trace — acceptable"};
-            if(v<=0.5) return {color:COLORS.amber, text:"Watch — consider raising FC"};
-            return {color:COLORS.red, text:"Elevated — chloramines present"};
-          }
-          if(key==="free_chlorine"){
-            const cyaVal = form.cya ? +form.cya : (last?.cya||60);
-            const minFC = Math.round(cyaVal/10);
-            if(v<minFC) return {color:COLORS.red, text:`Below min for CYA ${cyaVal} (need ≥${minFC})`};
-            if(v>8) return {color:COLORS.amber, text:"High — lower SWG"};
-            return {color:COLORS.green, text:`Good (≥${minFC} ppm for CYA ${cyaVal})`};
-          }
-          if(v<r.low||v>r.high) return {color:COLORS.red, text:`Out of range — target: ${r.low}–${r.ok} ${r.unit.trim()}`};
-          if(v>r.ok) return {color:COLORS.amber, text:`Slightly high`};
-          return {color:COLORS.green, text:"Good"};
-        }
-        function FieldRow({label, fieldKey, step, placeholder, fullWidth}) {
-          const val = form[fieldKey];
-          const status = fieldStatus(fieldKey, val);
-          return(
-            <div style={{marginBottom:14}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                <label style={{...S.label,marginBottom:0,fontSize:14}}>{label}</label>
-                {status&&<span style={{fontSize:12,color:status.color,fontWeight:600}}>{status.text}</span>}
-              </div>
-              <input type="number" step={step||"any"} style={{...S.input,marginBottom:0,borderColor:status?status.color+"66":"#2d3f5c"}} placeholder={placeholder||""} value={val!==undefined?val:""} onChange={e=>setForm(p=>({...p,[fieldKey]:e.target.value}))}/>
-            </div>
-          );
-        }
-        const [showOptional,setShowOptional] = React.useState(!!editItem);
-        const [showDateTime,setShowDateTime] = React.useState(!!editItem);
-        const fcPpm = useDrops&&form.free_chlorine ? (+form.free_chlorine*0.5).toFixed(1) : null;
-        return(
-          <Modal title={editItem?"Edit Reading":"Log Pool Reading"} onClose={closeLog}>
-            {/* Date/time — hidden by default */}
-            <button onClick={()=>setShowDateTime(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"left",marginBottom:12,fontSize:13}}>
-              📅 {showDateTime?"Hide":"Change"} date/time — {form.date||TODAY_STR} {form.time||new Date().toTimeString().slice(0,5)}
-            </button>
-            {showDateTime&&(
-              <div style={{...S.row,marginBottom:4}}>
-                <div style={S.col}><label style={S.label}>Date</label><input type="date" style={S.input} value={form.date||""} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/></div>
-                <div style={{flex:"0 0 110px"}}><label style={S.label}>Time</label><input type="time" style={S.input} value={form.time||new Date().toTimeString().slice(0,5)} onChange={e=>setForm(p=>({...p,time:e.target.value}))}/></div>
-              </div>
-            )}
-            {/* FC with K-2006 toggle */}
-            <div style={{display:"flex",gap:6,marginBottom:8}}>
-              <span style={S.chip(!useDrops,COLORS.blue)} onClick={()=>setUseDrops(false)}>Enter ppm</span>
-              <span style={S.chip(useDrops,COLORS.purple)} onClick={()=>setUseDrops(true)}>K-2006 drops</span>
-            </div>
-            <FieldRow label={useDrops?"Free Chlorine (drops)":"Free Chlorine"} fieldKey="free_chlorine" step="0.5" placeholder={useDrops?"e.g. 11 drops":"e.g. 5.5"}/>
-            {fcPpm&&<div style={{fontSize:12,color:COLORS.purple,marginTop:-10,marginBottom:12}}>= {fcPpm} ppm FC</div>}
-            <FieldRow label="CC (Combined Chlorine)" fieldKey="cc" step="0.5" placeholder="0"/>
+      {showLog&&<Modal title={editItem?"Edit Reading":"Log Pool Reading"} onClose={closeLog}>
+        <button onClick={()=>setShowDateTime(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"left",marginBottom:12,fontSize:13}}>
+          📅 {showDateTime?"Hide date/time ▲":"Change date/time ▼"} — {form.date||TODAY_STR} {form.time||new Date().toTimeString().slice(0,5)}
+        </button>
+        {showDateTime&&(
+          <div style={{...S.row,marginBottom:4}}>
+            <div style={S.col}><label style={S.label}>Date</label><input type="date" style={S.input} value={form.date||""} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/></div>
+            <div style={{flex:"0 0 110px"}}><label style={S.label}>Time</label><input type="time" style={S.input} value={form.time||new Date().toTimeString().slice(0,5)} onChange={e=>setForm(p=>({...p,time:e.target.value}))}/></div>
+          </div>
+        )}
+        <div style={{display:"flex",gap:6,marginBottom:8}}>
+          <span style={S.chip(!useDrops,COLORS.blue)} onClick={()=>setUseDrops(false)}>Enter ppm</span>
+          <span style={S.chip(useDrops,COLORS.purple)} onClick={()=>setUseDrops(true)}>K-2006 drops</span>
+        </div>
+        <PoolFieldRow label={useDrops?"Free Chlorine (drops)":"Free Chlorine"} fieldKey="free_chlorine" step="0.5" placeholder={useDrops?"e.g. 11 drops":"e.g. 5.5"}/>
+        {useDrops&&form.free_chlorine&&<div style={{fontSize:12,color:COLORS.purple,marginTop:-10,marginBottom:12}}>= {(+form.free_chlorine*0.5).toFixed(1)} ppm FC</div>}
+        <PoolFieldRow label="CC (Combined Chlorine)" fieldKey="cc" step="0.5" placeholder="0"/>
+        <div style={S.row}>
+          <div style={S.col}><PoolFieldRow label="pH" fieldKey="ph" step="0.1"/></div>
+          <div style={S.col}><PoolFieldRow label="Salt (ppm)" fieldKey="salt" placeholder="3200–3600"/></div>
+        </div>
+        <button onClick={()=>setShowOptionalFields(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"left",marginBottom:12,fontSize:13}}>
+          {showOptionalFields?"▲ Hide optional fields":"▼ More fields — CYA, TA, Calcium, Temp, PSI, SWG, Pump"}
+        </button>
+        {showOptionalFields&&(
+          <>
             <div style={S.row}>
-              <div style={S.col}><FieldRow label="pH" fieldKey="ph" step="0.1"/></div>
-              <div style={S.col}><FieldRow label="Salt (ppm)" fieldKey="salt" placeholder="3200–3600"/></div>
+              <div style={S.col}><PoolFieldRow label="CYA (ppm)" fieldKey="cya" placeholder="60–80"/></div>
+              <div style={S.col}><PoolFieldRow label="TA (ppm)" fieldKey="alkalinity" placeholder="80–120"/></div>
             </div>
-            {/* Optional fields */}
-            <button onClick={()=>setShowOptional(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"left",marginBottom:12,fontSize:13}}>
-              {showOptional?"▲ Hide":"▼ More fields"} — CYA, TA, Calcium, Temp, PSI, SWG, Pump
-            </button>
-            {showOptional&&(
-              <>
-                <div style={S.row}>
-                  <div style={S.col}><FieldRow label="CYA (ppm)" fieldKey="cya" placeholder="60–80"/></div>
-                  <div style={S.col}><FieldRow label="TA (ppm)" fieldKey="alkalinity" placeholder="80–120"/></div>
-                </div>
-                <div style={S.row}>
-                  <div style={S.col}><label style={S.label}>Calcium (ppm)</label><input type="number" style={S.input} placeholder="150–250" value={form.calcium_hardness||""} onChange={e=>setForm(p=>({...p,calcium_hardness:e.target.value}))}/></div>
-                  <div style={S.col}><label style={S.label}>Water Temp (°F)</label><input type="number" style={S.input} value={form.water_temp||""} onChange={e=>setForm(p=>({...p,water_temp:e.target.value}))}/></div>
-                </div>
-                <div style={S.row}>
-                  <div style={S.col}><label style={S.label}>Filter PSI</label><input type="number" style={S.input} value={form.filter_pressure||""} onChange={e=>setForm(p=>({...p,filter_pressure:e.target.value}))}/></div>
-                  <div style={S.col}><label style={S.label}>SWG (%)</label><input type="number" style={S.input} value={form.swg_setting||""} onChange={e=>setForm(p=>({...p,swg_setting:e.target.value}))}/></div>
-                </div>
-                <div style={S.row}>
-                  <div style={S.col}><label style={S.label}>Pump Hrs/Day</label><input type="number" style={S.input} value={form.pump_hours||""} onChange={e=>setForm(p=>({...p,pump_hours:e.target.value}))}/></div>
-                  <div style={S.col}/>
-                </div>
-              </>
-            )}
-            <label style={S.label}>Notes</label>
-            <input style={S.input} value={form.notes||""} placeholder="Rain? Lots of swimmers? Treatments done?" onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
-            <button style={{...S.btn,marginTop:4}} onClick={saveReading}>{editItem?"Save Changes":"Save Reading"}</button>
-          </Modal>
-        );
-      })()}
+            <div style={S.row}>
+              <div style={S.col}><label style={S.label}>Calcium (ppm)</label><input type="number" style={S.input} placeholder="150–250" value={form.calcium_hardness||""} onChange={e=>setForm(p=>({...p,calcium_hardness:e.target.value}))}/></div>
+              <div style={S.col}><label style={S.label}>Water Temp (°F)</label><input type="number" style={S.input} value={form.water_temp||""} onChange={e=>setForm(p=>({...p,water_temp:e.target.value}))}/></div>
+            </div>
+            <div style={S.row}>
+              <div style={S.col}><label style={S.label}>Filter PSI</label><input type="number" style={S.input} value={form.filter_pressure||""} onChange={e=>setForm(p=>({...p,filter_pressure:e.target.value}))}/></div>
+              <div style={S.col}><label style={S.label}>SWG (%)</label><input type="number" style={S.input} value={form.swg_setting||""} onChange={e=>setForm(p=>({...p,swg_setting:e.target.value}))}/></div>
+            </div>
+            <div style={S.row}>
+              <div style={S.col}><label style={S.label}>Pump Hrs/Day</label><input type="number" style={S.input} value={form.pump_hours||""} onChange={e=>setForm(p=>({...p,pump_hours:e.target.value}))}/></div>
+              <div style={S.col}/>
+            </div>
+          </>
+        )}
+        <label style={S.label}>Notes</label>
+        <input style={S.input} value={form.notes||""} placeholder="Rain? Lots of swimmers? Treatments done?" onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
+        <button style={{...S.btn,marginTop:4}} onClick={saveReading}>{editItem?"Save Changes":"Save Reading"}</button>
+      </Modal>}
       {showMaint&&<Modal title={editItem?"Edit Entry":"Log Pool Entry"} onClose={closeMaint}>
         <label style={S.label}>Date</label>
         <input type="date" style={S.input} value={form.date||form.last_completed||""} onChange={e=>setForm(p=>({...p,date:e.target.value,last_completed:e.target.value}))}/>
