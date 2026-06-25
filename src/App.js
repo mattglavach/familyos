@@ -1891,88 +1891,147 @@ Keep the ENTIRE brief under 150 words total. Bullets only, no exceptions.`;
 
 // - TREATMENT LOG MODAL -
 function TreatmentLogModal({last, recs, onSave, onClose}) {
-  const [checked,setChecked]   = useState({});
-  const [details,setDetails]   = useState({});
-  const [custom,setCustom]     = useState([]);
-  const [saving,setSaving]     = useState(false);
-  const actionItems = recs.filter(r=>r.priority==="high"||r.priority==="med");
-  function toggle(i){
-    setChecked(p=>({...p,[i]:!p[i]}));
-    if(!checked[i] && !details[i]){ setDetails(p=>({...p,[i]:actionItems[i].action})); }
-  }
-  function addCustom(){ setCustom(p=>[...p,{type:"",detail:""}]); }
-  function updateCustom(i,field,val){ setCustom(p=>p.map((c,ci)=>ci===i?{...c,[field]:val}:c)); }
-  function removeCustom(i){ setCustom(p=>p.filter((_,ci)=>ci!==i)); }
-  const COMMON_TREATMENTS = [
-    "Added muriatic acid","Added sodium bicarbonate","Added salt","Added CYA stabilizer",
-    "Added liquid chlorine","Added shock","Brushed walls & floor","Vacuumed",
-    "Cleaned filter cartridge","Cleaned salt cell","Adjusted SWG setting",
-    "Backwashed","Checked flow switch","Added algaecide","Other",
+  // Build pre-filled rows from active recs
+  // Each row: { id, label, detail, value (editable), color, active }
+  const recRows = recs
+    .filter(r=>r.priority==="high"||r.priority==="med")
+    .map((r,i)=>({
+      id:"rec_"+i,
+      label:r.action,
+      detail:r.detail,
+      value:r.action,  // editable, pre-filled
+      color:r.color,
+      param:r.param,
+      active:true,
+    }));
+
+  const QUICK = [
+    "Brushed walls & floor",
+    "Vacuumed",
+    "Cleaned skimmer basket",
+    "Cleaned filter cartridge",
+    "Cleaned salt cell",
+    "Checked flow switch",
+    "Added algaecide",
+    "Inspected O-rings",
+    "Water level topped up",
   ];
-  const checkedItems = actionItems.filter((_,i)=>checked[i]);
-  const validCustom  = custom.filter(c=>c.detail.trim().length>0);
-  const hasAnything  = checkedItems.length>0 || validCustom.length>0;
-  async function save(){
+
+  const [rows, setRows] = useState(recRows);
+  const [freeText, setFreeText] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  function toggleRow(id) {
+    setRows(prev => prev.map(r => r.id===id ? {...r, active:!r.active} : r));
+  }
+  function updateRowValue(id, val) {
+    setRows(prev => prev.map(r => r.id===id ? {...r, value:val} : r));
+  }
+  function addQuick(label) {
+    const id = "quick_"+Date.now();
+    setRows(prev => [...prev, {id, label, value:label, color:COLORS.slate, active:true, quick:true}]);
+  }
+  function addFree() {
+    if(!freeText.trim()) return;
+    const id = "free_"+Date.now();
+    setRows(prev => [...prev, {id, label:freeText.trim(), value:freeText.trim(), color:COLORS.slate, active:true, free:true}]);
+    setFreeText("");
+  }
+  function removeRow(id) {
+    setRows(prev => prev.filter(r => r.id!==id));
+  }
+
+  const activeRows = rows.filter(r=>r.active && r.value.trim());
+  const hasAnything = activeRows.length > 0;
+
+  // Which quick items are already in rows
+  const addedQuick = new Set(rows.filter(r=>r.quick||r.free).map(r=>r.label));
+
+  async function save() {
     setSaving(true);
-    const lines = [
-      `Treatment   ${new Date().toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})}`,
-      `Chemistry: FC=${last?.free_chlorine??' '}, pH=${last?.ph??' '}, Salt=${last?.salt??' '}, CYA=${last?.cya??' '}`,
-      ...checkedItems.map((_,idx)=>{ const origIdx = actionItems.indexOf(checkedItems[idx]); return details[origIdx]||actionItems[origIdx].action; }),
-      ...validCustom.map(c=>c.type?`${c.type}: ${c.detail}`:c.detail),
-    ];
-    await onSave(lines.filter(Boolean).join(' | '));
+    const time = new Date().toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
+    const parts = activeRows.map(r=>r.value.trim()).filter(Boolean);
+    const note = time + " -- " + parts.join(" - ");
+    await onSave(note);
     setSaving(false);
     onClose();
   }
+
   return(
     <Modal title="Log Treatment" onClose={onClose}>
-      <div style={{fontSize:15,color:COLORS.slate,marginBottom:14,lineHeight:1.5}}>Check what you did. Edit the description to match exactly what you actually used or adjusted.</div>
-      {actionItems.length>0&&<>
-        <div style={{fontSize:15,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>Recommended Actions</div>
-        {actionItems.map((r,i)=>(
-          <div key={i} style={{...S.card,borderLeft:`3px solid ${checked[i]?COLORS.green:r.color}`,marginBottom:10,padding:"12px 14px"}}>
-            <div style={{display:"flex",gap:10,alignItems:"flex-start"}} onClick={()=>toggle(i)}>
-              <div style={{width:20,height:20,borderRadius:6,border:`2px solid ${checked[i]?COLORS.green:COLORS.slate}`,background:checked[i]?COLORS.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1,cursor:"pointer"}}>
-                {checked[i]&&<span style={{color:"#fff",fontSize:15,lineHeight:1}}> </span>}
-              </div>
-              <div style={{flex:1}}>
-                <div style={{fontSize:15,fontWeight:600,color:checked[i]?COLORS.white:COLORS.slateLight}}>{r.icon} {r.action}</div>
-                {!checked[i]&&<div style={{fontSize:15,color:COLORS.slate,marginTop:2,lineHeight:1.4}}>{r.detail}</div>}
-              </div>
-            </div>
-            {checked[i]&&(
-              <div style={{marginTop:10}}>
-                <label style={{...S.label,marginBottom:10}}>What you actually did</label>
-                <input style={{...S.input,marginBottom:0,fontSize:15}} value={details[i]||""} placeholder="e.g. Added 10 oz muriatic acid" onChange={e=>setDetails(p=>({...p,[i]:e.target.value}))}/>
-              </div>
-            )}
+
+      {/* Chemistry snapshot */}
+      <div style={{background:COLORS.navyLight,borderRadius:10,padding:"10px 14px",marginBottom:16,display:"flex",gap:16}}>
+        {[["FC",last?.free_chlorine],["pH",last?.ph],["Salt",last?.salt],["CYA",last?.cya]].map(([k,v])=>(
+          <div key={k} style={{textAlign:"center"}}>
+            <div style={{fontSize:16,fontWeight:700,color:v!=null?COLORS.white:COLORS.slate}}>{v!=null?v:"--"}</div>
+            <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{k}</div>
           </div>
         ))}
-      </>}
-      <div style={{fontSize:15,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginTop:14,marginBottom:10}}>Additional Treatments</div>
-      {custom.map((c,i)=>(
-        <div key={i} style={{...S.card,marginBottom:10,padding:"12px 14px"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-            <label style={{...S.label,marginBottom:0}}>Treatment type</label>
-            <button onClick={()=>removeCustom(i)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:15,padding:0}}> </button>
-          </div>
-          <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>
-            {COMMON_TREATMENTS.map(t=>(
-              <span key={t} style={S.chip(c.type===t,COLORS.blue)} onClick={()=>updateCustom(i,"type",c.type===t?"":t)}>{t}</span>
-            ))}
-          </div>
-          <label style={S.label}>Details / amount</label>
-          <input style={{...S.input,marginBottom:0,fontSize:15}} placeholder="e.g. 2 lbs, raised SWG from 40% to 50%" value={c.detail} onChange={e=>updateCustom(i,"detail",e.target.value)}/>
+      </div>
+
+      {/* Treatment rows */}
+      {rows.length>0&&(
+        <div style={{marginBottom:16}}>
+          {rows.map(r=>(
+            <div key={r.id} style={{marginBottom:8,borderRadius:12,border:"1px solid "+(r.active?r.color+"44":COLORS.navyLight),background:r.active?r.color+"0d":COLORS.navyLight,padding:"10px 12px",opacity:r.active?1:0.5}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:r.active?8:0}}>
+                {/* Toggle checkbox */}
+                <div onClick={()=>toggleRow(r.id)} style={{width:20,height:20,borderRadius:6,border:"2px solid "+(r.active?r.color:COLORS.slate),background:r.active?r.color:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer"}}>
+                  {r.active&&<span style={{color:"#fff",fontSize:11,fontWeight:700,lineHeight:1}}>v</span>}
+                </div>
+                <div style={{flex:1,fontSize:14,fontWeight:600,color:r.active?COLORS.white:COLORS.slate,lineHeight:1.3}}>{r.label}</div>
+                {(r.quick||r.free)&&<button onClick={()=>removeRow(r.id)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:16,padding:0,lineHeight:1}}>x</button>}
+              </div>
+              {r.active&&(
+                <>
+                  {r.detail&&<div style={{fontSize:12,color:COLORS.slate,marginBottom:8,marginLeft:30,lineHeight:1.4}}>{r.detail}</div>}
+                  <input
+                    style={{...S.input,marginBottom:0,fontSize:14,marginLeft:0,borderColor:r.color+"66"}}
+                    value={r.value}
+                    placeholder="What you actually did..."
+                    onChange={e=>updateRowValue(r.id,e.target.value)}
+                  />
+                </>
+              )}
+            </div>
+          ))}
         </div>
-      ))}
-      <button onClick={addCustom} style={{...S.btnSm,width:"100%",marginBottom:12}}>+ Add Treatment</button>
-      <button style={{...S.btn,background:hasAnything?COLORS.green:COLORS.slate}} onClick={save} disabled={saving||!hasAnything}>
-        {saving?"Saving ":"Log Treatment"}
+      )}
+
+      {/* Quick-add chips */}
+      <div style={{fontSize:12,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8}}>Add Treatment</div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
+        {QUICK.filter(q=>!rows.some(r=>r.label===q)).map(q=>(
+          <span key={q} style={{...S.chip(false,COLORS.slate),fontSize:12,padding:"4px 10px",marginBottom:0}} onClick={()=>addQuick(q)}>+ {q}</span>
+        ))}
+      </div>
+
+      {/* Free text entry */}
+      <div style={{display:"flex",gap:8,marginBottom:16}}>
+        <input
+          style={{...S.input,marginBottom:0,flex:1,fontSize:14}}
+          placeholder="Other treatment..."
+          value={freeText}
+          onChange={e=>setFreeText(e.target.value)}
+          onKeyDown={e=>{if(e.key==="Enter")addFree();}}
+        />
+        <button onClick={addFree} style={{...S.btnSm,flexShrink:0,fontSize:13}}>Add</button>
+      </div>
+
+      <button
+        style={{...S.btn,background:hasAnything?COLORS.green:COLORS.slate,marginTop:0}}
+        onClick={save}
+        disabled={saving||!hasAnything}
+      >
+        {saving?"Saving...":"Log "+activeRows.length+" Treatment"+(activeRows.length===1?"":"s")}
       </button>
-      {!hasAnything&&<div style={{fontSize:15,color:COLORS.slate,textAlign:"center",marginTop:10}}>Check an item or add a treatment above</div>}
+
+      {!hasAnything&&<div style={{fontSize:13,color:COLORS.slate,textAlign:"center",marginTop:10}}>Check an item above or add a treatment</div>}
     </Modal>
   );
 }
+
 
 // - POOL -
 function Pool(){
