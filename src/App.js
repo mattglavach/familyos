@@ -1849,7 +1849,7 @@ Keep the ENTIRE brief under 150 words total. Bullets only, no exceptions.`;
   async function shareExport() {
     const last = readings[0];
     const recentSummary = readings.slice(0,5).map(r =>
-      `${r.date}: FC ${r.free_chlorine??'—'} ppm, pH ${r.ph??'—'}, Salt ${r.salt??'—'} ppm, CYA ${r.cya??'—'} ppm, TA ${r.alkalinity??'—'} ppm${r.notes?\` — ${r.notes}\`:''}`
+            `${r.date}: FC ${r.free_chlorine??'—'} ppm, pH ${r.ph??'—'}, Salt ${r.salt??'—'} ppm, CYA ${r.cya??'—'} ppm, TA ${r.alkalinity??'—'} ppm${r.notes ? " — " + r.notes : ""}`
     ).join('\n');
     const exportText = `FAMILYOS POOL BRIEF\n${new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}\n\n${displayedBrief}\n\n---\nRECENT READINGS\n${recentSummary}`;
     if (navigator.share) {
