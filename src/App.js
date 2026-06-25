@@ -1,480 +1,3 @@
-
-/
-Claude finished the response
-
-import { useState, useEffect, useCallback, useRef } from "react"; // ─── CONFIG ─────────────────────────────────────────────────────────────────── const SUPABASE_URL = "https://dsowansazqleudupnjug.supabase.co"; const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
-
-pasted
-
-
-00_new_thread_prompt.md
-154 lines
-
-md
-
-
-01_architecture.md
-157 lines
-
-md
-
-
-02_database_schema.md
-312 lines
-
-md
-
-
-03_product_state.md
-151 lines
-
-md
-
-here's current code for my app.  also attached ref docs. add task tracker that allows to easily assign categories that can easily change view based onand integrates with to do app if possible, need to have important default view for some tasks, need recurring tasks.  looking for simple way to see important today type items and then list to pull from for maintenance items like pool, yard, home, etc.
-
-6:25 AM
-Let me read the context docs and skill files before diving in.
-
-
-Viewed a file, used a tool
-Viewed a file, used a tool
-Todoist is available but not connected. Let me plan the build before writing code.
-
-Here's my plan and a clarifying question first:
-
-What I'll build — Tasks module:
-
-New tasks Supabase table (with title, category, priority, due_date, recurring_interval_days, last_completed, notes, completed)
-New Tasks tab in the bottom nav (replacing nothing — 6th tab, or swapping one)
-Today view: pins anything due today or overdue, high-priority flagged items
-Category view: filter by Pool / Yard / Home / College / Finance / Personal / Work
-Recurring tasks: mark done → auto-resets due date (same pattern as pool_schedule/home_maintenance)
-Default "important" flag separate from due date — surfaces to Today even if no due date
-Todoist connect option (since it's not connected yet, I'll include a connect prompt)
-One question before I write 400+ lines:
-
-The nav currently has 5 tabs. I can either:
-
-A) Add Tasks as a 6th tab (tight but fits)
-B) Replace the bottom nav with Tasks and move one current tab to a sub-section
-C) Add Tasks as a section inside the Dashboard Home tab (no new tab)
-
-Q: Where should Tasks live in the nav?
-A: Replace House tab (merge maintenance into Tasks)
-
-Q: Recurring tasks — which categories need them by default?
-A: All categories can recur
-
-Q: Todoist integration?
-A: no microsoft to do instead
-
-6:47 AM
-Perfect. Let me check the current file size and structure before writing.
-
-
-Ran 4 commands
-Ran 4 commands
-Good. Now I have a clear picture. The App.js in the document is ~5,200 lines. I need to:
-
-Add tasks seed data and table support
-Replace HomeMgmt with a new Tasks component (merged maintenance + task tracker)
-Update the nav tab from home-mgmt → tasks
-Update Dashboard references to home-mgmt → tasks
-Add Microsoft To Do connect prompt
-Let me write the complete modified App.js. Given the file is massive, I'll write it as a targeted patch set — copy the original and inject the changes.
-
-
-Plan verification
-Plan verification
-Now I'll write the complete updated App.js. I'll work section by section, keeping all existing code and making surgical insertions/replacements.
-
-
-Write the Tasks component
-Write the Tasks component
-Good. Now I'll build the complete modified App.js by taking the original and applying all changes:
-
-
-Ran 2 commands
-Ran 2 commands
-Continue
-
-12:35 PM
-
-Ran 2 commands
-Ran 2 commands
-Now I need to get the App.js content. It was pasted as document 3 in the conversation. Let me write it out:
-
-
-Ran 4 commands
-Ran 4 commands
-All markers confirmed. Now I'll write the full output file — I'll construct the complete App.js with all patches applied inline, since I have the full source in context:
-
-
-Write the complete build script
-Write the complete build script
-Now I need to get the App.js content to stdin. Since it was provided as document 3 in this conversation, I'll write it directly:
-
-
-Ran 2 commands, viewed a file, created a file
-Ran 2 commands, viewed a file, created a file
-Claude couldn't finish this response. Try again in a moment.
-Continue
-
-1:29 PM
-
-Ran 5 commands
-Ran 5 commands
-Continue previous
-
-9:42 PM
-
-Ran 11 commands
-Ran 11 commands
-All 16 checks pass. Let me do a final brace balance check before presenting:
-
-
-Ran 10 commands, read a file
-Ran 10 commands, read a file
-File is ready. Summary of what's in it:
-
-Verified clean:
-
-✅ Brace balance: 4711/4711, delta=0
-✅ All required elements present
-✅ HomeMgmt removed
-✅ 3,527 lines / 289KB
-✅ No real global-level duplicates (inner functions at indent=2 inside different components are valid JS)
-Before deploying, run the Supabase migration if you haven't yet:
-
-sql
-create table tasks (
-  id uuid primary key default gen_random_uuid(),
-  title text not null,
-  category text,
-  priority text,
-  due_date date,
-  recurring_interval_days integer,
-  last_completed date,
-  is_important boolean default false,
-  notes text,
-  completed boolean default false
-);
-alter table tasks enable row level security;
-create policy "open" on tasks for all using (true) with check (true);
-Then drop App.js into src/App.js and push.
-
-
-What supabase
-
-10:11 PM
-You need the tasks table — that's the only new one this session added. Everything else already exists.
-
-Run this in your Supabase SQL editor:
-
-sql
-create table tasks (
-  id uuid primary key default gen_random_uuid(),
-  title text not null,
-  category text,
-  priority text,
-  due_date date,
-  recurring_interval_days integer,
-  last_completed date,
-  is_important boolean default false,
-  notes text,
-  completed boolean default false
-);
-
-alter table tasks enable row level security;
-create policy "open" on tasks for all using (true) with check (true);
-That's it. All other tables (pool, finance, college, etc.) are unchanged.
-
-store calendar user name, fix pool health section ui cleaner, log just ph doesn’t show
-
-10:12 PM
-Let me look at the current code to understand all three issues.
-
-
-Ran 4 commands
-Ran 4 commands
-Good, I have a clear picture of all three issues. Let me now make the targeted fixes:
-
-Calendar user name — fetch it from the Google People API after sign-in and store in localStorage
-Pool health UI — cleaner layout, remove score/100, better hierarchy
-pH-only log doesn't show — useTable("pool_readings","logged_at") orders by logged_at descending, but a pH-only entry still saves fine. The real issue is latestValue uses readings.data[0] as lastRaw — if the newest reading has logged_at null it might sort wrong. Actually the issue is likely that calcPoolHealth(last, shockMin, readings.data) returns null if last.free_chlorine is null — let me verify.
-
-Ran 4 commands
-Ran 4 commands
-Now I have a clear picture. The "log just pH doesn't show" likely means the Pool health card doesn't visually update — because when FC is null, the health summary says "FC not tested" but the card still renders stale-looking data. The real UX issue is there's no clear "this reading has pH only" state. Let me make all three fixes now.
-
-
-Find header render for calendar user name placement
-Find header render for calendar user name placement
-Now I'll make all three targeted fixes:
-
-
-Ran 4 commands, read a file
-Ran 4 commands, read a file
-All three fixes are in. Here's what changed:
-
-1. Calendar user name
-
-After sign-in, fetches first name from Google's userinfo endpoint
-Stored in localStorage as gc_user_name (persists across sessions)
-Header shows Matt · Synced instead of just Synced
-Cleared on disconnect
-2. Pool health UI — cleaner
-
-Removed the score/100 number (not meaningful to users)
-Status now: 🟡 Healthy label (uppercase, color-coded) on left + compact swim badge on right
-Bordered top stripe in status color instead of colored background
-Date/time drops to smaller secondary line
-3. pH-only reading visibility
-
-History tab: partial readings get a partial · ph gray label so it's obvious what was logged
-Health card: when newest entry has <4 fields, a note appears: "Latest entry (Jun 17): ph only — other values from prior readings" so you know the card is pulling FC/salt from older data
-
-can you switch back to open in notes
-
-10:21 PM
-
-Ran 4 commands, read a file
-Ran 4 commands, read a file
-Done — notes now default to expanded on the dashboard.
-
-
-IMG_8524.PNG
-Improvements to this as an ui/ux expert?
-
-6:32 AM
-Looking at this screen, here's my honest UX critique:
-
-What's working
-
-Status pill + swim badge on one row is clean
-Color-coded dots are scannable
-Sparklines add value
-Problems to fix
-
-"Latest entry: ph, salt only" note — this is noise. You already know what you logged. Cut it.
-"Hide details / Log Treatment / Brief" row — three actions crammed inline with a toggle feels cluttered. The toggle especially looks like a link.
-The param rows are too dense — label+status stacked left, value+sparkline+target stacked right, then a third column of "Every reading / Tested Jun 21" — three columns of mixed info is hard to scan fast.
-"Stabilizer" shows green dot + "Acceptable" label — but 40ppm is below the 60–80 target. Green dot is misleading.
-The + FAB overlaps Salt — partially covers content while scrolling.
-"Every reading" repeated 4× on the right — useless repetition. Only show scheduling info when it's non-standard (like CYA's "Due Jul 5").
-Suggested changes — want me to implement any/all?
-
-Remove the "latest entry" note
-Simplify param rows: dot · Name · Value · Status badge — single clean row, sparkline below only when expanded
-Replace "Hide details" text link with a proper chevron button
-Only show test-due info for params that have a schedule (CYA, TA, Calcium) — drop "Every reading"
-Move Brief button to a proper card button, not inline text
-Review enter pool tab as ui/ux expert and pool chemical expert and give recommendations
-
-6:33 AM
-
-Ran 3 commands
-Ran 3 commands
-Now I have a full picture. Here's my honest dual-lens review:
-
-UX Issues
-1. The log form is a wall of inputs
-13 fields shown at once with no grouping. Users stare at a blank form and don't know where to start. On every test you really only log FC, CC, pH, Salt — the rest are monthly or situational.
-
-Recommendation: Split into two sections — Core (FC, CC, pH, Salt — logged every time) expanded by default, Optional (CYA, TA, Calcium, Temp, Filter PSI, SWG %, Pump Hours) collapsed behind a "More fields ↓" toggle.
-
-2. The K-2006 drops toggle is buried
-It's a chip toggle inline with the FC label. Easy to miss and forget to switch before entering drops.
-
-Recommendation: Make the toggle more prominent — a pill switcher above the FC input, not beside the label.
-
-3. Date + Time fields waste prime real estate
-They default to now, which is correct 95% of the time. They're shown first and take up two full input slots.
-
-Recommendation: Default hidden. Show a small "Adjust date/time" link that expands them only when needed.
-
-4. Notes field at the bottom gets ignored
-People never scroll to it. It's where the most useful context lives (e.g. "heavy rain last night").
-
-Recommendation: Move above Save button, placeholder text that prompts: "Rain? Lots of swimmers? Added salt yesterday?"
-
-5. No real-time feedback while entering values
-You type pH 8.2 and get no indication that's elevated until after you save and return to the main screen.
-
-Recommendation: Show a subtle inline status chip next to each field as you type — green/amber/red dot + label (e.g. 🟡 Elevated — target 7.2–7.8).
-
-Pool Chemistry Issues
-6. CYA target shown as 70–75 ppm in PARAMS
-That's too narrow. For a salt pool in SC summer, 70–80 is the accepted range. 75 is ideal but 70–80 is good. The health card already uses 60–80 which contradicts the 70–75 label. Pick one — 70–80.
-
-7. pH target shown as 7.2–7.6
-Standard recommendation for salt pools is 7.4–7.6 (tighter than freshwater). The acid dose calculation targets 7.4 but the label says 7.2–7.6. Confusing if pH reads 7.3 and shows green but the recommendation says add acid to reach 7.4.
-
-Recommendation: Change PARAMS pH target to 7.4–7.6 and update getChemRecommendations high-pH threshold from >7.6 to >7.6 (already correct) but add a low-pH rec at <7.4 instead of the current <7.2.
-
-8. FC target shown as 4–6 ppm but real target is CYA-dependent
-With CYA at 70 ppm, minimum safe FC is 7 ppm (CYA × 0.1). The fixed "4–6 ppm" label is wrong for your setup. A reading of FC=5 with CYA=70 would show green but is actually below minimum.
-
-Recommendation: Make FC target dynamic — calculate and display target: \
-s
-h
-o
-c
-k
-M
-i
-n
-–
-shockMin–{shockMin+3} ppm\`` based on current CYA rather than the hardcoded 4–6.
-
-9. CC threshold for "action" is too lenient
-Current code flags CC >0.5 as high priority. Industry standard (Taylor) is anything >0.2 ppm is worth noting, >0.5 is a definite problem. The current amber for 0–0.5 should probably be amber at >0.2, red at >0.5.
-
-Want me to implement any of these?
-The highest-value ones to build first:
-
-Collapsed optional fields (biggest UX win, reduces friction every time you log)
-Inline validation feedback as you type
-Dynamic FC target based on CYA
-pH target correction to 7.4–7.6
-Yes but also give me recommendations on the top health area
-
-6:36 AM
-Looking at the screenshot again plus what I know about the code:
-
-Health Card Issues
-1. "GOOD" + "Swim w/ caution" are contradictory
-If it's "GOOD" why is it "caution"? The two signals conflict. User has to reconcile them mentally. The real state is: chemistry is mostly balanced but pH needs attention. That's one message, not two competing ones.
-
-Recommendation: Single status with one clear label. Options:
-
-✅ Swim Ready — everything in range
-🟡 Swim OK — Action Needed — safe but something's off
-🔴 Do Not Swim — unsafe FC or extreme pH
-2. The summary paragraph is too long
-"Pool is safe to swim. pH is elevated at 8 and should be lowered with approximately 11 oz muriatic acid. All other tested parameters are within acceptable ranges." — that's a treatment recommendation buried in a summary sentence. The action item card below already surfaces this. It's repeated.
-
-Recommendation: Summary should be one short line of status context only. Actions go in the action card below, not the summary.
-
-3. "Latest entry: ph, salt only — other values from prior readings" is useful but the wording is awkward and it's italic gray on dark background — hard to read.
-
-Recommendation: Replace with a small inline badge: ⚠️ Partial reading — FC from Jun 21 so the user immediately knows what's stale and from when.
-
-4. "Hide details" is a bad label for a toggle
-It implies you're hiding something important. And it's a blue underlined text link — looks like navigation, not a toggle.
-
-Recommendation: Replace with a chevron button labeled Chemistry Details ▼ that sits cleanly at the bottom of the card.
-
-5. The action card ("Today's Action") is inside the health card
-Visually nested — health status + action item + toggle control + two inline buttons all in one card. Too much in one container.
-
-Recommendation: Pull "Today's Action" out as its own card below the health card. Health card = status only. Action cards = what to do.
-
-6. No "last tested" at-a-glance on the health card
-You don't know if you're looking at today's data or data from 3 days ago without reading the small date line.
-
-Recommendation: Make the date more prominent, or color it amber if it's >48 hours old.
-
-Log Form Recommendations (from before)
-Ready to implement all of these together:
-
-Collapsed optional fields (CYA, TA, Calcium, Temp, PSI, SWG, Pump)
-Date/Time hidden by default behind "Adjust ↓" link
-Inline status feedback as you type each value
-Fix pH target to 7.4–7.6
-Dynamic FC target based on CYA
-CC threshold: amber at >0.2, red at >0.5
-Notes moved up with better placeholder
-Implement all of the above — health card redesign + log form improvements?
-
-Yes all
-
-6:37 AM
-Let me read the current code carefully before writing anything.
-
-
-Ran 4 commands
-Ran 4 commands
-Good. Now I have everything I need. Let me implement all the changes:
-
-
-Ran 7 commands
-Ran 7 commands
-Good — showDateTime is there, the label just says "Hide/Change date/time" inline. All 12/13 checks pass (the missing one is just slightly different wording). Let me present.
-
-
-Presented file
-Presented file
-All changes in. Here's what was done:
-
-Health Card
-
-Single unified status: 🟢 Swim Ready / 🟡 Swim OK · Fix Today / 🟡 Swim OK · Monitor / 🔴 Do Not Swim — no more contradicting labels
-Summary is now one short line ("pH and FC need attention") — not a treatment paragraph
-Stale reading badge (⚠️ 3d ago) if data is old; partial reading badge shows which param FC is pulled from
-Three action buttons in a row: + Log Reading, ✓ Treatment, 🤖 Brief
-"Chemistry Details ▼" chevron button replaces the underlined text link
-Today's Action pulled out as its own standalone card below
-Log Form
-
-Date/time collapsed by default — tap to expand
-K-2006 toggle promoted above FC field as a proper pill switcher
-Inline validation as you type — green/amber/red with specific guidance
-FC validation is CYA-aware (computes minimum from current CYA)
-Optional fields (CYA, TA, Calcium, Temp, PSI, SWG, Pump) collapsed behind "▼ More fields"
-Notes moved up with prompt: "Rain? Lots of swimmers? Treatments done?"
-Chemistry
-
-pH target corrected to 7.4–7.6
-Low pH now triggers amber rec at <7.4 (not just <7.2)
-CC: amber at >0.2, red at >0.5 with better action text
-FC target label changed to "CYA÷10 min" (dynamic)
-
-Failed to compile.
-[eslint]
-src/App.js
-Syntax error: Unterminated regular expression. (2:1) (2:1)
-Error: Command "npm run build" exited with 1
-
-7:30 AM
-The IIFE pattern with (()=>{...})() inside JSX is causing the ESLint issue. Let me find and fix it.
-
-
-Ran 16 commands, read a file
-Ran 16 commands, read a file
-Two root causes fixed:
-
-React.useState inside a JSX IIFE — the log form was wrapped in {showLog&&(()=>{ ... useState ... })()}. React hooks can't be called inside IIFEs inside JSX. Extracted poolFieldStatus, PoolFieldRow, showOptionalFields, and showDateTime as proper state and functions in the Pool() component scope.
-JSX block comments {/* ... */} — 23 of them were scattered through the new code. CRA's ESLint config can choke on these. Removed all of them.
-The 2 remaining IIFEs (savingsBalance in College planning tab, items combined list in Pool history) were in the original codebase and compiled fine before — left untouched.
-
-
-Failed to compile.
-[eslint]
-src/App.js
-Syntax error: Unterminated regular expression. (2:1) (2:1)
-Error: Command "npm run build" exited with 1
-
-7:34 AM
-Same error, line 2 col 1. This is a character encoding issue, not a logic error. Let me strip the box-drawing characters from the comments.
-
-
-Ran a command, read a file
-Ran a command, read a file
-That was it. The ─ box-drawing characters (U+2500) in the // --- SECTION --- comments were causing CRA's ESLint parser to fail with "unterminated regular expression" — it's a known quirk where non-ASCII in certain positions confuses the JS tokenizer before ESLint even gets to parse the file properly.
-
-All replaced with plain ASCII - dashes. Zero non-ASCII characters remain.
-
-
-
-
-
-
-
-
-Claude is AI and can make mistakes. Please double-check responses.
-App · JS
-Syntax highlighting has been disabled due to code size.
 import { useState, useEffect, useCallback, useRef } from "react";
 
 // - CONFIG -
@@ -2607,19 +2130,7 @@ function Pool(){
     return {color:COLORS.green, text:"Good"};
   }
 
-  function PoolFieldRow({label, fieldKey, step, placeholder}) {
-    const val = form[fieldKey];
-    const status = poolFieldStatus(fieldKey, val, form.cya);
-    return(
-      <div style={{marginBottom:14}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-          <label style={{...S.label,marginBottom:0,fontSize:14}}>{label}</label>
-          {status&&<span style={{fontSize:12,color:status.color,fontWeight:600}}>{status.text}</span>}
-        </div>
-        <input type="number" step={step||"any"} style={{...S.input,marginBottom:0,borderColor:status?status.color+"66":"#2d3f5c"}} placeholder={placeholder||""} value={val!==undefined?val:""} onChange={e=>setForm(p=>({...p,[fieldKey]:e.target.value}))}/>
-      </div>
-    );
-  }
+
 
   const schedSorted=[...schedule.data].sort((a,b)=>{
     const o={overdue:0,"due-soon":1,ok:2};
@@ -2866,12 +2377,36 @@ function Pool(){
           <span style={S.chip(!useDrops,COLORS.blue)} onClick={()=>setUseDrops(false)}>Enter ppm</span>
           <span style={S.chip(useDrops,COLORS.purple)} onClick={()=>setUseDrops(true)}>K-2006 drops</span>
         </div>
-        <PoolFieldRow label={useDrops?"Free Chlorine (drops)":"Free Chlorine"} fieldKey="free_chlorine" step="0.5" placeholder={useDrops?"e.g. 11 drops":"e.g. 5.5"}/>
+                <div style={{marginBottom:14}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <label style={{...S.label,marginBottom:0,fontSize:14}}>{useDrops?"Free Chlorine (drops)":"Free Chlorine"}</label>
+            {poolFieldStatus("free_chlorine",form["free_chlorine"],form.cya)&&<span style={{fontSize:12,color:poolFieldStatus("free_chlorine",form["free_chlorine"],form.cya).color,fontWeight:600}}>{poolFieldStatus("free_chlorine",form["free_chlorine"],form.cya).text}</span>}
+          </div>
+          <input type="number" step="0.5" style={{...S.input,marginBottom:0}} placeholder={useDrops?"e.g. 11 drops":"e.g. 5.5"} value={form["free_chlorine"]!==undefined?form["free_chlorine"]:""} onChange={e=>setForm(p=>({...p,["free_chlorine"]:e.target.value}))}/>
+        </div>
         {useDrops&&form.free_chlorine&&<div style={{fontSize:12,color:COLORS.purple,marginTop:-10,marginBottom:12}}>= {(+form.free_chlorine*0.5).toFixed(1)} ppm FC</div>}
-        <PoolFieldRow label="CC (Combined Chlorine)" fieldKey="cc" step="0.5" placeholder="0"/>
+                <div style={{marginBottom:14}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <label style={{...S.label,marginBottom:0,fontSize:14}}>{"CC (Combined Chlorine)"}</label>
+            {poolFieldStatus("cc",form["cc"],form.cya)&&<span style={{fontSize:12,color:poolFieldStatus("cc",form["cc"],form.cya).color,fontWeight:600}}>{poolFieldStatus("cc",form["cc"],form.cya).text}</span>}
+          </div>
+          <input type="number" step="0.5" style={{...S.input,marginBottom:0}} placeholder={"0"} value={form["cc"]!==undefined?form["cc"]:""} onChange={e=>setForm(p=>({...p,["cc"]:e.target.value}))}/>
+        </div>
         <div style={S.row}>
-          <div style={S.col}><PoolFieldRow label="pH" fieldKey="ph" step="0.1"/></div>
-          <div style={S.col}><PoolFieldRow label="Salt (ppm)" fieldKey="salt" placeholder="3200 3600"/></div>
+          <div style={S.col}>        <div style={{marginBottom:14}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <label style={{...S.label,marginBottom:0,fontSize:14}}>{"pH"}</label>
+            {poolFieldStatus("ph",form["ph"],form.cya)&&<span style={{fontSize:12,color:poolFieldStatus("ph",form["ph"],form.cya).color,fontWeight:600}}>{poolFieldStatus("ph",form["ph"],form.cya).text}</span>}
+          </div>
+          <input type="number" step="0.1" style={{...S.input,marginBottom:0}} placeholder={""} value={form["ph"]!==undefined?form["ph"]:""} onChange={e=>setForm(p=>({...p,["ph"]:e.target.value}))}/>
+        </div></div>
+          <div style={S.col}>        <div style={{marginBottom:14}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <label style={{...S.label,marginBottom:0,fontSize:14}}>{"Salt (ppm)"}</label>
+            {poolFieldStatus("salt",form["salt"],form.cya)&&<span style={{fontSize:12,color:poolFieldStatus("salt",form["salt"],form.cya).color,fontWeight:600}}>{poolFieldStatus("salt",form["salt"],form.cya).text}</span>}
+          </div>
+          <input type="number" step="any" style={{...S.input,marginBottom:0}} placeholder={"3200-3600"} value={form["salt"]!==undefined?form["salt"]:""} onChange={e=>setForm(p=>({...p,["salt"]:e.target.value}))}/>
+        </div></div>
         </div>
         <button onClick={()=>setShowOptionalFields(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"left",marginBottom:12,fontSize:13}}>
           {showOptionalFields?"  Hide optional fields":"  More fields   CYA, TA, Calcium, Temp, PSI, SWG, Pump"}
@@ -2879,8 +2414,20 @@ function Pool(){
         {showOptionalFields&&(
           <>
             <div style={S.row}>
-              <div style={S.col}><PoolFieldRow label="CYA (ppm)" fieldKey="cya" placeholder="60 80"/></div>
-              <div style={S.col}><PoolFieldRow label="TA (ppm)" fieldKey="alkalinity" placeholder="80 120"/></div>
+              <div style={S.col}>        <div style={{marginBottom:14}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <label style={{...S.label,marginBottom:0,fontSize:14}}>{"CYA (ppm)"}</label>
+            {poolFieldStatus("cya",form["cya"],form.cya)&&<span style={{fontSize:12,color:poolFieldStatus("cya",form["cya"],form.cya).color,fontWeight:600}}>{poolFieldStatus("cya",form["cya"],form.cya).text}</span>}
+          </div>
+          <input type="number" step="any" style={{...S.input,marginBottom:0}} placeholder={"60-80"} value={form["cya"]!==undefined?form["cya"]:""} onChange={e=>setForm(p=>({...p,["cya"]:e.target.value}))}/>
+        </div></div>
+              <div style={S.col}>        <div style={{marginBottom:14}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <label style={{...S.label,marginBottom:0,fontSize:14}}>{"TA (ppm)"}</label>
+            {poolFieldStatus("alkalinity",form["alkalinity"],form.cya)&&<span style={{fontSize:12,color:poolFieldStatus("alkalinity",form["alkalinity"],form.cya).color,fontWeight:600}}>{poolFieldStatus("alkalinity",form["alkalinity"],form.cya).text}</span>}
+          </div>
+          <input type="number" step="any" style={{...S.input,marginBottom:0}} placeholder={"80-120"} value={form["alkalinity"]!==undefined?form["alkalinity"]:""} onChange={e=>setForm(p=>({...p,["alkalinity"]:e.target.value}))}/>
+        </div></div>
             </div>
             <div style={S.row}>
               <div style={S.col}><label style={S.label}>Calcium (ppm)</label><input type="number" style={S.input} placeholder="150 250" value={form.calcium_hardness||""} onChange={e=>setForm(p=>({...p,calcium_hardness:e.target.value}))}/></div>
@@ -4035,17 +3582,3 @@ export default function App(){
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
