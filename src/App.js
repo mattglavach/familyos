@@ -728,17 +728,35 @@ function Dashboard({onNavigate,gc}){
   const accounts          =useTable("retirement_accounts","name",true);
   const notes             =useTable("notes","created_at");
   const taskData          =useTable("tasks","due_date",true);
+  const treatments        =useTable("pool_treatments","logged_at");
 
-  const [showFullSchedule,setShowFullSchedule]=useState(false),[showAllActions,setShowAllActions]=useState(false),[showNotes,setShowNotes]=useState(true);
-  const [filter,setFilter]=useState("All"),[overrides,setOverrides]=useState({}),[reassigning,setReassigning]=useState(null);
+  const [showFullSchedule,setShowFullSchedule]=useState(false);
+  const [showAllActions,setShowAllActions]=useState(false);
+  const [showNotes,setShowNotes]=useState(true);
+  const [filter,setFilter]=useState("All");
+  const [overrides,setOverrides]=useState({});
+  const [reassigning,setReassigning]=useState(null);
   const members=["All","Aubrey","Blake","Brayden","Matt","Kalee"];
 
-  const assump=assumptions.data[0],retProj=assump?calcRetirementProjection(accounts.data,assump):null;
-  const lastReading=readings.data[0],chemRecs=lastReading?getChemRecommendations(lastReading,readings.data,null):[];
-  const highChemRecs=chemRecs.filter(r=>r.priority==="high"||r.priority==="med");
-  const overdueHomeMaint=homeMaint.filter(m=>maintStatus(m)==="overdue"),dueSoonHomeMaint=homeMaint.filter(m=>maintStatus(m)==="due-soon");
-  const urgentDeadlines=deadlines.filter(d=>!d.completed&&daysBetween(d.due_date)<=14),upcomingDeadlines=deadlines.filter(d=>!d.completed&&daysBetween(d.due_date)>14&&daysBetween(d.due_date)<=60);
-  const urgentTasks=taskData.data.filter(t=>{if(t.completed&&!t.recurring_interval_days)return false;if(t.is_important)return true;if(t.due_date&&daysBetween(t.due_date)<=0)return true;return false;});
+  const assump=assumptions.data[0];
+  const retProj=assump?calcRetirementProjection(accounts.data,assump):null;
+  const lastReading=readings.data[0];
+  const chemRecs=lastReading?getChemRecommendations(lastReading,readings.data,null):[];
+  const highChemRecs=chemRecs.filter(r=>r.priority==="high");
+  const medChemRecs=chemRecs.filter(r=>r.priority==="med");
+  const poolDaysAgo=lastReading?daysAgo(lastReading.date):null;
+  const poolStale=poolDaysAgo!==null&&poolDaysAgo>=3;
+
+  const overdueHomeMaint=homeMaint.filter(m=>maintStatus(m)==="overdue");
+  const dueSoonHomeMaint=homeMaint.filter(m=>maintStatus(m)==="due-soon");
+  const urgentDeadlines=deadlines.filter(d=>!d.completed&&daysBetween(d.due_date)<=14);
+  const upcomingDeadlines=deadlines.filter(d=>!d.completed&&daysBetween(d.due_date)>14&&daysBetween(d.due_date)<=60);
+  const urgentTasks=taskData.data.filter(t=>{
+    if(t.completed&&!t.recurring_interval_days)return false;
+    if(t.is_important)return true;
+    if(t.due_date&&daysBetween(t.due_date)<=0)return true;
+    return false;
+  });
 
   const allEvents=(gc.token?gc.events:[]).map(e=>({...e,member:overrides[e.id]||e.member}));
   const filtered=allEvents.filter(e=>filter==="All"||e.member===filter);
@@ -747,136 +765,158 @@ function Dashboard({onNavigate,gc}){
   const visibleDays=showFullSchedule?next30Days:next7Days;
   const totalEventsNext7=filtered.filter(e=>next7Days.includes(e.date)).length;
 
+  // Build action lists
   const overdue=[],thisWeek=[],upcoming=[];
-  highChemRecs.forEach(r=>{const item={icon:" ",text:r.action,color:r.priority==="high"?COLORS.red:COLORS.amber,nav:"pool",detail:null};r.priority==="high"?overdue.push(item):thisWeek.push(item);});
-  overdueHomeMaint.forEach(m=>{const days=-daysBetween(nextDueDate(m.last_completed,m.interval_days));overdue.push({icon:" ",text:m.title,color:COLORS.red,nav:"tasks",detail:`${days}d overdue`});});
-  dueSoonHomeMaint.forEach(m=>{const days=daysBetween(nextDueDate(m.last_completed,m.interval_days));thisWeek.push({icon:" ",text:m.title,color:COLORS.amber,nav:"tasks",detail:`due in ${days}d`});});
-  urgentTasks.slice(0,3).forEach(t=>{const days=t.due_date?daysBetween(t.due_date):null,isOverdue=days!==null&&days<0,item={icon:" ",text:t.title,color:isOverdue?COLORS.red:t.is_important?COLORS.purple:COLORS.amber,nav:"tasks",detail:isOverdue?`${-days}d overdue`:days===0?"Today":t.is_important?"Important":days!==null?`in ${days}d`:null};isOverdue?overdue.push(item):thisWeek.push(item);});
-  urgentDeadlines.forEach(d=>{const days=daysBetween(d.due_date),item={icon:" ",text:d.title,color:days<=4?COLORS.red:COLORS.amber,nav:"college",detail:days===0?"Today":days<0?`${-days}d overdue`:`in ${days}d`};days<=4?overdue.push(item):thisWeek.push(item);});
-  upcomingDeadlines.forEach(d=>{upcoming.push({icon:" ",text:d.title,color:COLORS.slate,nav:"college",detail:`in ${daysBetween(d.due_date)}d`});});
-  filtered.filter(e=>e.date===TODAY_STR).forEach(e=>{overdue.push({icon:" ",text:e.title,color:COLORS.blue,nav:"home",detail:e.time||"Today"});});
-  filtered.filter(e=>next7Days.includes(e.date)&&e.date!==TODAY_STR).slice(0,3).forEach(e=>{thisWeek.push({icon:" ",text:e.title,color:MEMBER_COLORS[e.member]||COLORS.slate,nav:"home",detail:`${e.time||""} ${formatDate(e.date)}`.trim()});});
+  if(poolStale) overdue.push({text:`Pool not tested in ${poolDaysAgo} days`,color:COLORS.amber,nav:"pool",detail:"Log a reading"});
+  highChemRecs.forEach(r=>{overdue.push({text:r.action,color:COLORS.red,nav:"pool",detail:null});});
+  medChemRecs.slice(0,2).forEach(r=>{thisWeek.push({text:r.action,color:COLORS.amber,nav:"pool",detail:null});});
+  overdueHomeMaint.forEach(m=>{const days=-daysBetween(nextDueDate(m.last_completed,m.interval_days));overdue.push({text:m.title,color:COLORS.red,nav:"tasks",detail:`${days}d overdue`});});
+  dueSoonHomeMaint.forEach(m=>{const days=daysBetween(nextDueDate(m.last_completed,m.interval_days));thisWeek.push({text:m.title,color:COLORS.amber,nav:"tasks",detail:`due in ${days}d`});});
+  urgentTasks.slice(0,4).forEach(t=>{const days=t.due_date?daysBetween(t.due_date):null,isOverdue=days!==null&&days<0,item={text:t.title,color:isOverdue?COLORS.red:t.is_important?COLORS.purple:COLORS.amber,nav:"tasks",detail:isOverdue?`${-days}d overdue`:days===0?"Today":t.is_important?"Important":days!==null?`in ${days}d`:null};isOverdue?overdue.push(item):thisWeek.push(item);});
+  urgentDeadlines.forEach(d=>{const days=daysBetween(d.due_date),item={text:d.title,color:days<=4?COLORS.red:COLORS.amber,nav:"college",detail:days===0?"Today":days<0?`${-days}d overdue`:`in ${days}d`};days<=4?overdue.push(item):thisWeek.push(item);});
+  upcomingDeadlines.forEach(d=>{upcoming.push({text:d.title,color:COLORS.slate,nav:"college",detail:`in ${daysBetween(d.due_date)}d`});});
+  filtered.filter(e=>e.date===TODAY_STR).forEach(e=>{overdue.push({text:e.title,color:COLORS.blue,nav:"home",detail:e.time||"Today"});});
+  filtered.filter(e=>next7Days.includes(e.date)&&e.date!==TODAY_STR).slice(0,3).forEach(e=>{thisWeek.push({text:e.title,color:MEMBER_COLORS[e.member]||COLORS.slate,nav:"home",detail:`${e.time||""} ${formatDate(e.date)}`.trim()});});
 
-  const totalActions=overdue.length+thisWeek.length+upcoming.length,focusItems=[...overdue,...thisWeek].slice(0,5);
+  const totalActions=overdue.length+thisWeek.length+upcoming.length;
+  const focusItems=[...overdue,...thisWeek].slice(0,5);
 
-  const poolSt=highChemRecs.length>0?{label:"Needs Attention",color:COLORS.amber,detail:highChemRecs[0]?.action?.split("   ")[0]||""}:lastReading?{label:"Good",color:COLORS.green,detail:"Chemistry balanced"}:{label:"No data",color:COLORS.slate,detail:"Log first reading"};
-  const tasksSt=overdueHomeMaint.length>0||urgentTasks.filter(t=>t.due_date&&daysBetween(t.due_date)<0).length>0
-    ?{label:"Overdue",color:COLORS.red,detail:`${overdueHomeMaint.length+urgentTasks.filter(t=>t.due_date&&daysBetween(t.due_date)<0).length} item${overdueHomeMaint.length!==1?"s":""} overdue`}
-    :dueSoonHomeMaint.length>0||urgentTasks.filter(t=>t.is_important).length>0
-    ?{label:"Needs Attention",color:COLORS.amber,detail:`${dueSoonHomeMaint.length} maintenance + ${urgentTasks.filter(t=>t.is_important).length} important`}
-    :{label:"All Clear",color:COLORS.green,detail:"Nothing overdue"};
-  const financeSt=retProj?{label:retProj.statusLabel.split(" ")[0].trim(),color:retProj.statusColor,detail:`Age ${assump?.retirement_age} plan`}:{label:" ",color:COLORS.slate,detail:""};
-  const collegeSt=urgentDeadlines.length>0?{label:"Deadlines",color:COLORS.amber,detail:`${urgentDeadlines.length} within 2 weeks`}:{label:"On Track",color:COLORS.green,detail:"No urgent deadlines"};
+  // Family Health statuses
+  const poolColor=highChemRecs.length>0?COLORS.red:medChemRecs.length>0?COLORS.amber:poolStale?COLORS.amber:COLORS.green;
+  const poolLabel=highChemRecs.length>0?"Action needed":medChemRecs.length>0?"Monitor":poolStale?`${poolDaysAgo}d since test`:"Good";
+  const poolDetail=highChemRecs.length>0?highChemRecs[0].action.slice(0,35)+"...":lastReading?`pH ${lastReading.ph||"--"} FC ${lastReading.free_chlorine||"--"} Salt ${lastReading.salt||"--"}`:"No readings";
+
+  const tasksOverdue=overdueHomeMaint.length+urgentTasks.filter(t=>t.due_date&&daysBetween(t.due_date)<0).length;
+  const tasksDueSoon=dueSoonHomeMaint.length+urgentTasks.filter(t=>t.is_important&&(!t.due_date||daysBetween(t.due_date)>=0)).length;
+  const tasksColor=tasksOverdue>0?COLORS.red:tasksDueSoon>0?COLORS.amber:COLORS.green;
+  const tasksLabel=tasksOverdue>0?`${tasksOverdue} overdue`:tasksDueSoon>0?`${tasksDueSoon} this week`:"All clear";
+  const tasksDetail=tasksOverdue>0?`${overdueHomeMaint[0]?.title||urgentTasks[0]?.title||""}`.slice(0,35):tasksDueSoon>0?"Maintenance due":"Nothing overdue";
+
+  const finColor=retProj?retProj.statusColor:COLORS.slate;
+  const finLabel=retProj?retProj.statusLabel.split(" - ")[0].split("--")[0].trim().slice(0,16):"No data";
+  const finDetail=retProj?`Age ${assump.retirement_age} - ${retProj.gap>0?"-"+formatMoneyShort(retProj.gap)+" gap":"surplus "+formatMoneyShort(-retProj.gap)}`:"Add accounts";
+
+  const collegeColor=urgentDeadlines.length>0?COLORS.amber:COLORS.green;
+  const collegeLabel=urgentDeadlines.length>0?`${urgentDeadlines.length} deadline${urgentDeadlines.length>1?"s":""}`:upcomingDeadlines.length>0?"Coming up":"On track";
+  const collegeDetail=urgentDeadlines.length>0?urgentDeadlines[0].title.slice(0,35):upcomingDeadlines.length>0?`Next: ${upcomingDeadlines[0].title.slice(0,28)}`:"No urgent deadlines";
+
+  // Weekly headline sentence
+  const totalIssues=overdue.length+thisWeek.length;
+  let headline="";
+  if(totalIssues===0) headline="All clear - nothing needs attention.";
+  else {
+    const parts=[];
+    if(overdue.length>0) parts.push(`${overdue.length} item${overdue.length>1?"s":""} need action now`);
+    if(thisWeek.length>0) parts.push(`${thisWeek.length} due this week`);
+    headline=parts.join(", ")+".";
+  }
 
   const recentActivity=[
-    ...readings.data.slice(0,2).map(r=>({date:r.date,icon:" ",text:`Pool   pH ${r.ph||" "}, FC ${r.free_chlorine||" "}`,color:COLORS.blue})),
-    ...poolMaint.data.slice(0,2).map(m=>({date:m.date,icon:" ",text:m.type,color:COLORS.slate})),
-    ...deadlines.filter(d=>d.completed).slice(0,2).map(d=>({date:d.due_date,icon:" ",text:`${d.title} completed`,color:COLORS.green})),
-    ...homeMaint.filter(m=>m.last_completed&&m.last_completed>=new Date(Date.now()-7*86400000).toISOString().split("T")[0]).slice(0,2).map(m=>({date:m.last_completed,icon:" ",text:`${m.title}   done`,color:COLORS.green})),
-  ].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+    ...readings.data.slice(0,2).map(r=>({date:r.date,text:`Pool reading - pH ${r.ph||"--"} FC ${r.free_chlorine||"--"}`,color:COLORS.blue})),
+    ...treatments.data.slice(0,2).map(t=>{
+      const chems=[t.muriatic_acid_oz&&`${t.muriatic_acid_oz}oz acid`,t.salt_lbs&&`${t.salt_lbs}lb salt`,t.cya_oz&&`${t.cya_oz}oz CYA`].filter(Boolean);
+      return{date:t.date,text:`Treatment - ${chems.length>0?chems.join(", "):"maintenance"}`,color:COLORS.green};
+    }),
+    ...deadlines.filter(d=>d.completed).slice(0,1).map(d=>({date:d.due_date,text:`College: ${d.title}`,color:COLORS.green})),
+    ...homeMaint.filter(m=>m.last_completed&&daysAgo(m.last_completed)<=7).slice(0,1).map(m=>({date:m.last_completed,text:m.title,color:COLORS.slate})),
+  ].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,4);
 
   function ActionItem({item,i,total}){
     return(
-      <button onClick={()=>onNavigate(item.nav)} style={{display:"flex",alignItems:"center",gap:10,width:"100%",background:"none",border:"none",padding:"10px 0",borderBottom:i<total-1?`1px solid ${COLORS.navyLight}`:"none",cursor:"pointer",textAlign:"left"}}>
-        <div style={{width:32,height:32,borderRadius:8,background:item.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>{item.icon}</div>
+      <button onClick={()=>onNavigate(item.nav)} style={{display:"flex",alignItems:"center",gap:10,width:"100%",background:"none",border:"none",padding:"9px 0",borderBottom:i<total-1?`1px solid ${COLORS.navyLight}`:"none",cursor:"pointer",textAlign:"left"}}>
+        <div style={{width:8,height:8,borderRadius:"50%",background:item.color,flexShrink:0}}/>
         <div style={{flex:1,minWidth:0}}>
-          <div style={{fontSize:15,fontWeight:600,color:COLORS.white,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.text}</div>
-          {item.detail&&<div style={{fontSize:15,color:item.color,marginTop:1}}>{item.detail}</div>}
+          <div style={{fontSize:14,fontWeight:600,color:COLORS.white,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.text}</div>
+          {item.detail&&<div style={{fontSize:12,color:item.color,marginTop:1}}>{item.detail}</div>}
         </div>
-        <div style={{fontSize:15,color:COLORS.slate,flexShrink:0}}> </div>
+        <div style={{fontSize:12,color:COLORS.slate,flexShrink:0}}>></div>
       </button>
     );
   }
 
   return(
-    <div style={S.screen}>
-      <div style={{background:COLORS.navyMid,borderRadius:16,padding:"20px 18px",marginBottom:16,border:`1px solid ${COLORS.navyLight}`,borderTop:`3px solid ${focusItems.length===0?COLORS.green:overdue.length>0?COLORS.red:COLORS.amber}`}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:focusItems.length>0?14:0}}>
-          <div>
-            <div style={{fontSize:15,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>Today's Focus</div>
-            <div style={{fontSize:26,fontWeight:800,letterSpacing:"-0.5px",lineHeight:1.1,color:focusItems.length===0?COLORS.green:overdue.length>0?COLORS.red:COLORS.amber}}>
-              {focusItems.length===0?"All clear  ":overdue.length>0?`${overdue.length} need${overdue.length===1?"s":""} action now`:`${thisWeek.length} due this week`}
-            </div>
-            <div style={{fontSize:13,color:COLORS.slate,marginTop:8,fontWeight:500}}>{formatToday()}   {totalEventsNext7} event{totalEventsNext7!==1?"s":""} this week</div>
-          </div>
-          {totalActions>0&&<div style={{textAlign:"right",flexShrink:0,marginLeft:12}}><div style={{fontSize:24,fontWeight:800,color:overdue.length>0?COLORS.red:COLORS.amber}}>{totalActions}</div><div style={{fontSize:15,color:COLORS.slate}}>actions</div></div>}
+    <div style={S.screen}> <div style={{background:COLORS.navyMid,borderRadius:16,padding:"18px 18px 14px",marginBottom:12,border:`1px solid ${COLORS.navyLight}`,borderTop:`3px solid ${totalIssues===0?COLORS.green:overdue.length>0?COLORS.red:COLORS.amber}`}}>
+        <div style={{fontSize:11,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"1px",marginBottom:6}}>This Week</div>
+        <div style={{fontSize:22,fontWeight:800,letterSpacing:"-0.5px",lineHeight:1.15,color:totalIssues===0?COLORS.green:overdue.length>0?COLORS.red:COLORS.amber,marginBottom:4}}>
+          {totalIssues===0?"All clear":`${overdue.length>0?overdue.length+" urgent":thisWeek.length+" this week"}`}
         </div>
+        <div style={{fontSize:13,color:COLORS.slate,marginBottom:focusItems.length>0?14:0}}>{headline}</div>
         {focusItems.length>0&&focusItems.map((item,i)=><ActionItem key={i} item={item} i={i} total={focusItems.length}/>)}
-      </div>
-
-      <div style={S.sectionLabel}>Family Health</div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:20}}>
-        {[{module:"Pool",...poolSt,nav:"pool"},{module:"Tasks",...tasksSt,nav:"tasks"},{module:"Finance",...financeSt,nav:"finance"},{module:"College",...collegeSt,nav:"college"}].map((s,i)=>(
-          <button key={i} onClick={()=>onNavigate(s.nav)} style={{background:COLORS.navyMid,border:`1px solid ${COLORS.navyLight}`,borderTop:`3px solid ${s.color}`,borderRadius:12,padding:"12px 14px",cursor:"pointer",textAlign:"left"}}>
-            <div style={{fontSize:11,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px"}}>{s.module}</div>
-            <div style={{fontSize:14,fontWeight:700,color:s.color,marginTop:6}}>{s.label}</div>
-            <div style={{fontSize:12,color:COLORS.slate,marginTop:3,lineHeight:1.3}}>{s.detail}</div>
+      </div> <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}}>
+        {[
+          {module:"Pool",color:poolColor,label:poolLabel,detail:poolDetail,nav:"pool"},
+          {module:"Tasks",color:tasksColor,label:tasksLabel,detail:tasksDetail,nav:"tasks"},
+          {module:"Finance",color:finColor,label:finLabel,detail:finDetail,nav:"finance"},
+          {module:"College",color:collegeColor,label:collegeLabel,detail:collegeDetail,nav:"college"},
+        ].map((s,i)=>(
+          <button key={i} onClick={()=>onNavigate(s.nav)} style={{background:COLORS.navyMid,border:`1px solid ${COLORS.navyLight}`,borderLeft:`3px solid ${s.color}`,borderRadius:12,padding:"12px 14px",cursor:"pointer",textAlign:"left",WebkitTapHighlightColor:"transparent"}}>
+            <div style={{fontSize:11,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:4}}>{s.module}</div>
+            <div style={{fontSize:14,fontWeight:800,color:s.color,marginBottom:3,letterSpacing:"-0.2px"}}>{s.label}</div>
+            <div style={{fontSize:11,color:COLORS.slate,lineHeight:1.35,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{s.detail}</div>
           </button>
         ))}
-      </div>
-
-      {totalActions>0&&<>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-          <div style={S.sectionLabel}>Action Center</div>
-          {totalActions>5&&<button onClick={()=>setShowAllActions(p=>!p)} style={{fontSize:15,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,marginBottom:12}}>{showAllActions?"Less  ":`All ${totalActions}  `}</button>}
+      </div> {totalActions>0&&<>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"1px"}}>Action Center</div>
+          {totalActions>5&&<button onClick={()=>setShowAllActions(p=>!p)} style={{fontSize:12,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0}}>{showAllActions?"Less":"All "+totalActions}</button>}
         </div>
         {overdue.length>0&&(
-          <div style={{...S.card,background:COLORS.red+"11",borderColor:COLORS.red+"33",marginBottom:10}}>
-            <div style={{fontSize:15,fontWeight:700,color:COLORS.red,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>   Overdue   {overdue.length}</div>
+          <div style={{background:COLORS.navyMid,borderRadius:12,borderLeft:`3px solid ${COLORS.red}`,marginBottom:8,padding:"12px 14px"}}>
+            <div style={{fontSize:11,fontWeight:700,color:COLORS.red,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8}}>Act Now - {overdue.length}</div>
             {overdue.slice(0,showAllActions?99:3).map((item,i)=><ActionItem key={i} item={item} i={i} total={Math.min(overdue.length,showAllActions?99:3)}/>)}
-            {!showAllActions&&overdue.length>3&&<div style={{fontSize:15,color:COLORS.slate,paddingTop:6}}>+{overdue.length-3} more   tap "All" above</div>}
+            {!showAllActions&&overdue.length>3&&<div style={{fontSize:12,color:COLORS.slate,paddingTop:6}}>+{overdue.length-3} more</div>}
           </div>
         )}
         {thisWeek.length>0&&(
-          <div style={{...S.card,background:COLORS.amber+"11",borderColor:COLORS.amber+"33",marginBottom:10}}>
-            <div style={{fontSize:15,fontWeight:700,color:COLORS.amber,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>  Due This Week   {thisWeek.length}</div>
+          <div style={{background:COLORS.navyMid,borderRadius:12,borderLeft:`3px solid ${COLORS.amber}`,marginBottom:8,padding:"12px 14px"}}>
+            <div style={{fontSize:11,fontWeight:700,color:COLORS.amber,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8}}>This Week - {thisWeek.length}</div>
             {thisWeek.slice(0,showAllActions?99:3).map((item,i)=><ActionItem key={i} item={item} i={i} total={Math.min(thisWeek.length,showAllActions?99:3)}/>)}
           </div>
         )}
-        {upcoming.length>0&&(showAllActions||overdue.length+thisWeek.length<=3)&&(
-          <div style={{...S.card,background:COLORS.navyLight,marginBottom:10}}>
-            <div style={{fontSize:15,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>  Upcoming   {upcoming.length}</div>
+        {upcoming.length>0&&showAllActions&&(
+          <div style={{background:COLORS.navyMid,borderRadius:12,borderLeft:`3px solid ${COLORS.slate}`,marginBottom:8,padding:"12px 14px"}}>
+            <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8}}>Coming Up - {upcoming.length}</div>
             {upcoming.slice(0,3).map((item,i)=><ActionItem key={i} item={item} i={i} total={Math.min(upcoming.length,3)}/>)}
           </div>
         )}
       </>}
       {totalActions===0&&(
-        <div style={{...S.card,background:COLORS.green+"11",borderColor:COLORS.green+"33",textAlign:"center",padding:"20px 16px",marginBottom:16}}>
-          <div style={{fontSize:20,marginBottom:10}}> </div>
-          <div style={{fontSize:15,fontWeight:700,color:COLORS.green}}>Nothing needs attention</div>
+        <div style={{background:COLORS.green+"0d",border:`1px solid ${COLORS.green}33`,borderRadius:12,textAlign:"center",padding:"14px",marginBottom:12}}>
+          <div style={{fontSize:14,fontWeight:700,color:COLORS.green}}>All clear</div>
+          <div style={{fontSize:12,color:COLORS.slate,marginTop:3}}>Nothing needs attention right now.</div>
         </div>
-      )}
-
-      {gc.token&&<>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={S.sectionLabel}>This Week</div>
-          <button onClick={()=>setShowFullSchedule(p=>!p)} style={{fontSize:15,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,marginBottom:12}}>{showFullSchedule?"Collapse  ":"30 days  "}</button>
+      )} {gc.token&&<>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8,marginTop:16}}>
+          <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"1px"}}>Schedule</div>
+          <button onClick={()=>setShowFullSchedule(p=>!p)} style={{fontSize:12,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0}}>{showFullSchedule?"7 days":"30 days"}</button>
         </div>
-        <div style={{marginBottom:10}}>{members.map(m=><span key={m} style={S.chip(filter===m,MEMBER_COLORS[m]||COLORS.blue)} onClick={()=>setFilter(m)}>{m}</span>)}</div>
+        <div style={{marginBottom:10,display:"flex",flexWrap:"wrap",gap:4}}>
+          {members.map(m=><span key={m} style={S.chip(filter===m,MEMBER_COLORS[m]||COLORS.blue)} onClick={()=>setFilter(m)}>{m}</span>)}
+        </div>
         {gc.loading?<Loading/>:(
           filtered.filter(e=>visibleDays.includes(e.date)).length===0
-            ?<EmptyState icon=" " title={showFullSchedule?"No events in the next 30 days":"No events this week"} detail="Connect your Google Calendar to see events here."/>
+            ?<div style={{fontSize:13,color:COLORS.slate,textAlign:"center",padding:"20px 0"}}>No events {showFullSchedule?"in the next 30 days":"this week"}</div>
             :visibleDays.map(day=>{
               const evs=filtered.filter(e=>e.date===day);
               if(!evs.length)return null;
               const isToday=day===TODAY_STR;
               return(
                 <div key={day}>
-                  <div style={{fontSize:15,fontWeight:700,color:isToday?COLORS.blue:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10,marginTop:10}}>{isToday?"Today":formatDateFull(day)}</div>
+                  <div style={{fontSize:11,fontWeight:700,color:isToday?COLORS.blue:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:6,marginTop:12}}>{isToday?"Today":formatDateFull(day)}</div>
                   {evs.map(e=>(
-                    <div key={e.id} style={{...S.card,borderLeft:`3px solid ${MEMBER_COLORS[e.member]||COLORS.slate}`,marginBottom:10,padding:"12px 14px"}}>
+                    <div key={e.id} style={{background:COLORS.navyMid,borderRadius:10,borderLeft:`3px solid ${MEMBER_COLORS[e.member]||COLORS.slate}`,marginBottom:6,padding:"10px 12px"}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                         <div style={{flex:1}}>
-                          <div style={{fontSize:15,fontWeight:600}}>{e.title}</div>
-                          <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>{e.time||"All day"}{e.location?`   ${e.location}`:""}</div>
+                          <div style={{fontSize:14,fontWeight:600}}>{e.title}</div>
+                          <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>{e.time||"All day"}{e.location?` - ${e.location}`:""}</div>
                         </div>
                         <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
-                          <span style={S.badge(MEMBER_COLORS[e.member]||COLORS.slate)}>{e.member}</span>
-                          <button style={{...S.btnSm,fontSize:15,padding:"3px 8px"}} onClick={()=>setReassigning(reassigning===e.id?null:e.id)}>reassign</button>
+                          <span style={{...S.badge(MEMBER_COLORS[e.member]||COLORS.slate),fontSize:11}}>{e.member}</span>
+                          <button style={{...S.btnSm,fontSize:11,padding:"2px 6px"}} onClick={()=>setReassigning(reassigning===e.id?null:e.id)}>reassign</button>
                         </div>
                       </div>
                       {reassigning===e.id&&(
-                        <div style={{marginTop:10,display:"flex",flexWrap:"wrap",gap:6}}>
+                        <div style={{marginTop:8,display:"flex",flexWrap:"wrap",gap:4}}>
                           {["Aubrey","Blake","Brayden","Matt","Kalee"].map(m=>(
                             <span key={m} style={S.chip(e.member===m,MEMBER_COLORS[m])} onClick={()=>{setOverrides(p=>({...p,[e.id]:m}));setReassigning(null);}}>{m}</span>
                           ))}
@@ -890,49 +930,33 @@ function Dashboard({onNavigate,gc}){
         )}
       </>}
       {!gc.token&&(
-        <div style={{...S.statusCard(COLORS.blue),marginBottom:10}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div style={{fontSize:15,color:COLORS.slateLight}}>Connect Calendar to see your week here.</div>
-            <button style={S.btnSm} onClick={gc.signIn}>Connect</button>
-          </div>
+        <div style={{background:COLORS.navyMid,borderRadius:12,border:`1px solid ${COLORS.navyLight}`,padding:"14px 16px",marginTop:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{fontSize:13,color:COLORS.slateLight}}>Connect Google Calendar to see your schedule here.</div>
+          <button style={{...S.btnSm,fontSize:12}} onClick={gc.signIn}>Connect</button>
         </div>
-      )}
-
-      {recentActivity.length>0&&<>
-        <div style={S.sectionLabel}>Recent Activity</div>
+      )} {recentActivity.length>0&&<>
+        <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"1px",marginBottom:8,marginTop:16}}>Recent Activity</div>
         {recentActivity.map((a,i)=>(
-          <div key={i} style={{display:"flex",gap:10,alignItems:"center",padding:"10px 0",borderBottom:i<recentActivity.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
-            <span style={{fontSize:19,flexShrink:0}}>{a.icon}</span>
-            <div style={{flex:1}}><div style={{fontSize:14,color:COLORS.slateLight}}>{a.text}</div><div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>{formatDate(a.date)}</div></div>
+          <div key={i} style={{display:"flex",gap:10,alignItems:"center",padding:"8px 0",borderBottom:i<recentActivity.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
+            <div style={{width:6,height:6,borderRadius:"50%",background:a.color,flexShrink:0}}/>
+            <div style={{flex:1}}><div style={{fontSize:13,color:COLORS.slateLight}}>{a.text}</div></div>
+            <div style={{fontSize:11,color:COLORS.slate}}>{formatDate(a.date)}</div>
           </div>
         ))}
-      </>}
-
-      {notes.data.length>0&&<>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={S.sectionLabel}>Notes</div>
-          <button onClick={()=>setShowNotes(p=>!p)} style={{fontSize:12,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0,marginBottom:12}}>{showNotes?"Hide  ":`${notes.data.length} note${notes.data.length!==1?"s":""}  `}</button>
+      </>} {notes.data.length>0&&<>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:16,marginBottom:8}}>
+          <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"1px"}}>Notes</div>
+          <button onClick={()=>setShowNotes(p=>!p)} style={{fontSize:12,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0}}>{showNotes?"Hide":"Show "+notes.data.length}</button>
         </div>
-        {!showNotes&&notes.data[0]&&(
-          <div style={{...S.card,marginBottom:10,cursor:"pointer"}} onClick={()=>setShowNotes(true)}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{flex:1,minWidth:0}}>
-                {notes.data[0].title&&<div style={{fontSize:14,fontWeight:700,marginBottom:2}}>{notes.data[0].title}</div>}
-                <div style={{fontSize:13,color:COLORS.slate,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{notes.data[0].body}</div>
-              </div>
-              <span style={{...S.badge(COLORS.slate),flexShrink:0,marginLeft:10}}>{notes.data[0].tag||"General"}</span>
-            </div>
-          </div>
-        )}
         {showNotes&&notes.data.map((n,i)=>(
-          <div key={n.id} style={{...S.card,marginBottom:10}}>
+          <div key={n.id} style={{background:COLORS.navyMid,borderRadius:10,padding:"12px 14px",marginBottom:6}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
               <div style={{flex:1,minWidth:0}}>
-                {n.title&&<div style={{fontSize:14,fontWeight:700,marginBottom:4}}>{n.title}</div>}
+                {n.title&&<div style={{fontSize:14,fontWeight:700,marginBottom:3}}>{n.title}</div>}
                 <div style={{fontSize:13,color:COLORS.slateLight,lineHeight:1.5}}>{n.body}</div>
-                <div style={{fontSize:11,color:COLORS.slate,marginTop:8}}>{new Date(n.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
+                <div style={{fontSize:11,color:COLORS.slate,marginTop:6}}>{new Date(n.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>
               </div>
-              <span style={{...S.badge(COLORS.slate),flexShrink:0,marginLeft:10}}>{n.tag||"General"}</span>
+              <span style={{...S.badge(COLORS.slate),fontSize:11,flexShrink:0,marginLeft:10}}>{n.tag||"General"}</span>
             </div>
           </div>
         ))}
@@ -941,42 +965,7 @@ function Dashboard({onNavigate,gc}){
   );
 }
 
-// - AUBURN TIMELINE -
-function calcAubreyTimeline(deadlines, scores, schools, essays) {
-  const today = new Date(todayReal);
-  const milestones = [
-    { id:"psat",       label:"PSAT / NMSQT",           date:"2025-10-15", category:"test",        detail:"October junior year" },
-    { id:"collegeList",label:"Build college list",      date:"2026-03-01", category:"planning",    detail:"10-15 schools across reach/target/safety" },
-    { id:"campusVisit",label:"Spring campus visits",    date:"2026-05-01", category:"visit",       detail:"Visit 3-5 schools before summer" },
-    { id:"satPrep",    label:"SAT/ACT prep",            date:"2026-05-15", category:"test",        detail:"Plan test dates and prep strategy" },
-    { id:"sat1",       label:"SAT/ACT   first attempt", date:"2026-06-07", category:"test",        detail:"Aim for score above target range" },
-    { id:"essayDraft", label:"Common App essay draft",  date:"2026-07-15", category:"essay",       detail:"Start main personal statement" },
-    { id:"activ",      label:"Activities list draft",   date:"2026-07-31", category:"application", detail:"150-char descriptions for all activities" },
-    { id:"sat2",       label:"SAT/ACT   second attempt",date:"2026-08-23", category:"test",        detail:"Retake if score can improve" },
-    { id:"earlyApp",   label:"Early apps open",         date:"2026-08-01", category:"application", detail:"Common App opens August 1" },
-    { id:"edea",       label:"ED/EA deadlines",         date:"2026-11-01", category:"application", detail:"Most ED/EA due Nov 1 or Nov 15" },
-    { id:"regular",    label:"Regular Decision",        date:"2027-01-01", category:"application", detail:"Most RD deadlines Jan 1 15" },
-    { id:"finAid",     label:"Financial aid (FAFSA)",   date:"2026-10-01", category:"application", detail:"FAFSA opens Oct 1   submit early" },
-    { id:"decisions",  label:"Decisions & commit",      date:"2027-05-01", category:"planning",    detail:"National Decision Day: May 1" },
-  ];
-  const hasScores=scores&&scores.length>0,hasSchools=schools&&schools.length>=5;
-  const hasVisit=deadlines&&deadlines.some(d=>d.completed&&d.category==="visit");
-  const hasEssay=essays&&essays.some(e=>e.status==="submitted"||e.status==="review");
-  const hasApplied=schools&&schools.some(s=>s.status==="applied"||s.status==="accepted");
-  return milestones.map(m=>{
-    const mDate=new Date(m.date),isPast=mDate<today,daysAway=Math.round((mDate-today)/86400000);
-    let completed=false;
-    if(m.id==="sat1"||m.id==="sat2")completed=hasScores;
-    else if(m.id==="collegeList")completed=hasSchools;
-    else if(m.id==="campusVisit")completed=hasVisit;
-    else if(m.id==="essayDraft")completed=hasEssay;
-    else if(m.id==="edea"||m.id==="regular")completed=hasApplied;
-    else if(m.id==="psat")completed=isPast;
-    return{...m,completed,isPast,daysAway};
-  });
-}
 
-// - COLLEGE -
 function College(){
   const [tab,setTab]=useState("deadlines");
   const deadlines=useTable("college_deadlines","due_date",true),schools=useTable("college_schools","name",true);
@@ -1635,267 +1624,216 @@ function Tasks(){
 }
 
 // - AI POOL BRIEF -
-function PoolBrief({readings, maintLog, onClose}) {
-  const [brief, setBrief]     = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState(null);
-  const [history, setHistory] = useState([]);
+function PoolBrief({readings, treatments, maintLog, onClose}) {
+  const [brief, setBrief]       = useState(null);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState(null);
+  const [history, setHistory]   = useState([]);
   const [viewingHistory, setViewingHistory] = useState(null);
-  const [hasRun, setHasRun]   = useState(false);
+  const [hasRun, setHasRun]     = useState(false);
+  const [followUp, setFollowUp] = useState("");
+  const [chatMessages, setChatMessages] = useState([]);
+  const [askingFollowUp, setAskingFollowUp] = useState(false);
 
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem("poolBriefHistory") || "[]");
       setHistory(saved);
+      // Auto-show most recent brief without re-running
+      if(saved.length>0) { setBrief(saved[0].text); setHasRun(true); }
     } catch {}
   }, []);
 
   function saveBriefToHistory(briefText) {
     try {
       const saved = JSON.parse(localStorage.getItem("poolBriefHistory") || "[]");
-      const updated = [{ date: new Date().toISOString(), text: briefText }, ...saved].slice(0, 3);
+      const updated = [{ date: new Date().toISOString(), text: briefText }, ...saved].slice(0, 5);
       localStorage.setItem("poolBriefHistory", JSON.stringify(updated));
       setHistory(updated);
     } catch {}
   }
 
   async function generateBrief() {
-    setHasRun(true);
-    setLoading(true);
-    setViewingHistory(null);
+    setHasRun(true); setLoading(true); setViewingHistory(null); setError(null);
     try {
-      const recentReadings = readings.slice(0, 8);
-      const recentTreatments = (maintLog || []).filter(m => m.type === "Treatment applied").slice(0, 5);
-      const cyaDue = nextTestDue(readings, "cya", 30);
-      const taDue = nextTestDue(readings, "alkalinity", 14);
-      const cyaStale = cyaDue && cyaDue.days < 0;
-      const taStale = taDue && taDue.days < 0;
-      const mostRecentCYA = readings.find(r => r.cya !== null && r.cya !== undefined);
-      const mostRecentTA  = readings.find(r => r.alkalinity !== null && r.alkalinity !== undefined);
-      const mostRecentCalcium = readings.find(r => r.calcium_hardness !== null && r.calcium_hardness !== undefined);
+      const recentReadings = readings.slice(0, 10);
       const last = readings[0];
-      const missingFields = [];
-      if (!last?.water_temp) missingFields.push("water temp");
-      if (!last?.pump_hours) missingFields.push("pump hours");
-      if (!last?.filter_pressure) missingFields.push("filter pressure");
-      const readingsSummary = recentReadings.map(r =>
-        `${r.date}: FC=${r.free_chlorine} ppm, CC=${r.cc??0}, pH=${r.ph}, Salt=${r.salt} ppm, CYA=${r.cya??'not tested'} ppm, TA=${r.alkalinity??'not tested'} ppm, Temp=${r.water_temp??'not logged'} F, SWG=${r.swg_setting??'not logged'}%, Pump=${r.pump_hours??'not logged'} hrs, Filter=${r.filter_pressure??'not logged'} psi. Notes: ${r.notes||'none'}`
-      ).join(String.fromCharCode(10));
-      const treatmentSummary = recentTreatments.length > 0
-        ? recentTreatments.map(t => `${t.date}: ${t.notes}`).join(String.fromCharCode(10))
-        : "No treatments logged yet.";
-      const acidOz = calcAcidDose(last?.ph, 7.4, last?.alkalinity);
-      const targetSWG = calcTargetSWG(last?.free_chlorine, last?.cya, last?.water_temp, last?.pump_hours);
-      const shockMin = calcShockThreshold(last?.cya);
-      const phEff = last?.ph ? fcEffectiveAtPH(last.ph) : null;
-      const today = new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
-      const dataWindowNote = `Analyzing ${recentReadings.length} reading${recentReadings.length!==1?'s':''} (${recentReadings[recentReadings.length-1]?.date} to ${recentReadings[0]?.date}) and ${recentTreatments.length} logged treatment${recentTreatments.length!==1?'s':''}.`;
-      const staleDataNote = [
-        cyaStale ? `CYA was last tested ${cyaDue.lastDate} (${-cyaDue.days} days overdue)   treat current CYA value as approximate, not current.` : null,
-        taStale ? `TA was last tested ${taDue.lastDate} (${-taDue.days} days overdue)   treat current TA value as approximate, not current.` : null,
-      ].filter(Boolean).join(' ');
-      const missingDataNote = missingFields.length > 0
-        ? `Missing data this reading: ${missingFields.join(', ')}. Note this affects confidence of related recommendations.`
-        : "";
-      const prompt = `You are a knowledgeable pool advisor texting a homeowner in Summerville, South Carolina about their 17,000 gallon vinyl inground salt water pool with a Pentair IntelliChlor SWG and cartridge filter. They test with a Taylor K-2006 FAS-DPD kit (FC readings in drops   0.5 = ppm).
+      // Include structured treatment data
+      const recentTreatments = (treatments||[]).slice(0,5);
+      const oldTreatments = (maintLog||[]).filter(m=>m.type==="Treatment applied").slice(0,3);
 
-Today is ${today}. ${dataWindowNote}
+      const cyaDue = nextTestDue(readings, "cya", 14);
+      const taDue  = nextTestDue(readings, "alkalinity", 14);
+      const mostRecentCYA      = readings.find(r=>r.cya!==null&&r.cya!==undefined);
+      const mostRecentTA       = readings.find(r=>r.alkalinity!==null&&r.alkalinity!==undefined);
+      const mostRecentCalcium  = readings.find(r=>r.calcium_hardness!==null&&r.calcium_hardness!==undefined);
 
-Recent readings (most recent first):
+      const readingsSummary = recentReadings.map(r=>{
+        const time = r.logged_at?` ${new Date(r.logged_at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}`:""
+        return `${r.date}${time}: FC=${r.free_chlorine??"-"} pH=${r.ph??"-"} Salt=${r.salt??"-"} CYA=${r.cya??"-"} TA=${r.alkalinity??"-"} CC=${r.cc??"-"} Temp=${r.water_temp??"-"}F SWG=${r.swg_setting??"-"}% PSI=${r.filter_pressure??"-"} Pump=${r.pump_hours??"-"}h${r.notes?` Note:${r.notes}`:""}`;
+      }).join("\n");
+
+      const treatmentSummary = recentTreatments.length>0
+        ? recentTreatments.map(t=>{
+            const chems=[
+              t.muriatic_acid_oz&&`${t.muriatic_acid_oz}oz muriatic acid`,
+              t.soda_ash_oz&&`${t.soda_ash_oz}oz soda ash`,
+              t.sodium_bicarb_oz&&`${t.sodium_bicarb_oz}oz bicarb`,
+              t.salt_lbs&&`${t.salt_lbs}lb salt`,
+              t.cya_oz&&`${t.cya_oz}oz CYA`,
+              t.liquid_chlorine_oz&&`${t.liquid_chlorine_oz}oz liquid chlorine`,
+              t.shock_lbs&&`${t.shock_lbs}lb shock`,
+            ].filter(Boolean);
+            const tasks=[t.brushed&&"brushed",t.vacuumed&&"vacuumed",t.cleaned_filter&&"cleaned filter",t.cleaned_cell&&"cleaned cell"].filter(Boolean);
+            const swg=t.swg_pct_before&&t.swg_pct_after?` SWG ${t.swg_pct_before}%-->${t.swg_pct_after}%`:"";
+            return `${t.date}: ${[...chems,...tasks].join(", ")||"maintenance"}${swg}${t.notes?` (${t.notes})`:""}`;
+          }).join("\n")
+        : oldTreatments.length>0
+          ? oldTreatments.map(t=>`${t.date}: ${t.notes||"treatment logged"}`).join("\n")
+          : "No treatments logged.";
+
+      const staleFlags=[];
+      if(cyaDue&&cyaDue.days<0) staleFlags.push(`CYA last tested ${cyaDue.lastDate} (${-cyaDue.days}d overdue)`);
+      if(taDue&&taDue.days<0)   staleFlags.push(`TA last tested ${taDue.lastDate} (${-taDue.days}d overdue)`);
+      const daysSinceLast=last?daysAgo(last.date):null;
+      if(daysSinceLast>=3)       staleFlags.push(`Last reading ${daysSinceLast} days ago - chemistry may have drifted`);
+
+      const today=new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
+
+      const prompt=`You are a knowledgeable pool chemistry advisor helping a homeowner in Summerville, SC manage their 17,000 gal vinyl inground saltwater pool. Equipment: Pentair IntelliChlor IC40 SWG, cartridge filter. Test kit: Taylor K-2006 FAS-DPD (FC in drops x0.5=ppm).
+
+Today: ${today}. Analyzing ${recentReadings.length} readings and ${recentTreatments.length} logged treatments.
+
+READINGS (newest first):
 ${readingsSummary}
 
-Recent treatments logged:
+TREATMENTS LOGGED:
 ${treatmentSummary}
 
-Chemistry context:
-- Current pH effectiveness: at pH ${last?.ph}, only ${phEff}% of chlorine is active
-- Shock threshold (CYA 10): ${shockMin} ppm minimum FC
-- Acid needed to reach pH 7.4: ~${acidOz||'unknown'} oz muriatic acid
-- Recommended SWG %: ~${targetSWG}%
-- Most recent CYA reading: ${mostRecentCYA ? `${mostRecentCYA.cya} ppm (tested ${mostRecentCYA.date})` : 'never tested'}
-- Most recent TA reading: ${mostRecentTA ? `${mostRecentTA.alkalinity} ppm (tested ${mostRecentTA.date})` : 'never tested'}
-- Most recent Calcium Hardness: ${mostRecentCalcium ? `${mostRecentCalcium.calcium_hardness} ppm (tested ${mostRecentCalcium.date})` : 'not tested   using estimated 200 ppm for LSI'}
-- LSI note: This is a VINYL liner pool. Corrosive LSI alerts suppressed   not actionable for vinyl pools at normal calcium levels.
-${staleDataNote ? `- DATA QUALITY FLAG: ${staleDataNote}` : ''}
-${missingDataNote ? `- DATA QUALITY FLAG: ${missingDataNote}` : ''}
+CHEMISTRY CONTEXT:
+- CYA: ${mostRecentCYA?`${mostRecentCYA.cya} ppm (${mostRecentCYA.date})`:"never tested"} | Target 70-80 ppm for SC summer
+- TA: ${mostRecentTA?`${mostRecentTA.alkalinity} ppm (${mostRecentTA.date})`:"never tested"} | Target 80-120 ppm
+- Calcium: ${mostRecentCalcium?`${mostRecentCalcium.calcium_hardness} ppm (${mostRecentCalcium.date})`:"not tested"} | Target 150-250 ppm (vinyl)
+- Min FC for current CYA: ${mostRecentCYA?Math.round(mostRecentCYA.cya/10):"unknown"} ppm (CYA/10 rule)
+- pH effectiveness: at pH ${last?.ph||"unknown"}, approx ${last?.ph?calcAcidDose?.(last.ph,7.4,last?.alkalinity):"?":"?"} oz acid needed to reach 7.4
+- LSI: vinyl pool - corrosive LSI not actionable at normal calcium, skip scaling alerts
+${staleFlags.length>0?"DATA FLAGS:\n"+staleFlags.map(f=>`- ${f}`).join("\n"):""}
 
-Please search for current weather in Summerville SC and factor it into your advice.
+Search for current Summerville SC weather and pool conditions before answering.
 
-Write a pool brief in this EXACT format. Every section must be 1-3 short bullet points, never paragraphs. Be specific with numbers.
+Write a pool brief. Use ONLY bullet points. Max 160 words total. Sections:
 
-Format:
-**DATA WINDOW**
-  [readings/treatments this brief covers, any stale/missing data flags]
-
-**WHAT'S BEEN HAPPENING**
-  [trend across readings]
-  [likely cause]
-
-**TREATMENT RESULTS** (only if treatments logged)
-  [did last treatment work   before/after comparison]
-
-**WEATHER**
-  [current Summerville conditions + impact]
-
-**WATER RIGHT NOW**
-  [what's good]
-  [what needs attention]
-
-**TODAY'S TREATMENT PLAN**
-  [specific action with exact dose if chemical]
-
-**SWG & PUMP**
-  [SWG % recommendation]
-  [pump schedule recommendation]
-
-**WATCH FOR**
-  [what to check next reading and when]
-
-Keep the ENTIRE brief under 150 words total. Bullets only, no exceptions.`;
+**STATUS** - one bullet: swim-ready or not + why
+**TREND** - 1-2 bullets: what's been happening across readings
+**TREATMENTS** - 1-2 bullets: did recent treatments work (before/after numbers)
+**WEATHER IMPACT** - 1 bullet: current conditions + effect on chemistry
+**ACTION TODAY** - 1-2 bullets: specific dose if chemical needed (oz/lbs), or "no action needed"
+**WATCH** - 1 bullet: what to check next reading and when`;
 
       const res = await fetch("/api/brief", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 1200,
-          tools: [{ type: "web_search_20250305", name: "web_search" }],
-          messages: [{ role: "user", content: prompt }]
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          model:"claude-sonnet-4-6",
+          max_tokens:1000,
+          tools:[{type:"web_search_20250305",name:"web_search"}],
+          messages:[{role:"user",content:prompt}]
         })
       });
       const data = await res.json();
-      if(!res.ok || data.error) {
-        const msg = data.error?.message || data.error || `HTTP ${res.status}`;
-        setError(`API error: ${msg}`);
-        setLoading(false);
-        return;
-      }
-      const textBlocks = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join(String.fromCharCode(10));
-      const finalBrief = textBlocks || "Unable to generate brief. Check your connection.";
+      if(!res.ok||data.error){setError(`API error: ${data.error?.message||`HTTP ${res.status}`}`);setLoading(false);return;}
+      const textBlocks=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
+      const finalBrief=textBlocks||"Unable to generate brief.";
       setBrief(finalBrief);
       saveBriefToHistory(finalBrief);
-    } catch(e) {
-      setError("Could not generate pool brief: " + e.message);
-    }
+    } catch(e){setError("Could not generate brief: "+e.message);}
     setLoading(false);
+  }
+
+  async function askFollowUp() {
+    if(!followUp.trim()||!brief) return;
+    const question=followUp.trim();
+    setChatMessages(prev=>[...prev,{role:"user",text:question}]);
+    setFollowUp(""); setAskingFollowUp(true);
+    try {
+      const last=readings[0];
+      const ctx=`Pool: 17,000 gal vinyl SWG Summerville SC. Current: FC=${last?.free_chlorine} pH=${last?.ph} Salt=${last?.salt} CYA=${last?.cya} CC=${last?.cc}.`;
+      const res=await fetch("/api/brief",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:400,messages:[{role:"user",content:`Brief you gave:\n\n${brief}\n\n${ctx}\n\nFollow-up (answer in 2-3 sentences, no headers): ${question}`}]})});
+      const data=await res.json();
+      const text=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
+      setChatMessages(prev=>[...prev,{role:"assistant",text:text||"Could not get a response."}]);
+    } catch(e){setChatMessages(prev=>[...prev,{role:"assistant",text:"Error: "+e.message}]);}
+    setAskingFollowUp(false);
   }
 
   function renderBrief(text) {
     if(!text) return null;
-    return text.split(String.fromCharCode(10)).map((line, i) => {
-      if(line.startsWith('**') && line.endsWith('**')) {
-        return <div key={i} style={{fontSize:15,fontWeight:700,color:COLORS.blue,letterSpacing:"0.8px",textTransform:"uppercase",marginTop:16,marginBottom:10}}>{line.replace(/\*\*/g,'')}</div>;
+    return text.split("\n").map((line,i)=>{
+      const trimmed=line.trim();
+      if(!trimmed) return <div key={i} style={{height:6}}/>;
+      if(trimmed.startsWith("**")&&trimmed.endsWith("**")){
+        return <div key={i} style={{fontSize:11,fontWeight:700,color:COLORS.blue,letterSpacing:"0.8px",textTransform:"uppercase",marginTop:14,marginBottom:6}}>{trimmed.replace(/\*\*/g,"")}</div>;
       }
-      if(line.startsWith(' ') || line.startsWith('-')) {
-        return <div key={i} style={{fontSize:15,color:COLORS.white,lineHeight:1.6,marginBottom:10,paddingLeft:8}}>  {line.replace(/^[ -]\s*/,'')}</div>;
+      if(trimmed.startsWith("-")||trimmed.startsWith("*")){
+        return <div key={i} style={{fontSize:14,color:COLORS.white,lineHeight:1.6,marginBottom:6,paddingLeft:12,position:"relative"}}><span style={{position:"absolute",left:0,color:COLORS.blue}}>-</span>{trimmed.replace(/^[-*]\s*/,"")}</div>;
       }
-      if(line.trim()==='') return <div key={i} style={{height:4}}/>;
-      return <div key={i} style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.6,marginBottom:10}}>{line}</div>;
+      return <div key={i} style={{fontSize:14,color:COLORS.slateLight,lineHeight:1.6,marginBottom:6}}>{trimmed}</div>;
     });
   }
 
-  const displayedBrief = viewingHistory !== null ? history[viewingHistory]?.text : brief;
-  const displayedIsHistory = viewingHistory !== null;
-  const [followUp, setFollowUp] = useState("");
-  const [chatMessages, setChatMessages] = useState([]);
-  const [askingFollowUp, setAskingFollowUp] = useState(false);
+  const displayedBrief=viewingHistory!==null?history[viewingHistory]?.text:brief;
+  const isHistory=viewingHistory!==null;
+  const lastUpdated=history[0]?.date?new Date(history[0].date).toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}):null;
 
-  async function askFollowUp() {
-    if (!followUp.trim() || !brief) return;
-    const question = followUp.trim();
-    setChatMessages(prev => [...prev, { role: "user", text: question }]);
-    setFollowUp("");
-    setAskingFollowUp(true);
-    try {
-      const last = readings[0];
-      const followUpPrompt = `You already gave this pool brief:\n\n${brief}\n\nThe homeowner has a follow-up question. Answer directly and concisely (2-4 sentences). Pool: 17,000 gal vinyl SWG, Summerville SC. Current: FC=${last?.free_chlorine} ppm, pH=${last?.ph}, Salt=${last?.salt} ppm, CYA=${last?.cya} ppm.\n\nQuestion: ${question}`;
-      const res = await fetch("/api/brief", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: followUpPrompt }] })
-      });
-      const data = await res.json();
-      const textBlocks = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join(String.fromCharCode(10));
-      setChatMessages(prev => [...prev, { role: "assistant", text: textBlocks || "Could not get a response." }]);
-    } catch(e) {
-      setChatMessages(prev => [...prev, { role: "assistant", text: "Error: " + e.message }]);
-    }
-    setAskingFollowUp(false);
-  }
-
-  async function shareExport() {
-    const last = readings[0];
-    const recentSummary = readings.slice(0,5).map(r =>
-      `${r.date}: FC ${r.free_chlorine??' '} ppm, pH ${r.ph??' '}, Salt ${r.salt??' '} ppm, CYA ${r.cya??' '} ppm, TA ${r.alkalinity??' '} ppm${r.notes ? ' -- ' + r.notes : ''}`
-    ).join('\n');
-    const exportText = `FAMILYOS POOL BRIEF\n${new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}\n\n${displayedBrief}\n\n---\nRECENT READINGS\n${recentSummary}`;
-    if (navigator.share) {
-      try { await navigator.share({ title: "Pool Brief", text: exportText }); } catch {}
-    } else {
-      try { await navigator.clipboard.writeText(exportText); alert("Copied to clipboard"); }
-      catch { alert("Could not share or copy"); }
-    }
-  }
-
-  return (
-    <Modal title="  Pool Brief" onClose={onClose}>
-      {history.length > 0 && (
-        <>
-          <div style={{fontSize:15,color:COLORS.slate,marginBottom:10,letterSpacing:"0.5px"}}>PAST BRIEFS   tap to view without regenerating</div>
-          <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
-            <span style={S.chip(viewingHistory===null,COLORS.purple)} onClick={()=>setViewingHistory(null)}>Latest</span>
-            {history.map((h,i)=>(
-              <span key={i} style={S.chip(viewingHistory===i,COLORS.slate)} onClick={()=>setViewingHistory(i)}>
-                {new Date(h.date).toLocaleDateString("en-US",{month:"short",day:"numeric"})}
-              </span>
-            ))}
-          </div>
-        </>
-      )}
-      {loading && viewingHistory===null && (
-        <div style={{textAlign:"center",padding:"40px 20px"}}>
-          <div style={{fontSize:15,color:COLORS.slate,marginBottom:10}}>Analyzing your pool history + Summerville weather </div>
-          <div style={{fontSize:15,color:COLORS.slate}}>This takes about 10 seconds</div>
+  return(
+    <Modal title="Pool Brief" onClose={onClose}> {history.length>1&&(
+        <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap"}}>
+          <span style={S.chip(viewingHistory===null,COLORS.purple)} onClick={()=>setViewingHistory(null)}>Latest</span>
+          {history.slice(1).map((h,i)=>(
+            <span key={i} style={S.chip(viewingHistory===i+1,COLORS.slate)} onClick={()=>setViewingHistory(i+1)}>
+              {new Date(h.date).toLocaleDateString("en-US",{month:"short",day:"numeric"})}
+            </span>
+          ))}
         </div>
+      )} {lastUpdated&&!loading&&(
+        <div style={{fontSize:11,color:COLORS.slate,marginBottom:10}}>Last generated: {lastUpdated}</div>
       )}
-      {error && viewingHistory===null && <div style={{fontSize:15,color:COLORS.red,padding:"20px 0"}}>{error}</div>}
-      {!hasRun && !loading && viewingHistory===null && (
-        <div style={{textAlign:"center",padding:"30px 20px"}}>
-          <div style={{fontSize:15,color:COLORS.slate,marginBottom:16,lineHeight:1.5}}>Run a fresh analysis of your pool chemistry, recent treatments, and current Summerville weather.</div>
-          <button style={S.btn} onClick={generateBrief}>   Run Analysis</button>
-        </div>
-      )}
-      {displayedBrief && (!loading || displayedIsHistory) && (
+      {loading&&<div style={{textAlign:"center",padding:"32px 20px"}}><div style={{fontSize:14,color:COLORS.slate}}>Analyzing readings + Summerville weather...</div><div style={{fontSize:12,color:COLORS.slate,marginTop:6}}>About 10 seconds</div></div>}
+      {error&&<div style={{fontSize:14,color:COLORS.red,padding:"16px 0"}}>{error}</div>} {displayedBrief&&!loading&&(
         <>
-          <div style={{background:COLORS.navyLight,borderRadius:10,padding:"14px 16px",marginBottom:16}}>{renderBrief(displayedBrief)}</div>
+          <div style={{background:COLORS.navyLight,borderRadius:12,padding:"14px 16px",marginBottom:12}}>{renderBrief(displayedBrief)}</div>
           <div style={{display:"flex",gap:8,marginBottom:16}}>
-            {!displayedIsHistory && <button style={{...S.btn,marginTop:0,flex:1}} onClick={generateBrief}>  Regenerate</button>}
-            <button style={{...S.btn,marginTop:0,flex:1,background:COLORS.navyLight,border:`1px solid ${COLORS.navyLight}`}} onClick={shareExport}>  Share</button>
+            <button style={{...S.btn,marginTop:0,flex:2,background:COLORS.blue}} onClick={generateBrief}>Refresh</button>
+            {!isHistory&&<button style={{...S.btn,marginTop:0,flex:1,background:COLORS.navyLight,color:COLORS.slateLight}} onClick={async()=>{try{await navigator.clipboard.writeText(displayedBrief);alert("Copied");}catch{}}}>Copy</button>}
           </div>
-          {!displayedIsHistory && (
+          {!isHistory&&(
             <>
-              <div style={S.sectionLabel}>Ask a follow-up</div>
+              <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8}}>Ask a follow-up</div>
               {chatMessages.map((m,i)=>(
-                <div key={i} style={{marginBottom:10,display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
-                  <div style={{maxWidth:"85%",background:m.role==="user"?COLORS.blue:COLORS.navyLight,color:m.role==="user"?"#fff":COLORS.white,borderRadius:10,padding:"8px 12px",fontSize:15,lineHeight:1.5}}>{m.text}</div>
+                <div key={i} style={{marginBottom:8,display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
+                  <div style={{maxWidth:"85%",background:m.role==="user"?COLORS.blue:COLORS.navyLight,color:"#fff",borderRadius:10,padding:"8px 12px",fontSize:13,lineHeight:1.5}}>{m.text}</div>
                 </div>
               ))}
-              {askingFollowUp && <div style={{fontSize:15,color:COLORS.slate,marginBottom:10}}>Thinking </div>}
+              {askingFollowUp&&<div style={{fontSize:13,color:COLORS.slate,marginBottom:8}}>Thinking...</div>}
               <div style={{display:"flex",gap:8}}>
-                <input style={{...S.input,marginBottom:0,flex:1}} placeholder="e.g. why is my SWG running high?" value={followUp} onChange={e=>setFollowUp(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")askFollowUp();}}/>
+                <input style={{...S.input,marginBottom:0,flex:1,fontSize:13}} placeholder="e.g. Is it safe to swim now?" value={followUp} onChange={e=>setFollowUp(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")askFollowUp();}}/>
                 <button style={{...S.btnSm,flexShrink:0}} onClick={askFollowUp} disabled={askingFollowUp}>Ask</button>
               </div>
             </>
           )}
         </>
       )}
+      {!displayedBrief&&!loading&&(
+        <div style={{textAlign:"center",padding:"32px 20px"}}>
+          <div style={{fontSize:14,color:COLORS.slate,marginBottom:16,lineHeight:1.5}}>Analyzes your readings, treatments, and current Summerville weather.</div>
+          <button style={S.btn} onClick={generateBrief}>Run Analysis</button>
+        </div>
+      )}
     </Modal>
   );
 }
 
-// - TREATMENT LOG MODAL -
 
-// - POOL -
 function Pool(){
   const readings   = useTable("pool_readings","logged_at");
   const maintLog   = useTable("pool_maintenance","date");
@@ -2478,7 +2416,7 @@ function Pool(){
         <input style={S.input} value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
         <button style={{...S.btn,marginTop:10}} onClick={saveMaint}>{editItem?"Save Changes":"Save"}</button>
       </Modal>}
-      {showBrief&&<PoolBrief readings={readings.data} maintLog={maintLog.data} onClose={()=>setShowBrief(false)}/>}
+      {showBrief&&<PoolBrief readings={readings.data} treatments={treatments.data} maintLog={maintLog.data} onClose={()=>setShowBrief(false)}/>}
       {showTreatmentForm&&<Modal title="Log Treatment" onClose={()=>{setShowTreatmentForm(false);setTreatForm({});}}> <div style={{background:COLORS.navyLight,borderRadius:10,padding:"10px 14px",marginBottom:16,display:"flex",gap:20,flexWrap:"wrap"}}>
           {[["FC",last?.free_chlorine],["pH",last?.ph],["Salt",last?.salt],["CYA",last?.cya],["CC",last?.cc],["SWG",last?.swg_setting?last.swg_setting+"%":null]].map(([k,v])=>(
             <div key={k} style={{textAlign:"center"}}>
