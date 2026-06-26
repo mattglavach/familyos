@@ -151,6 +151,9 @@ const SEED={
     {id:"1",date:"2026-06-13",type:"Brushed walls & floor",notes:""},
     {id:"2",date:"2026-06-10",type:"Cleaned skimmer basket",notes:""},
   ],
+  pool_treatments:[
+    {id:"1",date:"2026-06-17",logged_at:"2026-06-17T19:00:00Z",muriatic_acid_oz:11,soda_ash_oz:null,sodium_bicarb_oz:null,salt_lbs:null,cya_oz:null,liquid_chlorine_oz:null,shock_lbs:null,algaecide_oz:null,swg_pct_before:54,swg_pct_after:65,brushed:false,vacuumed:false,cleaned_skimmer:false,cleaned_filter:false,cleaned_cell:false,checked_flow:false,notes:"pH was 8.0"},
+  ],
   pool_settings:[{id:"1",filter_clean_baseline_psi:null}],
   pool_schedule:[
     {id:"1",title:"Check water level",last_completed:"2026-06-10",interval_days:7,notes:"SC evaporation heavy May Sept"},
@@ -1891,153 +1894,12 @@ Keep the ENTIRE brief under 150 words total. Bullets only, no exceptions.`;
 }
 
 // - TREATMENT LOG MODAL -
-function TreatmentLogModal({last, recs, onSave, onClose}) {
-  // Build pre-filled rows from active recs
-  // Each row: { id, label, detail, value (editable), color, active }
-  const recRows = recs
-    .filter(r=>r.priority==="high"||r.priority==="med")
-    .map((r,i)=>({
-      id:"rec_"+i,
-      label:r.action,
-      detail:r.detail,
-      value:r.action,  // editable, pre-filled
-      color:r.color,
-      param:r.param,
-      active:true,
-    }));
-
-  const QUICK = [
-    "Brushed walls & floor",
-    "Vacuumed",
-    "Cleaned skimmer basket",
-    "Cleaned filter cartridge",
-    "Cleaned salt cell",
-    "Checked flow switch",
-    "Added algaecide",
-    "Inspected O-rings",
-    "Water level topped up",
-  ];
-
-  const [rows, setRows] = useState(recRows);
-  const [freeText, setFreeText] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  function toggleRow(id) {
-    setRows(prev => prev.map(r => r.id===id ? {...r, active:!r.active} : r));
-  }
-  function updateRowValue(id, val) {
-    setRows(prev => prev.map(r => r.id===id ? {...r, value:val} : r));
-  }
-  function addQuick(label) {
-    const id = "quick_"+Date.now();
-    setRows(prev => [...prev, {id, label, value:label, color:COLORS.slate, active:true, quick:true}]);
-  }
-  function addFree() {
-    if(!freeText.trim()) return;
-    const id = "free_"+Date.now();
-    setRows(prev => [...prev, {id, label:freeText.trim(), value:freeText.trim(), color:COLORS.slate, active:true, free:true}]);
-    setFreeText("");
-  }
-  function removeRow(id) {
-    setRows(prev => prev.filter(r => r.id!==id));
-  }
-
-  const activeRows = rows.filter(r=>r.active && r.value.trim());
-  const hasAnything = activeRows.length > 0;
-
-  // Which quick items are already in rows
-  const addedQuick = new Set(rows.filter(r=>r.quick||r.free).map(r=>r.label));
-
-  async function save() {
-    setSaving(true);
-    const time = new Date().toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
-    const parts = activeRows.map(r=>r.value.trim()).filter(Boolean);
-    const note = time + " -- " + parts.join(" - ");
-    await onSave(note);
-    setSaving(false);
-    onClose();
-  }
-
-  return(
-    <Modal title="Log Treatment" onClose={onClose}>
-
-      {/* Chemistry snapshot */}
-      <div style={{background:COLORS.navyLight,borderRadius:10,padding:"10px 14px",marginBottom:16,display:"flex",gap:16}}>
-        {[["FC",last?.free_chlorine],["pH",last?.ph],["Salt",last?.salt],["CYA",last?.cya]].map(([k,v])=>(
-          <div key={k} style={{textAlign:"center"}}>
-            <div style={{fontSize:16,fontWeight:700,color:v!=null?COLORS.white:COLORS.slate}}>{v!=null?v:"--"}</div>
-            <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{k}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Treatment rows */}
-      {rows.length>0&&(
-        <div style={{marginBottom:16}}>
-          {rows.map(r=>(
-            <div key={r.id} style={{marginBottom:8,borderRadius:12,border:"1px solid "+(r.active?r.color+"44":COLORS.navyLight),background:r.active?r.color+"0d":COLORS.navyLight,padding:"10px 12px",opacity:r.active?1:0.5}}>
-              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:r.active?8:0}}>
-                {/* Toggle checkbox */}
-                <div onClick={()=>toggleRow(r.id)} style={{width:20,height:20,borderRadius:6,border:"2px solid "+(r.active?r.color:COLORS.slate),background:r.active?r.color:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer"}}>
-                  {r.active&&<span style={{color:"#fff",fontSize:11,fontWeight:700,lineHeight:1}}>v</span>}
-                </div>
-                <div style={{flex:1,fontSize:14,fontWeight:600,color:r.active?COLORS.white:COLORS.slate,lineHeight:1.3}}>{r.label}</div>
-                {(r.quick||r.free)&&<button onClick={()=>removeRow(r.id)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:16,padding:0,lineHeight:1}}>x</button>}
-              </div>
-              {r.active&&(
-                <>
-                  {r.detail&&<div style={{fontSize:12,color:COLORS.slate,marginBottom:8,marginLeft:30,lineHeight:1.4}}>{r.detail}</div>}
-                  <input
-                    style={{...S.input,marginBottom:0,fontSize:14,marginLeft:0,borderColor:r.color+"66"}}
-                    value={r.value}
-                    placeholder="What you actually did..."
-                    onChange={e=>updateRowValue(r.id,e.target.value)}
-                  />
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Quick-add chips */}
-      <div style={{fontSize:12,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8}}>Add Treatment</div>
-      <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
-        {QUICK.filter(q=>!rows.some(r=>r.label===q)).map(q=>(
-          <span key={q} style={{...S.chip(false,COLORS.slate),fontSize:12,padding:"4px 10px",marginBottom:0}} onClick={()=>addQuick(q)}>+ {q}</span>
-        ))}
-      </div>
-
-      {/* Free text entry */}
-      <div style={{display:"flex",gap:8,marginBottom:16}}>
-        <input
-          style={{...S.input,marginBottom:0,flex:1,fontSize:14}}
-          placeholder="Other treatment..."
-          value={freeText}
-          onChange={e=>setFreeText(e.target.value)}
-          onKeyDown={e=>{if(e.key==="Enter")addFree();}}
-        />
-        <button onClick={addFree} style={{...S.btnSm,flexShrink:0,fontSize:13}}>Add</button>
-      </div>
-
-      <button
-        style={{...S.btn,background:hasAnything?COLORS.green:COLORS.slate,marginTop:0}}
-        onClick={save}
-        disabled={saving||!hasAnything}
-      >
-        {saving?"Saving...":"Log "+activeRows.length+" Treatment"+(activeRows.length===1?"":"s")}
-      </button>
-
-      {!hasAnything&&<div style={{fontSize:13,color:COLORS.slate,textAlign:"center",marginTop:10}}>Check an item above or add a treatment</div>}
-    </Modal>
-  );
-}
-
 
 // - POOL -
 function Pool(){
   const readings   = useTable("pool_readings","logged_at");
   const maintLog   = useTable("pool_maintenance","date");
+  const treatments = useTable("pool_treatments","logged_at");
   const schedule   = useTable("pool_schedule","title",true);
   const poolSettings = useTable("pool_settings","id",true);
   const [tab,setTab]             = useState("schedule");
@@ -2107,6 +1969,8 @@ function Pool(){
   const lowRecs  = visibleRecs.filter(r=>r.priority==="low");
   const [showLow,setShowLow] = useState(false);
   const [showAllWatch,setShowAllWatch] = useState(false);
+  const [showTreatmentForm,setShowTreatmentForm] = useState(false);
+  const [treatForm,setTreatForm] = useState({});
 
   const season = getSeasonalReminder();
   const seasonKey = `pool_season_dismissed_${new Date().getFullYear()}_${new Date().getMonth()}`;
@@ -2151,6 +2015,35 @@ function Pool(){
   }
   async function logTreatment(note){
     await maintLog.insert({date:TODAY_STR,type:"Treatment applied",notes:note});
+  }
+  function num(v){ return (v===undefined||v===null||v==="") ? null : +v; }
+  async function saveTreatment(){
+    const d = treatForm.date||TODAY_STR;
+    const timeStr = treatForm.time||new Date().toTimeString().slice(0,5);
+    const loggedAt = new Date(`${d}T${timeStr}:00`).toISOString();
+    const row = {
+      date:d, logged_at:loggedAt,
+      muriatic_acid_oz:  num(treatForm.muriatic_acid_oz),
+      soda_ash_oz:       num(treatForm.soda_ash_oz),
+      sodium_bicarb_oz:  num(treatForm.sodium_bicarb_oz),
+      salt_lbs:          num(treatForm.salt_lbs),
+      cya_oz:            num(treatForm.cya_oz),
+      liquid_chlorine_oz:num(treatForm.liquid_chlorine_oz),
+      shock_lbs:         num(treatForm.shock_lbs),
+      algaecide_oz:      num(treatForm.algaecide_oz),
+      swg_pct_before:    num(treatForm.swg_pct_before),
+      swg_pct_after:     num(treatForm.swg_pct_after),
+      brushed:           !!treatForm.brushed,
+      vacuumed:          !!treatForm.vacuumed,
+      cleaned_skimmer:   !!treatForm.cleaned_skimmer,
+      cleaned_filter:    !!treatForm.cleaned_filter,
+      cleaned_cell:      !!treatForm.cleaned_cell,
+      checked_flow:      !!treatForm.checked_flow,
+      notes:             treatForm.notes||"",
+    };
+    await treatments.insert(row);
+    setShowTreatmentForm(false);
+    setTreatForm({});
   }
 
   // - Log form helpers -
@@ -2217,7 +2110,7 @@ function Pool(){
           <div style={{fontSize:14,color:COLORS.slateLight,lineHeight:1.5,marginBottom:14}}>{health.summary}</div>
           <button onClick={()=>{setForm({date:TODAY_STR});setShowLog(true);}} style={{width:"100%",background:COLORS.blue,color:"#fff",border:"none",borderRadius:10,padding:"11px 0",fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:8}}>+ Log Reading</button>
           <div style={{display:"flex",gap:8,marginBottom:10}}>
-            <button onClick={()=>setShowTreatment(true)} style={{flex:1,background:COLORS.green+"22",color:COLORS.green,border:`1px solid ${COLORS.green}44`,borderRadius:10,padding:"8px 0",fontSize:13,fontWeight:700,cursor:"pointer"}}>Log Treatment</button>
+            <button onClick={()=>{setTreatForm({date:TODAY_STR,swg_pct_before:last?.swg_setting||""});setShowTreatmentForm(true);}} style={{flex:1,background:COLORS.green+"22",color:COLORS.green,border:`1px solid ${COLORS.green}44`,borderRadius:10,padding:"8px 0",fontSize:13,fontWeight:700,cursor:"pointer"}}>Log Treatment</button>
             <button onClick={()=>setShowBrief(true)} style={{flex:1,background:COLORS.purple+"22",color:COLORS.purple,border:`1px solid ${COLORS.purple}44`,borderRadius:10,padding:"8px 0",fontSize:13,fontWeight:700,cursor:"pointer"}}>AI Brief</button>
           </div>
           <button onClick={()=>setShowChemDetails(p=>!p)} style={{width:"100%",background:"transparent",border:`1px solid ${COLORS.navyLight}`,borderRadius:8,padding:"7px 12px",fontSize:12,fontWeight:600,color:COLORS.slate,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -2385,6 +2278,7 @@ function Pool(){
             const items = [
               ...readings.data.map(r=>({...r, _type:"reading", _sortKey:r.logged_at||r.date})),
               ...maintLog.data.map(m=>({...m, _type:"maint", _sortKey:m.date})),
+              ...treatments.data.map(t=>({...t, _type:"treatment", _sortKey:t.logged_at||t.date})),
             ].sort((a,b)=>new Date(b._sortKey)-new Date(a._sortKey));
             const readingsByDate = {};
             readings.data.forEach(r=>{ readingsByDate[r.date]=(readingsByDate[r.date]||0)+1; });
@@ -2427,13 +2321,60 @@ function Pool(){
                   onDelete={()=>{maintLog.remove(item.id);setActiveSwipe(null);}}
                   style={S.card}>
                   <div style={{display:"flex",alignItems:"center",gap:6}}>
-                    <span style={{fontSize:15,background:COLORS.green+"22",color:COLORS.green,borderRadius:4,padding:"1px 6px",fontWeight:700}}>Maintenance</span>
-                    <div style={{fontSize:15,fontWeight:700,color:item.type==="Treatment applied"?COLORS.green:COLORS.white}}>{item.type}</div>
+                    <span style={{fontSize:13,background:COLORS.slate+"22",color:COLORS.slate,borderRadius:4,padding:"1px 6px",fontWeight:700}}>Maintenance</span>
+                    <div style={{fontSize:14,fontWeight:600,color:COLORS.slateLight}}>{item.type}</div>
                   </div>
-                  <div style={{fontSize:15,color:COLORS.slate,marginTop:3}}>{formatDate(item.date)}</div>
-                  {item.notes&&<div style={{fontSize:15,color:COLORS.slate,marginTop:10,lineHeight:1.5,fontStyle:"italic"}}>{item.notes}</div>}
+                  <div style={{fontSize:12,color:COLORS.slate,marginTop:3}}>{formatDate(item.date)}</div>
+                  {item.notes&&<div style={{fontSize:13,color:COLORS.slate,marginTop:6,fontStyle:"italic"}}>{item.notes}</div>}
                 </SwipeCard>
               );
+              }
+              if(item._type==="treatment"){
+                const chems = [
+                  item.muriatic_acid_oz&&`${item.muriatic_acid_oz} oz acid`,
+                  item.soda_ash_oz&&`${item.soda_ash_oz} oz soda ash`,
+                  item.sodium_bicarb_oz&&`${item.sodium_bicarb_oz} oz bicarb`,
+                  item.salt_lbs&&`${item.salt_lbs} lbs salt`,
+                  item.cya_oz&&`${item.cya_oz} oz CYA`,
+                  item.liquid_chlorine_oz&&`${item.liquid_chlorine_oz} oz chlorine`,
+                  item.shock_lbs&&`${item.shock_lbs} lbs shock`,
+                  item.algaecide_oz&&`${item.algaecide_oz} oz algaecide`,
+                ].filter(Boolean);
+                const tasks = [
+                  item.brushed&&"Brushed",
+                  item.vacuumed&&"Vacuumed",
+                  item.cleaned_skimmer&&"Cleaned skimmer",
+                  item.cleaned_filter&&"Cleaned filter",
+                  item.cleaned_cell&&"Cleaned cell",
+                  item.checked_flow&&"Checked flow switch",
+                ].filter(Boolean);
+                const swgChange = item.swg_pct_before&&item.swg_pct_after&&item.swg_pct_before!==item.swg_pct_after;
+                return(
+                  <SwipeCard key={`t-${item.id}`} id={`t-${item.id}`} activeId={activeSwipe} setActiveId={setActiveSwipe}
+                    onEdit={()=>{setTreatForm({...item,time:item.logged_at?new Date(item.logged_at).toTimeString().slice(0,5):""});setShowTreatmentForm(true);setActiveSwipe(null);}}
+                    onDelete={()=>{treatments.remove(item.id);setActiveSwipe(null);}}
+                    style={S.card}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6}}>
+                        <span style={{fontSize:13,background:COLORS.green+"22",color:COLORS.green,borderRadius:4,padding:"1px 6px",fontWeight:700}}>Treatment</span>
+                        <div style={{fontSize:12,color:COLORS.slate}}>{formatDate(item.date)}{item.logged_at?` - ${new Date(item.logged_at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}`:""}</div>
+                      </div>
+                      {swgChange&&<span style={{fontSize:12,color:COLORS.blue,fontWeight:600}}>SWG {item.swg_pct_before}% to {item.swg_pct_after}%</span>}
+                    </div>
+                    {chems.length>0&&(
+                      <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:tasks.length>0?8:0}}>
+                        {chems.map((c,i)=>(
+                          <span key={i} style={{fontSize:13,background:COLORS.amber+"22",color:COLORS.amber,borderRadius:6,padding:"3px 8px",fontWeight:600}}>{c}</span>
+                        ))}
+                      </div>
+                    )}
+                    {tasks.length>0&&(
+                      <div style={{fontSize:13,color:COLORS.slate,lineHeight:1.5}}>{tasks.join(", ")}</div>
+                    )}
+                    {item.notes&&<div style={{fontSize:13,color:COLORS.slate,marginTop:6,fontStyle:"italic"}}>{item.notes}</div>}
+                    {chems.length===0&&tasks.length===0&&<div style={{fontSize:13,color:COLORS.slate}}>No chemicals or tasks logged</div>}
+                  </SwipeCard>
+                );
             });
           })()}
           <button style={S.btn} onClick={()=>{setForm({date:TODAY_STR});setShowMaint(true);}}>+ Log Maintenance</button>
@@ -2535,7 +2476,84 @@ function Pool(){
         <button style={{...S.btn,marginTop:10}} onClick={saveMaint}>{editItem?"Save Changes":"Save"}</button>
       </Modal>}
       {showBrief&&<PoolBrief readings={readings.data} maintLog={maintLog.data} onClose={()=>setShowBrief(false)}/>}
-      {showTreatment&&<TreatmentLogModal last={last} recs={chemRecs} onSave={logTreatment} onClose={()=>setShowTreatment(false)}/>}
+      {showTreatmentForm&&<Modal title="Log Treatment" onClose={()=>{setShowTreatmentForm(false);setTreatForm({});}}> <div style={{background:COLORS.navyLight,borderRadius:10,padding:"10px 14px",marginBottom:16,display:"flex",gap:20,flexWrap:"wrap"}}>
+          {[["FC",last?.free_chlorine],["pH",last?.ph],["Salt",last?.salt],["CYA",last?.cya],["CC",last?.cc],["SWG",last?.swg_setting?last.swg_setting+"%":null]].map(([k,v])=>(
+            <div key={k} style={{textAlign:"center"}}>
+              <div style={{fontSize:16,fontWeight:700,color:v!=null?COLORS.white:COLORS.slate}}>{v!=null?v:"--"}</div>
+              <div style={{fontSize:11,color:COLORS.slate,marginTop:1}}>{k}</div>
+            </div>
+          ))}
+        </div> {chemRecs.filter(r=>r.priority==="high"||r.priority==="med").length>0&&(
+          <div style={{background:COLORS.amber+"11",border:`1px solid ${COLORS.amber}33`,borderRadius:10,padding:"10px 14px",marginBottom:14}}>
+            <div style={{fontSize:11,fontWeight:700,color:COLORS.amber,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:6}}>Active Recommendations</div>
+            {chemRecs.filter(r=>r.priority==="high"||r.priority==="med").slice(0,3).map((r,i)=>(
+              <div key={i} style={{fontSize:13,color:COLORS.slateLight,marginBottom:2}}>- {r.action}</div>
+            ))}
+          </div>
+        )} <div style={{display:"flex",gap:8,marginBottom:14}}>
+          <div style={{flex:1}}><label style={S.label}>Date</label><input type="date" style={S.input} value={treatForm.date||TODAY_STR} onChange={e=>setTreatForm(p=>({...p,date:e.target.value}))}/></div>
+          <div style={{flex:"0 0 110px"}}><label style={S.label}>Time</label><input type="time" style={S.input} value={treatForm.time||new Date().toTimeString().slice(0,5)} onChange={e=>setTreatForm(p=>({...p,time:e.target.value}))}/></div>
+        </div> <div style={{fontSize:11,fontWeight:700,color:COLORS.blue,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>Chemicals Added</div>
+        <div style={S.row}>
+          <div style={S.col}>
+            <label style={S.label}>Muriatic Acid (oz)</label>
+            <input type="number" step="0.5" style={S.input} placeholder="e.g. 11" value={treatForm.muriatic_acid_oz||""} onChange={e=>setTreatForm(p=>({...p,muriatic_acid_oz:e.target.value}))}/>
+          </div>
+          <div style={S.col}>
+            <label style={S.label}>Soda Ash (oz)</label>
+            <input type="number" step="0.5" style={S.input} placeholder="pH up" value={treatForm.soda_ash_oz||""} onChange={e=>setTreatForm(p=>({...p,soda_ash_oz:e.target.value}))}/>
+          </div>
+        </div>
+        <div style={S.row}>
+          <div style={S.col}>
+            <label style={S.label}>Sodium Bicarb (oz)</label>
+            <input type="number" step="0.5" style={S.input} placeholder="TA up" value={treatForm.sodium_bicarb_oz||""} onChange={e=>setTreatForm(p=>({...p,sodium_bicarb_oz:e.target.value}))}/>
+          </div>
+          <div style={S.col}>
+            <label style={S.label}>Salt (lbs)</label>
+            <input type="number" step="0.5" style={S.input} placeholder="e.g. 2" value={treatForm.salt_lbs||""} onChange={e=>setTreatForm(p=>({...p,salt_lbs:e.target.value}))}/>
+          </div>
+        </div>
+        <div style={S.row}>
+          <div style={S.col}>
+            <label style={S.label}>CYA Stabilizer (oz)</label>
+            <input type="number" step="1" style={S.input} placeholder="e.g. 48" value={treatForm.cya_oz||""} onChange={e=>setTreatForm(p=>({...p,cya_oz:e.target.value}))}/>
+          </div>
+          <div style={S.col}>
+            <label style={S.label}>Liquid Chlorine (oz)</label>
+            <input type="number" step="1" style={S.input} value={treatForm.liquid_chlorine_oz||""} onChange={e=>setTreatForm(p=>({...p,liquid_chlorine_oz:e.target.value}))}/>
+          </div>
+        </div>
+        <div style={S.row}>
+          <div style={S.col}>
+            <label style={S.label}>Shock (lbs)</label>
+            <input type="number" step="0.5" style={S.input} value={treatForm.shock_lbs||""} onChange={e=>setTreatForm(p=>({...p,shock_lbs:e.target.value}))}/>
+          </div>
+          <div style={S.col}>
+            <label style={S.label}>Algaecide (oz)</label>
+            <input type="number" step="1" style={S.input} value={treatForm.algaecide_oz||""} onChange={e=>setTreatForm(p=>({...p,algaecide_oz:e.target.value}))}/>
+          </div>
+        </div> <div style={{fontSize:11,fontWeight:700,color:COLORS.blue,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10,marginTop:4}}>SWG Setting</div>
+        <div style={S.row}>
+          <div style={S.col}>
+            <label style={S.label}>Before (%)</label>
+            <input type="number" style={S.input} placeholder={last?.swg_setting||""} value={treatForm.swg_pct_before||""} onChange={e=>setTreatForm(p=>({...p,swg_pct_before:e.target.value}))}/>
+          </div>
+          <div style={S.col}>
+            <label style={S.label}>After (%)</label>
+            <input type="number" style={S.input} value={treatForm.swg_pct_after||""} onChange={e=>setTreatForm(p=>({...p,swg_pct_after:e.target.value}))}/>
+          </div>
+        </div> <div style={{fontSize:11,fontWeight:700,color:COLORS.blue,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>Maintenance Done</div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:14}}>
+          {[["brushed","Brushed"],["vacuumed","Vacuumed"],["cleaned_skimmer","Cleaned skimmer"],["cleaned_filter","Cleaned filter"],["cleaned_cell","Cleaned cell"],["checked_flow","Checked flow switch"]].map(([k,label])=>(
+            <span key={k} style={S.chip(!!treatForm[k],COLORS.green)} onClick={()=>setTreatForm(p=>({...p,[k]:!p[k]}))}>
+              {treatForm[k]?"v ":""}{label}
+            </span>
+          ))}
+        </div> <label style={S.label}>Notes (optional)</label>
+        <input style={S.input} placeholder="Anything else worth noting..." value={treatForm.notes||""} onChange={e=>setTreatForm(p=>({...p,notes:e.target.value}))}/>
+        <button style={{...S.btn,marginTop:4,background:COLORS.green}} onClick={saveTreatment}>Save Treatment</button>
+      </Modal>}
       {showScheduleEdit&&<Modal title={editItem?"Edit Schedule Item":"Add Schedule Item"} onClose={()=>{setShowScheduleEdit(false);setEditItem(null);setForm({});}}>
         <label style={S.label}>Task Name</label>
         <input style={S.input} placeholder="e.g. Check water level" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
