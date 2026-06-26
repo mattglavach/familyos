@@ -1288,14 +1288,24 @@ function Tasks(){
   const PRIORITY_COLORS = {high:COLORS.red, med:COLORS.amber, low:COLORS.slate};
 
   // - Derive task states -
+  // Compute effective due date for recurring tasks without a fixed due_date
+  function effectiveDueDate(t) {
+    if(t.due_date) return t.due_date;
+    if(t.recurring_interval_days && t.last_completed) {
+      return nextDueDate(t.last_completed, t.recurring_interval_days);
+    }
+    return null;
+  }
+
   function taskStatus(t) {
     if(t.completed && !t.recurring_interval_days) return "done";
-    if(!t.due_date && !t.is_important) return "backlog";
-    if(t.is_important && !t.due_date) return "important";
-    if(!t.due_date) return "backlog";
-    const days = daysBetween(t.due_date);
+    const eff = effectiveDueDate(t);
+    if(!eff && !t.is_important) return "backlog";
+    if(!eff && t.is_important) return "important";
+    const days = daysBetween(eff);
     if(days < 0) return "overdue";
     if(days === 0) return "today";
+    if(days <= 2) return "today";
     if(days <= 7) return "this-week";
     return "upcoming";
   }
@@ -1363,9 +1373,9 @@ function Tasks(){
   const allActive = tasks.data.filter(t => !t.completed || t.recurring_interval_days);
   const filtered  = catFilter==="All" ? allActive : allActive.filter(t=>t.category===catFilter);
 
-  const todayItems    = filtered.filter(t => taskStatus(t)==="overdue" || taskStatus(t)==="today" || t.is_important);
-  const thisWeekItems = filtered.filter(t => taskStatus(t)==="this-week" && !t.is_important);
-  const upcomingItems = filtered.filter(t => taskStatus(t)==="upcoming" && !t.is_important);
+  const todayItems    = filtered.filter(t => taskStatus(t)==="overdue" || taskStatus(t)==="today" || (t.is_important && taskStatus(t)!=="done"));
+  const thisWeekItems = filtered.filter(t => taskStatus(t)==="this-week");
+  const upcomingItems = filtered.filter(t => taskStatus(t)==="upcoming");
   const backlogItems  = filtered.filter(t => taskStatus(t)==="backlog" && !t.is_important);
   const completedItems = tasks.data.filter(t => t.completed && !t.recurring_interval_days);
 
@@ -1378,7 +1388,9 @@ function Tasks(){
   function TaskCard({item}) {
     const status = taskStatus(item);
     const color  = taskColor(status);
-    const days   = item.due_date ? daysBetween(item.due_date) : null;
+    const eff    = effectiveDueDate(item);
+    const days   = eff ? daysBetween(eff) : null;
+    const dueLabel = eff ? (days < 0 ? `${-days}d overdue` : days === 0 ? "Today" : days <= 2 ? `Due in ${days}d` : `Due ${formatDate(eff)}`) : null;
     const isRecurring = !!item.recurring_interval_days;
 
     return(
@@ -1444,12 +1456,25 @@ function Tasks(){
     const urgentMaint = [...maintOverdue, ...maintDueSoon];
     const total = todayItems.length + urgentMaint.length;
 
+    const overdueCount = todayItems.filter(t=>taskStatus(t)==="overdue").length + maintOverdue.length;
+    const todayCount   = todayItems.filter(t=>taskStatus(t)==="today").length;
+    const importantCount = todayItems.filter(t=>taskStatus(t)==="important").length;
     return(<>
-<div style={{...S.card,background:total===0?COLORS.green+"11":COLORS.amber+"11",borderColor:total===0?COLORS.green+"33":COLORS.amber+"33",marginBottom:14}}>
-        <div style={{fontSize:24,fontWeight:800,color:total===0?COLORS.green:COLORS.amber,letterSpacing:"-0.3px"}}>
-          {total===0?"All clear  ":`${total} item${total!==1?"s":""} need attention`}
+      <div style={{background:COLORS.navyMid,borderRadius:16,borderLeft:`4px solid ${total===0?COLORS.green:overdueCount>0?COLORS.red:COLORS.amber}`,padding:"14px 16px",marginBottom:12}}>
+        <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"1px",marginBottom:4}}>Today</div>
+        <div style={{fontSize:20,fontWeight:800,color:total===0?COLORS.green:overdueCount>0?COLORS.red:COLORS.amber,letterSpacing:"-0.3px"}}>
+          {total===0?"All clear"
+            :overdueCount>0?`${overdueCount} overdue`
+            :`${total} item${total!==1?"s":""} need attention`}
         </div>
-        <div style={{fontSize:13,color:COLORS.slate,marginTop:6}}>{formatToday()}</div>
+        <div style={{fontSize:12,color:COLORS.slate,marginTop:4}}>
+          {[
+            overdueCount>0&&`${overdueCount} overdue`,
+            todayCount>0&&`${todayCount} due today`,
+            importantCount>0&&`${importantCount} important`,
+            urgentMaint.length>0&&`${urgentMaint.length} maintenance`,
+          ].filter(Boolean).join("  -  ")||formatDate(TODAY_STR)}
+        </div>
       </div>
 {showMsDo&&(
         <div style={{...S.gcBanner,marginBottom:14}}>
@@ -2806,100 +2831,94 @@ function Finance(){
         {["summary","retire","college","debt","timeline"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
       </div>
 
-      {tab==="summary"&&<>
-        {retProj&&(
-          <div style={{background:COLORS.navyMid,borderRadius:16,padding:"20px 18px",marginBottom:16,border:`1px solid ${COLORS.navyLight}`,borderTop:`3px solid ${retProj.statusColor}`}}>
-            <div style={{fontSize:15,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>Financial Snapshot</div>
-            <div style={{fontSize:28,fontWeight:800,letterSpacing:"-0.5px"}}>{formatMoneyShort(netWorth)}</div>
-            <div style={{fontSize:15,color:COLORS.slate,marginTop:2}}>estimated net worth</div>
-            <div style={{display:"flex",gap:16,marginTop:14,flexWrap:"wrap"}}>
-              <div><div style={{fontSize:15,color:COLORS.slate}}>Retirement</div><div style={{fontSize:15,fontWeight:700,marginTop:2}}>{formatMoneyShort(retProj.totalBalance)}</div></div>
-              {collegeS&&<div><div style={{fontSize:15,color:COLORS.slate}}>College 529</div><div style={{fontSize:15,fontWeight:700,marginTop:2}}>{formatMoneyShort(collegeS.balance)}</div></div>}
-              {mort&&<div><div style={{fontSize:15,color:COLORS.slate}}>Mortgage</div><div style={{fontSize:15,fontWeight:700,color:COLORS.red,marginTop:2}}>({formatMoneyShort(mort.current_balance)})</div></div>}
+      {tab==="summary"&&<> <div style={{background:COLORS.navyMid,borderRadius:16,padding:"20px 18px",marginBottom:12,borderLeft:`4px solid ${retProj?retProj.statusColor:COLORS.slate}`}}>
+          <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"1px",marginBottom:6}}>Net Worth</div>
+          <div style={{fontSize:34,fontWeight:800,letterSpacing:"-1px",marginBottom:2}}>{formatMoneyShort(netWorth)}</div>
+          <div style={{fontSize:13,color:COLORS.slate,marginBottom:14}}>{formatMoney(totalAssets)} assets - {formatMoney(totalLiabilities)} liabilities</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            <div style={{background:COLORS.navyLight,borderRadius:10,padding:"10px 12px"}}>
+              <div style={{fontSize:11,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:4}}>Retirement</div>
+              <div style={{fontSize:18,fontWeight:800,color:retProj?retProj.statusColor:COLORS.white}}>{retProj?formatMoneyShort(retProj.totalBalance):"--"}</div>
+              <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{retProj?`Age ${assump.retirement_age} target - ${retProj.gap>0?formatMoneyShort(retProj.gap)+" gap":"on track"}`:"Add accounts"}</div>
+            </div>
+            <div style={{background:COLORS.navyLight,borderRadius:10,padding:"10px 12px"}}>
+              <div style={{fontSize:11,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:4}}>College 529</div>
+              <div style={{fontSize:18,fontWeight:800,color:pooledCollegeProj?(pooledCollegeProj.anyShortfall?COLORS.amber:COLORS.green):COLORS.white}}>{formatMoneyShort(totalCollege)}</div>
+              <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{pooledCollegeProj?(pooledCollegeProj.anyShortfall?`+${formatMoney(pooledCollegeProj.suggestedMonthly-pooledCollegeProj.currentContribution)}/mo needed`:"On track"):"Add goals"}</div>
+            </div>
+            <div style={{background:COLORS.navyLight,borderRadius:10,padding:"10px 12px"}}>
+              <div style={{fontSize:11,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:4}}>Home Equity</div>
+              <div style={{fontSize:18,fontWeight:800,color:COLORS.blue}}>{formatMoneyShort(homeEquity)}</div>
+              <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{mort?`${formatMoneyShort(mort.current_balance)} remaining`:"No mortgage"}</div>
+            </div>
+            <div style={{background:COLORS.navyLight,borderRadius:10,padding:"10px 12px"}}>
+              <div style={{fontSize:11,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:4}}>Other Debt</div>
+              <div style={{fontSize:18,fontWeight:800,color:totalOtherDebt>0?COLORS.red:COLORS.green}}>{totalOtherDebt>0?formatMoneyShort(totalOtherDebt):"Clear"}</div>
+              <div style={{fontSize:11,color:COLORS.slate,marginTop:2}}>{otherDebt.data.length>0?otherDebt.data[0].name:"No other debt"}</div>
             </div>
           </div>
-        )}
-        {(retStale.stale||collegeStale.stale||mortStale.stale)&&(
-          <div style={{...S.card,background:COLORS.amber+"11",borderColor:COLORS.amber+"33",marginBottom:12}}>
-            <div style={{fontSize:15,fontWeight:700,color:COLORS.amber,marginBottom:10}}>   Some balances may be out of date</div>
-            {retStale.stale&&<div style={{fontSize:15,color:COLORS.slateLight,marginBottom:2}}>  Retirement: {retStale.days?`${retStale.days}d ago`:"never updated"}</div>}
-            {collegeStale.stale&&<div style={{fontSize:15,color:COLORS.slateLight,marginBottom:2}}>  College: {collegeStale.days?`${collegeStale.days}d ago`:"never updated"}</div>}
-            {mortStale.stale&&<div style={{fontSize:15,color:COLORS.slateLight}}>  Mortgage: {mortStale.days?`${mortStale.days}d ago`:"never updated"}</div>}
-          </div>
-        )}
-        <div style={{...S.sectionLabel,marginTop:20}}>Goals at a Glance</div>
-        <div style={{height:1,background:COLORS.navyLight,marginBottom:16,marginTop:-8}}/>
-        {retProj&&(
-          <div style={{...S.card,borderLeft:`3px solid ${retProj.statusColor}`,marginBottom:10}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{fontSize:15,fontWeight:700}}>  Retirement</div>
-              <span style={{fontSize:15,color:retProj.statusColor,fontWeight:700}}>{retProj.statusLabel.split(" ")[0].trim()}</span>
+        </div> {(retStale.stale||collegeStale.stale||mortStale.stale)&&(
+          <div style={{background:COLORS.amber+"11",border:`1px solid ${COLORS.amber}33`,borderRadius:10,padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:10}}>
+            <div style={{fontSize:13,color:COLORS.amber,fontWeight:700,flexShrink:0}}>Stale data:</div>
+            <div style={{fontSize:12,color:COLORS.slateLight}}>
+              {[retStale.stale&&`Retirement (${retStale.days||"?"}d)`,collegeStale.stale&&`College (${collegeStale.days||"?"}d)`,mortStale.stale&&`Mortgage (${mortStale.days||"?"}d)`].filter(Boolean).join(", ")}
             </div>
-            <div style={{fontSize:15,color:COLORS.slate,marginTop:10}}>Age {assump.retirement_age}   {formatMoneyShort(retProj.spendableTodaysDollars)} projected vs {formatMoneyShort(retProj.targetNumberToday)} needed (today's $)</div>
-            {retProj.gap>0
-              ?<div style={{fontSize:15,color:COLORS.amber,marginTop:10,fontWeight:600}}>Gap: {formatMoneyShort(retProj.gap)}   ~{formatMoney(retProj.monthlyNeeded)}/mo more</div>
-              :<div style={{fontSize:15,color:COLORS.green,marginTop:10,fontWeight:600}}>On track   surplus {formatMoneyShort(-retProj.gap)}</div>
-            }
-            <div style={S.progress}><div style={S.progressFill(Math.min(100,retProj.totalBalance/retProj.targetNumberInflated*100), retProj.statusColor)}/></div>
           </div>
-        )}
-        {pooledCollegeProj&&(
-          <div style={{...S.card,borderLeft:`3px solid ${pooledCollegeProj.anyShortfall?COLORS.amber:COLORS.green}`,marginBottom:10}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{fontSize:15,fontWeight:700}}>  College (3 kids)</div>
-              <span style={{fontSize:15,color:pooledCollegeProj.anyShortfall?COLORS.amber:COLORS.green,fontWeight:700}}>{pooledCollegeProj.anyShortfall?`${pooledCollegeProj.perChild.filter(c=>!c.fullyFunded).length} short`:"On track  "}</span>
+        )} {retProj&&(
+          <div style={{background:COLORS.navyMid,borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+            <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"1px",marginBottom:10}}>Monthly Contributions</div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+              <div style={{fontSize:13,color:COLORS.slateLight}}>Retirement</div>
+              <div style={{fontSize:14,fontWeight:700}}>{formatMoney(retProj.totalMonthly)}/mo</div>
             </div>
-            <div style={{fontSize:15,color:COLORS.slate,marginTop:10}}>{pooledCollegeProj.perChild.map(c=>`${c.child_name} ${c.target_year}`).join("   ")}   {formatMoneyShort(pooledCollegeProj.totalTargets)} total</div>
-            {pooledCollegeProj.anyShortfall&&<div style={{fontSize:15,color:COLORS.amber,marginTop:10,fontWeight:600}}>Increase to ~{formatMoney(pooledCollegeProj.suggestedMonthly)}/mo to fund all three</div>}
-            <div style={S.progress}><div style={S.progressFill(Math.min(100,(collegeS?.balance||0)/pooledCollegeProj.totalTargets*100), pooledCollegeProj.anyShortfall?COLORS.amber:COLORS.green)}/></div>
-          </div>
-        )}
-        {mort&&mortMonths&&(
-          <div style={{...S.card,borderLeft:`3px solid ${COLORS.blue}`,marginBottom:10}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{fontSize:15,fontWeight:700}}>  Mortgage</div>
-              <span style={{fontSize:15,color:COLORS.blue,fontWeight:700}}>{monthsToDate(mortMonths)}</span>
-            </div>
-            <div style={{fontSize:15,color:COLORS.slate,marginTop:10}}>{formatMoney(mort.current_balance)} remaining at {mort.interest_rate}%</div>
-            <div style={S.progress}><div style={S.progressFill(Math.min(100,100-(mort.current_balance/(mort.original_balance||mort.current_balance*1.5))*100), COLORS.blue)}/></div>
-          </div>
-        )}
-        {otherDebt.data.map(d=>{
-          const months=calcPayoffMonths(d.balance, d.interest_rate, d.payment_frequency==="biweekly"?d.payment_amount*2.17:d.payment_amount);
-          return(
-            <div key={d.id} style={{...S.card,borderLeft:`3px solid ${COLORS.red}`,marginBottom:10}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div style={{fontSize:15,fontWeight:700}}>  {d.name}</div>
-                <span style={{fontSize:15,color:COLORS.red,fontWeight:700}}>{months?monthsToDate(months):" "}</span>
+            {collegeS&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+              <div style={{fontSize:13,color:COLORS.slateLight}}>College 529</div>
+              <div style={{fontSize:14,fontWeight:700}}>{formatMoney(collegeS.monthly_contribution)}/mo</div>
+            </div>}
+            {mort&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+              <div style={{fontSize:13,color:COLORS.slateLight}}>Mortgage</div>
+              <div style={{fontSize:14,fontWeight:700,color:COLORS.red}}>{formatMoney(mort.monthly_payment+(mort.extra_payment_monthly||0))}/mo</div>
+            </div>}
+            {retProj.gap>0&&(
+              <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${COLORS.navyLight}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{fontSize:13,color:COLORS.amber}}>To close retirement gap</div>
+                <div style={{fontSize:14,fontWeight:700,color:COLORS.amber}}>+{formatMoney(retProj.monthlyNeeded)}/mo</div>
               </div>
-              <div style={{fontSize:15,color:COLORS.slate,marginTop:10}}>{formatMoney(d.balance)} at {d.interest_rate}%</div>
-            </div>
-          );
-        })}
-        {actionItems.data.filter(a=>!a.completed).length>0&&<>
-          <div style={S.sectionLabel}>Action Items</div>
-          {actionItems.data.filter(a=>!a.completed).map(a=>(
-            <div key={a.id} style={S.statusCard(priorityColors[a.priority])}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div style={{fontSize:15,fontWeight:600,flex:1,paddingRight:10}}>{a.title}</div>
-                <button style={S.btnCheck} onClick={()=>actionItems.update(a.id,{completed:true})}> </button>
+            )}
+          </div>
+        )} {actionItems.data.filter(a=>!a.completed).length>0&&(
+          <div style={{background:COLORS.navyMid,borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+            <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"1px",marginBottom:10}}>Action Items</div>
+            {actionItems.data.filter(a=>!a.completed).map(a=>(
+              <div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${COLORS.navyLight}`}}>
+                <div style={{flex:1,paddingRight:10}}>
+                  <div style={{fontSize:13,fontWeight:600,color:COLORS.white}}>{a.title}</div>
+                  <div style={{fontSize:11,color:priorityColors[a.priority]||COLORS.slate,marginTop:2,textTransform:"uppercase",letterSpacing:"0.5px"}}>{a.priority}</div>
+                </div>
+                <button style={S.btnCheck} onClick={()=>actionItems.update(a.id,{completed:true})}>v</button>
               </div>
-            </div>
-          ))}
-        </>}
-        <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={()=>{setForm({priority:"med",category:"other"});setShowModal("action");}}>+ Add Action Item</button>
-        {snapshots.data.length>0&&<>
-          <div style={S.sectionLabel}>Net Worth History</div>
-          {snapshots.data.slice(0,5).map(s=>(
-            <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${COLORS.navyLight}`}}>
-              <div style={{fontSize:15,color:COLORS.slate}}>{formatDate(s.date)}</div>
-              <div style={{fontSize:15,fontWeight:700}}>{formatMoney(s.net_worth)}</div>
-            </div>
-          ))}
-        </>}
-        <button style={{...S.btnSm,width:"100%",marginTop:12}} onClick={()=>{setForm({date:TODAY_STR});setShowModal("snapshot");}}>  Save Snapshot</button>
+            ))}
+            <button style={{...S.btnSm,width:"100%",marginTop:10,fontSize:12}} onClick={()=>{setForm({priority:"med",category:"other"});setShowModal("action");}}>+ Add Action Item</button>
+          </div>
+        )}
+        {!actionItems.data.filter(a=>!a.completed).length&&(
+          <button style={{...S.btnSm,width:"100%",marginTop:4,marginBottom:12,fontSize:12}} onClick={()=>{setForm({priority:"med",category:"other"});setShowModal("action");}}>+ Add Action Item</button>
+        )} {snapshots.data.length>0&&(
+          <div style={{background:COLORS.navyMid,borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+            <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"1px",marginBottom:10}}>Net Worth History</div>
+            {snapshots.data.slice(0,4).map((s,i)=>(
+              <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:i<Math.min(snapshots.data.length,4)-1?`1px solid ${COLORS.navyLight}`:"none"}}>
+                <div style={{fontSize:12,color:COLORS.slate}}>{formatDate(s.date)}</div>
+                <div style={{fontSize:14,fontWeight:700}}>{formatMoneyShort(s.net_worth)}</div>
+              </div>
+            ))}
+            <button style={{...S.btnSm,width:"100%",marginTop:10,fontSize:12}} onClick={()=>{setForm({date:TODAY_STR});setShowModal("snapshot");}}>+ Save Snapshot</button>
+          </div>
+        )}
+        {!snapshots.data.length&&(
+          <button style={{...S.btnSm,width:"100%",marginBottom:12,fontSize:12}} onClick={()=>{setForm({date:TODAY_STR});setShowModal("snapshot");}}>Save Net Worth Snapshot</button>
+        )}
       </>}
-
       {tab==="retire"&&<>
         <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12}}>
           <button onClick={()=>{setForm({...assump});setShowModal("assumptions");}} style={{background:COLORS.navyLight,border:`1px solid ${COLORS.navyLight}`,borderRadius:8,padding:"6px 12px",fontSize:13,fontWeight:700,color:COLORS.slateLight,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
