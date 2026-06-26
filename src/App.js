@@ -310,12 +310,13 @@ function calcPoolHealth(last, shockMin, readings) {
   const anyRed=params.some(p=>p.icon===" "),anyAmber=params.some(p=>p.icon===" ");
   const overallColor=anyRed?COLORS.red:anyAmber?COLORS.amber:COLORS.green;
   // Unified swim status   single signal, no contradiction
-  const swimStatus = !safeToSwim ? {label:"Do Not Swim", color:COLORS.red, emoji:"[X]"} :
-    anyRed ? {label:"Swim OK - Fix Today", color:COLORS.amber, emoji:"[!]"} :
-    anyAmber ? {label:"Swim OK - Monitor", color:COLORS.amber, emoji:"[~]"} :
-    {label:"Swim Ready", color:COLORS.green, emoji:"[OK]"};
+  const swimStatus = !safeToSwim ? {label:"Do Not Swim", color:COLORS.red} :
+    anyRed ? {label:"Swim OK - Fix Today", color:COLORS.amber} :
+    anyAmber ? {label:"Swim OK - Monitor", color:COLORS.amber} :
+    {label:"Swim Ready", color:COLORS.green};
   const overallLabel=swimStatus.label;
-  const overallEmoji=swimStatus.emoji;
+  const overallColor2=swimStatus.color;
+  const overallEmoji="";
   // Short status-only summary   actions surface in rec cards below
   let summary = "";
   const issues = params.filter(p=>p.color===COLORS.red||p.color===COLORS.amber).map(p=>p.shortLabel||p.label);
@@ -504,11 +505,11 @@ function getChemRecommendations(last,readings,filterBaseline){
   const recs=[],shockMin=calcShockThreshold(last.cya),burnRate=calcFCBurnRate(readings),acidOz=calcAcidDose(last.ph,7.4,last.alkalinity);
   const calciumReading=readings.find(r=>r.calcium_hardness!==null&&r.calcium_hardness!==undefined),calciumValue=calciumReading?calciumReading.calcium_hardness:null;
   const lsi=calcLangelier(last.ph,last.alkalinity,calciumValue||CALCIUM_HARDNESS,last.water_temp),targetSWG=calcTargetSWG(last.free_chlorine,last.cya,last.water_temp,last.pump_hours),phEffective=last.ph?fcEffectiveAtPH(last.ph):null;
-  if(last.ph&&last.ph>7.6){const oz=acidOz||"?",effNote=phEffective?` At pH ${last.ph}, only ${phEffective}% of FC is active.`:"";recs.push({priority:"high",param:"pH",icon:" ",action:`Add ~${oz} oz muriatic acid   pH ${last.ph}   7.4`,detail:`Pour slowly in front of return jets with pump running.${effNote}`,color:COLORS.red});}
-  else if(last.ph&&last.ph<7.4&&last.ph>=7.2)recs.push({priority:"med",param:"pH",icon:" ",action:`pH ${last.ph} slightly low   add small dose of soda ash`,detail:`Target is 7.4 7.6. Add ~6 oz soda ash per 10,000 gal, retest in 4 hrs.`,color:COLORS.amber});
+  if(last.ph&&last.ph>7.6){const oz=acidOz||"?",effNote=phEffective?` At pH ${last.ph}, only ${phEffective}% of FC is active.`:"";recs.push({priority:"high",param:"pH",icon:" ",action:`Add ~${oz} oz muriatic acid (pH ${last.ph} to 7.4)`,detail:`Pour slowly in front of return jets with pump running.${effNote}`,color:COLORS.red});}
+  else if(last.ph&&last.ph<7.4&&last.ph>=7.2)recs.push({priority:"med",param:"pH",icon:" ",action:`pH ${last.ph} slightly low - add soda ash`,detail:`Target is 7.4 7.6. Add ~6 oz soda ash per 10,000 gal, retest in 4 hrs.`,color:COLORS.amber});
   else if(last.ph&&last.ph<7.2)recs.push({priority:"high",param:"pH",icon:" ",action:"Add soda ash to raise pH",detail:`pH ${last.ph} is too low   target 7.4. Add ~12 oz soda ash per 0.2 pH rise per 10,000 gal.`,color:COLORS.red});
   if(last.cc!==null&&last.cc!==undefined&&last.cc>0.5)recs.push({priority:"high",param:"CC",icon:"  ",action:`CC ${last.cc} ppm   chloramines present, raise FC to breakpoint`,detail:`Raise SWG to 100% until FC reaches ${Math.round((last.cya||60)*0.4)} ppm. Brush and run pump 24hrs.`,color:COLORS.red});
-  else if(last.cc!==null&&last.cc!==undefined&&last.cc>0.2)recs.push({priority:"med",param:"CC",icon:"  ",action:`CC slightly elevated at ${last.cc} ppm   watch closely`,detail:`Combined chlorine should be 0. Raise FC target by 1 2 ppm and retest in 48 hrs.`,color:COLORS.amber});
+  else if(last.cc!==null&&last.cc!==undefined&&last.cc>0.2)recs.push({priority:last.cc>=0.5?"high":"med",param:"CC",icon:"",action:`CC ${last.cc>=0.5?"elevated":"slightly elevated"} at ${last.cc} ppm${last.cc>=0.5?" - raise FC to breakpoint":" - watch closely"}`,detail:last.cc>=0.5?`Raise SWG to 100% until FC reaches ${Math.round((last.cya||60)*0.4)} ppm. Brush and run pump 24hrs.`:`Combined chlorine should be 0. Raise FC target by 1-2 ppm and retest in 48 hrs.`,color:last.cc>=0.5?COLORS.red:COLORS.amber});
   if(last.free_chlorine!==null&&last.free_chlorine<shockMin)recs.push({priority:"high",param:"FC",icon:" ",action:`FC ${last.free_chlorine} ppm   below minimum. Raise SWG to 90%`,detail:`Minimum effective FC with CYA ${last.cya||60} ppm is ${shockMin} ppm (CYA 10). Raise SWG to 90% immediately.`,color:COLORS.red});
   else if(last.free_chlorine>8)recs.push({priority:"med",param:"FC",icon:" ",action:`FC high at ${last.free_chlorine} ppm   lower SWG to ${Math.max(20,targetSWG-20)}%`,detail:`Target FC is 4 5 ppm. Lower SWG output and retest in 48 hours.`,color:COLORS.amber});
   if(last.swg_setting){if(Math.abs(last.swg_setting-targetSWG)>10){const dir=last.swg_setting>targetSWG?"lower":"raise";recs.push({priority:"med",param:"SWG",icon:"  ",action:`${dir==="lower"?"Lower":"Raise"} SWG from ${last.swg_setting}% to ${targetSWG}%`,detail:`Based on FC ${last.free_chlorine} ppm, CYA ${last.cya||60} ppm, and ${last.pump_hours||8} pump hours.`,color:COLORS.amber});}}
@@ -2105,6 +2106,7 @@ function Pool(){
   const medRecs  = visibleRecs.filter(r=>r.priority==="med");
   const lowRecs  = visibleRecs.filter(r=>r.priority==="low");
   const [showLow,setShowLow] = useState(false);
+  const [showAllWatch,setShowAllWatch] = useState(false);
 
   const season = getSeasonalReminder();
   const seasonKey = `pool_season_dismissed_${new Date().getFullYear()}_${new Date().getMonth()}`;
@@ -2197,28 +2199,29 @@ function Pool(){
   return(
     <div style={S.screen}>
       {health&&(
-        <div style={{...S.card,background:health.overallColor+"0e",borderColor:health.overallColor+"33",borderTop:`3px solid ${health.overallColor}`,marginBottom:8,padding:"16px 18px"}}>
-<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-            <div style={{fontSize:22,fontWeight:800,color:health.overallColor,letterSpacing:"-0.3px"}}>
-              {health.overallEmoji} {health.overallLabel}
+        <div style={{background:COLORS.navyMid,borderRadius:16,border:`1px solid ${health.overallColor}44`,borderLeft:`4px solid ${health.overallColor}`,marginBottom:8,padding:"16px 18px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{width:10,height:10,borderRadius:"50%",background:health.overallColor,flexShrink:0}}/>
+              <div style={{fontSize:18,fontWeight:800,color:health.overallColor,letterSpacing:"-0.2px"}}>{health.overallLabel}</div>
             </div>
-            {(readings.data[0]&&["ph","free_chlorine","salt","cya","alkalinity","cc"].filter(k=>readings.data[0][k]!==null&&readings.data[0][k]!==undefined).length<4)
-              ? <span style={{fontSize:11,background:COLORS.slate+"22",color:COLORS.slate,borderRadius:6,padding:"3px 8px",fontWeight:600}}>   Partial reading</span>
-              : daysAgo(lastRaw.date)>=3
-              ? <span style={{fontSize:11,background:COLORS.amber+"22",color:COLORS.amber,borderRadius:6,padding:"3px 8px",fontWeight:600}}>   {daysAgo(lastRaw.date)}d ago</span>
+            {daysAgo(lastRaw.date)>=3
+              ? <span style={{fontSize:11,background:COLORS.amber+"22",color:COLORS.amber,borderRadius:6,padding:"3px 8px",fontWeight:600}}>{daysAgo(lastRaw.date)}d old</span>
+              : readings.data[0]&&["ph","free_chlorine","salt","cya","alkalinity","cc"].filter(k=>readings.data[0][k]!==null&&readings.data[0][k]!==undefined).length<4
+              ? <span style={{fontSize:11,background:COLORS.slate+"22",color:COLORS.slate,borderRadius:6,padding:"3px 8px",fontWeight:600}}>partial</span>
               : null}
           </div>
-<div style={{fontSize:12,color:COLORS.slate,marginBottom:10}}>
-            {formatDate(last.date)}{last.logged_at?`   ${new Date(last.logged_at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}`:""}{last.water_temp?`   ${last.water_temp} F`:""}
+          <div style={{fontSize:12,color:COLORS.slate,marginBottom:10,marginLeft:18}}>
+            {formatDate(last.date)}{last.logged_at?` - ${new Date(last.logged_at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}`:""}{last.water_temp?` - ${last.water_temp}F`:""}
           </div>
-<div style={{fontSize:14,color:COLORS.slateLight,lineHeight:1.5,marginBottom:12}}>{health.summary}</div>
-<div style={{display:"flex",gap:8,marginBottom:12}}>
-            <button onClick={()=>{setForm({date:TODAY_STR});setShowLog(true);}} style={{flex:1,background:COLORS.blue+"22",color:COLORS.blue,border:`1px solid ${COLORS.blue}44`,borderRadius:10,padding:"9px 0",fontSize:13,fontWeight:700,cursor:"pointer"}}>+ Log Reading</button>
-            <button onClick={()=>setShowTreatment(true)} style={{flex:1,background:COLORS.green+"22",color:COLORS.green,border:`1px solid ${COLORS.green}44`,borderRadius:10,padding:"9px 0",fontSize:13,fontWeight:700,cursor:"pointer"}}>  Treatment</button>
-            <button onClick={()=>setShowBrief(true)} style={{flex:1,background:COLORS.purple+"22",color:COLORS.purple,border:`1px solid ${COLORS.purple}44`,borderRadius:10,padding:"9px 0",fontSize:13,fontWeight:700,cursor:"pointer"}}>  Brief</button>
+          <div style={{fontSize:14,color:COLORS.slateLight,lineHeight:1.5,marginBottom:14}}>{health.summary}</div>
+          <button onClick={()=>{setForm({date:TODAY_STR});setShowLog(true);}} style={{width:"100%",background:COLORS.blue,color:"#fff",border:"none",borderRadius:10,padding:"11px 0",fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:8}}>+ Log Reading</button>
+          <div style={{display:"flex",gap:8,marginBottom:10}}>
+            <button onClick={()=>setShowTreatment(true)} style={{flex:1,background:COLORS.green+"22",color:COLORS.green,border:`1px solid ${COLORS.green}44`,borderRadius:10,padding:"8px 0",fontSize:13,fontWeight:700,cursor:"pointer"}}>Log Treatment</button>
+            <button onClick={()=>setShowBrief(true)} style={{flex:1,background:COLORS.purple+"22",color:COLORS.purple,border:`1px solid ${COLORS.purple}44`,borderRadius:10,padding:"8px 0",fontSize:13,fontWeight:700,cursor:"pointer"}}>AI Brief</button>
           </div>
-<button onClick={()=>setShowChemDetails(p=>!p)} style={{width:"100%",background:COLORS.navyLight,border:"none",borderRadius:8,padding:"8px 12px",fontSize:13,fontWeight:600,color:COLORS.slateLight,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <span>Chemistry Details</span><span>{showChemDetails?" ":" "}</span>
+          <button onClick={()=>setShowChemDetails(p=>!p)} style={{width:"100%",background:"transparent",border:`1px solid ${COLORS.navyLight}`,borderRadius:8,padding:"7px 12px",fontSize:12,fontWeight:600,color:COLORS.slate,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span>Chemistry Details</span><span style={{fontSize:10}}>{showChemDetails?"^":"v"}</span>
           </button>
           {showChemDetails&&(
             <div style={{marginTop:12,borderTop:`1px solid ${COLORS.navyLight}`,paddingTop:12}}>
@@ -2231,7 +2234,7 @@ function Pool(){
                   </div>
                   <div style={{flex:"0 0 72px",textAlign:"right"}}>
                     <div style={{fontSize:15,fontWeight:700,color:p.value!==null&&p.value!==undefined?COLORS.white:COLORS.slate}}>
-                      {p.value!==null&&p.value!==undefined?`${p.value}${p.unit}`:" "}
+                      {p.value!==null&&p.value!==undefined?`${p.value}${p.unit}`:"--"}
                       {p.trendArrow&&<span style={{fontSize:15,marginLeft:3}}>{p.trendArrow}</span>}
                     </div>
                     <div style={{fontSize:11,color:COLORS.slate,marginTop:1}}>{p.target}</div>
@@ -2240,9 +2243,9 @@ function Pool(){
                     </div>
                   </div>
                   <div style={{flex:1,textAlign:"right"}}>
-                    {p.lastTestedLabel&&<div style={{fontSize:15,color:COLORS.slate,lineHeight:1.3}}>{p.lastTestedLabel}</div>}
-                    {p.testInfo&&<div style={{fontSize:15,color:p.testInfo.urgency==="red"?COLORS.red:p.testInfo.urgency==="amber"?COLORS.amber:COLORS.slate,marginTop:p.lastTestedLabel?2:0,lineHeight:1.3}}>{p.testInfo.dueLabel}</div>}
-                    {!p.lastTestedLabel&&!p.testInfo&&<div style={{fontSize:11,color:COLORS.slate,whiteSpace:"nowrap"}}>Every reading</div>}
+                    {p.lastTestedLabel&&<div style={{fontSize:11,color:COLORS.slate,lineHeight:1.3}}>{p.lastTestedLabel}</div>}
+                    {p.testInfo&&<div style={{fontSize:11,color:p.testInfo.urgency==="red"?COLORS.red:p.testInfo.urgency==="amber"?COLORS.amber:COLORS.slate,marginTop:p.lastTestedLabel?2:0,lineHeight:1.3}}>{p.testInfo.dueLabel}</div>}
+                    {!p.lastTestedLabel&&!p.testInfo&&<div style={{fontSize:11,color:COLORS.slate}}>every reading</div>}
                   </div>
                 </div>
               ))}
@@ -2251,13 +2254,13 @@ function Pool(){
                   <div style={{width:8,height:8,borderRadius:"50%",background:last.cc>0.5?COLORS.red:last.cc>0.2?COLORS.amber:COLORS.green,flexShrink:0,marginTop:1}}/>
                   <div style={{flex:"0 0 120px",minWidth:0}}>
                     <div style={{fontSize:15,fontWeight:700,color:COLORS.white}}>Combined Chlorine</div>
-                    <div style={{fontSize:15,color:last.cc>0.5?COLORS.red:last.cc>0?COLORS.amber:COLORS.green,marginTop:1}}>{last.cc===0?"None detected":last.cc<=0.2?"Trace":last.cc<=0.5?"Watch":"Elevated"}</div>
+                    <div style={{fontSize:13,color:last.cc>0.5?COLORS.red:last.cc>0?COLORS.amber:COLORS.green,marginTop:1}}>{last.cc===0?"None":last.cc<=0.2?"Trace":last.cc<=0.5?"Watch":"Elevated"}</div>
                   </div>
                   <div style={{flex:"0 0 72px",textAlign:"right"}}>
                     <div style={{fontSize:15,fontWeight:700,color:COLORS.white}}>{last.cc} ppm</div>
-                    <div style={{fontSize:15,color:COLORS.slate,marginTop:1}}>target: 0</div>
+                    <div style={{fontSize:11,color:COLORS.slate,marginTop:1}}>target: 0</div>
                   </div>
-                  <div style={{flex:1,textAlign:"right"}}><div style={{fontSize:15,color:COLORS.slate}}>Every reading</div></div>
+                  <div style={{flex:1,textAlign:"right"}}><div style={{fontSize:11,color:COLORS.slate}}>every reading</div></div>
                 </div>
               )}
             </div>
@@ -2283,35 +2286,52 @@ function Pool(){
           </div>
         </div>
       ))}
-      {medRecs.length>0&&<>
-        <div style={S.sectionLabel}>This Week</div>
-        {medRecs.map((r,i)=>(
-          <div key={i} style={{...S.statusCard(r.color),marginBottom:10}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-              <div style={{flex:1,paddingRight:8}}>
-                <div style={{fontSize:15,fontWeight:700,marginBottom:3}}>{r.icon} {r.action}</div>
-                <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
-              </div>
-              <button onClick={()=>dismissRec(r.param)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:15,padding:2,flexShrink:0}}> </button>
+      {medRecs.length>0 && (()=>{
+        const chemParams = ["pH","CC","FC","CYA","Salt","TA","Ca"];
+        const chemRecs2 = medRecs.filter(r=>chemParams.includes(r.param));
+        const equipRecs = medRecs.filter(r=>!chemParams.includes(r.param));
+        const watchItems = [...chemRecs2,...equipRecs];
+        const visibleWatch = showAllWatch ? watchItems : watchItems.slice(0,3);
+        const hiddenCount = watchItems.length - 3;
+        return (
+          <>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,marginTop:16}}>
+              <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"1px"}}>Watch</div>
+              {hiddenCount>0&&!showAllWatch&&<button onClick={()=>setShowAllWatch(true)} style={{fontSize:12,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0}}>{hiddenCount} more</button>}
+              {showAllWatch&&hiddenCount>0&&<button onClick={()=>setShowAllWatch(false)} style={{fontSize:12,color:COLORS.slate,background:"none",border:"none",cursor:"pointer",padding:0}}>less</button>}
             </div>
-          </div>
-        ))}
-      </>}
+            {visibleWatch.map((r,i)=>{
+              const isChem = chemParams.includes(r.param);
+              return(
+                <div key={i} style={{background:COLORS.navyMid,borderRadius:12,borderLeft:`3px solid ${isChem?r.color:COLORS.slate}`,marginBottom:8,padding:isChem?"12px 14px":"10px 14px"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:r.detail&&isChem?4:0}}>
+                    <div style={{fontSize:isChem?14:13,fontWeight:isChem?700:600,color:isChem?COLORS.white:COLORS.slateLight,flex:1,paddingRight:8,lineHeight:1.4}}>{r.action}</div>
+                    <button onClick={()=>dismissRec(r.param)} style={{background:COLORS.navyLight,border:"none",color:COLORS.slate,cursor:"pointer",fontSize:11,padding:"3px 7px",borderRadius:6,flexShrink:0,fontWeight:600}}>Done</button>
+                  </div>
+                  {r.detail&&isChem&&<div style={{fontSize:12,color:COLORS.slate,lineHeight:1.5}}>{r.detail}</div>}
+                </div>
+              );
+            })}
+          </>
+        );
+      })()}
       {last&&highRecs.length===0&&medRecs.length===0&&(
-        <div style={{...S.card,background:COLORS.green+"11",borderColor:COLORS.green+"33",textAlign:"center",padding:"16px"}}>
-          <div style={{fontSize:15,fontWeight:700,color:COLORS.green}}>  No actions needed</div>
-          <div style={{fontSize:15,color:COLORS.slate,marginTop:10}}>Chemistry looks balanced   keep up with regular testing.</div>
+        <div style={{background:COLORS.green+"11",border:`1px solid ${COLORS.green}33`,borderRadius:12,textAlign:"center",padding:"14px 16px",marginTop:8}}>
+          <div style={{fontSize:14,fontWeight:700,color:COLORS.green}}>Chemistry balanced</div>
+          <div style={{fontSize:13,color:COLORS.slate,marginTop:4}}>No actions needed - keep up with regular testing.</div>
         </div>
       )}
       {lowRecs.length>0&&(
-        <button onClick={()=>setShowLow(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"center",marginBottom:10,marginTop:10}}>
-          {showLow?"Hide":"Show"} {lowRecs.length} additional note{lowRecs.length!==1?"s":""}
+        <button onClick={()=>setShowLow(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"center",marginBottom:10,marginTop:8}}>
+          {showLow?"Hide":"Show"} {lowRecs.length} note{lowRecs.length!==1?"s":""}
         </button>
       )}
       {showLow&&lowRecs.map((r,i)=>(
-        <div key={i} style={{...S.statusCard(r.color),marginBottom:10}}>
-          <div style={{fontSize:15,fontWeight:700,marginBottom:3}}>{r.icon} {r.action}</div>
-          <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5}}>{r.detail}</div>
+        <div key={i} style={{background:COLORS.navyMid,borderRadius:10,borderLeft:`2px solid ${COLORS.slate}`,marginBottom:6,padding:"10px 14px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div style={{fontSize:13,color:COLORS.slateLight,flex:1,paddingRight:8}}>{r.action}</div>
+            <button onClick={()=>dismissRec(r.param)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:11,padding:"2px 6px",borderRadius:4,fontWeight:600}}>Done</button>
+          </div>
         </div>
       ))}
       {!seasonDismissed&&season&&(
