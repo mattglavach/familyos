@@ -1704,52 +1704,30 @@ function PoolBrief({readings, treatments, maintLog, onClose}) {
       const cyaStr = mostRecentCYA ? mostRecentCYA.cya+" ppm ("+mostRecentCYA.date+")" : "never tested";
       const taStr  = mostRecentTA  ? mostRecentTA.alkalinity+" ppm ("+mostRecentTA.date+")"  : "never tested";
       const caStr  = mostRecentCalcium ? mostRecentCalcium.calcium_hardness+" ppm ("+mostRecentCalcium.date+")" : "not tested";
-      const staleSection = staleFlags.length>0 ? "DATA FLAGS:
-"+staleFlags.map(f=>"- "+f).join("
-") : "";
-
-      const prompt="You are a knowledgeable pool chemistry advisor helping a homeowner in Summerville, SC manage their 17,000 gal vinyl inground saltwater pool. Equipment: Pentair IntelliChlor IC40 SWG, cartridge filter. Test kit: Taylor K-2006 FAS-DPD (FC in drops x0.5=ppm).
-
-"
-        +"Today: "+today+". Analyzing "+recentReadings.length+" readings and "+recentTreatments.length+" logged treatments.
-
-"
-        +"READINGS (newest first):
-"+readingsSummary+"
-
-"
-        +"TREATMENTS LOGGED:
-"+treatmentSummary+"
-
-"
-        +"CHEMISTRY CONTEXT:
-"
-        +"- CYA: "+cyaStr+" | Target 70-80 ppm for SC summer
-"
-        +"- TA: "+taStr+" | Target 80-120 ppm
-"
-        +"- Calcium: "+caStr+" | Target 150-250 ppm (vinyl)
-"
-        +"- Min FC for current CYA: "+minFC+" ppm (CYA/10 rule)
-"
-        +"- pH effectiveness: at pH "+(last?.ph||"unknown")+", approx "+acidOzNeeded+" oz acid needed to reach 7.4
-"
-        +"- LSI: vinyl pool - corrosive LSI not actionable at normal calcium, skip scaling alerts
-"
-        +(staleSection?staleSection+"
-":"")
-
-Search for current Summerville SC weather and pool conditions before answering.
-
-Write a pool brief. Use ONLY bullet points. Max 160 words total. Sections:
-
-**STATUS** - one bullet: swim-ready or not + why
-**TREND** - 1-2 bullets: what's been happening across readings
-**TREATMENTS** - 1-2 bullets: did recent treatments work (before/after numbers)
-**WEATHER IMPACT** - 1 bullet: current conditions + effect on chemistry
-**ACTION TODAY** - 1-2 bullets: specific dose if chemical needed (oz/lbs), or "no action needed"
-**WATCH** - 1 bullet: what to check next reading and when`;
-
+      const NL = String.fromCharCode(10);
+      const staleSection = staleFlags.length>0 ? "DATA FLAGS:"+NL+staleFlags.map(f=>"- "+f).join(NL) : "";
+      const prompt = [
+        "You are a knowledgeable pool chemistry advisor helping a homeowner in Summerville, SC manage their 17,000 gal vinyl inground saltwater pool. Equipment: Pentair IntelliChlor IC40 SWG, cartridge filter. Test kit: Taylor K-2006 FAS-DPD (FC in drops x0.5=ppm).",
+        "Today: "+today+". Analyzing "+recentReadings.length+" readings and "+recentTreatments.length+" logged treatments.",
+        "READINGS (newest first):", readingsSummary,
+        "TREATMENTS LOGGED:", treatmentSummary,
+        "CHEMISTRY CONTEXT:",
+        "- CYA: "+cyaStr+" | Target 70-80 ppm for SC summer",
+        "- TA: "+taStr+" | Target 80-120 ppm",
+        "- Calcium: "+caStr+" | Target 150-250 ppm (vinyl)",
+        "- Min FC for current CYA: "+minFC+" ppm (CYA/10 rule)",
+        "- pH at "+(last&&last.ph?last.ph:"unknown")+": approx "+acidOzNeeded+" oz acid to reach 7.4",
+        "- LSI: vinyl pool - skip scaling alerts at normal calcium levels",
+        staleSection,
+        "Search for current Summerville SC weather before answering.",
+        "Write a pool brief. Bullets only. Max 160 words. Sections:",
+        "**STATUS** - swim-ready or not + why",
+        "**TREND** - what has changed across recent readings",
+        "**TREATMENTS** - did recent treatments work (before/after numbers)",
+        "**WEATHER IMPACT** - current Summerville conditions + pool effect",
+        "**ACTION TODAY** - specific dose if needed (oz/lbs), or no action needed",
+        "**WATCH** - what to check next and when",
+      ].filter(Boolean).join(NL+NL)
       const res = await fetch("/api/brief", {
         method:"POST",
         headers:{"Content-Type":"application/json"},
