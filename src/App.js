@@ -2315,6 +2315,7 @@ function Pool(){
                   </SwipeCard>
                 );
               }
+              if(item._type==="maint"){
               return(
                 <SwipeCard key={`m-${item.id}`} id={`m-${item.id}`} activeId={activeSwipe} setActiveId={setActiveSwipe}
                   onEdit={()=>openEditMaint(item)}
@@ -2375,6 +2376,8 @@ function Pool(){
                     {chems.length===0&&tasks.length===0&&<div style={{fontSize:13,color:COLORS.slate}}>No chemicals or tasks logged</div>}
                   </SwipeCard>
                 );
+              }
+              return null;
             });
           })()}
           <button style={S.btn} onClick={()=>{setForm({date:TODAY_STR});setShowMaint(true);}}>+ Log Maintenance</button>
