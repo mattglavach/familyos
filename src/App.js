@@ -1374,7 +1374,7 @@ function Tasks(){
   const filtered  = catFilter==="All" ? allActive : allActive.filter(t=>t.category===catFilter);
 
   const todayItems    = filtered.filter(t => taskStatus(t)==="overdue" || taskStatus(t)==="today" || (t.is_important && taskStatus(t)!=="done"));
-  const thisWeekItems = filtered.filter(t => taskStatus(t)==="this-week");
+  const thisWeekItems = filtered.filter(t => taskStatus(t)==="this-week" && !t.is_important);
   const upcomingItems = filtered.filter(t => taskStatus(t)==="upcoming");
   const backlogItems  = filtered.filter(t => taskStatus(t)==="backlog" && !t.is_important);
   const completedItems = tasks.data.filter(t => t.completed && !t.recurring_interval_days);
@@ -1863,7 +1863,7 @@ function Pool(){
   const treatments = useTable("pool_treatments","logged_at");
   const schedule   = useTable("pool_schedule","title",true);
   const poolSettings = useTable("pool_settings","id",true);
-  const [tab,setTab]             = useState("schedule");
+  const [tab,setTab]             = useState("history");
   const [showLog,setShowLog]     = useState(false);
   const [showMaint,setShowMaint] = useState(false);
   const [showScheduleEdit,setShowScheduleEdit] = useState(false);
@@ -1980,7 +1980,12 @@ function Pool(){
   function num(v){ return (v===undefined||v===null||v==="") ? null : +v; }
   async function saveTreatment(){
     const d = treatForm.date||TODAY_STR;
-    const timeStr = treatForm.time||new Date().toTimeString().slice(0,5);
+    // Parse time from logged_at if editing existing entry and no explicit time set
+    let timeStr = treatForm.time||"";
+    if(!timeStr && treatForm.logged_at) {
+      timeStr = new Date(treatForm.logged_at).toTimeString().slice(0,5);
+    }
+    if(!timeStr) timeStr = new Date().toTimeString().slice(0,5);
     const loggedAt = new Date(`${d}T${timeStr}:00`).toISOString();
     const row = {
       date:d, logged_at:loggedAt,
@@ -2002,7 +2007,11 @@ function Pool(){
       checked_flow:      !!treatForm.checked_flow,
       notes:             treatForm.notes||"",
     };
-    await treatments.insert(row);
+    if(treatForm.id) {
+      await treatments.update(treatForm.id, row);
+    } else {
+      await treatments.insert(row);
+    }
     setShowTreatmentForm(false);
     setTreatForm({});
   }
@@ -2200,9 +2209,12 @@ function Pool(){
         </div>
       )}
       <div style={{...S.tabs,marginTop:16}}>
-        {["schedule","history"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t}</button>)}
+        {["history","schedule"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t==="schedule"?"maintenance":t}</button>)}
       </div>
       {tab==="schedule"&&<>
+        <div style={{background:COLORS.navyLight,borderRadius:10,padding:"10px 14px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{fontSize:12,color:COLORS.slate,lineHeight:1.4}}>Pool-specific maintenance schedule. Yard, home, and other tasks are in Tasks.</div>
+        </div>
         {schedule.loading?<Loading/>:<>
           <SwipeHint/>
           {schedSorted.map(item=>{
@@ -2233,6 +2245,7 @@ function Pool(){
         </>}
       </>}
       {tab==="history"&&<>
+        <button onClick={()=>{setForm({date:TODAY_STR});setShowLog(true);}} style={{...S.btn,marginBottom:12,marginTop:0}}>+ Log Reading</button>
         {(readings.loading||maintLog.loading)?<Loading/>:<>
           <SwipeHint/>
           {(()=>{
@@ -3478,6 +3491,15 @@ function QuickAdd({onNavigate}){
           </div>
           <label style={S.label}>Due Date (optional)</label>
           <input type="date" style={S.input} value={form.due_date||""} onChange={e=>setForm(p=>({...p,due_date:e.target.value}))}/>
+          <label style={S.label}>Recurring (optional)</label>
+          <div style={{marginBottom:12}}>
+            {[null,3,7,14,30,60,90].map(d=>(
+              <span key={d||"none"} style={S.chip(form.recurring_interval_days===(d?String(d):null)||form.recurring_interval_days===d, COLORS.blue)}
+                onClick={()=>setForm(p=>({...p,recurring_interval_days:d||null}))}>
+                {d?`Every ${d}d`:"One-time"}
+              </span>
+            ))}
+          </div>
           <label style={S.label}>Notes (optional)</label>
           <input style={S.input} placeholder="Details" value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
           <button style={S.btn} onClick={saveTask}>Add Task</button>
