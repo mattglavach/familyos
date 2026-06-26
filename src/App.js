@@ -1699,25 +1699,45 @@ function PoolBrief({readings, treatments, maintLog, onClose}) {
       if(daysSinceLast>=3)       staleFlags.push(`Last reading ${daysSinceLast} days ago - chemistry may have drifted`);
 
       const today=new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
+      const acidOzNeeded = last&&last.ph ? (calcAcidDose(last.ph,7.4,last.alkalinity)||"?") : "?";
+      const minFC = mostRecentCYA ? Math.round(mostRecentCYA.cya/10) : "unknown";
+      const cyaStr = mostRecentCYA ? mostRecentCYA.cya+" ppm ("+mostRecentCYA.date+")" : "never tested";
+      const taStr  = mostRecentTA  ? mostRecentTA.alkalinity+" ppm ("+mostRecentTA.date+")"  : "never tested";
+      const caStr  = mostRecentCalcium ? mostRecentCalcium.calcium_hardness+" ppm ("+mostRecentCalcium.date+")" : "not tested";
+      const staleSection = staleFlags.length>0 ? "DATA FLAGS:
+"+staleFlags.map(f=>"- "+f).join("
+") : "";
 
-      const prompt=`You are a knowledgeable pool chemistry advisor helping a homeowner in Summerville, SC manage their 17,000 gal vinyl inground saltwater pool. Equipment: Pentair IntelliChlor IC40 SWG, cartridge filter. Test kit: Taylor K-2006 FAS-DPD (FC in drops x0.5=ppm).
+      const prompt="You are a knowledgeable pool chemistry advisor helping a homeowner in Summerville, SC manage their 17,000 gal vinyl inground saltwater pool. Equipment: Pentair IntelliChlor IC40 SWG, cartridge filter. Test kit: Taylor K-2006 FAS-DPD (FC in drops x0.5=ppm).
 
-Today: ${today}. Analyzing ${recentReadings.length} readings and ${recentTreatments.length} logged treatments.
+"
+        +"Today: "+today+". Analyzing "+recentReadings.length+" readings and "+recentTreatments.length+" logged treatments.
 
-READINGS (newest first):
-${readingsSummary}
+"
+        +"READINGS (newest first):
+"+readingsSummary+"
 
-TREATMENTS LOGGED:
-${treatmentSummary}
+"
+        +"TREATMENTS LOGGED:
+"+treatmentSummary+"
 
-CHEMISTRY CONTEXT:
-- CYA: ${mostRecentCYA?`${mostRecentCYA.cya} ppm (${mostRecentCYA.date})`:"never tested"} | Target 70-80 ppm for SC summer
-- TA: ${mostRecentTA?`${mostRecentTA.alkalinity} ppm (${mostRecentTA.date})`:"never tested"} | Target 80-120 ppm
-- Calcium: ${mostRecentCalcium?`${mostRecentCalcium.calcium_hardness} ppm (${mostRecentCalcium.date})`:"not tested"} | Target 150-250 ppm (vinyl)
-- Min FC for current CYA: ${mostRecentCYA?Math.round(mostRecentCYA.cya/10):"unknown"} ppm (CYA/10 rule)
-- pH effectiveness: at pH ${last?.ph||"unknown"}, approx ${last?.ph?calcAcidDose?.(last.ph,7.4,last?.alkalinity):"?":"?"} oz acid needed to reach 7.4
-- LSI: vinyl pool - corrosive LSI not actionable at normal calcium, skip scaling alerts
-${staleFlags.length>0?"DATA FLAGS:\n"+staleFlags.map(f=>`- ${f}`).join("\n"):""}
+"
+        +"CHEMISTRY CONTEXT:
+"
+        +"- CYA: "+cyaStr+" | Target 70-80 ppm for SC summer
+"
+        +"- TA: "+taStr+" | Target 80-120 ppm
+"
+        +"- Calcium: "+caStr+" | Target 150-250 ppm (vinyl)
+"
+        +"- Min FC for current CYA: "+minFC+" ppm (CYA/10 rule)
+"
+        +"- pH effectiveness: at pH "+(last?.ph||"unknown")+", approx "+acidOzNeeded+" oz acid needed to reach 7.4
+"
+        +"- LSI: vinyl pool - corrosive LSI not actionable at normal calcium, skip scaling alerts
+"
+        +(staleSection?staleSection+"
+":"")
 
 Search for current Summerville SC weather and pool conditions before answering.
 
