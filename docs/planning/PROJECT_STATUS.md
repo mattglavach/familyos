@@ -14,12 +14,13 @@ Documentation foundation being established.
 - Supabase magic-link redirect audit for deployed Vercel sign-in
 - Supabase magic-link resend cooldown and rate-limit messaging
 - Google Calendar OAuth origin setup documentation for local and Vercel deployments
+- Modular app structure with app shell, hooks, modules, and refactor documentation
 
 ## In Progress
 - Shared GitHub workspace documentation
 
 ## Next
-- Validate app architecture
+- Prepare household migration draft plan
 - Prioritize next module
 - Create first implementation package for Codex
 
