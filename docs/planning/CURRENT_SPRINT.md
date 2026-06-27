@@ -12,6 +12,7 @@ Establish the shared AI development workspace and documentation foundation.
 - [x] Fix Vercel production build failure from CRA CI lint warnings
 - [x] Audit Supabase email magic-link redirect behavior for Vercel deployment
 - [x] Document Google Calendar OAuth origin configuration for local and Vercel deployments
+- [x] Add Supabase magic-link resend cooldown protection
 - [ ] Validate current app structure
 - [ ] Identify next implementation target
 
@@ -21,4 +22,5 @@ Establish the shared AI development workspace and documentation foundation.
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.
 - Production build now passes with `CI=true`; remaining deploy validation should happen through Vercel.
 - Email magic-link redirects are generated from the current browser origin; Supabase Auth Site URL and allowed redirect URLs must include the deployed Vercel origin.
+- Email magic-link sign-in now disables resend for 60 seconds after successful sends to reduce Supabase rate-limit errors.
 - Google Calendar OAuth uses the current browser origin; Google Cloud Console Authorized JavaScript origins must include localhost, the Vercel production origin, and any custom domain used to open the app.

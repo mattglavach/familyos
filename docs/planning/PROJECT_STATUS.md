@@ -12,6 +12,7 @@ Documentation foundation being established.
 - Frontend standard foundation for Tailwind CSS, shadcn/ui primitives, Lucide icons, Recharts, and Origin UI-style drawer usage
 - Vercel-style production build validation with `CI=true`
 - Supabase magic-link redirect audit for deployed Vercel sign-in
+- Supabase magic-link resend cooldown and rate-limit messaging
 - Google Calendar OAuth origin setup documentation for local and Vercel deployments
 
 ## In Progress

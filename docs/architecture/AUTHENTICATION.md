@@ -12,6 +12,8 @@ Supabase Auth URL configuration must match this behavior:
 - Add the Vercel production URL and any custom production domain as allowed redirect URLs.
 - Add a Vercel preview wildcard only if preview deployments need email sign-in.
 
+The sign-in UI protects Supabase email delivery limits by disabling requests while a link is sending, showing a success message after delivery, and starting a 60-second resend cooldown. The resend action uses the same `signInWithOtp` flow and restarts the cooldown after each successful request. Rate-limit responses are shown as a user-friendly wait-and-retry message instead of raw provider errors.
+
 ## Roles
 - admin
 - adult

@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Added resend cooldown and friendly rate-limit messaging to Supabase email magic-link sign-in.
 - Documented Google Calendar OAuth origin setup for localhost, Vercel production, custom domains, and preview deployments.
 - Added a clearer Google Calendar `origin_mismatch` diagnostic that reports the current app origin to add in Google Cloud Console.
 - Clarified Supabase magic-link redirect configuration and kept email sign-in redirects tied to the current app origin.

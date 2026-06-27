@@ -419,11 +419,37 @@ function getEmailRedirectTo() {
   return window.location.origin;
 }
 
+function isMagicLinkRateLimitError(error) {
+  const status = String(error?.status || "");
+  const code = String(error?.code || "");
+  const message = String(error?.message || "").toLowerCase();
+  return status === "429" ||
+    code.toLowerCase().includes("over_email_send_rate_limit") ||
+    message.includes("rate limit") ||
+    message.includes("too many") ||
+    message.includes("over_email_send_rate_limit");
+}
+
+function formatMagicLinkError(error) {
+  if (isMagicLinkRateLimitError(error)) {
+    return "Too many sign-in links requested. Please wait a few minutes before trying again.";
+  }
+  return "We couldn't send a sign-in link. Please check your email address and try again.";
+}
+
 function useSupabaseAuth() {
   const [session,setSession] = useState(null);
   const [loading,setLoading] = useState(true);
+  const [sending,setSending] = useState(false);
   const [message,setMessage] = useState("");
   const [error,setError] = useState("");
+  const [resendCooldown,setResendCooldown] = useState(0);
+
+  useEffect(()=>{
+    if (resendCooldown <= 0) return undefined;
+    const timer = setTimeout(()=>setResendCooldown(seconds=>Math.max(seconds - 1,0)),1000);
+    return ()=>clearTimeout(timer);
+  },[resendCooldown]);
 
   useEffect(()=>{
     let mounted = true;
@@ -440,19 +466,24 @@ function useSupabaseAuth() {
   },[]);
 
   async function sendMagicLink(email) {
+    if (sending || resendCooldown > 0) return;
     setError("");
     setMessage("");
     const trimmed = email.trim();
     if (!trimmed) { setError("Email is required."); return; }
+    setSending(true);
     try {
       const {error: authError} = await supabase.auth.signInWithOtp({
         email: trimmed,
         options: { emailRedirectTo: getEmailRedirectTo() },
       });
       if (authError) throw authError;
-      setMessage("Check your email for a sign-in link.");
+      setMessage("Check your email for the sign-in link.");
+      setResendCooldown(60);
     } catch(e) {
-      setError(e.message);
+      setError(formatMagicLinkError(e));
+    } finally {
+      setSending(false);
     }
   }
 
@@ -461,7 +492,7 @@ function useSupabaseAuth() {
     setSession(null);
   }
 
-  return {session,loading,message,error,sendMagicLink,signOut};
+  return {session,loading,sending,message,error,resendCooldown,sendMagicLink,signOut};
 }
 
 function SetupRequired(){
@@ -479,6 +510,9 @@ function SetupRequired(){
 
 function AuthGate({auth}){
   const [email,setEmail] = useState("");
+  const canSend = !auth.sending && auth.resendCooldown === 0;
+  const hasSentLink = Boolean(auth.message);
+  const sendButtonText = auth.sending ? "Sending..." : "Send sign-in link";
   return(
     <div style={{...S.app,padding:"40px 20px"}}>
       <div style={S.logo}><span style={S.logoAccent}>Family</span>OS</div>
@@ -486,9 +520,11 @@ function AuthGate({auth}){
         <div style={{fontSize:20,fontWeight:800,marginBottom:10}}>Sign in</div>
         <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5,marginBottom:18}}>Use your approved family email. Supabase will send a magic link, then your data stays scoped to your account.</div>
         <label style={S.label}>Email</label>
-        <input style={S.input} type="email" value={email} placeholder="you@example.com" onChange={e=>setEmail(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")auth.sendMagicLink(email);}}/>
-        <button style={S.btn} onClick={()=>auth.sendMagicLink(email)}>Send sign-in link</button>
+        <input style={S.input} type="email" value={email} placeholder="you@example.com" onChange={e=>setEmail(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&canSend)auth.sendMagicLink(email);}}/>
+        {!hasSentLink&&<button style={{...S.btn,opacity:canSend?1:0.65,cursor:canSend?"pointer":"not-allowed"}} disabled={!canSend} onClick={()=>auth.sendMagicLink(email)}>{sendButtonText}</button>}
         {auth.message&&<div style={{fontSize:15,color:COLORS.green,marginTop:12,lineHeight:1.4}}>{auth.message}</div>}
+        {auth.resendCooldown>0&&<div style={{fontSize:14,color:COLORS.slateLight,marginTop:8,lineHeight:1.4}}>You can resend in {auth.resendCooldown} seconds.</div>}
+        {hasSentLink&&<button style={{...S.btn,marginTop:10,background:COLORS.slate2,opacity:canSend?1:0.65,cursor:canSend?"pointer":"not-allowed"}} disabled={!canSend} onClick={()=>auth.sendMagicLink(email)}>Resend link</button>}
         {auth.error&&<div style={{fontSize:15,color:COLORS.red,marginTop:12,lineHeight:1.4}}>{auth.error}</div>}
       </div>
     </div>

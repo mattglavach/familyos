@@ -51,6 +51,8 @@ Start with the v1 documentation workspace:
 
    The app sends magic links with `emailRedirectTo` set to the current browser origin, so sign-in requests from the deployed site redirect back to the deployed site instead of localhost. If Supabase's Site URL is still `http://localhost:3000`, update it before testing production email links.
 
+   After each successful magic-link request, the sign-in UI starts a 60-second resend cooldown. The resend button is disabled during the cooldown and while a request is in flight to avoid Supabase email rate limits.
+
 6. Start local development:
 
    ```bash
@@ -111,6 +113,8 @@ For Vercel deployment, add these environment variables in the Vercel project set
 `api/brief.js` runs as a Vercel serverless function. The frontend can use the AI brief endpoint after deployment or when running through a Vercel-compatible local dev server.
 
 Supabase Auth does not use a `REACT_APP_SITE_URL` value in this app. Magic-link redirects are derived from `window.location.origin`, and the matching production and preview origins must be present in Supabase Auth URL configuration.
+
+The sign-in form maps Supabase email rate-limit responses to a friendly message and asks users to wait a few minutes before requesting another link.
 
 ### Supabase Security Model
 
