@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Clarified Supabase magic-link redirect configuration and kept email sign-in redirects tied to the current app origin.
 - Fixed Vercel production build failure by clearing CRA ESLint warnings that are treated as errors in CI.
 
 ## 0.1.0 - Documentation Foundation

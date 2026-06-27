@@ -403,6 +403,10 @@ function getChemRecommendations(last,readings,filterBaseline){
 }
 
 
+function getEmailRedirectTo() {
+  return window.location.origin;
+}
+
 function useSupabaseAuth() {
   const [session,setSession] = useState(null);
   const [loading,setLoading] = useState(true);
@@ -431,7 +435,7 @@ function useSupabaseAuth() {
     try {
       const {error: authError} = await supabase.auth.signInWithOtp({
         email: trimmed,
-        options: { emailRedirectTo: window.location.origin },
+        options: { emailRedirectTo: getEmailRedirectTo() },
       });
       if (authError) throw authError;
       setMessage("Check your email for a sign-in link.");

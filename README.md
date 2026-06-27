@@ -42,10 +42,14 @@ Start with the v1 documentation workspace:
 
 4. In Supabase Auth settings, enable Email sign-in. Magic-link sign-in is enough for the current app.
 
-5. In Supabase Auth URL settings, add allowed redirect URLs:
+5. In Supabase Auth URL settings, set the Site URL to your deployed app URL, then add allowed redirect URLs:
 
    - `http://localhost:3000`
-   - Your Vercel production URL
+   - Your Vercel production URL, for example `https://your-familyos-domain.vercel.app`
+   - Any custom production domain
+   - Optional Vercel preview URL pattern, for example `https://*.vercel.app`
+
+   The app sends magic links with `emailRedirectTo` set to the current browser origin, so sign-in requests from the deployed site redirect back to the deployed site instead of localhost. If Supabase's Site URL is still `http://localhost:3000`, update it before testing production email links.
 
 6. Start local development:
 
@@ -105,6 +109,8 @@ For Vercel deployment, add these environment variables in the Vercel project set
 - `ALLOWED_ORIGINS` if using a custom domain or non-Vercel production URL
 
 `api/brief.js` runs as a Vercel serverless function. The frontend can use the AI brief endpoint after deployment or when running through a Vercel-compatible local dev server.
+
+Supabase Auth does not use a `REACT_APP_SITE_URL` value in this app. Magic-link redirects are derived from `window.location.origin`, and the matching production and preview origins must be present in Supabase Auth URL configuration.
 
 ### Supabase Security Model
 
