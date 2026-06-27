@@ -1,11 +1,17 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { EmptyState, Loading, Modal, Sparkline, SwipeCard, SwipeHint } from "./components/common";
+import { Dashboard } from "./features/dashboard/Dashboard";
+import { Tasks } from "./features/tasks/Tasks";
+import { SEED } from "./data/seed";
+import { COLORS, I, MEMBER_COLORS, S } from "./theme";
+import { APP_CONFIG, CONFIG_STATUS } from "./config";
+import { TODAY_DATE, TODAY_STR, daysAgo, daysBetween, formatDate, formatDateFull, formatTodayShort, nextDueDate } from "./lib/dates";
+import { sb, supabase } from "./lib/supabase";
 
 // - CONFIG -
-const SUPABASE_URL      = "https://dsowansazqleudupnjug.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzb3dhbnNhenFsZXVkdXBuanVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MTkzMTYsImV4cCI6MjA5NzE5NTMxNn0.lO3QE01JzvPAaGDVVW9bbeKgnJHMdDNT667KZXLwSXk";
-const GOOGLE_CLIENT_ID  = "717485548234-693i9fmmijf91t34u3mgc3ml2tksepvq.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID  = APP_CONFIG.googleClientId;
 const GOOGLE_SCOPES     = "https://www.googleapis.com/auth/calendar.readonly";
-const CALENDAR_ID       = "mattglavach@gmail.com";
+const CALENDAR_ID       = APP_CONFIG.googleCalendarId;
 
 // - MEMBER KEYWORDS -
 const MEMBER_KEYWORDS = {
@@ -22,38 +28,6 @@ function assignMember(title="", description="") {
   }
   return "Matt";
 }
-
-// - SUPABASE -
-const sb = {
-  from:(table)=>({
-    _table:table,_order:null,_eq:null,
-    order(col,{ascending=true}={}){this._order=`${col}.${ascending?"asc":"desc"}`;return this;},
-    eq(col,val){this._eq=`${col}=eq.${val}`;return this;},
-    async select(cols="*"){
-      const p=new URLSearchParams({select:cols});
-      if(this._order)p.set("order",this._order);
-      if(this._eq)p.append(this._eq.split("=")[0],this._eq.split("=")[1]);
-      const r=await fetch(`${SUPABASE_URL}/rest/v1/${this._table}?${p}`,{headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${SUPABASE_ANON_KEY}`}});
-      const d=await r.json();return{data:d,error:r.ok?null:d};
-    },
-    async insert(row){
-      const r=await fetch(`${SUPABASE_URL}/rest/v1/${this._table}`,{method:"POST",headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${SUPABASE_ANON_KEY}`,"Content-Type":"application/json",Prefer:"return=representation"},body:JSON.stringify(row)});
-      const d=await r.json();return{data:Array.isArray(d)?d[0]:d,error:r.ok?null:d};
-    },
-    async update(row){
-      if(!this._eq)throw new Error("eq required");
-      const[col,val]=this._eq.split("=eq.");
-      const r=await fetch(`${SUPABASE_URL}/rest/v1/${this._table}?${col}=eq.${val}`,{method:"PATCH",headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${SUPABASE_ANON_KEY}`,"Content-Type":"application/json",Prefer:"return=representation"},body:JSON.stringify(row)});
-      const d=await r.json();return{data:Array.isArray(d)?d[0]:d,error:r.ok?null:d};
-    },
-    async delete(){
-      if(!this._eq)throw new Error("eq required");
-      const[col,val]=this._eq.split("=eq.");
-      const r=await fetch(`${SUPABASE_URL}/rest/v1/${this._table}?${col}=eq.${val}`,{method:"DELETE",headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${SUPABASE_ANON_KEY}`}});
-      return{error:r.ok?null:await r.json()};
-    },
-  }),
-};
 
 // - GOOGLE CALENDAR -
 function useGoogleCalendar() {
@@ -126,120 +100,7 @@ function useGoogleCalendar() {
   return{token,events,loading,error,signIn,signOut,refresh:()=>fetchEvents(token),userName};
 }
 
-// - DESIGN TOKENS -
-const COLORS={
-  navy:"#0F1729",navyMid:"#1A2540",navyLight:"#243352",
-  slate:"#8892A4",slateLight:"#B8C0CC",white:"#F7F8FA",
-  red:"#E05252",amber:"#F0A030",green:"#3DB87A",blue:"#4A90D9",purple:"#8B6FD4",
-};
-const MEMBER_COLORS={
-  Matt:"#4A90D9",Kalee:"#8B6FD4",Aubrey:"#E05252",Blake:"#3DB87A",Brayden:"#F0A030",
-};
-
-
-// - SEED DATA -
-const SEED={
-  pool_readings:[
-    {id:"7",date:"2026-06-17",logged_at:"2026-06-17T18:30:00Z",ph:8.0,free_chlorine:5.5,cc:0,salt:3350,cya:60,alkalinity:90,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"K-2006: 11 drops FC. Acid added 2 days prior. TA 90 ppm."},
-    {id:"6",date:"2026-06-15",logged_at:"2026-06-15T17:00:00Z",ph:7.8,free_chlorine:3.0,cc:0,salt:3450,cya:60,alkalinity:null,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:""},
-    {id:"5",date:"2026-06-12",logged_at:"2026-06-12T16:00:00Z",ph:8.0,free_chlorine:4.0,cc:0,salt:3450,cya:60,alkalinity:null,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"CYA increased"},
-    {id:"4",date:"2026-06-10",logged_at:"2026-06-10T15:00:00Z",ph:7.8,free_chlorine:2.0,cc:0,salt:3300,cya:60,alkalinity:null,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"Hot weather"},
-    {id:"3",date:"2026-06-04",logged_at:"2026-06-04T17:30:00Z",ph:7.8,free_chlorine:5.0,cc:0,salt:3450,cya:43,alkalinity:null,calcium_hardness:null,water_temp:null,swg_setting:54,filter_pressure:null,pump_hours:null,notes:"SWG 54%"},
-    {id:"2",date:"2026-05-31",logged_at:"2026-05-31T16:00:00Z",ph:8.0,free_chlorine:5.5,cc:0,salt:3300,cya:null,alkalinity:null,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"K-2006: 11 drops FC."},
-  ],
-  pool_maintenance:[
-    {id:"1",date:"2026-06-13",type:"Brushed walls & floor",notes:""},
-    {id:"2",date:"2026-06-10",type:"Cleaned skimmer basket",notes:""},
-  ],
-  pool_treatments:[
-    {id:"1",date:"2026-06-17",logged_at:"2026-06-17T19:00:00Z",muriatic_acid_oz:11,soda_ash_oz:null,sodium_bicarb_oz:null,salt_lbs:null,cya_oz:null,liquid_chlorine_oz:null,shock_lbs:null,algaecide_oz:null,swg_pct_before:54,swg_pct_after:65,brushed:false,vacuumed:false,cleaned_skimmer:false,cleaned_filter:false,cleaned_cell:false,checked_flow:false,notes:"pH was 8.0"},
-  ],
-  pool_settings:[{id:"1",filter_clean_baseline_psi:null}],
-  pool_schedule:[
-    {id:"1",title:"Check water level",last_completed:"2026-06-10",interval_days:7,notes:"SC evaporation heavy May Sept"},
-    {id:"2",title:"Clean skimmer basket",last_completed:"2026-06-10",interval_days:7,notes:"Check same day after storms"},
-    {id:"3",title:"Brush walls & floor",last_completed:"2026-06-13",interval_days:7,notes:"Vinyl   prevents algae buildup"},
-    {id:"4",title:"Check cell flow switch",last_completed:"2026-05-15",interval_days:30,notes:"Pentair flow switch fails silently"},
-    {id:"5",title:"Inspect O-rings & lid",last_completed:"2026-05-15",interval_days:30,notes:"Salt accelerates O-ring wear"},
-    {id:"6",title:"Clean cartridge filter",last_completed:"2026-04-15",interval_days:60,notes:"Remove, hose off, reinstall"},
-    {id:"7",title:"Clean salt cell (IntelliChlor)",last_completed:"2026-03-01",interval_days:90,notes:"Inspect plates, soak in acid if scale"},
-    {id:"8",title:"Test calcium hardness",last_completed:"2026-01-01",interval_days:90,notes:"Vinyl target 150 250 ppm"},
-  ],
-  home_maintenance:[
-    {id:"1",title:"HVAC Filter",last_completed:"2026-03-01",interval_days:90,notes:"16x25x1 filter"},
-    {id:"2",title:"Pool Filter Backwash",last_completed:"2026-06-06",interval_days:14,notes:""},
-    {id:"3",title:"Gutter Cleaning",last_completed:"2026-04-15",interval_days:90,notes:""},
-    {id:"4",title:"Smoke Detector Test",last_completed:"2026-01-01",interval_days:180,notes:""},
-    {id:"5",title:"Water Heater Flush",last_completed:"2025-12-01",interval_days:365,notes:""},
-    {id:"6",title:"Dryer Vent Clean",last_completed:"2026-01-15",interval_days:180,notes:""},
-  ],
-  tasks:[
-    {id:"1",title:"Check pool water level",category:"Pool",priority:"med",due_date:null,recurring_interval_days:7,last_completed:"2026-06-17",is_important:false,notes:"Evaporation heavy May-Sept",completed:false},
-    {id:"2",title:"Clean pool skimmer basket",category:"Pool",priority:"med",due_date:null,recurring_interval_days:7,last_completed:"2026-06-17",is_important:false,notes:"Check after storms",completed:false},
-    {id:"3",title:"Brush pool walls & floor",category:"Pool",priority:"low",due_date:null,recurring_interval_days:7,last_completed:"2026-06-13",is_important:false,notes:"Vinyl   prevents algae",completed:false},
-    {id:"4",title:"Mow front & back yard",category:"Yard",priority:"med",due_date:null,recurring_interval_days:7,last_completed:"2026-06-14",is_important:false,notes:"",completed:false},
-    {id:"5",title:"Edge driveway & sidewalk",category:"Yard",priority:"low",due_date:null,recurring_interval_days:14,last_completed:"2026-06-07",is_important:false,notes:"",completed:false},
-    {id:"6",title:"Check irrigation system",category:"Yard",priority:"med",due_date:null,recurring_interval_days:14,last_completed:"2026-06-10",is_important:false,notes:"",completed:false},
-    {id:"7",title:"SAT registration deadline",category:"College",priority:"high",due_date:"2026-06-20",recurring_interval_days:null,last_completed:null,is_important:true,notes:"August test date",completed:false},
-    {id:"8",title:"Review retirement contribution",category:"Finance",priority:"med",due_date:null,recurring_interval_days:null,last_completed:null,is_important:true,notes:"Below 15% target",completed:false},
-  ],
-  college_schools:[
-    {id:"1",name:"University of Virginia",status:"researching",match_level:"Reach",app_type:"ED",app_deadline:"2026-11-01",visit_notes:""},
-    {id:"2",name:"Wake Forest University",status:"researching",match_level:"Reach",app_type:"EA",app_deadline:"2026-11-15",visit_notes:""},
-    {id:"3",name:"University of Richmond",status:"target",match_level:"Target",app_type:"EA",app_deadline:"2026-11-15",visit_notes:""},
-    {id:"4",name:"James Madison University",status:"target",match_level:"Safety",app_type:"Regular",app_deadline:"2027-01-15",visit_notes:""},
-  ],
-  college_test_plan:[
-    {id:"1",test_type:"SAT",target_date:"2026-08-23",target_score:"1400",attempt_number:1,registered:false,notes:"First official SAT attempt junior year"},
-  ],
-  college_essays:[
-    {id:"1",title:"Common App Personal Statement",school:"",due_date:"2026-09-15",status:"not started",word_count:"650 max",notes:""},
-  ],
-  college_deadlines:[
-    {id:"1",title:"SAT Registration   August Test",due_date:"2026-06-20",school:"",category:"test",completed:false},
-    {id:"2",title:"Common App Account Setup",due_date:"2026-07-01",school:"Common App",category:"application",completed:false},
-    {id:"3",title:"UVA Campus Visit",due_date:"2026-07-15",school:"University of Virginia",category:"visit",completed:false},
-    {id:"4",title:"Junior Year Transcript Request",due_date:"2026-08-01",school:"",category:"application",completed:false},
-    {id:"5",title:"SAT Exam Date",due_date:"2026-08-23",school:"",category:"test",completed:false},
-  ],
-  sat_scores:[
-    {id:"1",date:"2026-03-08",total:1280,math:640,verbal:640,notes:"PSAT   strong baseline"},
-  ],
-  retirement_accounts:[
-    {id:"1",name:"Matt 403(b)",account_type:"403b",balance:520000,monthly_contribution:1200,employer_match:400,contribution_frequency:"monthly",tax_treatment:"pre-tax",last_updated:"2026-06-01",notes:""},
-    {id:"2",name:"Kalee 401(k)",account_type:"401k",balance:180000,monthly_contribution:500,employer_match:250,contribution_frequency:"monthly",tax_treatment:"pre-tax",last_updated:"2026-06-01",notes:""},
-    {id:"3",name:"Traditional IRA",account_type:"IRA",balance:65000,monthly_contribution:0,employer_match:0,contribution_frequency:"monthly",tax_treatment:"pre-tax",last_updated:"2026-06-01",notes:""},
-    {id:"4",name:"HSA",account_type:"HSA",balance:28000,monthly_contribution:300,employer_match:0,contribution_frequency:"monthly",tax_treatment:"HSA",last_updated:"2026-06-01",notes:""},
-    {id:"5",name:"Brokerage",account_type:"brokerage",balance:85000,monthly_contribution:400,employer_match:0,contribution_frequency:"monthly",tax_treatment:"taxable",last_updated:"2026-06-01",notes:""},
-  ],
-  retirement_assumptions:[
-    {id:"1",current_age:44,retirement_age:59,annual_return_pct:7,withdrawal_rate_pct:4,annual_retirement_spending:110000,social_security_estimate:18000,social_security_estimate_spouse:12000,ss_claim_age:67,ss_claim_age_spouse:67,healthcare_estimate:18000,contribution_increase_pct:3,bridge_end_age:65,medicare_age:65,plan_end_age:90,inflation_pct:3,conservative_rate_pct:5,moderate_rate_pct:7,aggressive_rate_pct:9,drawdown_rate_pct:5,return_volatility_pct:15},
-  ],
-  college_savings:[{id:"1",balance:50000,monthly_contribution:200,last_updated:"2026-06-01",notes:"529 plan"}],
-  college_goal:[
-    {id:"1",child_name:"Aubrey",target_amount:160000,target_year:2027,notes:"In-state preferred."},
-    {id:"2",child_name:"Blake",target_amount:160000,target_year:2032,notes:"Entering 7th grade (2026)."},
-    {id:"3",child_name:"Brayden",target_amount:160000,target_year:2035,notes:"Entering 4th grade (2026)."},
-  ],
-  mortgage:[{id:"1",current_balance:310000,interest_rate:6.25,monthly_payment:2400,term_years:30,start_date:"2021-08-01",extra_payment_monthly:0,last_updated:"2026-06-01"}],
-  other_debt:[{id:"1",name:"Personal Loan",balance:21000,interest_rate:8.5,payment_amount:480,payment_frequency:"biweekly",last_updated:"2026-06-01",notes:"Goal: payoff in ~7 months"}],
-  net_worth_snapshots:[{id:"1",date:"2026-06-01",total_assets:928000,total_liabilities:331000,net_worth:597000,notes:"Initial snapshot"}],
-  finance_action_items:[
-    {id:"1",title:"Review retirement contribution   currently below 15% target",category:"retirement",priority:"med",completed:false,created_date:"2026-06-01"},
-    {id:"2",title:"Evaluate extra payments toward 8.5% personal loan",category:"debt",priority:"high",completed:false,created_date:"2026-06-01"},
-  ],
-};
-
 // - UTILITIES -
-const todayReal=new Date();todayReal.setHours(0,0,0,0);
-const TODAY_STR=todayReal.toISOString().split("T")[0];
-function daysBetween(s){return Math.round((new Date(s+"T00:00:00")-todayReal)/(1000*60*60*24));}
-function daysAgo(s){return -daysBetween(s);}
-function nextDueDate(last,interval){const d=new Date(last+"T00:00:00");d.setDate(d.getDate()+interval);return d.toISOString().split("T")[0];}
-function formatDate(s){return new Date(s+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"});}
-function formatDateFull(s){return new Date(s+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});}
-function formatToday(){return new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});}
-function formatTodayShort(){return new Date().toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});}
 function poolStatus(param,value){
   if(value===null||value===undefined||isNaN(value))return"grey";
   const ranges={ph:{low:7.2,goodHigh:7.6,high:7.8},free_chlorine:{low:1.5,goodHigh:4.0,high:5.0},salt:{low:3200,goodHigh:3600,high:3800},cya:{low:50,goodHigh:80,high:90},alkalinity:{low:80,goodHigh:120,high:140}};
@@ -250,6 +111,18 @@ function poolStatus(param,value){
 function statusColor(s){return s==="red"?COLORS.red:s==="amber"?COLORS.amber:s==="grey"?COLORS.slate:COLORS.green;}
 function maintStatus(item){const days=daysBetween(nextDueDate(item.last_completed,item.interval_days));if(days<0)return"overdue";if(days<=7)return"due-soon";return"ok";}
 function maintColor(s){return s==="overdue"?COLORS.red:s==="due-soon"?COLORS.amber:COLORS.green;}
+
+function calcAubreyTimeline(deadlines=[], scores=[], schools=[], essays=[]) {
+  const milestones = [];
+  deadlines.forEach(d=>milestones.push({id:`deadline-${d.id}`,label:d.title,date:d.due_date,detail:d.school||"Deadline",category:d.category||"deadline",completed:!!d.completed}));
+  essays.forEach(e=>{if(e.due_date)milestones.push({id:`essay-${e.id}`,label:e.title,date:e.due_date,detail:e.school||e.word_count||"Essay",category:"essay",completed:e.status==="submitted"});});
+  schools.forEach(s=>{if(s.app_deadline)milestones.push({id:`school-${s.id}`,label:`${s.name} application`,date:s.app_deadline,detail:s.app_type||s.match_level||"Application",category:"application",completed:s.status==="applied"||s.status==="accepted"});});
+  scores.forEach(s=>milestones.push({id:`score-${s.id}`,label:`SAT ${s.total}`,date:s.date,detail:`${s.math}M / ${s.verbal}V`,category:"test",completed:true}));
+  return milestones
+    .filter(m=>m.date)
+    .map(m=>({...m,daysAway:daysBetween(m.date),isPast:daysBetween(m.date)<0}))
+    .sort((a,b)=>new Date(a.date)-new Date(b.date));
+}
 
 
 // - POOL HEALTH ASSESSMENT -
@@ -535,148 +408,82 @@ function getChemRecommendations(last,readings,filterBaseline){
 }
 
 
-// - STYLES -
-const S={
-  app:{background:COLORS.navy,minHeight:"100vh",maxWidth:430,margin:"0 auto",fontFamily:"'Inter',system-ui,-apple-system,sans-serif",color:COLORS.white,position:"relative",paddingBottom:160},
-  header:{background:COLORS.navyMid,padding:"16px 20px 14px",paddingTop:"calc(env(safe-area-inset-top) + 16px)",borderBottom:`1px solid ${COLORS.navyLight}`,position:"sticky",top:0,zIndex:10,backdropFilter:"blur(8px)"},
-  headerRow:{display:"flex",justifyContent:"space-between",alignItems:"center"},
-  logo:{fontSize:20,fontWeight:800,letterSpacing:"-0.6px"},
-  logoAccent:{color:COLORS.blue},
-  dateLabel:{fontSize:13,color:COLORS.slate,marginTop:3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"},
-  screen:{padding:"20px 16px 8px",background:COLORS.navy},
-  sectionLabel:{fontSize:15,fontWeight:700,letterSpacing:"1px",color:COLORS.slate,textTransform:"uppercase",marginBottom:12,marginTop:32},
-  card:{background:COLORS.navyMid,borderRadius:16,padding:"18px 20px",marginBottom:12,border:`1px solid ${COLORS.navyLight}`},
-  statusCard:(c)=>({background:COLORS.navyMid,borderRadius:16,padding:"18px 20px",marginBottom:12,border:`1px solid ${COLORS.navyLight}`,borderLeft:`3px solid ${c}`}),
-  badge:(c)=>({display:"inline-flex",alignItems:"center",background:c+"1a",color:c,borderRadius:20,padding:"3px 10px",fontSize:15,fontWeight:600,letterSpacing:"0.1px"}),
-  memberDot:(m)=>({display:"inline-block",width:8,height:8,borderRadius:"50%",background:MEMBER_COLORS[m]||COLORS.slate,marginRight:6}),
-  btn:{background:COLORS.blue,color:"#fff",border:"none",borderRadius:12,padding:"14px 20px",fontSize:15,fontWeight:600,cursor:"pointer",width:"100%",marginTop:12,WebkitTapHighlightColor:"transparent",transition:"opacity 0.1s",letterSpacing:"-0.1px"},
-  btnSm:{background:COLORS.navyLight,color:COLORS.slateLight,border:"none",borderRadius:10,padding:"8px 14px",fontSize:15,fontWeight:600,cursor:"pointer",flexShrink:0,WebkitTapHighlightColor:"transparent"},
-  btnGreen:{background:COLORS.green+"1a",color:COLORS.green,border:`1px solid ${COLORS.green}33`,borderRadius:10,padding:"8px 14px",fontSize:15,fontWeight:600,cursor:"pointer",flexShrink:0,WebkitTapHighlightColor:"transparent"},
-  btnCheck:{background:COLORS.green+"1a",color:COLORS.green,border:`1px solid ${COLORS.green}33`,borderRadius:8,padding:"6px 10px",fontSize:15,fontWeight:700,cursor:"pointer",flexShrink:0,lineHeight:1,minWidth:32,textAlign:"center",WebkitTapHighlightColor:"transparent"},
-  btnRed:{background:COLORS.red+"1a",color:COLORS.red,border:`1px solid ${COLORS.red}33`,borderRadius:10,padding:"8px 14px",fontSize:15,fontWeight:600,cursor:"pointer",flexShrink:0,WebkitTapHighlightColor:"transparent"},
-  btnAmber:{background:COLORS.amber+"1a",color:COLORS.amber,border:`1px solid ${COLORS.amber}33`,borderRadius:10,padding:"8px 14px",fontSize:15,fontWeight:600,cursor:"pointer",flexShrink:0,WebkitTapHighlightColor:"transparent"},
-  input:{background:"#1e2d4a",border:"1px solid #2d3f5c",borderRadius:12,padding:"13px 16px",fontSize:15,color:COLORS.white,width:"100%",boxSizing:"border-box",outline:"none",marginBottom:14,transition:"border-color 0.15s",WebkitAppearance:"none"},
-  label:{fontSize:15,color:COLORS.slate,marginBottom:10,display:"block",fontWeight:600,letterSpacing:"0.2px"},
-  row:{display:"flex",gap:12},col:{flex:1},
-  statGrid:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10},
-  statCell:(c)=>({background:COLORS.navyMid,border:`1px solid ${COLORS.navyLight}`,borderTop:`3px solid ${c}`,borderRadius:12,padding:"14px 8px",textAlign:"center"}),
-  statVal:{fontSize:22,fontWeight:700,letterSpacing:"-0.3px"},
-  statLbl:{fontSize:15,color:COLORS.slate,marginTop:3,fontWeight:500},
-  nav:{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:COLORS.navyMid,borderTop:`1px solid ${COLORS.navyLight}`,display:"flex",zIndex:20,paddingBottom:"env(safe-area-inset-bottom)"},
-  navItem:(a)=>({flex:1,display:"flex",flexDirection:"column",alignItems:"center",padding:"10px 2px 8px",cursor:"pointer",background:"transparent",border:"none",color:a?COLORS.blue:COLORS.slate,fontSize:10,fontWeight:a?700:500,gap:3,borderTop:a?`2px solid ${COLORS.blue}`:"2px solid transparent",WebkitTapHighlightColor:"transparent",transition:"color 0.15s",letterSpacing:"-0.1px"}),
-  modal:{position:"fixed",inset:0,background:"#000d",zIndex:50,display:"flex",alignItems:"flex-end",justifyContent:"center"},
-  sheet:{background:COLORS.navyMid,borderRadius:"24px 24px 0 0",padding:"12px 20px 52px",width:"100%",maxWidth:430,maxHeight:"93vh",overflowY:"auto",animation:"slideUp 0.28s cubic-bezier(0.34,1.06,0.64,1)"},
-  sheetHandle:{width:44,height:4,borderRadius:2,background:COLORS.navyLight,margin:"0 auto 18px"},
-  sheetTitle:{fontSize:20,fontWeight:700,marginBottom:20,letterSpacing:"-0.3px"},
-  chip:(a,c)=>({display:"inline-block",padding:"5px 13px",borderRadius:20,fontSize:15,fontWeight:600,cursor:"pointer",border:`1px solid ${a?c:COLORS.navyLight}`,background:a?c+"1a":"transparent",color:a?c:COLORS.slate,marginRight:6,marginBottom:10,WebkitTapHighlightColor:"transparent",transition:"all 0.12s"}),
-  tabs:{display:"flex",background:COLORS.navyMid,borderRadius:12,padding:4,marginBottom:18,border:`1px solid ${COLORS.navyLight}`},
-  tabBtn:(a)=>({flex:1,border:"none",borderRadius:9,padding:"9px 0",cursor:"pointer",background:a?COLORS.blue:"transparent",color:a?"#fff":COLORS.slate,fontSize:15,fontWeight:700,textTransform:"capitalize",transition:"all 0.15s",WebkitTapHighlightColor:"transparent",letterSpacing:"0.1px"}),
-  empty:{textAlign:"center",padding:"48px 20px",color:COLORS.slate,fontSize:15},
-  progress:{height:4,background:COLORS.navyLight,borderRadius:2,marginTop:10,overflow:"hidden"},
-  progressFill:(pct,c)=>({height:"100%",width:`${Math.min(100,Math.max(0,pct))}%`,background:c,borderRadius:2,transition:"width 0.4s ease-out"}),
-  gcBanner:{background:COLORS.blue+"15",border:`1px solid ${COLORS.blue}33`,borderRadius:16,padding:"16px 20px",marginBottom:16},
-  swipeHint:{fontSize:15,color:COLORS.slate,textAlign:"center",marginBottom:10,letterSpacing:"0.3px"},
-};
+function useSupabaseAuth() {
+  const [session,setSession] = useState(null);
+  const [loading,setLoading] = useState(true);
+  const [message,setMessage] = useState("");
+  const [error,setError] = useState("");
 
-// - ICONS -
-const I={
-  home:(a)=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={a?2.5:2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
-  college:(a)=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={a?2.5:2} strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>,
-  pool:(a)=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={a?2.5:2} strokeLinecap="round" strokeLinejoin="round"><path d="M2 12c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M2 17c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><circle cx="12" cy="5" r="2"/><line x1="12" y1="7" x2="12" y2="10"/></svg>,
-  finance:(a)=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={a?2.5:2} strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>,
-  tasks:(a)=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={a?2.5:2} strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>,
-  close:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-  refresh:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.5 15a9 9 0 11-2.8-6.4L23 10"/></svg>,
-  google:()=><svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>,
-};
+  useEffect(()=>{
+    let mounted = true;
+    supabase.auth.getSession().then(({data})=>{
+      if (!mounted) return;
+      setSession(data.session);
+      setLoading(false);
+    });
+    const {data:{subscription}} = supabase.auth.onAuthStateChange((_event,nextSession)=>{
+      setSession(nextSession);
+      setLoading(false);
+    });
+    return ()=>{ mounted=false; subscription.unsubscribe(); };
+  },[]);
 
-// - SPARKLINE -
-function Sparkline({data,color}){
-  if(!data||data.length<2)return null;
-  const min=Math.min(...data),max=Math.max(...data),range=max-min||1,W=64,H=24;
-  const pts=data.map((v,i)=>`${(i/(data.length-1))*W},${H-((v-min)/range)*H}`).join(" ");
-  return <svg width={W} height={H}><polyline points={pts} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/></svg>;
-}
-
-// - SWIPE CARD -
-function SwipeCard({children, onEdit, onDelete, style={}, activeId, setActiveId, id}){
-  const ref=useRef(null),startX=useRef(null),isOpen=activeId===id;
-  const [confirming,setConfirming]=useState(false);
-  const THRESHOLD=60,REVEAL=130;
-  function onTouchStart(e){startX.current=e.touches[0].clientX;}
-  function onTouchEnd(e){
-    if(startX.current===null)return;
-    const dx=e.changedTouches[0].clientX-startX.current;
-    if(dx<-THRESHOLD)setActiveId(id);
-    else if(dx>THRESHOLD){setActiveId(null);setConfirming(false);}
-    startX.current=null;
+  async function sendMagicLink(email) {
+    setError("");
+    setMessage("");
+    const trimmed = email.trim();
+    if (!trimmed) { setError("Email is required."); return; }
+    try {
+      const {error: authError} = await supabase.auth.signInWithOtp({
+        email: trimmed,
+        options: { emailRedirectTo: window.location.origin },
+      });
+      if (authError) throw authError;
+      setMessage("Check your email for a sign-in link.");
+    } catch(e) {
+      setError(e.message);
+    }
   }
-  return(
-    <div style={{position:"relative",marginBottom:10,borderRadius:12,overflow:"hidden"}}>
-      <div style={{position:"absolute",right:0,top:0,bottom:0,display:"flex",alignItems:"stretch",borderRadius:"0 12px 12px 0"}}>
-        {!confirming
-          ?<>
-            <button onClick={()=>{onEdit();setActiveId(null);}} style={{width:65,background:COLORS.amber,color:"#fff",border:"none",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,WebkitTapHighlightColor:"transparent"}}><span style={{fontSize:18}}>  </span>Edit</button>
-            <button onClick={()=>setConfirming(true)} style={{width:65,background:COLORS.red,color:"#fff",border:"none",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,borderRadius:"0 12px 12px 0",WebkitTapHighlightColor:"transparent"}}><span style={{fontSize:18}}>  </span>Delete</button>
-          </>
-          :<div style={{display:"flex",alignItems:"stretch"}}>
-            <button onClick={()=>setConfirming(false)} style={{width:65,background:COLORS.slate,color:"#fff",border:"none",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,WebkitTapHighlightColor:"transparent"}}><span style={{fontSize:18}}> </span>Cancel</button>
-            <button onClick={()=>{setConfirming(false);setActiveId(null);onDelete();}} style={{width:80,background:COLORS.red,color:"#fff",border:"none",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,borderRadius:"0 12px 12px 0",WebkitTapHighlightColor:"transparent"}}><span style={{fontSize:18}}>  </span>Confirm</button>
-          </div>
-        }
-      </div>
-      <div ref={ref} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} style={{...style,transform:`translateX(${isOpen?-(confirming?145:REVEAL):0}px)`,transition:"transform 0.25s ease",position:"relative",zIndex:1,touchAction:"pan-y"}}>{children}</div>
-    </div>
-  );
+
+  async function signOut() {
+    await supabase.auth.signOut();
+    setSession(null);
+  }
+
+  return {session,loading,message,error,sendMagicLink,signOut};
 }
 
-// - MODAL -
-function Modal({title,onClose,children}){
+function SetupRequired(){
   return(
-    <div style={S.modal} onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div style={S.sheet}>
-        <div style={S.sheetHandle}/>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
-          <div style={S.sheetTitle}>{title}</div>
-          <button onClick={onClose} style={{background:COLORS.navyLight,border:"none",color:COLORS.slate,cursor:"pointer",padding:"6px 8px",borderRadius:8,display:"flex",alignItems:"center"}}>{I.close()}</button>
-        </div>
-        {children}
+    <div style={{...S.app,padding:"40px 20px"}}>
+      <div style={S.logo}><span style={S.logoAccent}>Family</span>OS</div>
+      <div style={{...S.card,marginTop:24}}>
+        <div style={{fontSize:20,fontWeight:800,marginBottom:10}}>Setup required</div>
+        <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5,marginBottom:14}}>Add these missing environment variables in `.env.local` and Vercel before running the app.</div>
+        {CONFIG_STATUS.missing.map(key=><div key={key} style={{fontSize:14,color:COLORS.amber,fontWeight:700,marginBottom:6}}>{key}</div>)}
       </div>
     </div>
   );
 }
 
-function Loading(){
+function AuthGate({auth}){
+  const [email,setEmail] = useState("");
   return(
-    <div style={{padding:"4px 0"}}>
-      {[0.9,0.7,0.85].map((w,i)=>(
-        <div key={i} style={{background:COLORS.navyMid,borderRadius:16,padding:"18px 20px",marginBottom:12,border:`1px solid ${COLORS.navyLight}`,overflow:"hidden",position:"relative"}}>
-          <div style={{height:14,width:`${w*100}%`,borderRadius:6,background:COLORS.navyLight,marginBottom:10}}/>
-          <div style={{height:11,width:"55%",borderRadius:6,background:COLORS.navyLight,marginBottom:6}}/>
-          <div style={{height:11,width:"35%",borderRadius:6,background:COLORS.navyLight}}/>
-          <div style={{position:"absolute",inset:0,background:`linear-gradient(90deg,transparent 0%,${COLORS.navyLight}40 50%,transparent 100%)`,animation:"shimmer 1.5s infinite"}}/>
-        </div>
-      ))}
+    <div style={{...S.app,padding:"40px 20px"}}>
+      <div style={S.logo}><span style={S.logoAccent}>Family</span>OS</div>
+      <div style={{...S.card,marginTop:24}}>
+        <div style={{fontSize:20,fontWeight:800,marginBottom:10}}>Sign in</div>
+        <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5,marginBottom:18}}>Use your approved family email. Supabase will send a magic link, then your data stays scoped to your account.</div>
+        <label style={S.label}>Email</label>
+        <input style={S.input} type="email" value={email} placeholder="you@example.com" onChange={e=>setEmail(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")auth.sendMagicLink(email);}}/>
+        <button style={S.btn} onClick={()=>auth.sendMagicLink(email)}>Send sign-in link</button>
+        {auth.message&&<div style={{fontSize:15,color:COLORS.green,marginTop:12,lineHeight:1.4}}>{auth.message}</div>}
+        {auth.error&&<div style={{fontSize:15,color:COLORS.red,marginTop:12,lineHeight:1.4}}>{auth.error}</div>}
+      </div>
     </div>
   );
 }
 
-function EmptyState({icon,title,detail,action,onAction}){
-  return(
-    <div style={{textAlign:"center",padding:"48px 24px 40px"}}>
-      <div style={{fontSize:40,marginBottom:14,opacity:0.6}}>{icon||" "}</div>
-      <div style={{fontSize:16,fontWeight:700,color:COLORS.slateLight,marginBottom:8}}>{title||"Nothing here yet"}</div>
-      {detail&&<div style={{fontSize:14,color:COLORS.slate,lineHeight:1.6,marginBottom:20,maxWidth:260,margin:"0 auto 20px"}}>{detail}</div>}
-      {action&&onAction&&<button style={{...S.btn,width:"auto",padding:"11px 24px",fontSize:14,marginTop:0}} onClick={onAction}>{action}</button>}
-    </div>
-  );
-}
-
-function SwipeHint(){
-  const [seen,setSeen]=useState(()=>{try{return sessionStorage.getItem("swipeHintSeen")==="1";}catch{return false;}});
-  if(seen)return null;
-  return(<div style={S.swipeHint} onClick={()=>{setSeen(true);try{sessionStorage.setItem("swipeHintSeen","1");}catch{}}}>  swipe left to edit or delete</div>);
-}
 
 // - DATA HOOK -
 function useTable(table,orderCol,orderAsc=false){
@@ -713,254 +520,6 @@ function CalendarBanner({gc}){
       <div style={{fontSize:15,color:COLORS.slateLight,marginBottom:12,lineHeight:1.5}}>Sign in with Google to load your real family events automatically.</div>
       {gc.error&&<div style={{fontSize:15,color:COLORS.red,marginBottom:10}}>{gc.error}</div>}
       <button onClick={gc.signIn} style={{...S.btn,marginTop:0,display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:COLORS.white,color:COLORS.navy}}>{I.google()} Sign in with Google</button>
-    </div>
-  );
-}
-
-
-// - DASHBOARD -
-function Dashboard({onNavigate,gc}){
-  const{data:homeMaint}   =useTable("home_maintenance","title",true);
-  const{data:deadlines}   =useTable("college_deadlines","due_date",true);
-  const readings          =useTable("pool_readings","logged_at");
-  const poolMaint         =useTable("pool_maintenance","date");
-  const assumptions       =useTable("retirement_assumptions","id",true);
-  const accounts          =useTable("retirement_accounts","name",true);
-  const notes             =useTable("notes","created_at");
-  const taskData          =useTable("tasks","due_date",true);
-  const treatments        =useTable("pool_treatments","logged_at");
-
-  const [showFullSchedule,setShowFullSchedule]=useState(false);
-  const [showAllActions,setShowAllActions]=useState(false);
-  const [showNotes,setShowNotes]=useState(true);
-  const [filter,setFilter]=useState("All");
-  const [overrides,setOverrides]=useState({});
-  const [reassigning,setReassigning]=useState(null);
-  const members=["All","Aubrey","Blake","Brayden","Matt","Kalee"];
-
-  const assump=assumptions.data[0];
-  const retProj=assump?calcRetirementProjection(accounts.data,assump):null;
-  const lastReading=readings.data[0];
-  const chemRecs=lastReading?getChemRecommendations(lastReading,readings.data,null):[];
-  const highChemRecs=chemRecs.filter(r=>r.priority==="high");
-  const medChemRecs=chemRecs.filter(r=>r.priority==="med");
-  const poolDaysAgo=lastReading?daysAgo(lastReading.date):null;
-  const poolStale=poolDaysAgo!==null&&poolDaysAgo>=3;
-
-  const overdueHomeMaint=homeMaint.filter(m=>maintStatus(m)==="overdue");
-  const dueSoonHomeMaint=homeMaint.filter(m=>maintStatus(m)==="due-soon");
-  const urgentDeadlines=deadlines.filter(d=>!d.completed&&daysBetween(d.due_date)<=14);
-  const upcomingDeadlines=deadlines.filter(d=>!d.completed&&daysBetween(d.due_date)>14&&daysBetween(d.due_date)<=60);
-  const urgentTasks=taskData.data.filter(t=>{
-    if(t.completed&&!t.recurring_interval_days)return false;
-    if(t.is_important)return true;
-    if(t.due_date&&daysBetween(t.due_date)<=0)return true;
-    return false;
-  });
-
-  const allEvents=(gc.token?gc.events:[]).map(e=>({...e,member:overrides[e.id]||e.member}));
-  const filtered=allEvents.filter(e=>filter==="All"||e.member===filter);
-  const next7Days=Array.from({length:7},(_,i)=>{const d=new Date(todayReal);d.setDate(d.getDate()+i);return d.toISOString().split("T")[0];});
-  const next30Days=Array.from({length:30},(_,i)=>{const d=new Date(todayReal);d.setDate(d.getDate()+i);return d.toISOString().split("T")[0];});
-  const visibleDays=showFullSchedule?next30Days:next7Days;
-  const totalEventsNext7=filtered.filter(e=>next7Days.includes(e.date)).length;
-
-  // Build action lists
-  const overdue=[],thisWeek=[],upcoming=[];
-  if(poolStale) overdue.push({text:`Pool not tested in ${poolDaysAgo} days`,color:COLORS.amber,nav:"pool",detail:"Log a reading"});
-  highChemRecs.forEach(r=>{overdue.push({text:r.action,color:COLORS.red,nav:"pool",detail:null});});
-  medChemRecs.slice(0,2).forEach(r=>{thisWeek.push({text:r.action,color:COLORS.amber,nav:"pool",detail:null});});
-  overdueHomeMaint.forEach(m=>{const days=-daysBetween(nextDueDate(m.last_completed,m.interval_days));overdue.push({text:m.title,color:COLORS.red,nav:"tasks",detail:`${days}d overdue`});});
-  dueSoonHomeMaint.forEach(m=>{const days=daysBetween(nextDueDate(m.last_completed,m.interval_days));thisWeek.push({text:m.title,color:COLORS.amber,nav:"tasks",detail:`due in ${days}d`});});
-  urgentTasks.slice(0,4).forEach(t=>{const days=t.due_date?daysBetween(t.due_date):null,isOverdue=days!==null&&days<0,item={text:t.title,color:isOverdue?COLORS.red:t.is_important?COLORS.purple:COLORS.amber,nav:"tasks",detail:isOverdue?`${-days}d overdue`:days===0?"Today":t.is_important?"Important":days!==null?`in ${days}d`:null};isOverdue?overdue.push(item):thisWeek.push(item);});
-  urgentDeadlines.forEach(d=>{const days=daysBetween(d.due_date),item={text:d.title,color:days<=4?COLORS.red:COLORS.amber,nav:"college",detail:days===0?"Today":days<0?`${-days}d overdue`:`in ${days}d`};days<=4?overdue.push(item):thisWeek.push(item);});
-  upcomingDeadlines.forEach(d=>{upcoming.push({text:d.title,color:COLORS.slate,nav:"college",detail:`in ${daysBetween(d.due_date)}d`});});
-  filtered.filter(e=>e.date===TODAY_STR).forEach(e=>{overdue.push({text:e.title,color:COLORS.blue,nav:"home",detail:e.time||"Today"});});
-  filtered.filter(e=>next7Days.includes(e.date)&&e.date!==TODAY_STR).slice(0,3).forEach(e=>{thisWeek.push({text:e.title,color:MEMBER_COLORS[e.member]||COLORS.slate,nav:"home",detail:`${e.time||""} ${formatDate(e.date)}`.trim()});});
-
-  const totalActions=overdue.length+thisWeek.length+upcoming.length;
-  const focusItems=[...overdue,...thisWeek].slice(0,5);
-
-  // Family Health statuses
-  const poolColor=highChemRecs.length>0?COLORS.red:medChemRecs.length>0?COLORS.amber:poolStale?COLORS.amber:COLORS.green;
-  const poolLabel=highChemRecs.length>0?"Action needed":medChemRecs.length>0?"Monitor":poolStale?`${poolDaysAgo}d since test`:"Good";
-  const poolDetail=highChemRecs.length>0?highChemRecs[0].action.slice(0,35)+"...":lastReading?`pH ${lastReading.ph||"--"} FC ${lastReading.free_chlorine||"--"} Salt ${lastReading.salt||"--"}`:"No readings";
-
-  const tasksOverdue=overdueHomeMaint.length+urgentTasks.filter(t=>t.due_date&&daysBetween(t.due_date)<0).length;
-  const tasksDueSoon=dueSoonHomeMaint.length+urgentTasks.filter(t=>t.is_important&&(!t.due_date||daysBetween(t.due_date)>=0)).length;
-  const tasksColor=tasksOverdue>0?COLORS.red:tasksDueSoon>0?COLORS.amber:COLORS.green;
-  const tasksLabel=tasksOverdue>0?`${tasksOverdue} overdue`:tasksDueSoon>0?`${tasksDueSoon} this week`:"All clear";
-  const tasksDetail=tasksOverdue>0?`${overdueHomeMaint[0]?.title||urgentTasks[0]?.title||""}`.slice(0,35):tasksDueSoon>0?"Maintenance due":"Nothing overdue";
-
-  const finColor=retProj?retProj.statusColor:COLORS.slate;
-  const finLabel=retProj?retProj.statusLabel.split(" - ")[0].split("--")[0].trim().slice(0,16):"No data";
-  const finDetail=retProj?`Age ${assump.retirement_age} - ${retProj.gap>0?"-"+formatMoneyShort(retProj.gap)+" gap":"surplus "+formatMoneyShort(-retProj.gap)}`:"Add accounts";
-
-  const collegeColor=urgentDeadlines.length>0?COLORS.amber:COLORS.green;
-  const collegeLabel=urgentDeadlines.length>0?`${urgentDeadlines.length} deadline${urgentDeadlines.length>1?"s":""}`:upcomingDeadlines.length>0?"Coming up":"On track";
-  const collegeDetail=urgentDeadlines.length>0?urgentDeadlines[0].title.slice(0,35):upcomingDeadlines.length>0?`Next: ${upcomingDeadlines[0].title.slice(0,28)}`:"No urgent deadlines";
-
-  // Weekly headline sentence
-  const totalIssues=overdue.length+thisWeek.length;
-  let headline="";
-  if(totalIssues===0) headline="All clear - nothing needs attention.";
-  else {
-    const parts=[];
-    if(overdue.length>0) parts.push(`${overdue.length} item${overdue.length>1?"s":""} need action now`);
-    if(thisWeek.length>0) parts.push(`${thisWeek.length} due this week`);
-    headline=parts.join(", ")+".";
-  }
-
-  const recentActivity=[
-    ...readings.data.slice(0,2).map(r=>({date:r.date,text:`Pool reading - pH ${r.ph||"--"} FC ${r.free_chlorine||"--"}`,color:COLORS.blue})),
-    ...treatments.data.slice(0,2).map(t=>{
-      const chems=[t.muriatic_acid_oz&&`${t.muriatic_acid_oz}oz acid`,t.salt_lbs&&`${t.salt_lbs}lb salt`,t.cya_oz&&`${t.cya_oz}oz CYA`].filter(Boolean);
-      return{date:t.date,text:`Treatment - ${chems.length>0?chems.join(", "):"maintenance"}`,color:COLORS.green};
-    }),
-    ...deadlines.filter(d=>d.completed).slice(0,1).map(d=>({date:d.due_date,text:`College: ${d.title}`,color:COLORS.green})),
-    ...homeMaint.filter(m=>m.last_completed&&daysAgo(m.last_completed)<=7).slice(0,1).map(m=>({date:m.last_completed,text:m.title,color:COLORS.slate})),
-  ].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,4);
-
-  function ActionItem({item,i,total}){
-    return(
-      <button onClick={()=>onNavigate(item.nav)} style={{display:"flex",alignItems:"center",gap:10,width:"100%",background:"none",border:"none",padding:"9px 0",borderBottom:i<total-1?`1px solid ${COLORS.navyLight}`:"none",cursor:"pointer",textAlign:"left"}}>
-        <div style={{width:8,height:8,borderRadius:"50%",background:item.color,flexShrink:0}}/>
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{fontSize:14,fontWeight:600,color:COLORS.white,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.text}</div>
-          {item.detail&&<div style={{fontSize:12,color:item.color,marginTop:1}}>{item.detail}</div>}
-        </div>
-        <div style={{fontSize:12,color:COLORS.slate,flexShrink:0}}>></div>
-      </button>
-    );
-  }
-
-  return(
-    <div style={S.screen}> <div style={{background:COLORS.navyMid,borderRadius:16,padding:"18px 18px 14px",marginBottom:12,border:`1px solid ${COLORS.navyLight}`,borderTop:`3px solid ${totalIssues===0?COLORS.green:overdue.length>0?COLORS.red:COLORS.amber}`}}>
-        <div style={{fontSize:11,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"1px",marginBottom:6}}>This Week</div>
-        <div style={{fontSize:22,fontWeight:800,letterSpacing:"-0.5px",lineHeight:1.15,color:totalIssues===0?COLORS.green:overdue.length>0?COLORS.red:COLORS.amber,marginBottom:4}}>
-          {totalIssues===0?"All clear":`${overdue.length>0?overdue.length+" urgent":thisWeek.length+" this week"}`}
-        </div>
-        <div style={{fontSize:13,color:COLORS.slate,marginBottom:focusItems.length>0?14:0}}>{headline}</div>
-        {focusItems.length>0&&focusItems.map((item,i)=><ActionItem key={i} item={item} i={i} total={focusItems.length}/>)}
-      </div> <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}}>
-        {[
-          {module:"Pool",color:poolColor,label:poolLabel,detail:poolDetail,nav:"pool"},
-          {module:"Tasks",color:tasksColor,label:tasksLabel,detail:tasksDetail,nav:"tasks"},
-          {module:"Finance",color:finColor,label:finLabel,detail:finDetail,nav:"finance"},
-          {module:"College",color:collegeColor,label:collegeLabel,detail:collegeDetail,nav:"college"},
-        ].map((s,i)=>(
-          <button key={i} onClick={()=>onNavigate(s.nav)} style={{background:COLORS.navyMid,border:`1px solid ${COLORS.navyLight}`,borderLeft:`3px solid ${s.color}`,borderRadius:12,padding:"12px 14px",cursor:"pointer",textAlign:"left",WebkitTapHighlightColor:"transparent"}}>
-            <div style={{fontSize:11,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:4}}>{s.module}</div>
-            <div style={{fontSize:14,fontWeight:800,color:s.color,marginBottom:3,letterSpacing:"-0.2px"}}>{s.label}</div>
-            <div style={{fontSize:11,color:COLORS.slate,lineHeight:1.35,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{s.detail}</div>
-          </button>
-        ))}
-      </div> {totalActions>0&&<>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-          <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"1px"}}>Action Center</div>
-          {totalActions>5&&<button onClick={()=>setShowAllActions(p=>!p)} style={{fontSize:12,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0}}>{showAllActions?"Less":"All "+totalActions}</button>}
-        </div>
-        {overdue.length>0&&(
-          <div style={{background:COLORS.navyMid,borderRadius:12,borderLeft:`3px solid ${COLORS.red}`,marginBottom:8,padding:"12px 14px"}}>
-            <div style={{fontSize:11,fontWeight:700,color:COLORS.red,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8}}>Act Now - {overdue.length}</div>
-            {overdue.slice(0,showAllActions?99:3).map((item,i)=><ActionItem key={i} item={item} i={i} total={Math.min(overdue.length,showAllActions?99:3)}/>)}
-            {!showAllActions&&overdue.length>3&&<div style={{fontSize:12,color:COLORS.slate,paddingTop:6}}>+{overdue.length-3} more</div>}
-          </div>
-        )}
-        {thisWeek.length>0&&(
-          <div style={{background:COLORS.navyMid,borderRadius:12,borderLeft:`3px solid ${COLORS.amber}`,marginBottom:8,padding:"12px 14px"}}>
-            <div style={{fontSize:11,fontWeight:700,color:COLORS.amber,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8}}>This Week - {thisWeek.length}</div>
-            {thisWeek.slice(0,showAllActions?99:3).map((item,i)=><ActionItem key={i} item={item} i={i} total={Math.min(thisWeek.length,showAllActions?99:3)}/>)}
-          </div>
-        )}
-        {upcoming.length>0&&showAllActions&&(
-          <div style={{background:COLORS.navyMid,borderRadius:12,borderLeft:`3px solid ${COLORS.slate}`,marginBottom:8,padding:"12px 14px"}}>
-            <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8}}>Coming Up - {upcoming.length}</div>
-            {upcoming.slice(0,3).map((item,i)=><ActionItem key={i} item={item} i={i} total={Math.min(upcoming.length,3)}/>)}
-          </div>
-        )}
-      </>}
-      {totalActions===0&&(
-        <div style={{background:COLORS.green+"0d",border:`1px solid ${COLORS.green}33`,borderRadius:12,textAlign:"center",padding:"14px",marginBottom:12}}>
-          <div style={{fontSize:14,fontWeight:700,color:COLORS.green}}>All clear</div>
-          <div style={{fontSize:12,color:COLORS.slate,marginTop:3}}>Nothing needs attention right now.</div>
-        </div>
-      )} {gc.token&&<>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8,marginTop:16}}>
-          <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"1px"}}>Schedule</div>
-          <button onClick={()=>setShowFullSchedule(p=>!p)} style={{fontSize:12,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0}}>{showFullSchedule?"7 days":"30 days"}</button>
-        </div>
-        <div style={{marginBottom:10,display:"flex",flexWrap:"wrap",gap:4}}>
-          {members.map(m=><span key={m} style={S.chip(filter===m,MEMBER_COLORS[m]||COLORS.blue)} onClick={()=>setFilter(m)}>{m}</span>)}
-        </div>
-        {gc.loading?<Loading/>:(
-          filtered.filter(e=>visibleDays.includes(e.date)).length===0
-            ?<div style={{fontSize:13,color:COLORS.slate,textAlign:"center",padding:"20px 0"}}>No events {showFullSchedule?"in the next 30 days":"this week"}</div>
-            :visibleDays.map(day=>{
-              const evs=filtered.filter(e=>e.date===day);
-              if(!evs.length)return null;
-              const isToday=day===TODAY_STR;
-              return(
-                <div key={day}>
-                  <div style={{fontSize:11,fontWeight:700,color:isToday?COLORS.blue:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:6,marginTop:12}}>{isToday?"Today":formatDateFull(day)}</div>
-                  {evs.map(e=>(
-                    <div key={e.id} style={{background:COLORS.navyMid,borderRadius:10,borderLeft:`3px solid ${MEMBER_COLORS[e.member]||COLORS.slate}`,marginBottom:6,padding:"10px 12px"}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                        <div style={{flex:1}}>
-                          <div style={{fontSize:14,fontWeight:600}}>{e.title}</div>
-                          <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>{e.time||"All day"}{e.location?` - ${e.location}`:""}</div>
-                        </div>
-                        <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
-                          <span style={{...S.badge(MEMBER_COLORS[e.member]||COLORS.slate),fontSize:11}}>{e.member}</span>
-                          <button style={{...S.btnSm,fontSize:11,padding:"2px 6px"}} onClick={()=>setReassigning(reassigning===e.id?null:e.id)}>reassign</button>
-                        </div>
-                      </div>
-                      {reassigning===e.id&&(
-                        <div style={{marginTop:8,display:"flex",flexWrap:"wrap",gap:4}}>
-                          {["Aubrey","Blake","Brayden","Matt","Kalee"].map(m=>(
-                            <span key={m} style={S.chip(e.member===m,MEMBER_COLORS[m])} onClick={()=>{setOverrides(p=>({...p,[e.id]:m}));setReassigning(null);}}>{m}</span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              );
-            })
-        )}
-      </>}
-      {!gc.token&&(
-        <div style={{background:COLORS.navyMid,borderRadius:12,border:`1px solid ${COLORS.navyLight}`,padding:"14px 16px",marginTop:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{fontSize:13,color:COLORS.slateLight}}>Connect Google Calendar to see your schedule here.</div>
-          <button style={{...S.btnSm,fontSize:12}} onClick={gc.signIn}>Connect</button>
-        </div>
-      )} {recentActivity.length>0&&<>
-        <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"1px",marginBottom:8,marginTop:16}}>Recent Activity</div>
-        {recentActivity.map((a,i)=>(
-          <div key={i} style={{display:"flex",gap:10,alignItems:"center",padding:"8px 0",borderBottom:i<recentActivity.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
-            <div style={{width:6,height:6,borderRadius:"50%",background:a.color,flexShrink:0}}/>
-            <div style={{flex:1}}><div style={{fontSize:13,color:COLORS.slateLight}}>{a.text}</div></div>
-            <div style={{fontSize:11,color:COLORS.slate}}>{formatDate(a.date)}</div>
-          </div>
-        ))}
-      </>} {notes.data.length>0&&<>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:16,marginBottom:8}}>
-          <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"1px"}}>Notes</div>
-          <button onClick={()=>setShowNotes(p=>!p)} style={{fontSize:12,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0}}>{showNotes?"Hide":"Show "+notes.data.length}</button>
-        </div>
-        {showNotes&&notes.data.map((n,i)=>(
-          <div key={n.id} style={{background:COLORS.navyMid,borderRadius:10,padding:"12px 14px",marginBottom:6}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-              <div style={{flex:1,minWidth:0}}>
-                {n.title&&<div style={{fontSize:14,fontWeight:700,marginBottom:3}}>{n.title}</div>}
-                <div style={{fontSize:13,color:COLORS.slateLight,lineHeight:1.5}}>{n.body}</div>
-                <div style={{fontSize:11,color:COLORS.slate,marginTop:6}}>{new Date(n.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>
-              </div>
-              <span style={{...S.badge(COLORS.slate),fontSize:11,flexShrink:0,marginLeft:10}}>{n.tag||"General"}</span>
-            </div>
-          </div>
-        ))}
-      </>}
     </div>
   );
 }
@@ -1198,7 +757,7 @@ function College(){
         {(()=>{
           const savingsBalance=collegeSav.data[0]?.balance||0;
           const children=[{name:"Blake",color:COLORS.green,startYear:2032,age:12,milestones:[{year:2027,label:"PSAT / start tracking"},{year:2028,label:"Build college list"},{year:2029,label:"Campus visits"},{year:2030,label:"SAT / ACT prep"},{year:2031,label:"Applications"},{year:2032,label:"College starts  "}]},{name:"Brayden",color:COLORS.amber,startYear:2035,age:9,milestones:[{year:2030,label:"PSAT / start tracking"},{year:2031,label:"Build college list"},{year:2032,label:"Campus visits"},{year:2033,label:"SAT / ACT prep"},{year:2034,label:"Applications"},{year:2035,label:"College starts  "}]}];
-          const currentYear=new Date(todayReal).getFullYear();
+          const currentYear=new Date(TODAY_DATE).getFullYear();
           return children.map(child=>{
             const goal=collegeGoals.data.find(g=>g.child_name===child.name),yearsAway=child.startYear-currentYear,targetAmount=goal?.target_amount||160000,monthsToStart=yearsAway*12,growthRate=0.07/12,futurePoolEstimate=savingsBalance*Math.pow(1+growthRate,monthsToStart),pct=Math.min(100,Math.round(futurePoolEstimate/targetAmount*100));
             return(
@@ -1264,391 +823,6 @@ function College(){
 }
 
 
-// - TASKS (merged home maintenance + task tracker) -
-function Tasks(){
-  const tasks      = useTable("tasks","due_date",true);
-  const homeMaint  = useTable("home_maintenance","title",true);
-
-  const [tab,setTab]             = useState("today");
-  const [catFilter,setCatFilter] = useState("All");
-  const [showModal,setShowModal] = useState(false);
-  const [editItem,setEditItem]   = useState(null);
-  const [form,setForm]           = useState({});
-  const [activeSwipe,setActiveSwipe] = useState(null);
-  const [showMsDo,setShowMsDo]   = useState(false);
-  const [showCompleted,setShowCompleted] = useState(false);
-  const [showOkMaint,setShowOkMaint] = useState(false);
-
-  const CATS = ["All","Pool","Yard","Home","College","Finance","Personal","Work"];
-  const CAT_COLORS = {
-    Pool:COLORS.blue, Yard:COLORS.green, Home:COLORS.amber,
-    College:COLORS.red, Finance:COLORS.green, Personal:COLORS.purple,
-    Work:COLORS.blue, All:COLORS.slate,
-  };
-  const PRIORITY_COLORS = {high:COLORS.red, med:COLORS.amber, low:COLORS.slate};
-
-  // - Derive task states -
-  // Compute effective due date for recurring tasks without a fixed due_date
-  function effectiveDueDate(t) {
-    if(t.due_date) return t.due_date;
-    if(t.recurring_interval_days && t.last_completed) {
-      return nextDueDate(t.last_completed, t.recurring_interval_days);
-    }
-    return null;
-  }
-
-  function taskStatus(t) {
-    if(t.completed && !t.recurring_interval_days) return "done";
-    const eff = effectiveDueDate(t);
-    if(!eff && !t.is_important) return "backlog";
-    if(!eff && t.is_important) return "important";
-    const days = daysBetween(eff);
-    if(days < 0) return "overdue";
-    if(days === 0) return "today";
-    if(days <= 2) return "today";
-    if(days <= 7) return "this-week";
-    return "upcoming";
-  }
-
-  function taskColor(status) {
-    return status==="overdue"?COLORS.red:status==="today"?COLORS.amber:status==="important"?COLORS.purple:status==="this-week"?COLORS.blue:COLORS.slate;
-  }
-
-  // Mark a task done   if recurring, reset due_date and clear completed
-  async function markDone(item) {
-    if(item.recurring_interval_days) {
-      const nextDue = new Date(todayReal);
-      nextDue.setDate(nextDue.getDate() + item.recurring_interval_days);
-      const nextDueStr = nextDue.toISOString().split("T")[0];
-      await tasks.update(item.id, {
-        title:item.title, category:item.category||"Home", priority:item.priority||"med",
-        due_date:nextDueStr, recurring_interval_days:item.recurring_interval_days,
-        last_completed:TODAY_STR, is_important:item.is_important||false,
-        notes:item.notes||"", completed:false,
-      });
-    } else {
-      await tasks.update(item.id, {
-        title:item.title, category:item.category||"Home", priority:item.priority||"med",
-        due_date:item.due_date||null, recurring_interval_days:item.recurring_interval_days||null,
-        last_completed:TODAY_STR, is_important:item.is_important||false,
-        notes:item.notes||"", completed:true,
-      });
-    }
-  }
-
-  // Also mark home_maintenance done
-  async function markMaintDone(item) {
-    await homeMaint.update(item.id, {title:item.title, last_completed:TODAY_STR, interval_days:item.interval_days, notes:item.notes||""});
-  }
-
-  function openEdit(item) {
-    setEditItem(item);
-    setForm({...item});
-    setShowModal(true);
-    setActiveSwipe(null);
-  }
-  function closeModal() { setShowModal(false); setEditItem(null); setForm({}); }
-
-  async function saveTask() {
-    if(!form.title) return;
-    const row = {
-      title:form.title,
-      category:form.category||"Home",
-      priority:form.priority||"med",
-      due_date:form.due_date||null,
-      recurring_interval_days:form.recurring_interval_days ? +form.recurring_interval_days : null,
-      last_completed:form.last_completed||null,
-      is_important:form.is_important||false,
-      notes:form.notes||"",
-      completed:false,
-    };
-    if(editItem) await tasks.update(editItem.id, row);
-    else await tasks.insert(row);
-    closeModal();
-  }
-
-  async function deleteTask(id) { await tasks.remove(id); setActiveSwipe(null); }
-
-  // - Filtered task lists -
-  const allActive = tasks.data.filter(t => !t.completed || t.recurring_interval_days);
-  const filtered  = catFilter==="All" ? allActive : allActive.filter(t=>t.category===catFilter);
-
-  const todayItems    = filtered.filter(t => taskStatus(t)==="overdue" || taskStatus(t)==="today" || (t.is_important && taskStatus(t)!=="done"));
-  const thisWeekItems = filtered.filter(t => taskStatus(t)==="this-week" && !t.is_important);
-  const upcomingItems = filtered.filter(t => taskStatus(t)==="upcoming");
-  const backlogItems  = filtered.filter(t => taskStatus(t)==="backlog" && !t.is_important);
-  const completedItems = tasks.data.filter(t => t.completed && !t.recurring_interval_days);
-
-  // Home maintenance urgency groups
-  const maintOverdue  = homeMaint.data.filter(m=>maintStatus(m)==="overdue").sort((a,b)=>daysBetween(nextDueDate(a.last_completed,a.interval_days))-daysBetween(nextDueDate(b.last_completed,b.interval_days)));
-  const maintDueSoon  = homeMaint.data.filter(m=>maintStatus(m)==="due-soon").sort((a,b)=>daysBetween(nextDueDate(a.last_completed,a.interval_days))-daysBetween(nextDueDate(b.last_completed,b.interval_days)));
-  const maintOk       = homeMaint.data.filter(m=>maintStatus(m)==="ok").sort((a,b)=>daysBetween(nextDueDate(a.last_completed,a.interval_days))-daysBetween(nextDueDate(b.last_completed,b.interval_days)));
-
-  // - Subcomponents -
-  function TaskCard({item}) {
-    const status = taskStatus(item);
-    const color  = taskColor(status);
-    const eff    = effectiveDueDate(item);
-    const days   = eff ? daysBetween(eff) : null;
-    const dueLabel = eff ? (days < 0 ? `${-days}d overdue` : days === 0 ? "Today" : days <= 2 ? `Due in ${days}d` : `Due ${formatDate(eff)}`) : null;
-    const isRecurring = !!item.recurring_interval_days;
-
-    return(
-      <SwipeCard id={item.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
-        onEdit={()=>openEdit(item)}
-        onDelete={()=>deleteTask(item.id)}
-        style={S.statusCard(color)}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-          <div style={{flex:1,paddingRight:8}}>
-            <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginBottom:4}}>
-              {item.is_important&&<span style={{fontSize:11,color:COLORS.purple,fontWeight:700}}>  IMPORTANT</span>}
-              {isRecurring&&<span style={{fontSize:11,color:COLORS.slate,fontWeight:600}}>  every {item.recurring_interval_days}d</span>}
-            </div>
-            <div style={{fontSize:15,fontWeight:600,color:COLORS.white}}>{item.title}</div>
-            <div style={{display:"flex",gap:8,marginTop:6,alignItems:"center",flexWrap:"wrap"}}>
-              <span style={S.badge(CAT_COLORS[item.category]||COLORS.slate)}>{item.category||"Home"}</span>
-              <span style={S.badge(PRIORITY_COLORS[item.priority]||COLORS.slate)}>{item.priority||"med"}</span>
-              {days!==null&&<span style={{fontSize:13,color:days<0?COLORS.red:days===0?COLORS.amber:COLORS.slate,fontWeight:600}}>
-                {days<0?`${-days}d overdue`:days===0?"Today":`in ${days}d`}
-              </span>}
-              {item.last_completed&&<span style={{fontSize:11,color:COLORS.slate}}>done {formatDate(item.last_completed)}</span>}
-            </div>
-            {item.notes&&<div style={{fontSize:13,color:COLORS.slate,marginTop:6,fontStyle:"italic",lineHeight:1.4}}>{item.notes}</div>}
-          </div>
-          <button style={{...S.btnCheck,marginLeft:8,flexShrink:0}} onClick={()=>markDone(item)}> </button>
-        </div>
-      </SwipeCard>
-    );
-  }
-
-  function MaintCard({item}) {
-    const st    = maintStatus(item);
-    const color = maintColor(st);
-    const nd    = nextDueDate(item.last_completed,item.interval_days);
-    const days  = daysBetween(nd);
-    const pct   = Math.max(0,Math.min(100,100-(days/item.interval_days)*100));
-    return(
-      <SwipeCard id={`m-${item.id}`} activeId={activeSwipe} setActiveId={setActiveSwipe}
-        onEdit={()=>{setEditItem({...item,_isMaint:true});setForm({...item});setShowModal("maint");setActiveSwipe(null);}}
-        onDelete={()=>{homeMaint.remove(item.id);setActiveSwipe(null);}}
-        style={S.statusCard(color)}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-          <div style={{flex:1}}>
-            <div style={{fontSize:15,fontWeight:600}}>{item.title}</div>
-            <div style={{fontSize:13,color:COLORS.slate,marginTop:2}}>
-              {st==="overdue"?`Overdue by ${-days}d`:st==="due-soon"?`Due in ${days}d`:`Due ${formatDate(nd)}`}
-              {item.notes?`   ${item.notes}`:""}
-            </div>
-            <div style={S.progress}><div style={S.progressFill(pct,color)}/></div>
-          </div>
-          <button style={{...S.btnCheck,marginLeft:12}} onClick={()=>markMaintDone(item)}> </button>
-        </div>
-      </SwipeCard>
-    );
-  }
-
-  function SectionHeader({label,count,color}) {
-    return <div style={{fontSize:12,fontWeight:700,color:color||COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10,marginTop:20}}>{label}   {count}</div>;
-  }
-
-  // - Today tab -
-  function TodayView() {
-    const urgentMaint = [...maintOverdue, ...maintDueSoon];
-    const total = todayItems.length + urgentMaint.length;
-
-    const overdueCount = todayItems.filter(t=>taskStatus(t)==="overdue").length + maintOverdue.length;
-    const todayCount   = todayItems.filter(t=>taskStatus(t)==="today").length;
-    const importantCount = todayItems.filter(t=>taskStatus(t)==="important").length;
-    return(<>
-      <div style={{background:COLORS.navyMid,borderRadius:16,borderLeft:`4px solid ${total===0?COLORS.green:overdueCount>0?COLORS.red:COLORS.amber}`,padding:"14px 16px",marginBottom:12}}>
-        <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"1px",marginBottom:4}}>Today</div>
-        <div style={{fontSize:20,fontWeight:800,color:total===0?COLORS.green:overdueCount>0?COLORS.red:COLORS.amber,letterSpacing:"-0.3px"}}>
-          {total===0?"All clear"
-            :overdueCount>0?`${overdueCount} overdue`
-            :`${total} item${total!==1?"s":""} need attention`}
-        </div>
-        <div style={{fontSize:12,color:COLORS.slate,marginTop:4}}>
-          {[
-            overdueCount>0&&`${overdueCount} overdue`,
-            todayCount>0&&`${todayCount} due today`,
-            importantCount>0&&`${importantCount} important`,
-            urgentMaint.length>0&&`${urgentMaint.length} maintenance`,
-          ].filter(Boolean).join("  -  ")||formatDate(TODAY_STR)}
-        </div>
-      </div>
-{showMsDo&&(
-        <div style={{...S.gcBanner,marginBottom:14}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-            <div style={{flex:1}}>
-              <div style={{fontSize:14,fontWeight:700,color:COLORS.blue,marginBottom:4}}>  Microsoft To Do</div>
-              <div style={{fontSize:13,color:COLORS.slateLight,lineHeight:1.5}}>To sync with Microsoft To Do, go to <strong>Settings   Connected Apps</strong> in Claude and connect Microsoft To Do. Once connected, tasks can flow both ways.</div>
-            </div>
-            <button onClick={()=>setShowMsDo(false)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:16,padding:2,flexShrink:0}}> </button>
-          </div>
-        </div>
-      )}
-{todayItems.filter(t=>taskStatus(t)==="overdue").length>0&&<>
-        <SectionHeader label="   Overdue" count={todayItems.filter(t=>taskStatus(t)==="overdue").length} color={COLORS.red}/>
-        {todayItems.filter(t=>taskStatus(t)==="overdue").map(t=><TaskCard key={t.id} item={t}/>)}
-      </>}
-{maintOverdue.length>0&&<>
-        <SectionHeader label="  Maintenance Overdue" count={maintOverdue.length} color={COLORS.red}/>
-        {maintOverdue.map(m=><MaintCard key={m.id} item={m}/>)}
-      </>}
-{todayItems.filter(t=>taskStatus(t)==="today"&&!t.is_important).length>0&&<>
-        <SectionHeader label="  Due Today" count={todayItems.filter(t=>taskStatus(t)==="today"&&!t.is_important).length} color={COLORS.amber}/>
-        {todayItems.filter(t=>taskStatus(t)==="today"&&!t.is_important).map(t=><TaskCard key={t.id} item={t}/>)}
-      </>}
-{todayItems.filter(t=>t.is_important&&taskStatus(t)!=="overdue"&&taskStatus(t)!=="today").length>0&&<>
-        <SectionHeader label="  Important" count={todayItems.filter(t=>t.is_important&&taskStatus(t)!=="overdue"&&taskStatus(t)!=="today").length} color={COLORS.purple}/>
-        {todayItems.filter(t=>t.is_important&&taskStatus(t)!=="overdue"&&taskStatus(t)!=="today").map(t=><TaskCard key={t.id} item={t}/>)}
-      </>}
-{maintDueSoon.length>0&&<>
-        <SectionHeader label="  Maintenance Due This Week" count={maintDueSoon.length} color={COLORS.amber}/>
-        {maintDueSoon.map(m=><MaintCard key={m.id} item={m}/>)}
-      </>}
-
-      {total===0&&<div style={{...S.card,background:COLORS.green+"11",borderColor:COLORS.green+"33",textAlign:"center",padding:"20px 16px",marginBottom:16}}>
-        <div style={{fontSize:15,fontWeight:700,color:COLORS.green}}>  Nothing needs attention today</div>
-        <div style={{fontSize:13,color:COLORS.slate,marginTop:8}}>Check the List tab to see everything.</div>
-      </div>}
-    </>);
-  }
-
-  // - List tab -
-  function ListView() {
-    return(<>
-<div style={{marginBottom:12}}>
-        {CATS.map(c=><span key={c} style={S.chip(catFilter===c, CAT_COLORS[c]||COLORS.slate)} onClick={()=>setCatFilter(c)}>{c}</span>)}
-      </div>
-{thisWeekItems.length>0&&<>
-        <SectionHeader label="  This Week" count={thisWeekItems.length} color={COLORS.blue}/>
-        {thisWeekItems.map(t=><TaskCard key={t.id} item={t}/>)}
-      </>}
-{upcomingItems.length>0&&<>
-        <SectionHeader label="  Upcoming" count={upcomingItems.length} color={COLORS.slate}/>
-        {upcomingItems.map(t=><TaskCard key={t.id} item={t}/>)}
-      </>}
-{backlogItems.length>0&&<>
-        <SectionHeader label="  Backlog" count={backlogItems.length} color={COLORS.slate}/>
-        {backlogItems.map(t=><TaskCard key={t.id} item={t}/>)}
-      </>}
-{catFilter==="All"||catFilter==="Home"&&<>
-        {(maintOverdue.length>0||maintDueSoon.length>0)&&<>
-          <SectionHeader label="  Maintenance" count={homeMaint.data.length} color={COLORS.amber}/>
-          {[...maintOverdue,...maintDueSoon].map(m=><MaintCard key={m.id} item={m}/>)}
-        </>}
-        {maintOk.length>0&&<>
-          <button onClick={()=>setShowOkMaint(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"center",marginBottom:showOkMaint?8:0,marginTop:8}}>
-            {showOkMaint?`Hide ${maintOk.length} current maintenance items`:`Show ${maintOk.length} current maintenance items  `}
-          </button>
-          {showOkMaint&&<>
-            <SectionHeader label="  Maintenance Current" count={maintOk.length} color={COLORS.green}/>
-            {maintOk.map(m=><MaintCard key={m.id} item={m}/>)}
-          </>}
-        </>}
-      </>}
-
-      {filteredIsEmpty()&&<EmptyState icon=" " title="No tasks here" detail={catFilter==="All"?"Add a task to get started.":`No ${catFilter} tasks yet.`}/>}
-{completedItems.length>0&&<>
-        <button onClick={()=>setShowCompleted(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"center",marginTop:12,marginBottom:showCompleted?8:0}}>
-          {showCompleted?`Hide ${completedItems.length} completed`:`Show ${completedItems.length} completed`}
-        </button>
-        {showCompleted&&completedItems.map(t=>(
-          <div key={t.id} style={{...S.card,opacity:0.5,marginBottom:8}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{fontSize:14,textDecoration:"line-through",color:COLORS.slate}}>{t.title}</div>
-              <button style={S.btnSm} onClick={()=>tasks.update(t.id,{title:t.title,category:t.category||"Home",priority:t.priority||"med",due_date:t.due_date||null,recurring_interval_days:t.recurring_interval_days||null,last_completed:t.last_completed||null,is_important:t.is_important||false,notes:t.notes||"",completed:false})}>Undo</button>
-            </div>
-          </div>
-        ))}
-      </>}
-    </>);
-  }
-
-  function filteredIsEmpty() {
-    const hasMaint = (catFilter==="All"||catFilter==="Home") && homeMaint.data.length>0;
-    return thisWeekItems.length===0 && upcomingItems.length===0 && backlogItems.length===0 && !hasMaint;
-  }
-
-  // - Maintenance edit modal -
-  async function saveMaint() {
-    if(!form.title||!form.interval_days)return;
-    const row={title:form.title,last_completed:form.last_completed||TODAY_STR,interval_days:+form.interval_days,notes:form.notes||""};
-    if(editItem&&editItem.id) await homeMaint.update(editItem.id,row);
-    else await homeMaint.insert(row);
-    setShowModal(false);setEditItem(null);setForm({});
-  }
-
-  return(
-    <div style={S.screen}>
-<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <div style={{fontSize:13,color:COLORS.slate}}>{tasks.data.length} tasks   {homeMaint.data.length} maintenance</div>
-        <button onClick={()=>setShowMsDo(p=>!p)} style={{...S.btnSm,fontSize:12,padding:"5px 10px"}}>  MS To Do</button>
-      </div>
-
-      <div style={S.tabs}>
-        {["today","list"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t==="today"?"Today":"List"}</button>)}
-      </div>
-
-      {(tasks.loading||homeMaint.loading)?<Loading/>:<>
-        <SwipeHint/>
-        {tab==="today"&&<TodayView/>}
-        {tab==="list"&&<ListView/>}
-      </>}
-<button style={{...S.btn,marginTop:16}} onClick={()=>{setForm({category:"Home",priority:"med",is_important:false});setShowModal("task");}}>+ Add Task</button>
-{showModal==="task"&&<Modal title={editItem?"Edit Task":"Add Task"} onClose={closeModal}>
-        <label style={S.label}>Title</label>
-        <input style={S.input} placeholder="e.g. Mow front yard" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
-
-        <label style={S.label}>Category</label>
-        <div>{CATS.filter(c=>c!=="All").map(c=><span key={c} style={S.chip(form.category===c,CAT_COLORS[c])} onClick={()=>setForm(p=>({...p,category:c}))}>{c}</span>)}</div>
-
-        <label style={{...S.label,marginTop:12}}>Priority</label>
-        <div>{["high","med","low"].map(p=><span key={p} style={S.chip(form.priority===p,PRIORITY_COLORS[p])} onClick={()=>setForm(prev=>({...prev,priority:p}))}>{p}</span>)}</div>
-
-        <div style={{display:"flex",alignItems:"center",gap:10,margin:"14px 0 6px"}}>
-          <div style={{width:20,height:20,borderRadius:6,border:`2px solid ${form.is_important?COLORS.purple:COLORS.slate}`,background:form.is_important?COLORS.purple:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}} onClick={()=>setForm(p=>({...p,is_important:!p.is_important}))}>
-            {form.is_important&&<span style={{color:"#fff",fontSize:12,lineHeight:1}}> </span>}
-          </div>
-          <label style={{...S.label,marginBottom:0,cursor:"pointer"}} onClick={()=>setForm(p=>({...p,is_important:!p.is_important}))}>  Mark as important (shows in Today even without a due date)</label>
-        </div>
-
-        <label style={{...S.label,marginTop:10}}>Due Date (optional)</label>
-        <input type="date" style={S.input} value={form.due_date||""} onChange={e=>setForm(p=>({...p,due_date:e.target.value}))}/>
-
-        <label style={S.label}>Recurring interval (optional)</label>
-        <div style={{marginBottom:10}}>
-          {[null,7,14,30,60,90,180,365].map(d=><span key={d||"none"} style={S.chip(form.recurring_interval_days===(d?String(d):null)||form.recurring_interval_days===d,COLORS.blue)} onClick={()=>setForm(p=>({...p,recurring_interval_days:d}))}>
-            {d===null?"None":d===7?"Weekly":d===14?"Biweekly":d===30?"Monthly":d===60?"2 Mo":d===90?"Quarterly":d===180?"6 Mo":"Annual"}
-          </span>)}
-        </div>
-        {form.recurring_interval_days&&<input type="number" style={S.input} placeholder="Or custom days" value={form.recurring_interval_days||""} onChange={e=>setForm(p=>({...p,recurring_interval_days:e.target.value}))}/>}
-
-        <label style={S.label}>Notes (optional)</label>
-        <input style={S.input} placeholder="Any details" value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
-
-        <button style={{...S.btn,marginTop:16}} onClick={saveTask}>{editItem?"Save Changes":"Add Task"}</button>
-      </Modal>}
-{showModal==="maint"&&<Modal title={editItem?.id?"Edit Maintenance Item":"Add Maintenance Item"} onClose={()=>{setShowModal(false);setEditItem(null);setForm({});}}>
-        <label style={S.label}>Item Name</label>
-        <input style={S.input} placeholder="e.g. HVAC Filter" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
-        <label style={S.label}>Interval</label>
-        <div style={{marginBottom:10}}>
-          {[14,30,60,90,180,365].map(d=><span key={d} style={S.chip(+form.interval_days===d,COLORS.blue)} onClick={()=>setForm(p=>({...p,interval_days:d}))}>{d}d</span>)}
-        </div>
-        <input type="number" style={S.input} placeholder="Or enter custom days" value={form.interval_days||""} onChange={e=>setForm(p=>({...p,interval_days:e.target.value}))}/>
-        <label style={S.label}>Last Completed</label>
-        <input type="date" style={S.input} value={form.last_completed||""} onChange={e=>setForm(p=>({...p,last_completed:e.target.value}))}/>
-        <label style={S.label}>Notes (optional)</label>
-        <input style={S.input} placeholder="e.g. 16x25x1, check Grainger" value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
-        <button style={{...S.btn,marginTop:10}} onClick={saveMaint}>{editItem?.id?"Save Changes":"Add Item"}</button>
-      </Modal>}
-    </div>
-  );
-}
-
-// - AI POOL BRIEF -
 function PoolBrief({readings, treatments, maintLog, onClose}) {
   const [brief, setBrief]       = useState(null);
   const [loading, setLoading]   = useState(false);
@@ -3588,6 +2762,7 @@ function QuickAdd({onNavigate}){
 
 // - ROOT APP -
 export default function App(){
+  const auth = useSupabaseAuth();
   const [tab,setTab] = useState("home");
   const gc           = useGoogleCalendar();
 
@@ -3604,6 +2779,10 @@ export default function App(){
     {id:"college", label:"College", icon:I.college},
   ];
   const TITLES={home:"FamilyOS",college:"College Planning",tasks:"Tasks",pool:"Pool",finance:"Finance"};
+
+  if (CONFIG_STATUS.missing.length) return <SetupRequired/>;
+  if (auth.loading) return <div style={S.app}><div style={{padding:20}}><Loading/></div></div>;
+  if (!auth.session) return <AuthGate auth={auth}/>;
 
   return(
     <div style={S.app}>
@@ -3630,6 +2809,7 @@ export default function App(){
             {tab==="home"&&<div style={S.dateLabel}>{formatTodayShort()}</div>}
           </div>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <button onClick={auth.signOut} style={{background:COLORS.navyLight,color:COLORS.slateLight,border:`1px solid ${COLORS.navyLight}`,borderRadius:6,padding:"3px 8px",fontSize:13,fontWeight:700,cursor:"pointer"}}>Sign out</button>
             {gc.token
               ?<div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:6,height:6,borderRadius:"50%",background:COLORS.green}}/><span style={{fontSize:13,color:COLORS.slate}}>{gc.userName?`${gc.userName}   Synced`:"Synced"}</span></div>
               :<button onClick={gc.signIn} style={{background:COLORS.blue+"22",color:COLORS.blue,border:`1px solid ${COLORS.blue}44`,borderRadius:6,padding:"3px 8px",fontSize:15,fontWeight:700,cursor:"pointer"}}>Connect</button>
@@ -3638,9 +2818,15 @@ export default function App(){
         </div>
       </div>
 
-      {tab==="home"    &&<Dashboard onNavigate={switchTab} gc={gc}/>}
+      {tab==="home"    &&<Dashboard onNavigate={switchTab} gc={gc} deps={{
+        TODAY_DATE,TODAY_STR,daysAgo,daysBetween,nextDueDate,formatDate,formatDateFull,
+        formatMoneyShort,maintStatus,useTable,calcRetirementProjection,getChemRecommendations,
+      }}/>} 
       {tab==="college" &&<College/>}
-      {tab==="tasks"   &&<Tasks/>}
+      {tab==="tasks"   &&<Tasks deps={{
+        TODAY_DATE,TODAY_STR,daysBetween,nextDueDate,formatDate,
+        maintStatus,maintColor,useTable,
+      }}/>} 
       {tab==="pool"    &&<Pool/>}
       {tab==="finance" &&<Finance/>}
 

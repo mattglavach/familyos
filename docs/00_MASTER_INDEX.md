@@ -58,6 +58,7 @@ This folder is the operating manual for Family OS.
 
 ### UI
 - docs/ui/DESIGN_SYSTEM.md
+- docs/ui/UI_MIGRATION_BACKLOG.md
 - docs/ui/COMPONENT_LIBRARY.md
 - docs/ui/NAVIGATION.md
 - docs/ui/THEME.md
