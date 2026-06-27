@@ -13,6 +13,17 @@ const GOOGLE_CLIENT_ID  = APP_CONFIG.googleClientId;
 const GOOGLE_SCOPES     = "https://www.googleapis.com/auth/calendar.readonly";
 const CALENDAR_ID       = APP_CONFIG.googleCalendarId;
 
+function getGoogleOAuthOrigin() {
+  return window.location.origin;
+}
+
+function formatGoogleOAuthError(error) {
+  if (error === "origin_mismatch") {
+    return `Google Calendar OAuth origin mismatch. Add ${getGoogleOAuthOrigin()} to the OAuth client's Authorized JavaScript origins in Google Cloud Console.`;
+  }
+  return error || "Google Calendar sign-in failed.";
+}
+
 // - MEMBER KEYWORDS -
 const MEMBER_KEYWORDS = {
   Aubrey:  ["aubrey","dance","recital","ballet","cheer","sat","psat","college","ap ","audition"],
@@ -59,11 +70,12 @@ function useGoogleCalendar() {
     const client=window.google.accounts.oauth2.initTokenClient({
       client_id:GOOGLE_CLIENT_ID,scope:GOOGLE_SCOPES,
       callback:(resp)=>{
-        if(resp.error){setError(resp.error);return;}
+        if(resp.error){setError(formatGoogleOAuthError(resp.error));return;}
         localStorage.setItem("gc_token",resp.access_token);
         setToken(resp.access_token);
         fetchUserName(resp.access_token);
       },
+      error_callback:(resp)=>setError(formatGoogleOAuthError(resp?.type || resp?.error)),
     });
     client.requestAccessToken();
   }

@@ -18,6 +18,9 @@ Supabase Auth URL configuration must match this behavior:
 - child
 - guest
 
+## Google Calendar OAuth
+Calendar sync uses Google Identity Services token auth in the browser. The OAuth client and calendar are configured through `REACT_APP_GOOGLE_CLIENT_ID` and `REACT_APP_GOOGLE_CALENDAR_ID`; the runtime OAuth origin is `window.location.origin`. Google Cloud Console must include each local and deployed app origin under Authorized JavaScript origins. See `docs/setup/google-calendar-oauth.md`.
+
 ## Access Principles
 - Sensitive modules require authenticated access.
 - Finance, medical, and documents should be restricted.

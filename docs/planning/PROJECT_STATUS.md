@@ -12,6 +12,7 @@ Documentation foundation being established.
 - Frontend standard foundation for Tailwind CSS, shadcn/ui primitives, Lucide icons, Recharts, and Origin UI-style drawer usage
 - Vercel-style production build validation with `CI=true`
 - Supabase magic-link redirect audit for deployed Vercel sign-in
+- Google Calendar OAuth origin setup documentation for local and Vercel deployments
 
 ## In Progress
 - Shared GitHub workspace documentation
@@ -25,6 +26,7 @@ Documentation foundation being established.
 
 - No active deploy-blocking build errors after the CI lint cleanup.
 - Production magic-link redirects depend on Supabase Auth Site URL and allowed redirect URLs being set to the deployed FamilyOS origin.
+- Google Calendar sync requires the active browser origin to be listed in Google Cloud Console Authorized JavaScript origins for the configured OAuth client.
 
 ## Technical Debt
 - Existing feature screens still contain substantial inline styles and should be migrated gradually to shadcn/ui and Origin UI components during feature work.
