@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+- Fixed Vercel production build failure by clearing CRA ESLint warnings that are treated as errors in CI.
+
 ## 0.1.0 - Documentation Foundation
 - Added Family OS operating manual.
 - Added AI agent instructions.

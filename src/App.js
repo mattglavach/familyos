@@ -67,12 +67,12 @@ function useGoogleCalendar() {
     });
     client.requestAccessToken();
   }
-  function signOut(){
+  const signOut=useCallback(()=>{
     if(token&&window.google)window.google.accounts.oauth2.revoke(token);
     localStorage.removeItem("gc_token");
     localStorage.removeItem("gc_user_name");
     setToken(null);setEvents([]);setUserName(null);
-  }
+  },[token]);
 
   const fetchEvents=useCallback(async(accessToken)=>{
     if(!accessToken)return;
@@ -94,7 +94,7 @@ function useGoogleCalendar() {
       setEvents(mapped);
     }catch{setError("Could not load calendar.");}
     setLoading(false);
-  },[]);
+  },[signOut]);
 
   useEffect(()=>{if(token)fetchEvents(token);},[token,fetchEvents]);
   return{token,events,loading,error,signIn,signOut,refresh:()=>fetchEvents(token),userName};
@@ -191,7 +191,6 @@ function calcPoolHealth(last, shockMin, readings) {
     anyAmber ? {label:"Swim OK - Monitor", color:COLORS.amber} :
     {label:"Swim Ready", color:COLORS.green};
   const overallLabel=swimStatus.label;
-  const overallColor2=swimStatus.color;
   const overallEmoji="";
   // Short status-only summary   actions surface in rec cards below
   let summary = "";
@@ -206,8 +205,6 @@ function calcPoolHealth(last, shockMin, readings) {
 function lastTestedDate(readings,paramKey){for(const r of readings){if(r[paramKey]!==null&&r[paramKey]!==undefined)return r.date;}return null;}
 function nextTestDue(readings,paramKey,intervalDays){const lastDate=lastTestedDate(readings,paramKey);if(!lastDate)return null;const due=nextDueDate(lastDate,intervalDays);return{lastDate,due,days:daysBetween(due)};}
 function trendDirection(readings,paramKey,currentValue){if(currentValue===null||currentValue===undefined)return null;for(let i=1;i<readings.length;i++){const v=readings[i][paramKey];if(v!==null&&v!==undefined){if(currentValue>v)return"up";if(currentValue<v)return"down";return"flat";}}return null;}
-function trendArrow(dir){if(dir==="up")return" ";if(dir==="down")return" ";if(dir==="flat")return" ";return"";}
-
 // - FINANCE ENGINE -
 function formatMoney(n,decimals=0){if(n===null||n===undefined||isNaN(n))return" ";return"$"+Math.round(n).toLocaleString("en-US",{minimumFractionDigits:0,maximumFractionDigits:decimals});}
 function formatMoneyShort(n){if(n===null||n===undefined||isNaN(n))return" ";const abs=Math.abs(n);if(abs>=1000000)return(n<0?"-":"")+"$"+(abs/1000000).toFixed(2)+"M";if(abs>=1000)return(n<0?"-":"")+"$"+Math.round(abs/1000)+"k";return formatMoney(n);}
@@ -345,8 +342,6 @@ function buildReadinessChecklist(retProj,monteCarloResults,assumptions){
   else items.push({label:"Market Variation",status:"unknown",detail:"Run Monte Carlo simulation to see how market variation affects this."});
   return items;
 }
-
-function calcCollegeProjection(savings,goal){if(!savings||!goal)return null;const currentYear=new Date().getFullYear(),years=Math.max(0,goal.target_year-currentYear),projected=futureValue(savings.balance||0,savings.monthly_contribution||0,6,years),gap=goal.target_amount-projected;return{projected,gap,years};}
 
 function calcPooledCollegeProjection(savings,goals){
   if(!savings||!goals||goals.length===0)return null;
@@ -500,30 +495,6 @@ function useTable(table,orderCol,orderAsc=false){
   async function remove(id){try{const{error}=await sb.from(table).eq("id",id).delete();if(!error)await load();else{console.error(`Delete failed on ${table}:`,error);setData(p=>p.filter(r=>r.id!==id));}}catch(e){console.error(`Delete exception on ${table}:`,e);setData(p=>p.filter(r=>r.id!==id));}}
   return{data:data||[],loading,reload:load,insert,update,remove};
 }
-
-// - CALENDAR BANNER -
-function CalendarBanner({gc}){
-  if(gc.token)return(
-    <div style={S.gcBanner}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <div><div style={{fontSize:15,fontWeight:700,color:COLORS.blue,marginBottom:2}}>  Google Calendar connected</div><div style={{fontSize:15,color:COLORS.slate}}>{gc.events.length} events loaded   {gc.loading?"Refreshing ":"Up to date"}</div></div>
-        <div style={{display:"flex",gap:6}}>
-          <button style={S.btnSm} onClick={gc.refresh}>{I.refresh()} Sync</button>
-          <button style={S.btnRed} onClick={gc.signOut}>Disconnect</button>
-        </div>
-      </div>
-    </div>
-  );
-  return(
-    <div style={S.gcBanner}>
-      <div style={{fontSize:15,fontWeight:700,color:COLORS.blue,marginBottom:10}}>Connect Google Calendar</div>
-      <div style={{fontSize:15,color:COLORS.slateLight,marginBottom:12,lineHeight:1.5}}>Sign in with Google to load your real family events automatically.</div>
-      {gc.error&&<div style={{fontSize:15,color:COLORS.red,marginBottom:10}}>{gc.error}</div>}
-      <button onClick={gc.signIn} style={{...S.btn,marginTop:0,display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:COLORS.white,color:COLORS.navy}}>{I.google()} Sign in with Google</button>
-    </div>
-  );
-}
-
 
 function College(){
   const [tab,setTab]=useState("deadlines");
@@ -829,7 +800,6 @@ function PoolBrief({readings, treatments, maintLog, onClose}) {
   const [error, setError]       = useState(null);
   const [history, setHistory]   = useState([]);
   const [viewingHistory, setViewingHistory] = useState(null);
-  const [hasRun, setHasRun]     = useState(false);
   const [followUp, setFollowUp] = useState("");
   const [chatMessages, setChatMessages] = useState([]);
   const [askingFollowUp, setAskingFollowUp] = useState(false);
@@ -839,7 +809,7 @@ function PoolBrief({readings, treatments, maintLog, onClose}) {
       const saved = JSON.parse(localStorage.getItem("poolBriefHistory") || "[]");
       setHistory(saved);
       // Auto-show most recent brief without re-running
-      if(saved.length>0) { setBrief(saved[0].text); setHasRun(true); }
+      if(saved.length>0) { setBrief(saved[0].text); }
     } catch {}
   }, []);
 
@@ -853,7 +823,7 @@ function PoolBrief({readings, treatments, maintLog, onClose}) {
   }
 
   async function generateBrief() {
-    setHasRun(true); setLoading(true); setViewingHistory(null); setError(null);
+    setLoading(true); setViewingHistory(null); setError(null);
     try {
       const recentReadings = readings.slice(0, 10);
       const last = readings[0];
@@ -1042,7 +1012,6 @@ function Pool(){
   const [showMaint,setShowMaint] = useState(false);
   const [showScheduleEdit,setShowScheduleEdit] = useState(false);
   const [showBrief,setShowBrief] = useState(false);
-  const [showTreatment,setShowTreatment] = useState(false);
   const [editItem,setEditItem]   = useState(null);
   const [form,setForm]           = useState({});
   const [useDrops,setUseDrops]   = useState(false);
@@ -1147,9 +1116,6 @@ function Pool(){
     const row={date:form.date||TODAY_STR,type:form.type,notes:form.notes||""};
     if(editItem) await maintLog.update(editItem.id,row); else await maintLog.insert(row);
     closeMaint();
-  }
-  async function logTreatment(note){
-    await maintLog.insert({date:TODAY_STR,type:"Treatment applied",notes:note});
   }
   function num(v){ return (v===undefined||v===null||v==="") ? null : +v; }
   async function saveTreatment(){
@@ -1550,7 +1516,7 @@ function Pool(){
             <label style={{...S.label,marginBottom:0,fontSize:14}}>{useDrops?"Free Chlorine (drops)":"Free Chlorine"}</label>
             {poolFieldStatus("free_chlorine",form["free_chlorine"],form.cya)&&<span style={{fontSize:12,color:poolFieldStatus("free_chlorine",form["free_chlorine"],form.cya).color,fontWeight:600}}>{poolFieldStatus("free_chlorine",form["free_chlorine"],form.cya).text}</span>}
           </div>
-          <input type="number" step="0.5" style={{...S.input,marginBottom:0}} placeholder={useDrops?"e.g. 11 drops":"e.g. 5.5"} value={form["free_chlorine"]!==undefined?form["free_chlorine"]:""} onChange={e=>setForm(p=>({...p,["free_chlorine"]:e.target.value}))}/>
+          <input type="number" step="0.5" style={{...S.input,marginBottom:0}} placeholder={useDrops?"e.g. 11 drops":"e.g. 5.5"} value={form.free_chlorine!==undefined?form.free_chlorine:""} onChange={e=>setForm(p=>({...p,free_chlorine:e.target.value}))}/>
         </div>
         {useDrops&&form.free_chlorine&&<div style={{fontSize:12,color:COLORS.purple,marginTop:-10,marginBottom:12}}>= {(+form.free_chlorine*0.5).toFixed(1)} ppm FC</div>}
                 <div style={{marginBottom:14}}>
@@ -1558,7 +1524,7 @@ function Pool(){
             <label style={{...S.label,marginBottom:0,fontSize:14}}>{"CC (Combined Chlorine)"}</label>
             {poolFieldStatus("cc",form["cc"],form.cya)&&<span style={{fontSize:12,color:poolFieldStatus("cc",form["cc"],form.cya).color,fontWeight:600}}>{poolFieldStatus("cc",form["cc"],form.cya).text}</span>}
           </div>
-          <input type="number" step="0.5" style={{...S.input,marginBottom:0}} placeholder={"0"} value={form["cc"]!==undefined?form["cc"]:""} onChange={e=>setForm(p=>({...p,["cc"]:e.target.value}))}/>
+          <input type="number" step="0.5" style={{...S.input,marginBottom:0}} placeholder={"0"} value={form.cc!==undefined?form.cc:""} onChange={e=>setForm(p=>({...p,cc:e.target.value}))}/>
         </div>
         <div style={S.row}>
           <div style={S.col}>        <div style={{marginBottom:14}}>
@@ -1566,14 +1532,14 @@ function Pool(){
             <label style={{...S.label,marginBottom:0,fontSize:14}}>{"pH"}</label>
             {poolFieldStatus("ph",form["ph"],form.cya)&&<span style={{fontSize:12,color:poolFieldStatus("ph",form["ph"],form.cya).color,fontWeight:600}}>{poolFieldStatus("ph",form["ph"],form.cya).text}</span>}
           </div>
-          <input type="number" step="0.1" style={{...S.input,marginBottom:0}} placeholder={""} value={form["ph"]!==undefined?form["ph"]:""} onChange={e=>setForm(p=>({...p,["ph"]:e.target.value}))}/>
+          <input type="number" step="0.1" style={{...S.input,marginBottom:0}} placeholder={""} value={form.ph!==undefined?form.ph:""} onChange={e=>setForm(p=>({...p,ph:e.target.value}))}/>
         </div></div>
           <div style={S.col}>        <div style={{marginBottom:14}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
             <label style={{...S.label,marginBottom:0,fontSize:14}}>{"Salt (ppm)"}</label>
             {poolFieldStatus("salt",form["salt"],form.cya)&&<span style={{fontSize:12,color:poolFieldStatus("salt",form["salt"],form.cya).color,fontWeight:600}}>{poolFieldStatus("salt",form["salt"],form.cya).text}</span>}
           </div>
-          <input type="number" step="any" style={{...S.input,marginBottom:0}} placeholder={"3200-3600"} value={form["salt"]!==undefined?form["salt"]:""} onChange={e=>setForm(p=>({...p,["salt"]:e.target.value}))}/>
+          <input type="number" step="any" style={{...S.input,marginBottom:0}} placeholder={"3200-3600"} value={form.salt!==undefined?form.salt:""} onChange={e=>setForm(p=>({...p,salt:e.target.value}))}/>
         </div></div>
         </div>
         <button onClick={()=>setShowOptionalFields(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"left",marginBottom:12,fontSize:13}}>
@@ -1587,14 +1553,14 @@ function Pool(){
             <label style={{...S.label,marginBottom:0,fontSize:14}}>{"CYA (ppm)"}</label>
             {poolFieldStatus("cya",form["cya"],form.cya)&&<span style={{fontSize:12,color:poolFieldStatus("cya",form["cya"],form.cya).color,fontWeight:600}}>{poolFieldStatus("cya",form["cya"],form.cya).text}</span>}
           </div>
-          <input type="number" step="any" style={{...S.input,marginBottom:0}} placeholder={"60-80"} value={form["cya"]!==undefined?form["cya"]:""} onChange={e=>setForm(p=>({...p,["cya"]:e.target.value}))}/>
+          <input type="number" step="any" style={{...S.input,marginBottom:0}} placeholder={"60-80"} value={form.cya!==undefined?form.cya:""} onChange={e=>setForm(p=>({...p,cya:e.target.value}))}/>
         </div></div>
               <div style={S.col}>        <div style={{marginBottom:14}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
             <label style={{...S.label,marginBottom:0,fontSize:14}}>{"TA (ppm)"}</label>
             {poolFieldStatus("alkalinity",form["alkalinity"],form.cya)&&<span style={{fontSize:12,color:poolFieldStatus("alkalinity",form["alkalinity"],form.cya).color,fontWeight:600}}>{poolFieldStatus("alkalinity",form["alkalinity"],form.cya).text}</span>}
           </div>
-          <input type="number" step="any" style={{...S.input,marginBottom:0}} placeholder={"80-120"} value={form["alkalinity"]!==undefined?form["alkalinity"]:""} onChange={e=>setForm(p=>({...p,["alkalinity"]:e.target.value}))}/>
+          <input type="number" step="any" style={{...S.input,marginBottom:0}} placeholder={"80-120"} value={form.alkalinity!==undefined?form.alkalinity:""} onChange={e=>setForm(p=>({...p,alkalinity:e.target.value}))}/>
         </div></div>
             </div>
             <div style={S.row}>
@@ -1904,7 +1870,6 @@ function Finance(){
 
   const assump = assumptions.data[0];
   const collegeS = collegeSav.data[0];
-  const collegeG = collegeGoal.data.find(g=>g.child_name==="Aubrey") || collegeGoal.data[0];
   const mort = mortgage.data[0];
 
   function runMonteCarlo() {
@@ -1925,7 +1890,6 @@ function Finance(){
 
   const retProj = assump ? calcRetirementProjection(accounts.data, assump) : null;
   const readinessChecklist = retProj && assump ? buildReadinessChecklist(retProj, monteCarloResults, assump) : [];
-  const collegeProj = calcCollegeProjection(collegeS, collegeG);
   const pooledCollegeProj = calcPooledCollegeProjection(collegeS, collegeGoal.data);
   const mortMonths = mort ? calcPayoffMonths(mort.current_balance, mort.interest_rate, mort.monthly_payment + (mort.extra_payment_monthly||0)) : null;
   const mortMonthsNoExtra = mort ? calcPayoffMonths(mort.current_balance, mort.interest_rate, mort.monthly_payment) : null;
@@ -2565,11 +2529,8 @@ function Finance(){
 // - QUICK ADD -
 function QuickAdd({onNavigate}){
   const [open,setOpen] = useState(false);
-  const readings = useTable("pool_readings","logged_at");
   const maintLog = useTable("pool_maintenance","date");
   const deadlines = useTable("college_deadlines","due_date",true);
-  const taskTable = useTable("tasks","due_date",true);
-  const notes    = useTable("notes","created_at");
   const [form,setForm] = useState({});
   const [mode,setMode] = useState(null);
   const [saveError,setSaveError] = useState(null);
@@ -2617,7 +2578,7 @@ function QuickAdd({onNavigate}){
     const loggedAt = new Date(`${d}T${timeStr}:00`).toISOString();
     const row={date:d,logged_at:loggedAt,ph:num(form.ph),free_chlorine:fc,cc:num(form.cc),salt:num(form.salt),cya:num(form.cya),alkalinity:num(form.alkalinity),calcium_hardness:num(form.calcium_hardness),water_temp:num(form.water_temp),filter_pressure:num(form.filter_pressure),swg_setting:num(form.swg_setting),pump_hours:num(form.pump_hours),notes:form.notes||""};
     try{
-      const{data,error}=await sb.from("pool_readings").insert(row);
+      const{error}=await sb.from("pool_readings").insert(row);
       if(error){setSaveError(`Save failed   ${error.message||JSON.stringify(error)}`);return;}
       close();onNavigate("pool");
     }catch(e){setSaveError(`Error: ${e.message}`);}
