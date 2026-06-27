@@ -13,6 +13,7 @@ Documentation foundation being established.
 - Vercel-style production build validation with `CI=true`
 - Supabase magic-link redirect audit for deployed Vercel sign-in
 - Supabase magic-link resend cooldown and rate-limit messaging
+- Private household email/password login as the primary Supabase auth path
 - Google Calendar OAuth origin setup documentation for local and Vercel deployments
 - Modular app structure with app shell, hooks, modules, and refactor documentation
 

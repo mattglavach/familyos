@@ -40,9 +40,11 @@ Start with the v1 documentation workspace:
 
 3. Create the Supabase tables by running `supabase/schema.sql` in the Supabase SQL editor.
 
-4. In Supabase Auth settings, enable Email sign-in. Magic-link sign-in is enough for the current app.
+4. In Supabase Auth settings, enable Email sign-in for email/password authentication. Keep public sign-up disabled for the private household app, then manually create the two household users in Authentication > Users.
 
-5. In Supabase Auth URL settings, set the Site URL to your deployed app URL, then add allowed redirect URLs:
+5. Optional: set `REACT_APP_APPROVED_HOUSEHOLD_EMAILS` in `.env.local` and Vercel to a comma-separated list of the two approved household emails. This is a browser-visible UX allowlist for friendlier errors; Supabase manually-created users and row-level security remain the real access control.
+
+6. In Supabase Auth URL settings, set the Site URL to your deployed app URL, then add allowed redirect URLs:
 
    - `http://localhost:3000`
    - Your Vercel production URL, for example `https://your-familyos-domain.vercel.app`
@@ -51,27 +53,27 @@ Start with the v1 documentation workspace:
 
    The app sends magic links with `emailRedirectTo` set to the current browser origin, so sign-in requests from the deployed site redirect back to the deployed site instead of localhost. If Supabase's Site URL is still `http://localhost:3000`, update it before testing production email links.
 
-   After each successful magic-link request, the sign-in UI starts a 60-second resend cooldown. The resend button is disabled during the cooldown and while a request is in flight to avoid Supabase email rate limits.
+   Email/password sign-in is the primary login path and uses Supabase session persistence so the app stays signed in after closing and reopening on the same device. Magic link remains a secondary fallback. After each successful magic-link request, the sign-in UI starts a 60-second resend cooldown. The resend button is disabled during the cooldown and while a request is in flight to avoid Supabase email rate limits.
 
-6. Start local development:
+7. Start local development:
 
    ```bash
    pnpm start
    ```
 
-7. Sign in through the app once so Supabase creates your user.
+8. Sign in with one of the manually-created Supabase users.
 
-8. If you already have data from the pre-auth prototype, copy your Supabase user UUID from Authentication > Users, replace the placeholder in `supabase/backfill-user-id.sql`, and run it in the Supabase SQL editor.
+9. If you already have data from the pre-auth prototype, copy your Supabase user UUID from Authentication > Users, replace the placeholder in `supabase/backfill-user-id.sql`, and run it in the Supabase SQL editor.
 
-9. Optional: seed starter data by copying your Supabase user UUID from Authentication > Users, replacing the placeholder in `supabase/seed.sql`, and running it in the Supabase SQL editor.
+10. Optional: seed starter data by copying your Supabase user UUID from Authentication > Users, replacing the placeholder in `supabase/seed.sql`, and running it in the Supabase SQL editor.
 
-10. Build before deployment or handoff:
+11. Build before deployment or handoff:
 
    ```bash
    pnpm run build
    ```
 
-11. Run the full local check:
+12. Run the full local check:
 
    ```bash
    pnpm run check
@@ -85,6 +87,7 @@ Create `.env.local` from `.env.example` and set:
 | --- | --- | --- |
 | `REACT_APP_SUPABASE_URL` | Browser | Supabase project REST URL. |
 | `REACT_APP_SUPABASE_ANON_KEY` | Browser | Supabase anon key. Configure RLS appropriately. |
+| `REACT_APP_APPROVED_HOUSEHOLD_EMAILS` | Browser | Optional comma-separated household email allowlist for friendlier login errors. |
 | `REACT_APP_GOOGLE_CLIENT_ID` | Browser | Google OAuth web client ID. |
 | `REACT_APP_GOOGLE_CALENDAR_ID` | Browser | Calendar ID to read, often `primary` or an email address. |
 | `ANTHROPIC_API_KEY` | Server | Used only by `api/brief.js`; do not expose it in frontend code. |
@@ -105,6 +108,7 @@ For Vercel deployment, add these environment variables in the Vercel project set
 
 - `REACT_APP_SUPABASE_URL`
 - `REACT_APP_SUPABASE_ANON_KEY`
+- `REACT_APP_APPROVED_HOUSEHOLD_EMAILS` if using the optional household email allowlist
 - `REACT_APP_GOOGLE_CLIENT_ID`
 - `REACT_APP_GOOGLE_CALENDAR_ID`
 - `ANTHROPIC_API_KEY`
@@ -112,9 +116,9 @@ For Vercel deployment, add these environment variables in the Vercel project set
 
 `api/brief.js` runs as a Vercel serverless function. The frontend can use the AI brief endpoint after deployment or when running through a Vercel-compatible local dev server.
 
-Supabase Auth does not use a `REACT_APP_SITE_URL` value in this app. Magic-link redirects are derived from `window.location.origin`, and the matching production and preview origins must be present in Supabase Auth URL configuration.
+Supabase Auth does not use a `REACT_APP_SITE_URL` value in this app. Password sign-in is the default login path. Magic-link redirects are derived from `window.location.origin`, and the matching production and preview origins must be present in Supabase Auth URL configuration for fallback magic links.
 
-The sign-in form maps Supabase email rate-limit responses to a friendly message and asks users to wait a few minutes before requesting another link.
+The sign-in form maps wrong passwords, missing passwords, unapproved emails, Supabase email rate limits, and generic auth/network failures to friendly messages. It does not expose in-app public sign-up.
 
 ### Supabase Security Model
 

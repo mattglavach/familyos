@@ -3,6 +3,10 @@ export const APP_CONFIG = {
   supabaseAnonKey: process.env.REACT_APP_SUPABASE_ANON_KEY || "",
   googleClientId: process.env.REACT_APP_GOOGLE_CLIENT_ID || "",
   googleCalendarId: process.env.REACT_APP_GOOGLE_CALENDAR_ID || "",
+  approvedHouseholdEmails: (process.env.REACT_APP_APPROVED_HOUSEHOLD_EMAILS || "")
+    .split(",")
+    .map(email => email.trim().toLowerCase())
+    .filter(Boolean),
 };
 
 export const REQUIRED_BROWSER_CONFIG = {

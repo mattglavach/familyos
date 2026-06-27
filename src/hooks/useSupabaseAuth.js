@@ -1,7 +1,14 @@
 import { useState, useEffect } from "react";
+import { APP_CONFIG } from "../config";
 import { supabase } from "../lib/supabase";
+
 function getEmailRedirectTo() {
   return window.location.origin;
+}
+
+function isApprovedHouseholdEmail(email) {
+  if (!APP_CONFIG.approvedHouseholdEmails.length) return true;
+  return APP_CONFIG.approvedHouseholdEmails.includes(email.trim().toLowerCase());
 }
 
 function isMagicLinkRateLimitError(error) {
@@ -20,6 +27,23 @@ function formatMagicLinkError(error) {
     return "Too many sign-in links requested. Please wait a few minutes before trying again.";
   }
   return "We couldn't send a sign-in link. Please check your email address and try again.";
+}
+
+function isWrongPasswordError(error) {
+  const status = String(error?.status || "");
+  const code = String(error?.code || "").toLowerCase();
+  const message = String(error?.message || "").toLowerCase();
+  return status === "400" ||
+    code.includes("invalid_credentials") ||
+    message.includes("invalid login credentials") ||
+    message.includes("invalid credentials");
+}
+
+function formatPasswordSignInError(error) {
+  if (isWrongPasswordError(error)) {
+    return "That email or password did not match. Please try again.";
+  }
+  return "We couldn't sign you in right now. Please check your connection and try again.";
 }
 
 export function useSupabaseAuth() {
@@ -50,12 +74,43 @@ export function useSupabaseAuth() {
     return ()=>{ mounted=false; subscription.unsubscribe(); };
   },[]);
 
+  async function signInWithPassword(email,password) {
+    setError("");
+    setMessage("");
+    const trimmed = email.trim();
+    if (!trimmed) { setError("Email is required."); return; }
+    if (!isApprovedHouseholdEmail(trimmed)) {
+      setError("This email is not approved for FamilyOS.");
+      return;
+    }
+    if (!password) {
+      setError("Password is required.");
+      return;
+    }
+    setSending(true);
+    try {
+      const {error: authError} = await supabase.auth.signInWithPassword({
+        email: trimmed,
+        password,
+      });
+      if (authError) throw authError;
+    } catch(e) {
+      setError(formatPasswordSignInError(e));
+    } finally {
+      setSending(false);
+    }
+  }
+
   async function sendMagicLink(email) {
     if (sending || resendCooldown > 0) return;
     setError("");
     setMessage("");
     const trimmed = email.trim();
     if (!trimmed) { setError("Email is required."); return; }
+    if (!isApprovedHouseholdEmail(trimmed)) {
+      setError("This email is not approved for FamilyOS.");
+      return;
+    }
     setSending(true);
     try {
       const {error: authError} = await supabase.auth.signInWithOtp({
@@ -77,5 +132,5 @@ export function useSupabaseAuth() {
     setSession(null);
   }
 
-  return {session,loading,sending,message,error,resendCooldown,sendMagicLink,signOut};
+  return {session,loading,sending,message,error,resendCooldown,signInWithPassword,sendMagicLink,signOut};
 }

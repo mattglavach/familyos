@@ -29,18 +29,25 @@ function SetupRequired(){
 
 function AuthGate({auth}){
   const [email,setEmail] = useState("");
+  const [password,setPassword] = useState("");
   const canSend = !auth.sending && auth.resendCooldown === 0;
   const hasSentLink = Boolean(auth.message);
-  const sendButtonText = auth.sending ? "Sending..." : "Send sign-in link";
+  const signInButtonText = auth.sending ? "Signing in..." : "Sign in";
+  const magicLinkButtonText = auth.sending ? "Sending..." : "Email me a sign-in link";
   return(
     <div style={{...S.app,padding:"40px 20px"}}>
       <div style={S.logo}><span style={S.logoAccent}>Family</span>OS</div>
       <div style={{...S.card,marginTop:24}}>
         <div style={{fontSize:20,fontWeight:800,marginBottom:10}}>Sign in</div>
-        <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5,marginBottom:18}}>Use your approved family email. Supabase will send a magic link, then your data stays scoped to your account.</div>
+        <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5,marginBottom:18}}>Use your approved family email and password. Your session stays saved on this device until you sign out.</div>
         <label style={S.label}>Email</label>
-        <input style={S.input} type="email" value={email} placeholder="you@example.com" onChange={e=>setEmail(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&canSend)auth.sendMagicLink(email);}}/>
-        {!hasSentLink&&<button style={{...S.btn,opacity:canSend?1:0.65,cursor:canSend?"pointer":"not-allowed"}} disabled={!canSend} onClick={()=>auth.sendMagicLink(email)}>{sendButtonText}</button>}
+        <input style={S.input} type="email" value={email} placeholder="you@example.com" onChange={e=>setEmail(e.target.value)} />
+        <label style={{...S.label,marginTop:12}}>Password</label>
+        <input style={S.input} type="password" value={password} placeholder="Password" onChange={e=>setPassword(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!auth.sending)auth.signInWithPassword(email,password);}}/>
+        <button style={{...S.btn,opacity:auth.sending?0.65:1,cursor:auth.sending?"not-allowed":"pointer"}} disabled={auth.sending} onClick={()=>auth.signInWithPassword(email,password)}>{signInButtonText}</button>
+        <div style={{height:1,background:COLORS.navyLight,margin:"18px 0 14px"}}/>
+        <div style={{fontSize:14,color:COLORS.slateLight,lineHeight:1.4,marginBottom:10}}>Need a fallback? Send a one-time magic link to the same approved email.</div>
+        {!hasSentLink&&<button style={{...S.btn,background:COLORS.slate2,opacity:canSend?1:0.65,cursor:canSend?"pointer":"not-allowed"}} disabled={!canSend} onClick={()=>auth.sendMagicLink(email)}>{magicLinkButtonText}</button>}
         {auth.message&&<div style={{fontSize:15,color:COLORS.green,marginTop:12,lineHeight:1.4}}>{auth.message}</div>}
         {auth.resendCooldown>0&&<div style={{fontSize:14,color:COLORS.slateLight,marginTop:8,lineHeight:1.4}}>You can resend in {auth.resendCooldown} seconds.</div>}
         {hasSentLink&&<button style={{...S.btn,marginTop:10,background:COLORS.slate2,opacity:canSend?1:0.65,cursor:canSend?"pointer":"not-allowed"}} disabled={!canSend} onClick={()=>auth.sendMagicLink(email)}>Resend link</button>}
