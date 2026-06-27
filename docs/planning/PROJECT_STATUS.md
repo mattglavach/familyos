@@ -7,11 +7,14 @@
 Documentation foundation being established.
 
 ## Completed
+- Family OS v1 documentation workspace
+- Platform architecture documentation
 
 ## In Progress
 - Shared GitHub workspace documentation
 
 ## Next
+- Validate existing app architecture against the Platform data model
 - Validate app architecture
 - Prioritize next module
 - Create first implementation package for Codex

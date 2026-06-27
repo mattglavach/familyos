@@ -33,6 +33,16 @@ This folder is the operating manual for Family OS.
 - docs/architecture/DEPLOYMENT.md
 - docs/architecture/ARCHITECTURE_DECISIONS.md
 
+### Platform
+- docs/platform/README.md
+- docs/platform/01_data_model.md
+- docs/platform/02_database_schema.md
+- docs/platform/03_task_engine.md
+- docs/platform/04_notification_engine.md
+- docs/platform/05_ai_context.md
+- docs/platform/06_api_contracts.md
+- docs/platform/07_command_center.md
+
 ### Database
 - docs/database/DATABASE_SCHEMA.md
 - docs/database/ERD.md
