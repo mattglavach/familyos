@@ -3,8 +3,22 @@
 ## Shared Components
 - Button
 - Badge
+- StatusBadge
 - Card
 - Skeleton
+- Input
+- Textarea
+- Select
+- Label
+- FormGroup
+- FormRow
+- FormSection
+- FormHelp
+- FormError
+- SegmentedControl
+- ChipGroup
+- SectionHeader
+- EmptyStatePanel
 - OriginDrawer
 - AppShell
 - Sidebar
@@ -27,3 +41,6 @@
 - Reuse shared components before creating new ones.
 - Components should accept typed props.
 - Keep business logic out of visual components when practical.
+- Prefer shared form primitives for new or migrated drawer forms.
+- Use `SegmentedControl` for mutually exclusive view/mode choices and `ChipGroup` for compact option sets.
+- Use `StatusBadge` for semantic states instead of ad hoc color-only labels.

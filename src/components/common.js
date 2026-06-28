@@ -2,9 +2,11 @@ import { useRef, useState } from "react";
 import { Edit3, Trash2, X } from "lucide-react";
 import { COLORS, S } from "../theme";
 import { OriginDrawer } from "./origin/drawer";
-import { Button } from "./ui/button";
 import { Card } from "./ui/card";
+import { EmptyStatePanel } from "./ui/empty-state";
+import { SectionHeader as UISectionHeader } from "./ui/section-header";
 import { Skeleton } from "./ui/skeleton";
+import { StatusBadge as UIStatusBadge } from "./ui/badge";
 
 // - SPARKLINE -
 export function Sparkline({data,color}){
@@ -71,13 +73,17 @@ export function Loading(){
 
 export function EmptyState({icon,title,detail,action,onAction}){
   return(
-    <div style={{textAlign:"center",padding:"48px 24px 40px"}}>
-      <div style={{fontSize:40,marginBottom:14,opacity:0.6}}>{icon||" "}</div>
-      <div style={{fontSize:16,fontWeight:700,color:COLORS.slateLight,marginBottom:8}}>{title||"Nothing here yet"}</div>
-      {detail&&<div style={{fontSize:14,color:COLORS.slate,lineHeight:1.6,marginBottom:20,maxWidth:260,margin:"0 auto 20px"}}>{detail}</div>}
-      {action&&onAction&&<Button type="button" size="lg" onClick={onAction}>{action}</Button>}
-    </div>
+    <EmptyStatePanel icon={icon} title={title} detail={detail} action={action} onAction={onAction}/>
   );
+}
+
+export function SectionHeader({label,title,count,color,tone,action}){
+  const toneFromColor = color===COLORS.red?"red":color===COLORS.amber?"amber":color===COLORS.green?"green":color===COLORS.blue?"blue":color===COLORS.purple?"purple":"neutral";
+  return <UISectionHeader title={title||label} count={count} tone={tone||toneFromColor} action={action}/>;
+}
+
+export function StatusBadge({status,children,className}){
+  return <UIStatusBadge status={status} className={className}>{children}</UIStatusBadge>;
 }
 
 export function SwipeHint(){

@@ -23,6 +23,9 @@ begin;
 
 create extension if not exists "pgcrypto";
 create schema if not exists familyos_internal;
+revoke all on schema familyos_internal from public;
+revoke all on schema familyos_internal from anon;
+revoke all on schema familyos_internal from authenticated;
 
 create temporary table migration_module_tables (
   table_name text primary key
@@ -58,8 +61,8 @@ do $$
 declare
   missing_tables text;
   missing_user_id_columns text;
-  auth_user_count integer;
-  module_user_count integer;
+  auth_user_count bigint;
+  module_user_count bigint;
   null_user_rows bigint := 0;
   table_null_user_rows bigint;
   table_name text;
@@ -189,6 +192,10 @@ create table if not exists familyos_internal.household_bootstrap_map (
   updated_at timestamptz not null default now()
 );
 
+revoke all on table familyos_internal.household_bootstrap_map from public;
+revoke all on table familyos_internal.household_bootstrap_map from anon;
+revoke all on table familyos_internal.household_bootstrap_map from authenticated;
+
 create index if not exists profiles_email_idx on public.profiles(email);
 create index if not exists households_created_by_user_id_idx on public.households(created_by_user_id);
 create index if not exists households_status_idx on public.households(status);
@@ -314,6 +321,18 @@ insert into public.household_members(household_id, user_id, role, status)
 select bootstrap.household_id, bootstrap.user_id, 'owner', 'active'
 from familyos_internal.household_bootstrap_map bootstrap
 on conflict do nothing;
+
+update public.household_members household_member
+set role = 'owner',
+    status = 'active',
+    updated_at = now()
+from familyos_internal.household_bootstrap_map bootstrap
+where household_member.household_id = bootstrap.household_id
+  and household_member.user_id = bootstrap.user_id
+  and (
+    household_member.role <> 'owner'
+    or household_member.status <> 'active'
+  );
 
 do $$
 declare
@@ -466,10 +485,10 @@ with check (public.familyos_has_household_role(household_id, array['owner', 'adu
 -- Postflight checks.
 do $$
 declare
-  auth_user_count integer;
-  profile_count integer;
-  bootstrap_count integer;
-  owner_membership_count integer;
+  auth_user_count bigint;
+  profile_count bigint;
+  bootstrap_count bigint;
+  owner_membership_count bigint;
   missing_household_rows bigint := 0;
   table_missing_rows bigint;
   table_name text;
