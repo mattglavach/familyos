@@ -14,6 +14,7 @@ Documentation foundation being established.
 - Supabase magic-link redirect audit for deployed Vercel sign-in
 - Supabase magic-link resend cooldown and rate-limit messaging
 - Private household email/password login as the primary Supabase auth path
+- Supabase password reset email and recovery-session password update flow
 - Google Calendar OAuth origin setup documentation for local and Vercel deployments
 - Modular app structure with app shell, hooks, modules, and refactor documentation
 
@@ -28,11 +29,11 @@ Documentation foundation being established.
 ## Known Bugs
 
 - No active deploy-blocking build errors after the CI lint cleanup.
-- Production magic-link redirects depend on Supabase Auth Site URL and allowed redirect URLs being set to the deployed FamilyOS origin.
+- Production magic-link and password-reset redirects depend on Supabase Auth Site URL and allowed redirect URLs being set to the deployed FamilyOS origin, including `/reset-password` for recovery links.
 - Google Calendar sync requires the active browser origin to be listed in Google Cloud Console Authorized JavaScript origins for the configured OAuth client.
 
 ## Technical Debt
 - Existing feature screens still contain substantial inline styles and should be migrated gradually to shadcn/ui and Origin UI components during feature work.
 
 ## Last Updated
-June 27, 2026
+June 28, 2026

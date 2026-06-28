@@ -45,9 +45,11 @@ function AuthGate({auth}){
   const [email,setEmail] = useState("");
   const [password,setPassword] = useState("");
   const canSend = !auth.sending && auth.resendCooldown === 0;
-  const hasSentLink = Boolean(auth.message);
+  const hasSentLink = auth.messageType === "magic";
+  const hasSentReset = auth.messageType === "reset";
   const signInButtonText = auth.sending ? "Signing in..." : "Sign in";
   const magicLinkButtonText = auth.sending ? "Sending..." : "Email me a sign-in link";
+  const resetButtonText = auth.sending ? "Sending..." : hasSentReset ? "Resend reset link" : "Email me a reset link";
   return(
     <div style={S.app} className="px-5 py-10">
       <div style={S.logo}><span style={S.logoAccent}>Family</span>OS</div>
@@ -67,13 +69,47 @@ function AuthGate({auth}){
               <Input type="password" value={password} placeholder="Password" onChange={e=>setPassword(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!auth.sending)auth.signInWithPassword(email,password);}}/>
             </FormGroup>
             <Button type="button" className="w-full" disabled={auth.sending} onClick={()=>auth.signInWithPassword(email,password)}>{signInButtonText}</Button>
+            <Button type="button" variant="link" className="h-auto w-full p-0 text-xs" disabled={!canSend} onClick={()=>auth.sendPasswordReset(email)}>{resetButtonText}</Button>
+            {hasSentReset&&auth.message&&<FormHelp className="font-semibold text-emerald-300">{auth.message}</FormHelp>}
+            {hasSentReset&&auth.resendCooldown>0&&<FormHelp>You can resend in {auth.resendCooldown} seconds.</FormHelp>}
             <div className="border-t border-border pt-4">
               <FormHelp className="mb-3">Need a fallback? Send a one-time magic link to the same approved email.</FormHelp>
               {!hasSentLink&&<Button type="button" variant="secondary" className="w-full" disabled={!canSend} onClick={()=>auth.sendMagicLink(email)}>{magicLinkButtonText}</Button>}
-              {auth.message&&<FormHelp className="mt-3 font-semibold text-emerald-300">{auth.message}</FormHelp>}
-              {auth.resendCooldown>0&&<FormHelp className="mt-2">You can resend in {auth.resendCooldown} seconds.</FormHelp>}
+              {hasSentLink&&auth.message&&<FormHelp className="mt-3 font-semibold text-emerald-300">{auth.message}</FormHelp>}
+              {hasSentLink&&auth.resendCooldown>0&&<FormHelp className="mt-2">You can resend in {auth.resendCooldown} seconds.</FormHelp>}
               {hasSentLink&&<Button type="button" variant="secondary" className="mt-3 w-full" disabled={!canSend} onClick={()=>auth.sendMagicLink(email)}>Resend link</Button>}
             </div>
+            {auth.error&&<FormError>{auth.error}</FormError>}
+          </FormSection>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function PasswordResetGate({auth}){
+  const [password,setPassword] = useState("");
+  const [confirmPassword,setConfirmPassword] = useState("");
+  const buttonText = auth.sending ? "Updating..." : "Update password";
+  return(
+    <div style={S.app} className="px-5 py-10">
+      <div style={S.logo}><span style={S.logoAccent}>Family</span>OS</div>
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Reset password</CardTitle>
+          <CardDescription>Choose a new password for your approved FamilyOS account.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FormSection>
+            <FormGroup>
+              <Label>New password</Label>
+              <Input type="password" value={password} placeholder="New password" onChange={e=>setPassword(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!auth.sending)auth.updatePassword(password,confirmPassword);}}/>
+            </FormGroup>
+            <FormGroup>
+              <Label>Confirm password</Label>
+              <Input type="password" value={confirmPassword} placeholder="Confirm password" onChange={e=>setConfirmPassword(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!auth.sending)auth.updatePassword(password,confirmPassword);}}/>
+            </FormGroup>
+            <Button type="button" className="w-full" disabled={auth.sending} onClick={()=>auth.updatePassword(password,confirmPassword)}>{buttonText}</Button>
             {auth.error&&<FormError>{auth.error}</FormError>}
           </FormSection>
         </CardContent>
@@ -159,6 +195,7 @@ export default function App(){
 
   if (CONFIG_STATUS.missing.length) return <SetupRequired/>;
   if (auth.loading) return <GlobalLoading/>;
+  if (auth.passwordRecovery) return <PasswordResetGate auth={auth}/>;
   if (!auth.session) return <AuthGate auth={auth}/>;
 
   return(

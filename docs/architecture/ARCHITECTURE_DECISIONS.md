@@ -37,7 +37,7 @@ Magic-link authentication created repeated email verification friction and trigg
 Manual email/password users provide persistent, low-friction access for Matt and his wife without exposing public registration. Supabase session persistence keeps users signed in between app launches, while fallback magic links remain available for recovery.
 
 ### Tradeoffs
-User creation and password resets are operational tasks in the Supabase dashboard for now. The optional client-side approved email list improves error messaging but is not a security control.
+User creation remains an operational task in the Supabase dashboard. Password resets can be initiated from the FamilyOS sign-in screen, but still depend on Supabase Auth email delivery and correctly configured allowed redirect URLs. The optional client-side approved email list improves error messaging but is not a security control.
 
 ### Follow-up
 Confirm Supabase public sign-up is disabled and create the two household users before production testing.

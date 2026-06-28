@@ -10,6 +10,11 @@ Household users should be created manually in Supabase Authentication > Users, w
 
 The sign-in UI handles common failures with friendly messages for wrong password, missing password, unapproved email, and generic auth/network errors. Sessions use the Supabase client persistence settings so users stay signed in after closing and reopening the app until they explicitly sign out or the stored session is cleared.
 
+## Password Reset
+Approved household users can request a password reset from the sign-in screen. The client calls `supabase.auth.resetPasswordForEmail` with a redirect to the current app origin plus `/reset-password`, then shows a recovery password form when Supabase opens a password recovery session.
+
+The recovery form calls `supabase.auth.updateUser` with the new password, clears the recovery route from browser history, and leaves the user signed in. Reset email sends share the same send-in-progress and 60-second resend cooldown protections used by magic links to reduce Supabase email rate-limit errors.
+
 ## Magic Links
 Email magic-link sign-in remains available only as a secondary fallback. It uses `supabase.auth.signInWithOtp` with `emailRedirectTo` set from the current browser origin. This keeps local sign-ins on `http://localhost:3000` and production sign-ins on the deployed Vercel origin without a separate site URL environment variable.
 
@@ -17,6 +22,7 @@ Supabase Auth URL configuration must match this behavior:
 - Set Site URL to the production FamilyOS URL, not localhost.
 - Add `http://localhost:3000` as an allowed redirect URL for local development.
 - Add the Vercel production URL and any custom production domain as allowed redirect URLs.
+- Add `/reset-password` variants for local development, Vercel production, and any custom production domain.
 - Add a Vercel preview wildcard only if preview deployments need email sign-in.
 
 The fallback magic-link UI protects Supabase email delivery limits by disabling requests while a link is sending, showing a success message after delivery, and starting a 60-second resend cooldown. The resend action uses the same `signInWithOtp` flow and restarts the cooldown after each successful request. Rate-limit responses are shown as a user-friendly wait-and-retry message instead of raw provider errors.
