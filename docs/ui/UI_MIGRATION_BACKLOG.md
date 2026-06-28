@@ -18,12 +18,12 @@ This backlog is based on a review of `src/App.js` on June 27, 2026. The app shou
 | `Pool` | 1034-1725 | 163 | 100 | 4 | 4 | Chemistry cards, recommendations, treatment UI, logs, and health summaries. |
 | `College` | 528-825 | 111 | 97 | 5 | 9 | Deadline lists, timeline cards, school/essay/test forms. |
 | `QuickAdd` | `src/modules/quick-add/QuickAdd.js` | Migrated | Migrated | Drawer | 0 | Completed first feature-surface migration using shared drawer, form primitives, segmented controls, and chips. |
-| `PoolBrief` | 826-1033 | 24 | 3 | 1 | 0 | AI brief output, follow-up chat, loading/error states. |
-| `RetirementBrief` | 1726-1874 | 19 | 4 | 1 | 0 | AI brief output similar to PoolBrief. |
+| `PoolBrief` | `src/modules/pool/Pool.js` | Migrated | Migrated | 1 | 0 | Completed brief panel migration using shared AI brief helpers; pool AI logic and history behavior preserved. |
+| `RetirementBrief` | `src/modules/finance/Finance.js` | Migrated | Migrated | 1 | 0 | Completed brief panel migration using shared AI brief helpers; retirement AI logic and history behavior preserved. |
 | `CalendarBanner` | 505-527 | 8 | 4 | 0 | 0 | Low-risk shared banner, currently unused. |
 | `AuthGate` | `src/app/App.js` | Migrated | Migrated | 0 | 0 | Completed standalone auth form migration using shared card, form, input, button, and error helpers. |
 | `SetupRequired` | `src/app/App.js` | Migrated | Migrated | 0 | 0 | Completed standalone setup gate migration using shared card, section header, and status badge helpers. |
-| `App` shell | 2764-2844 | 7 | 9 | 0 | 0 | Header and bottom nav should migrate after shared primitives are ready. |
+| `App` shell | `src/app/App.js` | Migrated | Migrated | 0 | 0 | Completed header, bottom navigation, and global loading wrapper migration using shared primitives/classes. |
 
 ## Priority 1 - Shared, Low-Risk Foundations
 
@@ -76,9 +76,10 @@ This backlog is based on a review of `src/App.js` on June 27, 2026. The app shou
 ### 7. Header and bottom navigation shell
 - Scope: Replace root header buttons, connection status, and bottom nav styles with shared app-shell patterns.
 - Why: Visible everywhere and currently low line count.
+- Status: Complete.
 - Risk: Medium.
 - Effort: Medium.
-- Notes: Verify safe-area behavior and mobile tap targets.
+- Notes: Preserved tab labels, icon source, active tab state, sign-out, Google Calendar connect/sync state, and bottom safe-area behavior.
 
 ## Priority 3 - Feature Screens With Clear Component Boundaries
 
@@ -100,9 +101,10 @@ This backlog is based on a review of `src/App.js` on June 27, 2026. The app shou
 ### 10. AI brief panels
 - Scope: Extract shared AI brief panel for `PoolBrief` and `RetirementBrief`.
 - Why: Similar interaction pattern across modules.
+- Status: Complete.
 - Risk: Medium.
 - Effort: Medium.
-- Notes: Preserve copy, refresh, history, and follow-up behavior.
+- Notes: Added presentational AI brief helpers for brief text, cards, loading, error, empty, actions, and follow-up chat. Prompts, fetch calls, history, refresh/regenerate, copy, and follow-up handlers stayed inside each module.
 
 ## Priority 4 - Larger Feature Migrations
 
@@ -135,4 +137,4 @@ This backlog is based on a review of `src/App.js` on June 27, 2026. The app shou
 - Redesigning existing information architecture.
 
 ## Suggested Next Step
-Migrate app shell and navigation next. Keep the scope to `AppHeader`, `BottomNavigation`, global loading wrapper, and shared shell styling; defer Finance, Pool, and College module screens.
+Migrate shared dashboard/card patterns next. Focus on reusable summary cards, metric cards, action rows, and section headers before touching Pool or Finance internals.

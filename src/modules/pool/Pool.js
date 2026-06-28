@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import { EmptyState, Loading, Modal, Sparkline, SwipeCard, SwipeHint } from "../../components/common";
+import { AiBriefActions, AiBriefCard, AiBriefEmpty, AiBriefError, AiBriefFollowUp, AiBriefLoading, AiBriefText } from "../../components/ai/AiBriefPanel";
+import { Button } from "../../components/ui/button";
+import { SectionHeader } from "../../components/ui/section-header";
 import { COLORS, S } from "../../theme";
 import { TODAY_STR, daysAgo, daysBetween, formatDate, nextDueDate } from "../../lib/dates";
 import { useTable } from "../../hooks/useTable";
@@ -270,68 +273,38 @@ function PoolBrief({readings, treatments, maintLog, onClose}) {
     setAskingFollowUp(false);
   }
 
-  function renderBrief(text) {
-    if(!text) return null;
-    return text.split("\n").map((line,i)=>{
-      const trimmed=line.trim();
-      if(!trimmed) return <div key={i} style={{height:6}}/>;
-      if(trimmed.startsWith("**")&&trimmed.endsWith("**")){
-        return <div key={i} style={{fontSize:11,fontWeight:700,color:COLORS.blue,letterSpacing:"0.8px",textTransform:"uppercase",marginTop:14,marginBottom:6}}>{trimmed.replace(/\*\*/g,"")}</div>;
-      }
-      if(trimmed.startsWith("-")||trimmed.startsWith("*")){
-        return <div key={i} style={{fontSize:14,color:COLORS.white,lineHeight:1.6,marginBottom:6,paddingLeft:12,position:"relative"}}><span style={{position:"absolute",left:0,color:COLORS.blue}}>-</span>{trimmed.replace(/^[-*]\s*/,"")}</div>;
-      }
-      return <div key={i} style={{fontSize:14,color:COLORS.slateLight,lineHeight:1.6,marginBottom:6}}>{trimmed}</div>;
-    });
-  }
-
   const displayedBrief=viewingHistory!==null?history[viewingHistory]?.text:brief;
   const isHistory=viewingHistory!==null;
   const lastUpdated=history[0]?.date?new Date(history[0].date).toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}):null;
 
   return(
     <Modal title="Pool Brief" onClose={onClose}> {history.length>1&&(
-        <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap"}}>
-          <span style={S.chip(viewingHistory===null,COLORS.purple)} onClick={()=>setViewingHistory(null)}>Latest</span>
-          {history.slice(1).map((h,i)=>(
-            <span key={i} style={S.chip(viewingHistory===i+1,COLORS.slate)} onClick={()=>setViewingHistory(i+1)}>
-              {new Date(h.date).toLocaleDateString("en-US",{month:"short",day:"numeric"})}
-            </span>
-          ))}
-        </div>
-      )} {lastUpdated&&!loading&&(
-        <div style={{fontSize:11,color:COLORS.slate,marginBottom:10}}>Last generated: {lastUpdated}</div>
-      )}
-      {loading&&<div style={{textAlign:"center",padding:"32px 20px"}}><div style={{fontSize:14,color:COLORS.slate}}>Analyzing readings + Summerville weather...</div><div style={{fontSize:12,color:COLORS.slate,marginTop:6}}>About 10 seconds</div></div>}
-      {error&&<div style={{fontSize:14,color:COLORS.red,padding:"16px 0"}}>{error}</div>} {displayedBrief&&!loading&&(
         <>
-          <div style={{background:COLORS.navyLight,borderRadius:12,padding:"14px 16px",marginBottom:12}}>{renderBrief(displayedBrief)}</div>
-          <div style={{display:"flex",gap:8,marginBottom:16}}>
-            <button style={{...S.btn,marginTop:0,flex:2,background:COLORS.blue}} onClick={generateBrief}>Refresh</button>
-            {!isHistory&&<button style={{...S.btn,marginTop:0,flex:1,background:COLORS.navyLight,color:COLORS.slateLight}} onClick={async()=>{try{await navigator.clipboard.writeText(displayedBrief);alert("Copied");}catch{}}}>Copy</button>}
+          <SectionHeader title="History" className="mt-0"/>
+          <div className="mb-3 flex flex-wrap gap-2">
+          <Button type="button" size="sm" variant={viewingHistory===null?"default":"secondary"} onClick={()=>setViewingHistory(null)}>Latest</Button>
+          {history.slice(1).map((h,i)=>(
+            <Button key={i} type="button" size="sm" variant={viewingHistory===i+1?"default":"secondary"} onClick={()=>setViewingHistory(i+1)}>
+              {new Date(h.date).toLocaleDateString("en-US",{month:"short",day:"numeric"})}
+            </Button>
+          ))}
           </div>
+        </>
+      )} {lastUpdated&&!loading&&(
+        <div className="mb-3 text-xs text-muted-foreground">Last generated: {lastUpdated}</div>
+      )}
+      {loading&&<AiBriefLoading title="Analyzing readings + Summerville weather..." detail="About 10 seconds"/>}
+      <AiBriefError>{error}</AiBriefError> {displayedBrief&&!loading&&(
+        <>
+          <AiBriefCard><AiBriefText text={displayedBrief}/></AiBriefCard>
+          <AiBriefActions primaryLabel="Refresh" onPrimary={generateBrief} secondaryLabel={!isHistory?"Copy":null} onSecondary={async()=>{try{await navigator.clipboard.writeText(displayedBrief);alert("Copied");}catch{}}}/>
           {!isHistory&&(
-            <>
-              <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8}}>Ask a follow-up</div>
-              {chatMessages.map((m,i)=>(
-                <div key={i} style={{marginBottom:8,display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
-                  <div style={{maxWidth:"85%",background:m.role==="user"?COLORS.blue:COLORS.navyLight,color:"#fff",borderRadius:10,padding:"8px 12px",fontSize:13,lineHeight:1.5}}>{m.text}</div>
-                </div>
-              ))}
-              {askingFollowUp&&<div style={{fontSize:13,color:COLORS.slate,marginBottom:8}}>Thinking...</div>}
-              <div style={{display:"flex",gap:8}}>
-                <input style={{...S.input,marginBottom:0,flex:1,fontSize:13}} placeholder="e.g. Is it safe to swim now?" value={followUp} onChange={e=>setFollowUp(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")askFollowUp();}}/>
-                <button style={{...S.btnSm,flexShrink:0}} onClick={askFollowUp} disabled={askingFollowUp}>Ask</button>
-              </div>
-            </>
+            <AiBriefFollowUp messages={chatMessages} asking={askingFollowUp} value={followUp} onChange={e=>setFollowUp(e.target.value)} onAsk={askFollowUp} placeholder="e.g. Is it safe to swim now?"/>
           )}
         </>
       )}
       {!displayedBrief&&!loading&&(
-        <div style={{textAlign:"center",padding:"32px 20px"}}>
-          <div style={{fontSize:14,color:COLORS.slate,marginBottom:16,lineHeight:1.5}}>Analyzes your readings, treatments, and current Summerville weather.</div>
-          <button style={S.btn} onClick={generateBrief}>Run Analysis</button>
-        </div>
+        <AiBriefEmpty detail="Analyzes your readings, treatments, and current Summerville weather." actionLabel="Run Analysis" onAction={generateBrief}/>
       )}
     </Modal>
   );

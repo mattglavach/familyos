@@ -19,6 +19,13 @@
 - ChipGroup
 - SectionHeader
 - EmptyStatePanel
+- AiBriefText
+- AiBriefCard
+- AiBriefLoading
+- AiBriefError
+- AiBriefEmpty
+- AiBriefActions
+- AiBriefFollowUp
 - OriginDrawer
 - AppShell
 - Sidebar
@@ -44,3 +51,4 @@
 - Prefer shared form primitives for new or migrated drawer forms.
 - Use `SegmentedControl` for mutually exclusive view/mode choices and `ChipGroup` for compact option sets.
 - Use `StatusBadge` for semantic states instead of ad hoc color-only labels.
+- Use the AI brief helpers for generated summary panels, loading/error states, and follow-up chat UI.

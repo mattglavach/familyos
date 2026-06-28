@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import { EmptyState, Modal, Sparkline, SwipeCard, SwipeHint } from "../../components/common";
+import { AiBriefActions, AiBriefCard, AiBriefEmpty, AiBriefError, AiBriefFollowUp, AiBriefLoading, AiBriefText } from "../../components/ai/AiBriefPanel";
+import { Button } from "../../components/ui/button";
+import { SectionHeader } from "../../components/ui/section-header";
 import { COLORS, S } from "../../theme";
 import { TODAY_STR, daysBetween, formatDate } from "../../lib/dates";
 import { useTable } from "../../hooks/useTable";
@@ -250,56 +253,31 @@ Write a brief with these EXACT sections, bullets only, under 200 words total:
     setAskingFollowUp(false);
   }
 
-  function renderBrief(text) {
-    if(!text) return null;
-    return text.split(String.fromCharCode(10)).map((line, i) => {
-      if(line.startsWith('**') && line.endsWith('**')) return <div key={i} style={{fontSize:15,fontWeight:700,color:COLORS.blue,letterSpacing:"0.8px",textTransform:"uppercase",marginTop:16,marginBottom:10}}>{line.replace(/\*\*/g,'')}</div>;
-      if(line.startsWith(' ') || line.startsWith('-')) return <div key={i} style={{fontSize:15,color:COLORS.white,lineHeight:1.6,marginBottom:10,paddingLeft:8}}>  {line.replace(/^[ -]\s*/,'')}</div>;
-      if(line.trim()==='') return <div key={i} style={{height:4}}/>;
-      return <div key={i} style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.6,marginBottom:10}}>{line}</div>;
-    });
-  }
-
   const displayedBrief = viewingHistory !== null ? history[viewingHistory]?.text : brief;
   const displayedIsHistory = viewingHistory !== null;
 
   return (
-    <Modal title="  Retirement Brief" onClose={onClose}>
+    <Modal title="Retirement Brief" onClose={onClose}>
       {history.length > 0 && (
         <>
-          <div style={{fontSize:15,color:COLORS.slate,marginBottom:10}}>PAST BRIEFS   tap to view</div>
-          <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
-            <span style={S.chip(viewingHistory===null,COLORS.purple)} onClick={()=>setViewingHistory(null)}>Latest</span>
-            {history.map((h,i)=>(<span key={i} style={S.chip(viewingHistory===i,COLORS.slate)} onClick={()=>setViewingHistory(i)}>{new Date(h.date).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>))}
+          <SectionHeader title="Past Briefs" className="mt-0"/>
+          <div className="mb-4 flex flex-wrap gap-2">
+            <Button type="button" size="sm" variant={viewingHistory===null?"default":"secondary"} onClick={()=>setViewingHistory(null)}>Latest</Button>
+            {history.map((h,i)=>(<Button key={i} type="button" size="sm" variant={viewingHistory===i?"default":"secondary"} onClick={()=>setViewingHistory(i)}>{new Date(h.date).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</Button>))}
           </div>
         </>
       )}
-      {loading && viewingHistory===null && <div style={{textAlign:"center",padding:"40px 20px"}}><div style={{fontSize:15,color:COLORS.slate}}>Analyzing your retirement trajectory </div></div>}
-      {error && viewingHistory===null && <div style={{fontSize:15,color:COLORS.red,padding:"20px 0"}}>{error}</div>}
+      {loading && viewingHistory===null && <AiBriefLoading title="Analyzing your retirement trajectory" />}
+      {viewingHistory===null && <AiBriefError>{error}</AiBriefError>}
       {!hasRun && !loading && viewingHistory===null && (
-        <div style={{textAlign:"center",padding:"30px 20px"}}>
-          <div style={{fontSize:15,color:COLORS.slate,marginBottom:16,lineHeight:1.5}}>Run an analysis of your retirement trajectory, contribution rate, and bridge gap.</div>
-          <button style={S.btn} onClick={generateBrief}>   Run Analysis</button>
-        </div>
+        <AiBriefEmpty detail="Run an analysis of your retirement trajectory, contribution rate, and bridge gap." actionLabel="Run Analysis" onAction={generateBrief}/>
       )}
       {displayedBrief && (!loading || displayedIsHistory) && (
         <>
-          <div style={{background:COLORS.navyLight,borderRadius:10,padding:"14px 16px",marginBottom:16}}>{renderBrief(displayedBrief)}</div>
-          {!displayedIsHistory && <button style={{...S.btn,marginTop:0,marginBottom:16}} onClick={generateBrief}>  Regenerate</button>}
+          <AiBriefCard><AiBriefText text={displayedBrief} headingSize="md"/></AiBriefCard>
+          {!displayedIsHistory && <AiBriefActions primaryLabel="Regenerate" onPrimary={generateBrief}/>}
           {!displayedIsHistory && (
-            <>
-              <div style={S.sectionLabel}>Ask a follow-up</div>
-              {chatMessages.map((m,i)=>(
-                <div key={i} style={{marginBottom:10,display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
-                  <div style={{maxWidth:"85%",background:m.role==="user"?COLORS.blue:COLORS.navyLight,color:m.role==="user"?"#fff":COLORS.white,borderRadius:10,padding:"8px 12px",fontSize:15,lineHeight:1.5}}>{m.text}</div>
-                </div>
-              ))}
-              {askingFollowUp && <div style={{fontSize:15,color:COLORS.slate,marginBottom:10}}>Thinking </div>}
-              <div style={{display:"flex",gap:8}}>
-                <input style={{...S.input,marginBottom:0,flex:1}} placeholder="e.g. what if I retire at 62 instead?" value={followUp} onChange={e=>setFollowUp(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")askFollowUp();}}/>
-                <button style={{...S.btnSm,flexShrink:0}} onClick={askFollowUp} disabled={askingFollowUp}>Ask</button>
-              </div>
-            </>
+            <AiBriefFollowUp messages={chatMessages} asking={askingFollowUp} value={followUp} onChange={e=>setFollowUp(e.target.value)} onAsk={askFollowUp} placeholder="e.g. what if I retire at 62 instead?"/>
           )}
         </>
       )}

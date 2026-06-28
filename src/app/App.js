@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Dashboard } from "../modules/dashboard/Dashboard";
 import { Tasks } from "../modules/tasks/Tasks";
-import { Loading } from "../components/common";
-import { COLORS, I, S } from "../theme";
+import { I, S } from "../theme";
 import { CONFIG_STATUS } from "../config";
 import { TODAY_DATE, TODAY_STR, daysAgo, daysBetween, formatDate, formatDateFull, formatTodayShort, nextDueDate } from "../lib/dates";
 import { useGoogleCalendar } from "../hooks/useGoogleCalendar";
@@ -21,6 +20,7 @@ import { Label } from "../components/ui/label";
 import { FormError, FormGroup, FormHelp, FormSection } from "../components/ui/form";
 import { SectionHeader } from "../components/ui/section-header";
 import { StatusBadge } from "../components/ui/badge";
+import { Skeleton } from "../components/ui/skeleton";
 function SetupRequired(){
   return(
     <div style={S.app} className="px-5 py-10">
@@ -100,31 +100,51 @@ function GlobalInteractionStyles(){
 }
 
 function AppHeader({tab, auth, gc}){
-  return <div style={S.header}>
-    <div style={S.headerRow}>
-      <div>
-        <div style={S.logo}>{tab==="home"?<><span style={S.logoAccent}>Family</span>OS</>:TITLES[tab]}</div>
-        {tab==="home"&&<div style={S.dateLabel}>{formatTodayShort()}</div>}
+  return <header className="sticky top-0 z-10 border-b border-border bg-card/95 px-5 pb-3.5 pt-[calc(env(safe-area-inset-top)+16px)] backdrop-blur">
+    <div className="flex items-center justify-between gap-3">
+      <div className="min-w-0">
+        <div style={S.logo} className="truncate">{tab==="home"?<><span style={S.logoAccent}>Family</span>OS</>:TITLES[tab]}</div>
+        {tab==="home"&&<div className="mt-1 truncate text-xs text-muted-foreground">{formatTodayShort()}</div>}
       </div>
-      <div style={{display:"flex",gap:8,alignItems:"center"}}>
-        <button onClick={auth.signOut} style={{background:COLORS.navyLight,color:COLORS.slateLight,border:`1px solid ${COLORS.navyLight}`,borderRadius:6,padding:"3px 8px",fontSize:13,fontWeight:700,cursor:"pointer"}}>Sign out</button>
+      <div className="flex shrink-0 items-center gap-2">
+        <Button type="button" variant="secondary" size="xs" onClick={auth.signOut}>Sign out</Button>
         {gc.token
-          ?<div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:6,height:6,borderRadius:"50%",background:COLORS.green}}/><span style={{fontSize:13,color:COLORS.slate}}>{gc.userName?`${gc.userName}   Synced`:"Synced"}</span></div>
-          :<button onClick={gc.signIn} style={{background:COLORS.blue+"22",color:COLORS.blue,border:`1px solid ${COLORS.blue}44`,borderRadius:6,padding:"3px 8px",fontSize:15,fontWeight:700,cursor:"pointer"}}>Connect</button>
+          ?<StatusBadge status="connected" className="max-w-28 truncate">{gc.userName?`${gc.userName} Synced`:"Synced"}</StatusBadge>
+          :<Button type="button" variant="outline" size="xs" onClick={gc.signIn}>Connect</Button>
         }
       </div>
     </div>
-  </div>;
+  </header>;
 }
 
 function BottomNavigation({tab,onNavigate}){
-  return <nav style={S.nav}>
+  return <nav className="fixed bottom-0 left-1/2 z-20 flex w-full max-w-[430px] -translate-x-1/2 border-t border-border bg-card pb-[env(safe-area-inset-bottom)]" aria-label="Primary navigation">
     {TABS.map(t=>(
-      <button key={t.id} style={S.navItem(tab===t.id)} onClick={()=>onNavigate(t.id)}>
+      <button
+        key={t.id}
+        type="button"
+        className={`flex min-h-[56px] flex-1 flex-col items-center justify-center gap-1 border-t-2 px-0.5 pb-2 pt-2 text-[10px] font-semibold transition-colors ${tab===t.id?"border-primary text-primary":"border-transparent text-muted-foreground"}`}
+        aria-current={tab===t.id?"page":undefined}
+        onClick={()=>onNavigate(t.id)}
+      >
         {I[t.iconKey](tab===t.id)}<span>{t.label}</span>
       </button>
     ))}
   </nav>;
+}
+
+function GlobalLoading(){
+  return (
+    <div style={S.app} className="px-5 py-5">
+      <Card>
+        <CardContent className="space-y-3 pt-5">
+          <Skeleton className="h-4 w-4/5"/>
+          <Skeleton className="h-3 w-3/5"/>
+          <Skeleton className="h-3 w-2/5"/>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
 
 export default function App(){
@@ -138,7 +158,7 @@ export default function App(){
   }
 
   if (CONFIG_STATUS.missing.length) return <SetupRequired/>;
-  if (auth.loading) return <div style={S.app}><div style={{padding:20}}><Loading/></div></div>;
+  if (auth.loading) return <GlobalLoading/>;
   if (!auth.session) return <AuthGate auth={auth}/>;
 
   return(
