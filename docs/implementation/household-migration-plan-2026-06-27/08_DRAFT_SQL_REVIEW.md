@@ -132,11 +132,22 @@ Do not paste the draft SQL into the Supabase SQL editor against production.
 
 No database migration commands were run. No Supabase project was modified.
 
-Static review performed after file creation should verify:
+Initial static review performed after first-draft file creation verified:
 
 - The draft file exists under `docs/implementation/.../draft_sql/`.
 - The review document exists.
 - The draft contains `create table` statements for `profiles`, `households`, `people`, and `household_members`.
 - The draft contains `household_id` additions for current shared tables.
 - The draft does not contain commands to drop `user_id`.
-- The draft does not contain `alter table ... enable row level security` for new household policies outside commented examples.
+- The first draft did not contain `alter table ... enable row level security` for new household policies outside commented examples.
+
+## Revision After Validation
+
+This draft was revised after strict validation found production-readiness blockers.
+
+Follow-up review files:
+
+- `docs/implementation/household-migration-plan-2026-06-27/09_DRAFT_SQL_VALIDATION.md`
+- `docs/implementation/household-migration-plan-2026-06-27/10_REVISED_DRAFT_SQL_NOTES.md`
+
+The revised draft adds foundation-table RLS, idempotent bootstrap protections, durable rollback/support mapping, and preflight/postflight checks. It still remains draft-only and must not be applied until local dry review is explicitly approved.
