@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Added household foundation local-only migration setup documentation and Sprint 1 report; local migration apply remains blocked pending Docker Desktop, Supabase CLI, and `psql`.
+- Created a local-only household foundation migration file under `supabase/migrations/` without applying it.
 - Added a Supabase password reset flow with approved-email validation, reset email delivery, and an in-app password update screen for recovery sessions.
 - Migrated PoolBrief and RetirementBrief UI to shared AI brief panel helpers while preserving AI prompts, history, refresh, copy, and follow-up behavior.
 - Migrated app header, bottom navigation, and global loading wrapper to shared UI primitives/classes while preserving routing and auth/calendar actions.

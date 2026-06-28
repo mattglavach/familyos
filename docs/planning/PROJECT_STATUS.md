@@ -17,23 +17,27 @@ Documentation foundation being established.
 - Supabase password reset email and recovery-session password update flow
 - Google Calendar OAuth origin setup documentation for local and Vercel deployments
 - Modular app structure with app shell, hooks, modules, and refactor documentation
+- Household foundation branch with local-only migration file and validation/setup documentation
 
 ## In Progress
-- Shared GitHub workspace documentation
+- Household foundation local environment setup
 
 ## Next
-- Prepare household migration draft plan
-- Prioritize next module
-- Create first implementation package for Codex
+- Install Docker Desktop, Supabase CLI, and `psql`
+- Initialize local Supabase configuration without linking production
+- Apply the household foundation migration locally only
+- Validate household bootstrap and foundation RLS locally
 
 ## Known Bugs
 
 - No active deploy-blocking build errors after the CI lint cleanup.
 - Production magic-link and password-reset redirects depend on Supabase Auth Site URL and allowed redirect URLs being set to the deployed FamilyOS origin, including `/reset-password` for recovery links.
 - Google Calendar sync requires the active browser origin to be listed in Google Cloud Console Authorized JavaScript origins for the configured OAuth client.
+- Household migration local apply is blocked until Docker Desktop, Supabase CLI, `psql`, and `supabase/config.toml` are available.
 
 ## Technical Debt
 - Existing feature screens still contain substantial inline styles and should be migrated gradually to shadcn/ui and Origin UI components during feature work.
+- App data access still relies on current `user_id` ownership; household-aware auth/session context and module queries are intentionally deferred until local migration validation passes.
 
 ## Last Updated
 June 28, 2026

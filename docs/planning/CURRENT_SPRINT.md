@@ -16,9 +16,13 @@ Establish the shared AI development workspace and documentation foundation.
 - [x] Make private household email/password login the primary Supabase auth path
 - [x] Add Supabase password reset flow for approved household users
 - [x] Validate current app structure
-- [ ] Identify next implementation target
+- [x] Create household foundation branch and local-only migration file
+- [x] Validate local environment readiness for household migration
+- [ ] Install local Supabase prerequisites
 
 ## Blockers
+- Docker Desktop, Supabase CLI, and `psql` are not available on `PATH`, so the household migration cannot be applied locally yet.
+- `supabase/config.toml` is not present; local Supabase has not been initialized.
 
 ## Notes
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.
@@ -34,5 +38,8 @@ Establish the shared AI development workspace and documentation foundation.
 - App shell/navigation now uses shared UI primitives/classes while preserving tab routing, active tab behavior, sign-out, and Google Calendar connect/sync actions.
 - PoolBrief and RetirementBrief now use shared AI brief panel helpers while preserving AI prompts, history, refresh/regenerate, copy, and follow-up behavior.
 - Next UI migration target is shared dashboard/card patterns before Pool or Finance internals.
+- Household foundation migration file exists at `supabase/migrations/20260627_household_foundation.sql`, but has not been applied.
+- `.env.local` was corrected from an empty directory to an ignored placeholder file copied from `.env.example`; local Supabase values still need to be filled in after `supabase start`.
+- `pnpm run check` passes on the household foundation branch.
 
 - App structure refactor moved the shell, hooks, and user-facing modules out of the monolithic src/App.js; pnpm run check passes after the split.
