@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Migrated AuthGate and SetupRequired to shared card, form, button, input, section header, and status badge primitives while preserving auth behavior.
 - Migrated QuickAdd UI to the shared drawer, form primitives, segmented controls, chips, and Lucide icons while preserving existing save behavior.
 - Added Phase 1 UI migration primitives for forms, segmented controls, chips, section headers, empty states, and status badges without changing feature screen behavior.
 - Made email/password the primary Supabase login path for the private household app while keeping magic links as a fallback.

@@ -21,8 +21,8 @@ This backlog is based on a review of `src/App.js` on June 27, 2026. The app shou
 | `PoolBrief` | 826-1033 | 24 | 3 | 1 | 0 | AI brief output, follow-up chat, loading/error states. |
 | `RetirementBrief` | 1726-1874 | 19 | 4 | 1 | 0 | AI brief output similar to PoolBrief. |
 | `CalendarBanner` | 505-527 | 8 | 4 | 0 | 0 | Low-risk shared banner, currently unused. |
-| `AuthGate` | 469-488 | 6 | 5 | 0 | 0 | Low-risk standalone form. |
-| `SetupRequired` | 456-468 | 5 | 2 | 0 | 0 | Low-risk standalone state. |
+| `AuthGate` | `src/app/App.js` | Migrated | Migrated | 0 | 0 | Completed standalone auth form migration using shared card, form, input, button, and error helpers. |
+| `SetupRequired` | `src/app/App.js` | Migrated | Migrated | 0 | 0 | Completed standalone setup gate migration using shared card, section header, and status badge helpers. |
 | `App` shell | 2764-2844 | 7 | 9 | 0 | 0 | Header and bottom nav should migrate after shared primitives are ready. |
 
 ## Priority 1 - Shared, Low-Risk Foundations
@@ -68,9 +68,10 @@ This backlog is based on a review of `src/App.js` on June 27, 2026. The app shou
 ### 6. Auth and setup states
 - Scope: Migrate `AuthGate` and `SetupRequired` to `Card`, `Button`, shared inputs, and status messaging.
 - Why: Low-risk standalone screens that validate the design system.
+- Status: Complete.
 - Risk: Low.
 - Effort: Small.
-- Inline-heavy signs: Custom cards, typography, messages, and button styles.
+- Notes: Password sign-in, magic-link fallback, resend cooldown, setup gating, and auth error handling were preserved.
 
 ### 7. Header and bottom navigation shell
 - Scope: Replace root header buttons, connection status, and bottom nav styles with shared app-shell patterns.
@@ -134,4 +135,4 @@ This backlog is based on a review of `src/App.js` on June 27, 2026. The app shou
 - Redesigning existing information architecture.
 
 ## Suggested Next Step
-Migrate `AuthGate` and `SetupRequired` next. They are standalone, low-risk screens that can validate the shared form and card primitives before larger module work.
+Migrate app shell and navigation next. Keep the scope to `AppHeader`, `BottomNavigation`, global loading wrapper, and shared shell styling; defer Finance, Pool, and College module screens.

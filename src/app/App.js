@@ -14,15 +14,29 @@ import { Pool, getChemRecommendations } from "../modules/pool/Pool";
 import { Finance, calcRetirementProjection, formatMoneyShort } from "../modules/finance/Finance";
 import { QuickAdd } from "../modules/quick-add/QuickAdd";
 import { TABS, TITLES } from "./navigation/tabs";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { FormError, FormGroup, FormHelp, FormSection } from "../components/ui/form";
+import { SectionHeader } from "../components/ui/section-header";
+import { StatusBadge } from "../components/ui/badge";
 function SetupRequired(){
   return(
-    <div style={{...S.app,padding:"40px 20px"}}>
+    <div style={S.app} className="px-5 py-10">
       <div style={S.logo}><span style={S.logoAccent}>Family</span>OS</div>
-      <div style={{...S.card,marginTop:24}}>
-        <div style={{fontSize:20,fontWeight:800,marginBottom:10}}>Setup required</div>
-        <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5,marginBottom:14}}>Add these missing environment variables in `.env.local` and Vercel before running the app.</div>
-        {CONFIG_STATUS.missing.map(key=><div key={key} style={{fontSize:14,color:COLORS.amber,fontWeight:700,marginBottom:6}}>{key}</div>)}
-      </div>
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Setup required</CardTitle>
+          <CardDescription>Add these missing environment variables in `.env.local` and Vercel before running the app.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <SectionHeader title="Missing Config" className="mt-0" tone="amber"/>
+          <div className="flex flex-wrap gap-2">
+            {CONFIG_STATUS.missing.map(key=><StatusBadge key={key} status="warning" className="normal-case">{key}</StatusBadge>)}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -35,24 +49,35 @@ function AuthGate({auth}){
   const signInButtonText = auth.sending ? "Signing in..." : "Sign in";
   const magicLinkButtonText = auth.sending ? "Sending..." : "Email me a sign-in link";
   return(
-    <div style={{...S.app,padding:"40px 20px"}}>
+    <div style={S.app} className="px-5 py-10">
       <div style={S.logo}><span style={S.logoAccent}>Family</span>OS</div>
-      <div style={{...S.card,marginTop:24}}>
-        <div style={{fontSize:20,fontWeight:800,marginBottom:10}}>Sign in</div>
-        <div style={{fontSize:15,color:COLORS.slateLight,lineHeight:1.5,marginBottom:18}}>Use your approved family email and password. Your session stays saved on this device until you sign out.</div>
-        <label style={S.label}>Email</label>
-        <input style={S.input} type="email" value={email} placeholder="you@example.com" onChange={e=>setEmail(e.target.value)} />
-        <label style={{...S.label,marginTop:12}}>Password</label>
-        <input style={S.input} type="password" value={password} placeholder="Password" onChange={e=>setPassword(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!auth.sending)auth.signInWithPassword(email,password);}}/>
-        <button style={{...S.btn,opacity:auth.sending?0.65:1,cursor:auth.sending?"not-allowed":"pointer"}} disabled={auth.sending} onClick={()=>auth.signInWithPassword(email,password)}>{signInButtonText}</button>
-        <div style={{height:1,background:COLORS.navyLight,margin:"18px 0 14px"}}/>
-        <div style={{fontSize:14,color:COLORS.slateLight,lineHeight:1.4,marginBottom:10}}>Need a fallback? Send a one-time magic link to the same approved email.</div>
-        {!hasSentLink&&<button style={{...S.btn,background:COLORS.slate2,opacity:canSend?1:0.65,cursor:canSend?"pointer":"not-allowed"}} disabled={!canSend} onClick={()=>auth.sendMagicLink(email)}>{magicLinkButtonText}</button>}
-        {auth.message&&<div style={{fontSize:15,color:COLORS.green,marginTop:12,lineHeight:1.4}}>{auth.message}</div>}
-        {auth.resendCooldown>0&&<div style={{fontSize:14,color:COLORS.slateLight,marginTop:8,lineHeight:1.4}}>You can resend in {auth.resendCooldown} seconds.</div>}
-        {hasSentLink&&<button style={{...S.btn,marginTop:10,background:COLORS.slate2,opacity:canSend?1:0.65,cursor:canSend?"pointer":"not-allowed"}} disabled={!canSend} onClick={()=>auth.sendMagicLink(email)}>Resend link</button>}
-        {auth.error&&<div style={{fontSize:15,color:COLORS.red,marginTop:12,lineHeight:1.4}}>{auth.error}</div>}
-      </div>
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Sign in</CardTitle>
+          <CardDescription>Use your approved family email and password. Your session stays saved on this device until you sign out.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FormSection>
+            <FormGroup>
+              <Label>Email</Label>
+              <Input type="email" value={email} placeholder="you@example.com" onChange={e=>setEmail(e.target.value)} />
+            </FormGroup>
+            <FormGroup>
+              <Label>Password</Label>
+              <Input type="password" value={password} placeholder="Password" onChange={e=>setPassword(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!auth.sending)auth.signInWithPassword(email,password);}}/>
+            </FormGroup>
+            <Button type="button" className="w-full" disabled={auth.sending} onClick={()=>auth.signInWithPassword(email,password)}>{signInButtonText}</Button>
+            <div className="border-t border-border pt-4">
+              <FormHelp className="mb-3">Need a fallback? Send a one-time magic link to the same approved email.</FormHelp>
+              {!hasSentLink&&<Button type="button" variant="secondary" className="w-full" disabled={!canSend} onClick={()=>auth.sendMagicLink(email)}>{magicLinkButtonText}</Button>}
+              {auth.message&&<FormHelp className="mt-3 font-semibold text-emerald-300">{auth.message}</FormHelp>}
+              {auth.resendCooldown>0&&<FormHelp className="mt-2">You can resend in {auth.resendCooldown} seconds.</FormHelp>}
+              {hasSentLink&&<Button type="button" variant="secondary" className="mt-3 w-full" disabled={!canSend} onClick={()=>auth.sendMagicLink(email)}>Resend link</Button>}
+            </div>
+            {auth.error&&<FormError>{auth.error}</FormError>}
+          </FormSection>
+        </CardContent>
+      </Card>
     </div>
   );
 }
