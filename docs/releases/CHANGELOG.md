@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Migrated QuickAdd UI to the shared drawer, form primitives, segmented controls, chips, and Lucide icons while preserving existing save behavior.
 - Added Phase 1 UI migration primitives for forms, segmented controls, chips, section headers, empty states, and status badges without changing feature screen behavior.
 - Made email/password the primary Supabase login path for the private household app while keeping magic links as a fallback.
 - Refactored the React app into a modular source structure with src/app, src/modules, src/hooks, and src/utils while preserving current behavior.

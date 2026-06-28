@@ -1,8 +1,16 @@
 import { useState } from "react";
-import { COLORS, S } from "../../theme";
+import { Check, ChevronLeft, ClipboardList, Droplets, FileText, GraduationCap, Plus, Wrench } from "lucide-react";
 import { TODAY_STR } from "../../lib/dates";
 import { sb } from "../../lib/supabase";
 import { useTable } from "../../hooks/useTable";
+import { OriginDrawer } from "../../components/origin/drawer";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+import { Textarea } from "../../components/ui/textarea";
+import { FormError, FormGroup, FormHelp, FormRow, FormSection } from "../../components/ui/form";
+import { ChipGroup, SegmentedControl } from "../../components/ui/segmented-control";
+import { SectionHeader } from "../../components/ui/section-header";
 // - QUICK ADD -
 export function QuickAdd({onNavigate}){
   const [open,setOpen] = useState(false);
@@ -15,15 +23,26 @@ export function QuickAdd({onNavigate}){
   function close(){setOpen(false);setMode(null);setForm({});setSaveError(null);}
 
   const options=[
-    {id:"task",    icon:" ", label:"Quick Task",      color:COLORS.purple},
-    {id:"pool",    icon:" ", label:"Pool Reading",    color:COLORS.blue},
-    {id:"maint",   icon:" ", label:"Maintenance",     color:COLORS.amber},
-    {id:"college", icon:" ", label:"College Deadline",color:COLORS.red},
-    {id:"note",    icon:" ", label:"Quick Note",      color:COLORS.slate},
+    {id:"task",    icon:ClipboardList, label:"Quick Task",      accentClass:"border-l-violet-400", iconClass:"text-violet-300"},
+    {id:"pool",    icon:Droplets,      label:"Pool Reading",    accentClass:"border-l-primary", iconClass:"text-primary"},
+    {id:"maint",   icon:Wrench,        label:"Maintenance",     accentClass:"border-l-amber-400", iconClass:"text-amber-300"},
+    {id:"college", icon:GraduationCap, label:"College Deadline",accentClass:"border-l-destructive", iconClass:"text-destructive"},
+    {id:"note",    icon:FileText,      label:"Quick Note",      accentClass:"border-l-muted-foreground", iconClass:"text-muted-foreground"},
   ];
 
   const CATS = ["Pool","Yard","Home","College","Finance","Personal","Work"];
   const NOTE_TAGS = ["Pool","Home","College","Finance","General"];
+  const RECURRING_OPTIONS = [
+    {value:null,label:"One-time"},
+    {value:3,label:"Every 3d"},
+    {value:7,label:"Every 7d"},
+    {value:14,label:"Every 14d"},
+    {value:30,label:"Every 30d"},
+    {value:60,label:"Every 60d"},
+    {value:90,label:"Every 90d"},
+  ];
+  const MAINT_TYPES = ["Check water level","Clean skimmer basket","Brushed walls & floor","Added salt","Cleaned cartridge filter","Cleaned salt cell","Checked flow switch","Other"];
+  const modeTitle = options.find(o=>o.id===mode)?.label || "Quick Add";
 
   async function saveTask(){
     setSaveError(null);
@@ -72,128 +91,137 @@ export function QuickAdd({onNavigate}){
   }
 
   return(<>
-    <button onClick={()=>setOpen(true)}
-      style={{position:"fixed",bottom:80,right:20,width:52,height:52,borderRadius:"50%",background:COLORS.blue,color:"#fff",border:"none",fontSize:26,fontWeight:300,cursor:"pointer",zIndex:30,boxShadow:"0 4px 20px rgba(74,144,217,0.4)",display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1,WebkitTapHighlightColor:"transparent"}}>+</button>
+    <Button
+      type="button"
+      size="icon-xl"
+      aria-label="Open quick add"
+      className="fixed bottom-20 right-5 z-30 h-[52px] w-[52px] rounded-full shadow-[0_4px_20px_rgba(74,144,217,0.4)]"
+      onClick={()=>setOpen(true)}
+    >
+      <Plus aria-hidden="true"/>
+    </Button>
 
-    {open&&<div style={S.modal} onClick={e=>e.target===e.currentTarget&&close()}>
-      <div style={S.sheet}>
-        <div style={S.sheetHandle}/>
+    <OriginDrawer open={open} onOpenChange={(nextOpen)=>{ if(!nextOpen) close(); }} title={modeTitle}>
         {!mode&&<>
-          <div style={{...S.sheetTitle,marginBottom:20}}>Quick Add</div>
-          {options.map(o=>(
-            <button key={o.id} onClick={()=>setMode(o.id)} style={{display:"flex",alignItems:"center",gap:14,width:"100%",background:COLORS.navyLight,border:`1px solid ${COLORS.navyLight}`,borderLeft:`3px solid ${o.color}`,borderRadius:12,padding:"14px 16px",marginBottom:10,cursor:"pointer",color:COLORS.white,textAlign:"left"}}>
-              <span style={{fontSize:22}}>{o.icon}</span>
-              <span style={{fontSize:15,fontWeight:600}}>{o.label}</span>
-            </button>
-          ))}
-          <button onClick={close} style={{...S.btnSm,width:"100%",marginTop:10}}>Cancel</button>
+          <SectionHeader title="Choose Type" className="mt-0"/>
+          <div className="space-y-2">
+          {options.map(o=>{
+            const Icon = o.icon;
+            return (
+              <button key={o.id} onClick={()=>setMode(o.id)} className={`flex min-h-12 w-full items-center gap-3 rounded-lg border border-l-[3px] border-border bg-secondary px-4 py-3 text-left text-foreground transition-colors hover:border-primary/50 ${o.accentClass}`}>
+                <Icon size={20} aria-hidden="true" className={o.iconClass}/>
+                <span className="text-sm font-semibold">{o.label}</span>
+              </button>
+            );
+          })}
+          </div>
+          <Button type="button" variant="secondary" className="mt-4 w-full" onClick={close}>Cancel</Button>
         </>}
 
         {mode==="task"&&<>
-          <div style={S.sheetTitle}>  Quick Task</div>
-          <label style={S.label}>Title</label>
-          <input style={S.input} placeholder="e.g. Mow front yard" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
-          <label style={S.label}>Category</label>
-          <div>{CATS.map(c=><span key={c} style={S.chip(form.category===c,COLORS.purple)} onClick={()=>setForm(p=>({...p,category:c}))}>{c}</span>)}</div>
-          <div style={{display:"flex",alignItems:"center",gap:10,margin:"12px 0 8px"}}>
-            <div style={{width:20,height:20,borderRadius:6,border:`2px solid ${form.is_important?COLORS.purple:COLORS.slate}`,background:form.is_important?COLORS.purple:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}} onClick={()=>setForm(p=>({...p,is_important:!p.is_important}))}>
-              {form.is_important&&<span style={{color:"#fff",fontSize:12,lineHeight:1}}> </span>}
-            </div>
-            <label style={{...S.label,marginBottom:0,cursor:"pointer"}} onClick={()=>setForm(p=>({...p,is_important:!p.is_important}))}>  Mark as important</label>
-          </div>
-          <label style={S.label}>Due Date (optional)</label>
-          <input type="date" style={S.input} value={form.due_date||""} onChange={e=>setForm(p=>({...p,due_date:e.target.value}))}/>
-          <label style={S.label}>Recurring (optional)</label>
-          <div style={{marginBottom:12}}>
-            {[null,3,7,14,30,60,90].map(d=>(
-              <span key={d||"none"} style={S.chip(form.recurring_interval_days===(d?String(d):null)||form.recurring_interval_days===d, COLORS.blue)}
-                onClick={()=>setForm(p=>({...p,recurring_interval_days:d||null}))}>
-                {d?`Every ${d}d`:"One-time"}
+          <FormSection>
+            <FormGroup>
+              <Label>Title</Label>
+              <Input placeholder="e.g. Mow front yard" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
+            </FormGroup>
+            <FormGroup>
+              <Label>Category</Label>
+              <ChipGroup value={form.category} options={CATS} ariaLabel="Task category" onValueChange={category=>setForm(p=>({...p,category}))}/>
+            </FormGroup>
+            <button type="button" className="flex w-full items-center gap-3 rounded-lg border border-border bg-secondary px-3 py-3 text-left text-sm font-semibold text-secondary-foreground" onClick={()=>setForm(p=>({...p,is_important:!p.is_important}))}>
+              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${form.is_important?"border-violet-400 bg-violet-500 text-white":"border-muted-foreground"}`}>
+                {form.is_important&&<Check size={14} aria-hidden="true"/>}
               </span>
-            ))}
-          </div>
-          <label style={S.label}>Notes (optional)</label>
-          <input style={S.input} placeholder="Details" value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
-          <button style={S.btn} onClick={saveTask}>Add Task</button>
-          {saveError&&<div style={{fontSize:15,color:COLORS.red,marginTop:10}}>{saveError}</div>}
-          <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={()=>setMode(null)}>  Back</button>
+              Mark as important
+            </button>
+            <FormGroup>
+              <Label>Due Date (optional)</Label>
+              <Input type="date" value={form.due_date||""} onChange={e=>setForm(p=>({...p,due_date:e.target.value}))}/>
+            </FormGroup>
+            <FormGroup>
+              <Label>Recurring (optional)</Label>
+              <ChipGroup value={form.recurring_interval_days??null} options={RECURRING_OPTIONS} ariaLabel="Recurring interval" onValueChange={recurring_interval_days=>setForm(p=>({...p,recurring_interval_days}))}/>
+            </FormGroup>
+            <FormGroup>
+              <Label>Notes (optional)</Label>
+              <Input placeholder="Details" value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
+            </FormGroup>
+            <Button type="button" className="w-full" onClick={saveTask}>Add Task</Button>
+            {saveError&&<FormError>{saveError}</FormError>}
+            <Button type="button" variant="secondary" className="w-full" onClick={()=>setMode(null)}><ChevronLeft aria-hidden="true"/>Back</Button>
+          </FormSection>
         </>}
 
         {mode==="pool"&&<>
-          <div style={S.sheetTitle}>  Pool Reading</div>
-          <div style={S.row}>
-            <div style={S.col}><label style={S.label}>Date</label><input type="date" style={S.input} value={form.date||TODAY_STR} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/></div>
-            <div style={{flex:"0 0 100px"}}><label style={S.label}>Time</label><input type="time" style={S.input} value={form.time||new Date().toTimeString().slice(0,5)} onChange={e=>setForm(p=>({...p,time:e.target.value}))}/></div>
-          </div>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-            <label style={{...S.label,marginBottom:0}}>Free Chlorine</label>
-            <div style={{display:"flex",gap:6}}>
-              <span style={S.chip(!form._drops,COLORS.blue)} onClick={()=>setForm(p=>({...p,_drops:false}))}>ppm</span>
-              <span style={S.chip(!!form._drops,COLORS.purple)} onClick={()=>setForm(p=>({...p,_drops:true}))}>K-2006</span>
-            </div>
-          </div>
-          <input type="number" step="0.5" style={S.input} placeholder={form._drops?"e.g. 11 drops":"e.g. 5.5"} value={form.free_chlorine||""} onChange={e=>setForm(p=>({...p,free_chlorine:e.target.value}))}/>
-          {form._drops&&form.free_chlorine&&<div style={{fontSize:15,color:COLORS.purple,marginTop:-6,marginBottom:10}}>= {(+form.free_chlorine*0.5).toFixed(1)} ppm FC</div>}
-          <label style={S.label}>CC</label>
-          <input type="number" step="0.5" style={S.input} placeholder="0" value={form.cc!==undefined?form.cc:""} onChange={e=>setForm(p=>({...p,cc:e.target.value}))}/>
-          <div style={S.row}>
-            <div style={S.col}><label style={S.label}>pH</label><input type="number" step="0.1" style={S.input} value={form.ph||""} onChange={e=>setForm(p=>({...p,ph:e.target.value}))}/></div>
-            <div style={S.col}><label style={S.label}>Salt (ppm)</label><input type="number" style={S.input} value={form.salt||""} onChange={e=>setForm(p=>({...p,salt:e.target.value}))}/></div>
-          </div>
-          <div style={S.row}>
-            <div style={S.col}><label style={S.label}>CYA (ppm)</label><input type="number" style={S.input} value={form.cya||""} onChange={e=>setForm(p=>({...p,cya:e.target.value}))}/></div>
-            <div style={S.col}><label style={S.label}>TA (ppm)</label><input type="number" style={S.input} value={form.alkalinity||""} onChange={e=>setForm(p=>({...p,alkalinity:e.target.value}))}/></div>
-          </div>
-          <div style={S.row}>
-            <div style={S.col}><label style={S.label}>Filter PSI</label><input type="number" style={S.input} value={form.filter_pressure||""} onChange={e=>setForm(p=>({...p,filter_pressure:e.target.value}))}/></div>
-            <div style={S.col}><label style={S.label}>SWG (%)</label><input type="number" style={S.input} value={form.swg_setting||""} onChange={e=>setForm(p=>({...p,swg_setting:e.target.value}))}/></div>
-          </div>
-          <label style={S.label}>Notes</label>
-          <input style={S.input} value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
-          <button style={S.btn} onClick={savePool}>Save Reading</button>
-          {saveError&&<div style={{fontSize:15,color:COLORS.red,marginTop:10}}>{saveError}</div>}
-          <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={()=>setMode(null)}>  Back</button>
+          <FormSection>
+            <FormRow>
+              <FormGroup><Label>Date</Label><Input type="date" value={form.date||TODAY_STR} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/></FormGroup>
+              <FormGroup><Label>Time</Label><Input type="time" value={form.time||new Date().toTimeString().slice(0,5)} onChange={e=>setForm(p=>({...p,time:e.target.value}))}/></FormGroup>
+            </FormRow>
+            <FormGroup>
+              <div className="flex items-center justify-between gap-3">
+                <Label className="mb-0">Free Chlorine</Label>
+                <SegmentedControl value={form._drops?"drops":"ppm"} options={[{value:"ppm",label:"ppm"},{value:"drops",label:"K-2006"}]} ariaLabel="Free chlorine entry mode" onValueChange={v=>setForm(p=>({...p,_drops:v==="drops"}))}/>
+              </div>
+              <Input type="number" step="0.5" placeholder={form._drops?"e.g. 11 drops":"e.g. 5.5"} value={form.free_chlorine||""} onChange={e=>setForm(p=>({...p,free_chlorine:e.target.value}))}/>
+              {form._drops&&form.free_chlorine&&<FormHelp>= {(+form.free_chlorine*0.5).toFixed(1)} ppm FC</FormHelp>}
+            </FormGroup>
+            <FormGroup><Label>CC</Label><Input type="number" step="0.5" placeholder="0" value={form.cc!==undefined?form.cc:""} onChange={e=>setForm(p=>({...p,cc:e.target.value}))}/></FormGroup>
+            <FormRow>
+              <FormGroup><Label>pH</Label><Input type="number" step="0.1" value={form.ph||""} onChange={e=>setForm(p=>({...p,ph:e.target.value}))}/></FormGroup>
+              <FormGroup><Label>Salt (ppm)</Label><Input type="number" value={form.salt||""} onChange={e=>setForm(p=>({...p,salt:e.target.value}))}/></FormGroup>
+            </FormRow>
+            <FormRow>
+              <FormGroup><Label>CYA (ppm)</Label><Input type="number" value={form.cya||""} onChange={e=>setForm(p=>({...p,cya:e.target.value}))}/></FormGroup>
+              <FormGroup><Label>TA (ppm)</Label><Input type="number" value={form.alkalinity||""} onChange={e=>setForm(p=>({...p,alkalinity:e.target.value}))}/></FormGroup>
+            </FormRow>
+            <FormRow>
+              <FormGroup><Label>Filter PSI</Label><Input type="number" value={form.filter_pressure||""} onChange={e=>setForm(p=>({...p,filter_pressure:e.target.value}))}/></FormGroup>
+              <FormGroup><Label>SWG (%)</Label><Input type="number" value={form.swg_setting||""} onChange={e=>setForm(p=>({...p,swg_setting:e.target.value}))}/></FormGroup>
+            </FormRow>
+            <FormGroup><Label>Notes</Label><Input value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/></FormGroup>
+            <Button type="button" className="w-full" onClick={savePool}>Save Reading</Button>
+            {saveError&&<FormError>{saveError}</FormError>}
+            <Button type="button" variant="secondary" className="w-full" onClick={()=>setMode(null)}><ChevronLeft aria-hidden="true"/>Back</Button>
+          </FormSection>
         </>}
 
         {mode==="maint"&&<>
-          <div style={S.sheetTitle}>  Maintenance Task</div>
-          <label style={S.label}>Task</label>
-          <div>{["Check water level","Clean skimmer basket","Brushed walls & floor","Added salt","Cleaned cartridge filter","Cleaned salt cell","Checked flow switch","Other"].map(t=>(
-            <span key={t} style={S.chip(form.type===t,COLORS.amber)} onClick={()=>setForm(p=>({...p,type:t}))}>{t}</span>
-          ))}</div>
-          <label style={S.label}>Date</label>
-          <input type="date" style={S.input} value={form.date||TODAY_STR} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/>
-          <label style={S.label}>Notes</label>
-          <input style={S.input} value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
-          <button style={S.btn} onClick={saveMaint}>Log Task</button>
-          <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={()=>setMode(null)}>  Back</button>
+          <FormSection>
+            <FormGroup>
+              <Label>Task</Label>
+              <ChipGroup value={form.type} options={MAINT_TYPES} ariaLabel="Maintenance task type" onValueChange={type=>setForm(p=>({...p,type}))}/>
+            </FormGroup>
+            <FormGroup><Label>Date</Label><Input type="date" value={form.date||TODAY_STR} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/></FormGroup>
+            <FormGroup><Label>Notes</Label><Input value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/></FormGroup>
+            <Button type="button" className="w-full" onClick={saveMaint}>Log Task</Button>
+            <Button type="button" variant="secondary" className="w-full" onClick={()=>setMode(null)}><ChevronLeft aria-hidden="true"/>Back</Button>
+          </FormSection>
         </>}
 
         {mode==="college"&&<>
-          <div style={S.sheetTitle}>  College Deadline</div>
-          <label style={S.label}>Title</label>
-          <input style={S.input} placeholder="e.g. Submit Common App" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
-          <label style={S.label}>Due Date</label>
-          <input type="date" style={S.input} value={form.due_date||""} onChange={e=>setForm(p=>({...p,due_date:e.target.value}))}/>
-          <label style={S.label}>School (optional)</label>
-          <input style={S.input} value={form.school||""} onChange={e=>setForm(p=>({...p,school:e.target.value}))}/>
-          <button style={S.btn} onClick={saveCollege}>Add Deadline</button>
-          <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={()=>setMode(null)}>  Back</button>
+          <FormSection>
+            <FormGroup><Label>Title</Label><Input placeholder="e.g. Submit Common App" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/></FormGroup>
+            <FormGroup><Label>Due Date</Label><Input type="date" value={form.due_date||""} onChange={e=>setForm(p=>({...p,due_date:e.target.value}))}/></FormGroup>
+            <FormGroup><Label>School (optional)</Label><Input value={form.school||""} onChange={e=>setForm(p=>({...p,school:e.target.value}))}/></FormGroup>
+            <Button type="button" className="w-full" onClick={saveCollege}>Add Deadline</Button>
+            <Button type="button" variant="secondary" className="w-full" onClick={()=>setMode(null)}><ChevronLeft aria-hidden="true"/>Back</Button>
+          </FormSection>
         </>}
 
         {mode==="note"&&<>
-          <div style={S.sheetTitle}>  Quick Note</div>
-          <label style={S.label}>Tag</label>
-          <div style={{marginBottom:14}}>{NOTE_TAGS.map(t=><span key={t} style={S.chip(form.tag===t,COLORS.slate)} onClick={()=>setForm(p=>({...p,tag:t}))}>{t}</span>)}</div>
-          <label style={S.label}>Title (optional)</label>
-          <input style={S.input} placeholder="e.g. Contractor quote, reminder, idea " value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
-          <label style={S.label}>Note</label>
-          <textarea style={{...S.input,minHeight:120,resize:"none",lineHeight:1.5}} placeholder="What do you want to remember?" value={form.body||""} onChange={e=>setForm(p=>({...p,body:e.target.value}))}/>
-          <button style={S.btn} onClick={saveNote}>Save Note</button>
-          {saveError&&<div style={{fontSize:14,color:COLORS.red,marginTop:10,lineHeight:1.4}}>{saveError}</div>}
-          <button style={{...S.btnSm,width:"100%",marginTop:10}} onClick={()=>setMode(null)}>  Back</button>
+          <FormSection>
+            <FormGroup>
+              <Label>Tag</Label>
+              <ChipGroup value={form.tag} options={NOTE_TAGS} ariaLabel="Note tag" onValueChange={tag=>setForm(p=>({...p,tag}))}/>
+            </FormGroup>
+            <FormGroup><Label>Title (optional)</Label><Input placeholder="e.g. Contractor quote, reminder, idea" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/></FormGroup>
+            <FormGroup><Label>Note</Label><Textarea placeholder="What do you want to remember?" value={form.body||""} onChange={e=>setForm(p=>({...p,body:e.target.value}))}/></FormGroup>
+            <Button type="button" className="w-full" onClick={saveNote}>Save Note</Button>
+            {saveError&&<FormError>{saveError}</FormError>}
+            <Button type="button" variant="secondary" className="w-full" onClick={()=>setMode(null)}><ChevronLeft aria-hidden="true"/>Back</Button>
+          </FormSection>
         </>}
-      </div>
-    </div>}
+    </OriginDrawer>
   </>);
 }

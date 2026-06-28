@@ -17,7 +17,7 @@ This backlog is based on a review of `src/App.js` on June 27, 2026. The app shou
 | `Finance` | 1875-2565 | 223 | 125 | 8 | 3 | Highest density; many cards, projections, simulations, forms, and finance summaries. |
 | `Pool` | 1034-1725 | 163 | 100 | 4 | 4 | Chemistry cards, recommendations, treatment UI, logs, and health summaries. |
 | `College` | 528-825 | 111 | 97 | 5 | 9 | Deadline lists, timeline cards, school/essay/test forms. |
-| `QuickAdd` | 2566-2763 | 26 | 74 | 0 | 0 | High-value shared workflow; currently has custom drawer implementation. |
+| `QuickAdd` | `src/modules/quick-add/QuickAdd.js` | Migrated | Migrated | Drawer | 0 | Completed first feature-surface migration using shared drawer, form primitives, segmented controls, and chips. |
 | `PoolBrief` | 826-1033 | 24 | 3 | 1 | 0 | AI brief output, follow-up chat, loading/error states. |
 | `RetirementBrief` | 1726-1874 | 19 | 4 | 1 | 0 | AI brief output similar to PoolBrief. |
 | `CalendarBanner` | 505-527 | 8 | 4 | 0 | 0 | Low-risk shared banner, currently unused. |
@@ -60,9 +60,10 @@ This backlog is based on a review of `src/App.js` on June 27, 2026. The app shou
 ### 5. QuickAdd drawer
 - Scope: Replace the custom `QuickAdd` sheet and action buttons with `OriginDrawer`, shadcn `Button`, shared form controls, and Lucide icons.
 - Why: High-use workflow with limited surface area.
+- Status: Complete.
 - Risk: Medium.
 - Effort: Medium.
-- Inline-heavy signs: Custom fixed FAB, custom sheet, custom option rows, repeated form controls.
+- Notes: Migrated in place after QuickAdd was extracted to `src/modules/quick-add/QuickAdd.js`; save handlers and Supabase row shapes were preserved.
 
 ### 6. Auth and setup states
 - Scope: Migrate `AuthGate` and `SetupRequired` to `Card`, `Button`, shared inputs, and status messaging.
@@ -133,4 +134,4 @@ This backlog is based on a review of `src/App.js` on June 27, 2026. The app shou
 - Redesigning existing information architecture.
 
 ## Suggested Next Step
-Start with form primitives and chip/segmented controls, then migrate `QuickAdd`. That path exercises drawers, forms, buttons, badges, and icons without touching the highest-risk finance and pool calculations.
+Migrate `AuthGate` and `SetupRequired` next. They are standalone, low-risk screens that can validate the shared form and card primitives before larger module work.
