@@ -65,7 +65,7 @@ declare
   module_user_count bigint;
   null_user_rows bigint := 0;
   table_null_user_rows bigint;
-  table_name text;
+  module_table_name text;
 begin
   select string_agg(mt.table_name, ', ' order by mt.table_name)
   into missing_tables
@@ -97,17 +97,17 @@ begin
   execute (
     select format(
       'select count(distinct user_id) from (%s) module_users',
-      string_agg(format('select user_id from public.%I where user_id is not null', table_name), ' union all ')
+      string_agg(format('select user_id from public.%I where user_id is not null', mt.table_name), ' union all ' order by mt.table_name)
     )
-    from migration_module_tables
+    from migration_module_tables mt
   ) into module_user_count;
 
-  for table_name in
+  for module_table_name in
     select mt.table_name
     from migration_module_tables mt
     order by mt.table_name
   loop
-    execute format('select count(*) from public.%I where user_id is null', table_name)
+    execute format('select count(*) from public.%I where user_id is null', module_table_name)
     into table_null_user_rows;
     null_user_rows := null_user_rows + table_null_user_rows;
   end loop;
@@ -223,21 +223,21 @@ create unique index if not exists household_members_active_user_unique
 -- current user_id RLS policies continue to work during review and app updates.
 do $$
 declare
-  table_name text;
+  module_table_name text;
 begin
-  for table_name in
+  for module_table_name in
     select mt.table_name
     from migration_module_tables mt
     order by mt.table_name
   loop
     execute format(
       'alter table public.%I add column if not exists household_id uuid references public.households(id)',
-      table_name
+      module_table_name
     );
     execute format(
       'create index if not exists %I on public.%I(household_id)',
-      table_name || '_household_id_idx',
-      table_name
+      module_table_name || '_household_id_idx',
+      module_table_name
     );
   end loop;
 end $$;
@@ -336,9 +336,9 @@ where household_member.household_id = bootstrap.household_id
 
 do $$
 declare
-  table_name text;
+  module_table_name text;
 begin
-  for table_name in
+  for module_table_name in
     select mt.table_name
     from migration_module_tables mt
     order by mt.table_name
@@ -349,7 +349,7 @@ begin
        from familyos_internal.household_bootstrap_map bootstrap
        where target.user_id = bootstrap.user_id
          and target.household_id is null',
-      table_name
+      module_table_name
     );
   end loop;
 end $$;
@@ -491,7 +491,7 @@ declare
   owner_membership_count bigint;
   missing_household_rows bigint := 0;
   table_missing_rows bigint;
-  table_name text;
+  module_table_name text;
 begin
   select count(*) into auth_user_count from auth.users;
   select count(*) into profile_count from public.profiles;
@@ -521,14 +521,14 @@ begin
       auth_user_count;
   end if;
 
-  for table_name in
+  for module_table_name in
     select mt.table_name
     from migration_module_tables mt
     order by mt.table_name
   loop
     execute format(
       'select count(*) from public.%I where user_id is not null and household_id is null',
-      table_name
+      module_table_name
     )
     into table_missing_rows;
     missing_household_rows := missing_household_rows + table_missing_rows;
