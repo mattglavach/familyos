@@ -27,11 +27,13 @@ Establish the shared AI development workspace and documentation foundation.
 - [x] Smoke test local household context with local auth users
 - [x] Validate clean local Supabase migration replay
 - [x] Prepare Tasks for household-aware reads and inserts
+- [x] Validate local email/password auth with Household Context and Tasks
 
 ## Blockers
 - No active Sprint 1B blocker is recorded for the household context layer.
 - Optional starter data still requires replacing `seed_user_id` in `supabase/seed.sql` with a local auth user UUID before manual seeding.
 - Production household migration remains blocked pending review of the Tasks transition and later module-level RLS plan.
+- Production password reset/change validation remains blocked until Supabase Auth Site URL, redirect URLs, and email templates are reviewed.
 
 ## Notes
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.
@@ -54,5 +56,6 @@ Establish the shared AI development workspace and documentation foundation.
 - Household context now loads profile, household, membership, role, and coarse permissions after authenticated session without migrating module queries yet.
 - Local household context smoke testing passed after adding authenticated table grants required by the local Supabase API; module-table RLS remains the legacy `user_id` policy.
 - Clean local Supabase replay now passes from migrations, and Tasks now uses Household Context for `household_id` reads/inserts when available while retaining legacy fallback.
+- Local email/password login works through the app UI, session persists after reload, Household Context loads, and Tasks renders the household-aware empty state.
 
 - App structure refactor moved the shell, hooks, and user-facing modules out of the monolithic src/App.js; pnpm run check passes after the split.

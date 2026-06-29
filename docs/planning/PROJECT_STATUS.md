@@ -24,12 +24,13 @@ Documentation foundation being established.
 - Local household context smoke test with local-only auth users
 - Clean local Supabase migration replay from baseline and household migrations
 - Tasks household-aware read/insert preparation with legacy fallback
+- Local email/password auth UI validation with Household Context and Tasks
 
 ## In Progress
 - Household foundation application integration
 
 ## Next
-- Create local auth/bootstrap data after clean replay and smoke test Tasks through the UI
+- Create local task records through the UI and confirm `household_id` is written
 - Design a separate Tasks RLS migration only after app behavior is validated
 - Migrate one feature module at a time after Tasks proves the pattern
 
@@ -40,6 +41,7 @@ Documentation foundation being established.
 - Google Calendar sync requires the active browser origin to be listed in Google Cloud Console Authorized JavaScript origins for the configured OAuth client.
 - Optional starter data requires replacing `seed_user_id` in `supabase/seed.sql` with a local auth user UUID before manual seed loading.
 - Production household migration remains blocked until Tasks behavior, backfill, and later module-level RLS are reviewed.
+- Production password reset/change validation remains blocked until Supabase Auth Site URL, redirect URLs, and email templates are reviewed.
 
 ## Technical Debt
 - Existing feature screens still contain substantial inline styles and should be migrated gradually to shadcn/ui and Origin UI components during feature work.
