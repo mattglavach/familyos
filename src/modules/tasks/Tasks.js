@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { EmptyState, Loading, Modal, SwipeCard, SwipeHint } from "../../components/common";
+import { useHousehold } from "../../hooks/useHousehold";
 import { COLORS, S } from "../../theme";
 
 // - TASKS (merged home maintenance + task tracker) -
@@ -8,7 +9,17 @@ export function Tasks({deps}){
     TODAY_DATE,TODAY_STR,daysBetween,nextDueDate,formatDate,
     maintStatus,maintColor,useTable,
   } = deps;
-  const tasks      = useTable("tasks","due_date",true);
+  const household = useHousehold();
+  const householdId = household.currentHousehold?.id || null;
+  const taskTableOptions = useMemo(()=>(
+    householdId
+      ? {
+        filters:{household_id:householdId},
+        insertDefaults:{household_id:householdId},
+      }
+      : undefined
+  ),[householdId]);
+  const tasks      = useTable("tasks","due_date",true,taskTableOptions);
   const homeMaint  = useTable("home_maintenance","title",true);
 
   const [tab,setTab]             = useState("today");

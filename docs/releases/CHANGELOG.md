@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Validated clean local Supabase migration replay and prepared Tasks for household-aware reads/inserts while preserving legacy `user_id` fallback behavior.
 - Smoke tested the local household context path and added required authenticated table grants for local Supabase API access under existing RLS policies.
 - Added the app-level household context provider, hook, and Supabase household service as the foundation for future `household_id` module migrations.
 - Improved authentication UX with action-specific loading states, stricter email validation, clearer password reset confirmation, and an expired reset-link screen.
