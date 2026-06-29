@@ -25,12 +25,12 @@ Documentation foundation being established.
 - Clean local Supabase migration replay from baseline and household migrations
 - Tasks household-aware read/insert preparation with legacy fallback
 - Local email/password auth UI validation with Household Context and Tasks
+- Local Tasks UI write validation confirming `household_id` and legacy `user_id` are both populated
 
 ## In Progress
 - Household foundation application integration
 
 ## Next
-- Create local task records through the UI and confirm `household_id` is written
 - Design a separate Tasks RLS migration only after app behavior is validated
 - Migrate one feature module at a time after Tasks proves the pattern
 

@@ -28,6 +28,7 @@ Establish the shared AI development workspace and documentation foundation.
 - [x] Validate clean local Supabase migration replay
 - [x] Prepare Tasks for household-aware reads and inserts
 - [x] Validate local email/password auth with Household Context and Tasks
+- [x] Validate Tasks UI writes `household_id` while preserving legacy `user_id`
 
 ## Blockers
 - No active Sprint 1B blocker is recorded for the household context layer.
@@ -57,5 +58,6 @@ Establish the shared AI development workspace and documentation foundation.
 - Local household context smoke testing passed after adding authenticated table grants required by the local Supabase API; module-table RLS remains the legacy `user_id` policy.
 - Clean local Supabase replay now passes from migrations, and Tasks now uses Household Context for `household_id` reads/inserts when available while retaining legacy fallback.
 - Local email/password login works through the app UI, session persists after reload, Household Context loads, and Tasks renders the household-aware empty state.
+- Local Tasks UI creation now writes `household_id`, preserves legacy `user_id`, survives reload, and creates no duplicate rows under the current legacy Tasks RLS policy.
 
 - App structure refactor moved the shell, hooks, and user-facing modules out of the monolithic src/App.js; pnpm run check passes after the split.

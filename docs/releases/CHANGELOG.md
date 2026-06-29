@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Validated through the local Tasks UI that new task records write `household_id` while preserving legacy `user_id` and avoiding duplicate rows.
 - Validated local email/password auth through the app UI after household context and Tasks migration; documented future password reset/change requirements.
 - Validated clean local Supabase migration replay and prepared Tasks for household-aware reads/inserts while preserving legacy `user_id` fallback behavior.
 - Smoke tested the local household context path and added required authenticated table grants for local Supabase API access under existing RLS policies.
