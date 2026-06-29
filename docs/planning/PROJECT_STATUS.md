@@ -19,26 +19,28 @@ Documentation foundation being established.
 - Google Calendar OAuth origin setup documentation for local and Vercel deployments
 - Modular app structure with app shell, hooks, modules, and refactor documentation
 - Household foundation branch with local-only migration file and validation/setup documentation
+- Local Supabase baseline and household foundation migrations prepared for ordered local startup
+- App-level household context foundation for profile, membership, role, and permissions
 
 ## In Progress
-- Household foundation local environment setup
+- Household foundation application integration
 
 ## Next
-- Install Docker Desktop, Supabase CLI, and `psql`
-- Initialize local Supabase configuration without linking production
-- Apply the household foundation migration locally only
-- Validate household bootstrap and foundation RLS locally
+- Fill local `.env.local` from local Supabase output
+- Create a local auth user for app smoke testing
+- Validate household context in the running app
+- Migrate one feature module at a time from `user_id` assumptions to `household_id`
 
 ## Known Bugs
 
 - No active deploy-blocking build errors after the CI lint cleanup.
 - Production magic-link and password-reset redirects depend on Supabase Auth Site URL and allowed redirect URLs being set to the deployed FamilyOS origin, including `/reset-password` for recovery links.
 - Google Calendar sync requires the active browser origin to be listed in Google Cloud Console Authorized JavaScript origins for the configured OAuth client.
-- Household migration local apply is blocked until Docker Desktop, Supabase CLI, `psql`, and `supabase/config.toml` are available.
+- Optional starter data requires replacing `seed_user_id` in `supabase/seed.sql` with a local auth user UUID before manual seed loading.
 
 ## Technical Debt
 - Existing feature screens still contain substantial inline styles and should be migrated gradually to shadcn/ui and Origin UI components during feature work.
-- App data access still relies on current `user_id` ownership; household-aware auth/session context and module queries are intentionally deferred until local migration validation passes.
+- App module data access still relies on current `user_id` ownership; module queries are intentionally deferred until each module receives a focused household migration.
 
 ## Last Updated
-June 28, 2026
+June 29, 2026

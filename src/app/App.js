@@ -5,6 +5,7 @@ import { I, S } from "../theme";
 import { CONFIG_STATUS } from "../config";
 import { TODAY_DATE, TODAY_STR, daysAgo, daysBetween, formatDate, formatDateFull, formatTodayShort, nextDueDate } from "../lib/dates";
 import { useGoogleCalendar } from "../hooks/useGoogleCalendar";
+import { HouseholdProvider } from "../context/HouseholdContext";
 import { useSupabaseAuth } from "../hooks/useSupabaseAuth";
 import { useTable } from "../hooks/useTable";
 import { maintColor, maintStatus } from "../utils/status";
@@ -219,24 +220,26 @@ export default function App(){
   if (!auth.session) return <AuthGate auth={auth}/>;
 
   return(
-    <div style={S.app}>
-      <GlobalInteractionStyles/>
-      <AppHeader tab={tab} auth={auth} gc={gc}/>
+    <HouseholdProvider session={auth.session}>
+      <div style={S.app}>
+        <GlobalInteractionStyles/>
+        <AppHeader tab={tab} auth={auth} gc={gc}/>
 
-      {tab==="home"&&<Dashboard onNavigate={switchTab} gc={gc} deps={{
-        TODAY_DATE,TODAY_STR,daysAgo,daysBetween,nextDueDate,formatDate,formatDateFull,
-        formatMoneyShort,maintStatus,useTable,calcRetirementProjection,getChemRecommendations,
-      }}/>} 
-      {tab==="college"&&<College/>}
-      {tab==="tasks"&&<Tasks deps={{
-        TODAY_DATE,TODAY_STR,daysBetween,nextDueDate,formatDate,
-        maintStatus,maintColor,useTable,
-      }}/>} 
-      {tab==="pool"&&<Pool/>}
-      {tab==="finance"&&<Finance/>}
+        {tab==="home"&&<Dashboard onNavigate={switchTab} gc={gc} deps={{
+          TODAY_DATE,TODAY_STR,daysAgo,daysBetween,nextDueDate,formatDate,formatDateFull,
+          formatMoneyShort,maintStatus,useTable,calcRetirementProjection,getChemRecommendations,
+        }}/>} 
+        {tab==="college"&&<College/>}
+        {tab==="tasks"&&<Tasks deps={{
+          TODAY_DATE,TODAY_STR,daysBetween,nextDueDate,formatDate,
+          maintStatus,maintColor,useTable,
+        }}/>} 
+        {tab==="pool"&&<Pool/>}
+        {tab==="finance"&&<Finance/>}
 
-      <QuickAdd onNavigate={switchTab}/>
-      <BottomNavigation tab={tab} onNavigate={switchTab}/>
-    </div>
+        <QuickAdd onNavigate={switchTab}/>
+        <BottomNavigation tab={tab} onNavigate={switchTab}/>
+      </div>
+    </HouseholdProvider>
   );
 }

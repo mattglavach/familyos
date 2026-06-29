@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Added the app-level household context provider, hook, and Supabase household service as the foundation for future `household_id` module migrations.
 - Improved authentication UX with action-specific loading states, stricter email validation, clearer password reset confirmation, and an expired reset-link screen.
 - Added household foundation local-only migration setup documentation and Sprint 1 report; local migration apply remains blocked pending Docker Desktop, Supabase CLI, and `psql`.
 - Created a local-only household foundation migration file under `supabase/migrations/` without applying it.
