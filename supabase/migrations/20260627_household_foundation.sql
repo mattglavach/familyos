@@ -213,6 +213,11 @@ create index if not exists household_members_household_role_idx on public.househ
 create index if not exists household_bootstrap_map_household_id_idx
   on familyos_internal.household_bootstrap_map(household_id);
 
+grant select, insert, update on public.profiles to authenticated;
+grant select, update on public.households to authenticated;
+grant select, insert, update on public.household_members to authenticated;
+grant select, insert, update on public.people to authenticated;
+
 -- Prevent duplicate active login membership for the same user in the same household.
 create unique index if not exists household_members_active_user_unique
   on public.household_members(household_id, user_id)

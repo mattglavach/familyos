@@ -257,5 +257,6 @@ begin
       'create policy "familyos_user_all" on public.%I for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid())',
       table_name
     );
+    execute format('grant select, insert, update, delete on public.%I to authenticated', table_name);
   end loop;
 end $$;
