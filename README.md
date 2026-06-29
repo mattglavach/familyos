@@ -98,9 +98,10 @@ Create `.env.local` from `.env.example` and set:
 In Google Cloud Console, create an OAuth 2.0 web client and add authorized JavaScript origins for local and deployed environments, such as:
 
 - `http://localhost:3000`
+- `http://127.0.0.1:3000`
 - Your Vercel production URL
 
-The app requests read-only Google Calendar access and stores the returned access token in browser local storage.
+The app requests read-only Google Calendar access with the Google Identity Services popup token flow and stores the returned access token in browser local storage. The Calendar flow does not use an application redirect URI; Google validates the exact browser origin instead.
 
 ### Vercel Deployment
 

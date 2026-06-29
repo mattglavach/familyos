@@ -15,7 +15,7 @@ REACT_APP_GOOGLE_CALENDAR_ID=primary
 
 ## OAuth Flow Used By Family OS
 
-The current implementation is in `src/App.js` in `useGoogleCalendar`.
+The current implementation is in `src/hooks/useGoogleCalendar.js`.
 
 - Google script: `https://accounts.google.com/gsi/client`
 - OAuth API: `window.google.accounts.oauth2.initTokenClient`
@@ -35,6 +35,7 @@ Add every app origin that will run Calendar sync to **Authorized JavaScript orig
 
 ```text
 http://localhost:3000
+http://127.0.0.1:3000
 https://YOUR_VERCEL_PRODUCTION_DOMAIN.vercel.app
 https://YOUR_CUSTOM_DOMAIN
 ```
@@ -56,7 +57,9 @@ https://YOUR_CUSTOM_DOMAIN
 1. Copy `.env.example` to `.env.local`.
 2. Set `REACT_APP_GOOGLE_CLIENT_ID` to the Google OAuth Web client ID.
 3. Set `REACT_APP_GOOGLE_CALENDAR_ID` to `primary` or the target calendar ID.
-4. Add `http://localhost:3000` to Authorized JavaScript origins.
+4. Add the exact local origin you use to Authorized JavaScript origins. For current local validation that usually means both:
+   - `http://localhost:3000`
+   - `http://127.0.0.1:3000`
 5. Run `pnpm start`.
 6. Open `http://localhost:3000` and click **Connect**.
 

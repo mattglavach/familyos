@@ -171,6 +171,7 @@ function AppHeader({tab, auth, gc}){
         }
       </div>
     </div>
+    {gc.error&&<div role="alert" className="mt-3 rounded-md border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">{gc.error}</div>}
   </header>;
 }
 

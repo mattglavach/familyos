@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Improved Google Calendar connection diagnostics, documented exact local OAuth origins, and verified FamilyOS icon/manifest references.
 - Migrated Home Maintenance reads/inserts in Tasks and Dashboard to use Household Context while preserving legacy `user_id` and deferring RLS.
 - Migrated Dashboard task reads to use Household Context while keeping non-migrated widgets on legacy user-scoped data access.
 - Added and locally validated a Tasks-only household-aware RLS migration while preserving legacy null-`household_id` fallback behavior.

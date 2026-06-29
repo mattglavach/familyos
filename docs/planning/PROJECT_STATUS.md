@@ -29,11 +29,13 @@ Documentation foundation being established.
 - Local Tasks-only household-aware RLS migration and validation
 - Dashboard household-aware Tasks data access with legacy non-migrated widgets preserved
 - Home Maintenance household-aware Tasks/Dashboard access with RLS deferred
+- Google Calendar connection diagnostics and FamilyOS icon/manifest audit
 
 ## In Progress
 - Household foundation application integration
 
 ## Next
+- Manually confirm Google Cloud OAuth JavaScript origins for Calendar sync
 - Review the Tasks household RLS migration before any production application
 - Draft and locally validate Home Maintenance RLS after the Home Maintenance app behavior is accepted
 - Migrate one feature module at a time after Tasks proves the pattern

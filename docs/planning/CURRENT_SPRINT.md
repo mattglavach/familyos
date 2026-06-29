@@ -32,6 +32,7 @@ Establish the shared AI development workspace and documentation foundation.
 - [x] Add and locally validate Tasks-only household-aware RLS
 - [x] Migrate Dashboard task reads to Household Context while preserving legacy module widgets
 - [x] Migrate Home Maintenance data access to Household Context without enabling RLS
+- [x] Improve Google Calendar connection diagnostics and verify app icon/branding links
 
 ## Blockers
 - No active Sprint 1B blocker is recorded for the household context layer.
@@ -65,5 +66,6 @@ Establish the shared AI development workspace and documentation foundation.
 - Tasks now has a local-only household-aware RLS migration that allows owner/adult household access while preserving legacy null-`household_id` fallback rows.
 - Dashboard now uses Household Context for Tasks-derived data only; Pool, Finance, College, notes, and home maintenance remain legacy user-scoped until their focused migrations.
 - Home Maintenance now shares the Tasks/Dashboard household-aware query pattern while retaining legacy `user_id` and legacy RLS.
+- Google Calendar connection errors now surface in the app shell, and setup docs include both `localhost` and `127.0.0.1` OAuth origins for local development.
 
 - App structure refactor moved the shell, hooks, and user-facing modules out of the monolithic src/App.js; pnpm run check passes after the split.
