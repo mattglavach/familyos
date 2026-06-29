@@ -26,12 +26,13 @@ Documentation foundation being established.
 - Tasks household-aware read/insert preparation with legacy fallback
 - Local email/password auth UI validation with Household Context and Tasks
 - Local Tasks UI write validation confirming `household_id` and legacy `user_id` are both populated
+- Local Tasks-only household-aware RLS migration and validation
 
 ## In Progress
 - Household foundation application integration
 
 ## Next
-- Design a separate Tasks RLS migration only after app behavior is validated
+- Review the Tasks household RLS migration before any production application
 - Migrate one feature module at a time after Tasks proves the pattern
 
 ## Known Bugs
@@ -40,7 +41,7 @@ Documentation foundation being established.
 - Production magic-link and password-reset redirects depend on Supabase Auth Site URL and allowed redirect URLs being set to the deployed FamilyOS origin, including `/reset-password` for recovery links.
 - Google Calendar sync requires the active browser origin to be listed in Google Cloud Console Authorized JavaScript origins for the configured OAuth client.
 - Optional starter data requires replacing `seed_user_id` in `supabase/seed.sql` with a local auth user UUID before manual seed loading.
-- Production household migration remains blocked until Tasks behavior, backfill, and later module-level RLS are reviewed.
+- Production household migration remains blocked until the Tasks household RLS migration, backfill state, and later module-level RLS rollout are reviewed.
 - Production password reset/change validation remains blocked until Supabase Auth Site URL, redirect URLs, and email templates are reviewed.
 
 ## Technical Debt

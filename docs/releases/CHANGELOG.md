@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Added and locally validated a Tasks-only household-aware RLS migration while preserving legacy null-`household_id` fallback behavior.
 - Validated through the local Tasks UI that new task records write `household_id` while preserving legacy `user_id` and avoiding duplicate rows.
 - Validated local email/password auth through the app UI after household context and Tasks migration; documented future password reset/change requirements.
 - Validated clean local Supabase migration replay and prepared Tasks for household-aware reads/inserts while preserving legacy `user_id` fallback behavior.
