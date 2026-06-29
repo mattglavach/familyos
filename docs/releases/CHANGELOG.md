@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Improved authentication UX with action-specific loading states, stricter email validation, clearer password reset confirmation, and an expired reset-link screen.
 - Added household foundation local-only migration setup documentation and Sprint 1 report; local migration apply remains blocked pending Docker Desktop, Supabase CLI, and `psql`.
 - Created a local-only household foundation migration file under `supabase/migrations/` without applying it.
 - Added a Supabase password reset flow with approved-email validation, reset email delivery, and an in-app password update screen for recovery sessions.

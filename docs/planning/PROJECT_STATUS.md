@@ -15,6 +15,7 @@ Documentation foundation being established.
 - Supabase magic-link resend cooldown and rate-limit messaging
 - Private household email/password login as the primary Supabase auth path
 - Supabase password reset email and recovery-session password update flow
+- Authentication UX audit covering sign-in, reset request, recovery route, magic-link fallback, and sign-out state
 - Google Calendar OAuth origin setup documentation for local and Vercel deployments
 - Modular app structure with app shell, hooks, modules, and refactor documentation
 - Household foundation branch with local-only migration file and validation/setup documentation

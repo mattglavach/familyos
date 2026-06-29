@@ -18,6 +18,7 @@ Establish the shared AI development workspace and documentation foundation.
 - [x] Validate current app structure
 - [x] Create household foundation branch and local-only migration file
 - [x] Validate local environment readiness for household migration
+- [x] Audit and improve authentication reset/sign-in UX without production access
 - [ ] Install local Supabase prerequisites
 
 ## Blockers
@@ -41,5 +42,6 @@ Establish the shared AI development workspace and documentation foundation.
 - Household foundation migration file exists at `supabase/migrations/20260627_household_foundation.sql`, but has not been applied.
 - `.env.local` was corrected from an empty directory to an ignored placeholder file copied from `.env.example`; local Supabase values still need to be filled in after `supabase start`.
 - `pnpm run check` passes on the household foundation branch.
+- Authentication audit tightened email validation, action-specific loading states, duplicate-submit protection, and expired reset-link handling. Supabase Dashboard redirect configuration still requires live verification.
 
 - App structure refactor moved the shell, hooks, and user-facing modules out of the monolithic src/App.js; pnpm run check passes after the split.

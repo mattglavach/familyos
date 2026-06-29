@@ -8,12 +8,14 @@ FamilyOS is currently a private household app for Matt and his wife. The primary
 
 Household users should be created manually in Supabase Authentication > Users, with public sign-up disabled in Supabase Auth settings. The optional `REACT_APP_APPROVED_HOUSEHOLD_EMAILS` setting can list the two approved emails for friendlier client-side errors, but it is not a security boundary because browser environment variables are visible to users. Supabase Auth users, row-level security, and disabled public sign-up remain the enforcement layer.
 
-The sign-in UI handles common failures with friendly messages for wrong password, missing password, unapproved email, and generic auth/network errors. Sessions use the Supabase client persistence settings so users stay signed in after closing and reopening the app until they explicitly sign out or the stored session is cleared.
+The sign-in UI handles common failures with friendly messages for wrong password, missing password, invalid email format, unapproved email, and generic auth/network errors. Sessions use the Supabase client persistence settings so users stay signed in after closing and reopening the app until they explicitly sign out or the stored session is cleared.
 
 ## Password Reset
 Approved household users can request a password reset from the sign-in screen. The client calls `supabase.auth.resetPasswordForEmail` with a redirect to the current app origin plus `/reset-password`, then shows a recovery password form when Supabase opens a password recovery session.
 
 The recovery form calls `supabase.auth.updateUser` with the new password, clears the recovery route from browser history, and leaves the user signed in. Reset email sends share the same send-in-progress and 60-second resend cooldown protections used by magic links to reduce Supabase email rate-limit errors.
+
+If a user lands on `/reset-password` without a valid Supabase recovery session, the app shows an expired/invalid reset-link state instead of the normal sign-in form. The user should request a new reset email from the sign-in screen.
 
 ## Magic Links
 Email magic-link sign-in remains available only as a secondary fallback. It uses `supabase.auth.signInWithOtp` with `emailRedirectTo` set from the current browser origin. This keeps local sign-ins on `http://localhost:3000` and production sign-ins on the deployed Vercel origin without a separate site URL environment variable.

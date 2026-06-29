@@ -30,6 +30,7 @@ Google Calendar sync uses Google Identity Services in the browser with `REACT_AP
 - Allowed redirect URLs should include `http://localhost:3000`, `http://localhost:3000/reset-password`, the Vercel production URL, the Vercel production `/reset-password` URL, any custom production domain plus its `/reset-password` URL, and preview URL patterns if preview sign-in or password reset is needed.
 - Public sign-up should stay disabled for the private household app.
 - Create Matt and his wife's users manually in Supabase Authentication > Users and set initial passwords there. Future password resets can be initiated from the FamilyOS sign-in screen.
+- If password reset links open the app but do not show the password update form, verify the exact active origin plus `/reset-password` is present in Allowed redirect URLs and that the link has not already been used or expired.
 
 ## Deployment Rules
 - Main branch deploys production.
