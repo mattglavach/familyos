@@ -31,6 +31,7 @@ Documentation foundation being established.
 - Home Maintenance household-aware Tasks/Dashboard access with RLS deferred
 - Google Calendar connection diagnostics and FamilyOS icon/manifest audit
 - Live local Google Calendar verification diagnosed as blocked by placeholder OAuth client id
+- Sprint 1E.1 Calendar OAuth verification documented as blocked until local client id is replaced
 
 ## In Progress
 - Household foundation application integration

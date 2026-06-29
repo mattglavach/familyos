@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Documented Sprint 1E.1 live Calendar OAuth as blocked by a still-placeholder local Google OAuth client id.
 - Diagnosed live local Google Calendar OAuth as blocked by a placeholder client id and hardened placeholder detection before Google redirect.
 - Improved Google Calendar connection diagnostics, documented exact local OAuth origins, and verified FamilyOS icon/manifest references.
 - Migrated Home Maintenance reads/inserts in Tasks and Dashboard to use Household Context while preserving legacy `user_id` and deferring RLS.
