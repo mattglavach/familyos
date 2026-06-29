@@ -26,7 +26,7 @@ function formatGoogleOAuthError(error) {
 }
 
 function isPlaceholder(value) {
-  return !value || value.startsWith("your-");
+  return !value || /^(your-|local-placeholder|placeholder|example)/i.test(value);
 }
 
 // - MEMBER KEYWORDS -
