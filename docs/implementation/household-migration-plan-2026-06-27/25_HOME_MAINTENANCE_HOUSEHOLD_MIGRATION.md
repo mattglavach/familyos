@@ -113,10 +113,12 @@ Local validation performed:
 - Started local app against local Supabase only
 - Confirmed authenticated app session rendered
 - Confirmed Household Context-backed Tasks screen rendered
-- Created a local Home Maintenance record through the app UI when available, or validated the insert path directly if the current UI did not expose an add-maintenance entry point
+- Confirmed the current UI has maintenance edit/delete/done flows but no visible add-maintenance entry point
+- Created a local Home Maintenance record through the authenticated local Supabase REST path using the same row shape the app insert path now provides
 - Confirmed new local maintenance row received `household_id`
 - Confirmed legacy `user_id` remained populated
-- Confirmed Dashboard rendered after the migration
+- Confirmed Dashboard and Tasks rendered the household-scoped maintenance row
+- Removed the temporary local validation row after the smoke test
 - Checked browser console errors
 - Ran `pnpm run build`
 - Ran `pnpm run check`
