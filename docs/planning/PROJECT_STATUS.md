@@ -27,12 +27,14 @@ Documentation foundation being established.
 - Local email/password auth UI validation with Household Context and Tasks
 - Local Tasks UI write validation confirming `household_id` and legacy `user_id` are both populated
 - Local Tasks-only household-aware RLS migration and validation
+- Dashboard household-aware Tasks data access with legacy non-migrated widgets preserved
 
 ## In Progress
 - Household foundation application integration
 
 ## Next
 - Review the Tasks household RLS migration before any production application
+- Consider home maintenance as the next focused household migration because Dashboard still includes it in Tasks summaries
 - Migrate one feature module at a time after Tasks proves the pattern
 
 ## Known Bugs

@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Loading } from "../../components/common";
+import { useHousehold } from "../../hooks/useHousehold";
 import { COLORS, MEMBER_COLORS, S } from "../../theme";
 
 // - DASHBOARD -
@@ -8,13 +9,23 @@ export function Dashboard({onNavigate,gc,deps}){
     TODAY_DATE,TODAY_STR,daysAgo,daysBetween,nextDueDate,formatDate,formatDateFull,
     formatMoneyShort,maintStatus,useTable,calcRetirementProjection,getChemRecommendations,
   } = deps;
+  const household = useHousehold();
+  const householdId = household.currentHousehold?.id || null;
+  const taskTableOptions = useMemo(()=>(
+    householdId
+      ? {
+        filters:{household_id:householdId},
+        insertDefaults:{household_id:householdId},
+      }
+      : undefined
+  ),[householdId]);
   const{data:homeMaint}   =useTable("home_maintenance","title",true);
   const{data:deadlines}   =useTable("college_deadlines","due_date",true);
   const readings          =useTable("pool_readings","logged_at");
   const assumptions       =useTable("retirement_assumptions","id",true);
   const accounts          =useTable("retirement_accounts","name",true);
   const notes             =useTable("notes","created_at");
-  const taskData          =useTable("tasks","due_date",true);
+  const taskData          =useTable("tasks","due_date",true,taskTableOptions);
   const treatments        =useTable("pool_treatments","logged_at");
 
   const [showFullSchedule,setShowFullSchedule]=useState(false);
