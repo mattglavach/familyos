@@ -11,7 +11,7 @@ export function Dashboard({onNavigate,gc,deps}){
   } = deps;
   const household = useHousehold();
   const householdId = household.currentHousehold?.id || null;
-  const taskTableOptions = useMemo(()=>(
+  const householdTableOptions = useMemo(()=>(
     householdId
       ? {
         filters:{household_id:householdId},
@@ -19,13 +19,13 @@ export function Dashboard({onNavigate,gc,deps}){
       }
       : undefined
   ),[householdId]);
-  const{data:homeMaint}   =useTable("home_maintenance","title",true);
+  const{data:homeMaint}   =useTable("home_maintenance","title",true,householdTableOptions);
   const{data:deadlines}   =useTable("college_deadlines","due_date",true);
   const readings          =useTable("pool_readings","logged_at");
   const assumptions       =useTable("retirement_assumptions","id",true);
   const accounts          =useTable("retirement_accounts","name",true);
   const notes             =useTable("notes","created_at");
-  const taskData          =useTable("tasks","due_date",true,taskTableOptions);
+  const taskData          =useTable("tasks","due_date",true,householdTableOptions);
   const treatments        =useTable("pool_treatments","logged_at");
 
   const [showFullSchedule,setShowFullSchedule]=useState(false);

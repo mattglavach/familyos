@@ -28,13 +28,14 @@ Documentation foundation being established.
 - Local Tasks UI write validation confirming `household_id` and legacy `user_id` are both populated
 - Local Tasks-only household-aware RLS migration and validation
 - Dashboard household-aware Tasks data access with legacy non-migrated widgets preserved
+- Home Maintenance household-aware Tasks/Dashboard access with RLS deferred
 
 ## In Progress
 - Household foundation application integration
 
 ## Next
 - Review the Tasks household RLS migration before any production application
-- Consider home maintenance as the next focused household migration because Dashboard still includes it in Tasks summaries
+- Draft and locally validate Home Maintenance RLS after the Home Maintenance app behavior is accepted
 - Migrate one feature module at a time after Tasks proves the pattern
 
 ## Known Bugs

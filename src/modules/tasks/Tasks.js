@@ -11,7 +11,7 @@ export function Tasks({deps}){
   } = deps;
   const household = useHousehold();
   const householdId = household.currentHousehold?.id || null;
-  const taskTableOptions = useMemo(()=>(
+  const householdTableOptions = useMemo(()=>(
     householdId
       ? {
         filters:{household_id:householdId},
@@ -19,8 +19,8 @@ export function Tasks({deps}){
       }
       : undefined
   ),[householdId]);
-  const tasks      = useTable("tasks","due_date",true,taskTableOptions);
-  const homeMaint  = useTable("home_maintenance","title",true);
+  const tasks      = useTable("tasks","due_date",true,householdTableOptions);
+  const homeMaint  = useTable("home_maintenance","title",true,householdTableOptions);
 
   const [tab,setTab]             = useState("today");
   const [catFilter,setCatFilter] = useState("All");

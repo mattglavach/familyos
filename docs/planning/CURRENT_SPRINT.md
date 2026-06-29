@@ -31,6 +31,7 @@ Establish the shared AI development workspace and documentation foundation.
 - [x] Validate Tasks UI writes `household_id` while preserving legacy `user_id`
 - [x] Add and locally validate Tasks-only household-aware RLS
 - [x] Migrate Dashboard task reads to Household Context while preserving legacy module widgets
+- [x] Migrate Home Maintenance data access to Household Context without enabling RLS
 
 ## Blockers
 - No active Sprint 1B blocker is recorded for the household context layer.
@@ -63,5 +64,6 @@ Establish the shared AI development workspace and documentation foundation.
 - Local Tasks UI creation now writes `household_id`, preserves legacy `user_id`, survives reload, and creates no duplicate rows under the current legacy Tasks RLS policy.
 - Tasks now has a local-only household-aware RLS migration that allows owner/adult household access while preserving legacy null-`household_id` fallback rows.
 - Dashboard now uses Household Context for Tasks-derived data only; Pool, Finance, College, notes, and home maintenance remain legacy user-scoped until their focused migrations.
+- Home Maintenance now shares the Tasks/Dashboard household-aware query pattern while retaining legacy `user_id` and legacy RLS.
 
 - App structure refactor moved the shell, hooks, and user-facing modules out of the monolithic src/App.js; pnpm run check passes after the split.
