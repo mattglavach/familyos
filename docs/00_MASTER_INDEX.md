@@ -61,6 +61,7 @@ This folder is the operating manual for Family OS.
 
 ### Implementation
 - docs/implementation/ui-platform/00_SHADCN_VITE_ASSESSMENT.md
+- docs/implementation/ui-platform/01_VITE_MIGRATION.md
 
 ### UI
 - docs/ui/DESIGN_SYSTEM.md

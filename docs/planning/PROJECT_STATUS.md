@@ -4,9 +4,13 @@
 0.6 Design System & Shared Platform
 
 ## Current State
-Release 0.6 shared UI foundation has started on `feature/household-foundation`. Before continuing deeper UI migration, the current sprint assessed shadcn/ui status and CRA-to-Vite migration readiness. Platform Complete remains local/branch-only; production deployment has not occurred.
+Release 0.6A migrated the frontend from Create React App to Vite on `feature/household-foundation`. Platform Complete remains local/branch-only; production deployment has not occurred.
 
 ## Completed
+- CRA-to-Vite frontend migration with Vite dev server on port `3000`
+- Vite production build output preserved at `build/`
+- Browser environment variables migrated to `VITE_*` with temporary `REACT_APP_*` fallback support
+- Vite migration documentation and rollback notes
 - Shadcn/ui and Vite readiness assessment for the current Family OS frontend stack
 - Shared UI framework components for cards, layout, status, loading, dialogs, tables, charts, and dashboard widgets
 - Dashboard presentation migration to shared summary, metric, section, widget, action row, and empty-state components
@@ -44,11 +48,12 @@ Release 0.6 shared UI foundation has started on `feature/household-foundation`. 
 - Sprint 1E.1 Calendar OAuth verification documented as blocked until local client id is replaced
 
 ## In Progress
-- Review of whether to migrate CRA to Vite before additional Release 0.6 module UI work
+- Post-migration review before additional Release 0.6 module UI work
 
 ## Next
-- If approved, run a dedicated CRA-to-Vite migration sprint before additional module UI migration
-- After Vite decision, continue Release 0.6 with College deadline card/form migration using shared UI primitives
+- Review the Vite migration and update Vercel environment variables to `VITE_*`
+- Verify signed-in Dashboard, Tasks, Home Maintenance, Household Context, and Google Calendar with a valid local session
+- After Vite review, continue Release 0.6 with College deadline card/form migration using shared UI primitives
 - Expand shared dashboard widgets as modules are migrated into the Family Command Center
 - Tag Platform Complete as `v0.5-platform-complete` after release readiness is confirmed
 - Use the module, assumptions, and decision engine standards for future Pool, Finance, Retirement, and College work
@@ -60,7 +65,7 @@ Release 0.6 shared UI foundation has started on `feature/household-foundation`. 
 
 ## Known Bugs
 
-- No active deploy-blocking build errors after the CI lint cleanup.
+- No active deploy-blocking build errors after the Vite migration.
 - Production magic-link and password-reset redirects depend on Supabase Auth Site URL and allowed redirect URLs being set to the deployed FamilyOS origin, including `/reset-password` for recovery links.
 - Google Calendar sync requires the active browser origin to be listed in Google Cloud Console Authorized JavaScript origins for the configured OAuth client.
 - Live local Google Calendar sync also requires `.env.local` to use a real Google OAuth Web client id; `local-placeholder.apps.googleusercontent.com` produces `invalid_client`.
@@ -74,7 +79,8 @@ Release 0.6 shared UI foundation has started on `feature/household-foundation`. 
 - Flagship modules still need shared profile, assumptions, history, decision intelligence, dashboard, and AI patterns implemented after this documentation sprint.
 - Pool, Finance, Retirement, and College internals still need dedicated UI migration passes; Release 0.6 only established reusable presentation foundations and low-risk Dashboard/Tasks/AI adoption.
 - Browser verification of signed-in Dashboard, Tasks, and Home Maintenance screens still requires a valid local auth session; the unauthenticated shell loaded without console errors.
-- CRA remains the active frontend build tool; Vite migration is recommended but not yet implemented.
+- Vite reports a large chunk warning for the current single-bundle app; this is deferred until a later code-splitting or module-splitting sprint.
+- Legacy `REACT_APP_*` env names still work temporarily, but active docs and future configuration should use `VITE_*`.
 
 ## Last Updated
 June 30, 2026

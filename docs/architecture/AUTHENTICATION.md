@@ -6,7 +6,7 @@ Use Supabase Auth.
 ## Private Household Login
 FamilyOS is currently a private household app for Matt and his wife. The primary login path is Supabase email/password authentication with persistent browser sessions. Public in-app sign-up is not exposed.
 
-Household users should be created manually in Supabase Authentication > Users, with public sign-up disabled in Supabase Auth settings. The optional `REACT_APP_APPROVED_HOUSEHOLD_EMAILS` setting can list the two approved emails for friendlier client-side errors, but it is not a security boundary because browser environment variables are visible to users. Supabase Auth users, row-level security, and disabled public sign-up remain the enforcement layer.
+Household users should be created manually in Supabase Authentication > Users, with public sign-up disabled in Supabase Auth settings. The optional `VITE_APPROVED_HOUSEHOLD_EMAILS` setting can list the two approved emails for friendlier client-side errors, but it is not a security boundary because browser environment variables are visible to users. Supabase Auth users, row-level security, and disabled public sign-up remain the enforcement layer.
 
 The sign-in UI handles common failures with friendly messages for wrong password, missing password, invalid email format, unapproved email, and generic auth/network errors. Sessions use the Supabase client persistence settings so users stay signed in after closing and reopening the app until they explicitly sign out or the stored session is cleared.
 
@@ -36,7 +36,7 @@ The fallback magic-link UI protects Supabase email delivery limits by disabling 
 - guest
 
 ## Google Calendar OAuth
-Calendar sync uses Google Identity Services token auth in the browser. The OAuth client and calendar are configured through `REACT_APP_GOOGLE_CLIENT_ID` and `REACT_APP_GOOGLE_CALENDAR_ID`; the runtime OAuth origin is `window.location.origin`. Google Cloud Console must include each local and deployed app origin under Authorized JavaScript origins. See `docs/setup/google-calendar-oauth.md`.
+Calendar sync uses Google Identity Services token auth in the browser. The OAuth client and calendar are configured through `VITE_GOOGLE_CLIENT_ID` and `VITE_GOOGLE_CALENDAR_ID`; the runtime OAuth origin is `window.location.origin`. Google Cloud Console must include each local and deployed app origin under Authorized JavaScript origins. See `docs/setup/google-calendar-oauth.md`.
 
 ## Access Principles
 - Sensitive modules require authenticated access.

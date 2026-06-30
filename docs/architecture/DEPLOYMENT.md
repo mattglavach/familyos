@@ -3,7 +3,7 @@
 ## Platform
 Vercel
 
-`vercel.json` preserves `/api/*` serverless routes and rewrites all other paths to the React app root so Create React App deep links, including `/reset-password`, load the app.
+`vercel.json` preserves `/api/*` serverless routes and rewrites all other paths to the React app root so Vite deep links, including `/reset-password`, load the app.
 
 ## Source Control
 GitHub
@@ -13,17 +13,17 @@ Supabase
 
 ## Environment Variables
 Required Vercel variables:
-- REACT_APP_SUPABASE_URL
-- REACT_APP_SUPABASE_ANON_KEY
-- REACT_APP_APPROVED_HOUSEHOLD_EMAILS, optional comma-separated approved household emails for friendlier login errors
-- REACT_APP_GOOGLE_CLIENT_ID
-- REACT_APP_GOOGLE_CALENDAR_ID
+- VITE_SUPABASE_URL
+- VITE_SUPABASE_ANON_KEY
+- VITE_APPROVED_HOUSEHOLD_EMAILS, optional comma-separated approved household emails for friendlier login errors
+- VITE_GOOGLE_CLIENT_ID
+- VITE_GOOGLE_CALENDAR_ID
 - ANTHROPIC_API_KEY
 - ALLOWED_ORIGINS, when using a custom domain or non-Vercel production URL
 
-FamilyOS is a Create React App deployment, so browser-visible variables use the `REACT_APP_` prefix. It does not use `NEXT_PUBLIC_SITE_URL`, `VITE_SITE_URL`, or `REACT_APP_SITE_URL` for Supabase Auth redirects. Email/password sign-in is the primary auth path. Fallback email magic links use the current app origin, while password resets use the current app origin plus `/reset-password`; both require matching Supabase Auth allowed redirect URLs.
+FamilyOS is a Vite deployment, so browser-visible variables use the `VITE_` prefix. During the migration window, legacy `REACT_APP_*` values are still accepted as fallback values by the app config, but new local and Vercel configuration should use `VITE_*`. FamilyOS does not use `NEXT_PUBLIC_SITE_URL`, `VITE_SITE_URL`, or `REACT_APP_SITE_URL` for Supabase Auth redirects. Email/password sign-in is the primary auth path. Fallback email magic links use the current app origin, while password resets use the current app origin plus `/reset-password`; both require matching Supabase Auth allowed redirect URLs.
 
-Google Calendar sync uses Google Identity Services in the browser with `REACT_APP_GOOGLE_CLIENT_ID` and `REACT_APP_GOOGLE_CALENDAR_ID`. The OAuth origin is the current deployed app origin, so Google Cloud Console Authorized JavaScript origins must include the Vercel production origin and any custom production domain. See `docs/setup/google-calendar-oauth.md`.
+Google Calendar sync uses Google Identity Services in the browser with `VITE_GOOGLE_CLIENT_ID` and `VITE_GOOGLE_CALENDAR_ID`. The OAuth origin is the current deployed app origin, so Google Cloud Console Authorized JavaScript origins must include the Vercel production origin and any custom production domain. See `docs/setup/google-calendar-oauth.md`.
 
 ## Supabase Auth URL Settings
 - Site URL should be the production FamilyOS URL.
