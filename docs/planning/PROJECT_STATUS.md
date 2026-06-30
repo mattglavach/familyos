@@ -4,9 +4,10 @@
 0.6 Design System & Shared Platform
 
 ## Current State
-Release 0.6 shared UI foundation is in progress on `feature/household-foundation`. Platform Complete remains local/branch-only; production deployment has not occurred. The current sprint focuses on reusable presentation infrastructure only.
+Release 0.6 shared UI foundation has started on `feature/household-foundation`. Before continuing deeper UI migration, the current sprint assessed shadcn/ui status and CRA-to-Vite migration readiness. Platform Complete remains local/branch-only; production deployment has not occurred.
 
 ## Completed
+- Shadcn/ui and Vite readiness assessment for the current Family OS frontend stack
 - Shared UI framework components for cards, layout, status, loading, dialogs, tables, charts, and dashboard widgets
 - Dashboard presentation migration to shared summary, metric, section, widget, action row, and empty-state components
 - Tasks and Home Maintenance presentation migration to shared summary, section header, priority badge, empty, and loading components
@@ -43,10 +44,11 @@ Release 0.6 shared UI foundation is in progress on `feature/household-foundation
 - Sprint 1E.1 Calendar OAuth verification documented as blocked until local client id is replaced
 
 ## In Progress
-- Release 0.6 follow-on UI migration planning
+- Review of whether to migrate CRA to Vite before additional Release 0.6 module UI work
 
 ## Next
-- Continue Release 0.6 with College deadline card/form migration using shared UI primitives
+- If approved, run a dedicated CRA-to-Vite migration sprint before additional module UI migration
+- After Vite decision, continue Release 0.6 with College deadline card/form migration using shared UI primitives
 - Expand shared dashboard widgets as modules are migrated into the Family Command Center
 - Tag Platform Complete as `v0.5-platform-complete` after release readiness is confirmed
 - Use the module, assumptions, and decision engine standards for future Pool, Finance, Retirement, and College work
@@ -72,6 +74,7 @@ Release 0.6 shared UI foundation is in progress on `feature/household-foundation
 - Flagship modules still need shared profile, assumptions, history, decision intelligence, dashboard, and AI patterns implemented after this documentation sprint.
 - Pool, Finance, Retirement, and College internals still need dedicated UI migration passes; Release 0.6 only established reusable presentation foundations and low-risk Dashboard/Tasks/AI adoption.
 - Browser verification of signed-in Dashboard, Tasks, and Home Maintenance screens still requires a valid local auth session; the unauthenticated shell loaded without console errors.
+- CRA remains the active frontend build tool; Vite migration is recommended but not yet implemented.
 
 ## Last Updated
 June 30, 2026

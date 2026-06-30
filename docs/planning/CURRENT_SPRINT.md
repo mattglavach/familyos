@@ -1,18 +1,16 @@
 # Current Sprint
 
 ## Sprint Goal
-Implement the Release 0.6 shared UI framework that every flagship module can reuse without redesigning Pool, Finance, Retirement, or College internals.
+Assess the current shadcn/ui status and CRA-to-Vite migration readiness before continuing deeper Release 0.6 UI migration.
 
 ## Active Items
-- [x] Review current components, modules, Dashboard, Tasks, Home Maintenance, and AI components
-- [x] Add reusable shared card, layout, status, loading, modal, table, and chart presentation components
-- [x] Add reusable dashboard widget framework
-- [x] Apply shared components to Dashboard where low risk
-- [x] Apply shared components to Tasks and Home Maintenance where low risk
-- [x] Apply shared components to AI brief panel presentation
-- [x] Update UI documentation, migration backlog, project status, and changelog
-- [x] Run final validation commands
-- [x] Start local app and verify reachable shell if practical
+- [x] Inspect package, Tailwind, PostCSS, shadcn, Origin UI, and Vite-related configuration
+- [x] Determine current frontend stack and shadcn status
+- [x] Evaluate CRA-to-Vite migration difficulty, risks, env changes, deployment impact, and rollback plan
+- [x] Compare UI strategy options for CRA/custom UI, CRA/shadcn-style, and Vite/shadcn/Origin
+- [x] Create `docs/implementation/ui-platform/00_SHADCN_VITE_ASSESSMENT.md`
+- [x] Update planning/status/release documentation
+- [x] Run validation commands
 
 ## Blockers
 - No active Sprint 1B blocker is recorded for the household context layer.
@@ -21,10 +19,14 @@ Implement the Release 0.6 shared UI framework that every flagship module can reu
 - Production password reset/change validation remains blocked until Supabase Auth Site URL, redirect URLs, and email templates are reviewed.
 - Live local Google Calendar verification remains blocked until `.env.local` uses a real Google OAuth Web client id instead of `local-placeholder.apps.googleusercontent.com`.
 - Sprint 1E.1 could not complete live Google login/consent because the local Google OAuth client id still matches a placeholder-style value.
-- Production deployment remains intentionally out of scope for this Release 0.6 UI sprint.
+- Production deployment remains intentionally out of scope for this assessment sprint.
 
 ## Notes
-- This sprint is presentation infrastructure only. No schema changes, migrations, Supabase changes, AI prompt changes, calculations, or module workflow redesigns are in scope.
+- This sprint is documentation and assessment only. No application code, package installation, Vite migration, schema changes, Supabase changes, AI prompt changes, calculations, or module workflow changes are in scope.
+- Assessment result: shadcn/ui is partially added as a local shadcn-style foundation, not a full CLI-managed shadcn install.
+- Assessment result: Family OS is still Create React App with Tailwind, `components.json`, local `src/components/ui` primitives, and Origin UI-style drawer patterns.
+- Recommendation: if Vite migration remains acceptable after review, migrate to Vite before continuing deeper module UI migrations.
+- `pnpm run build` and `pnpm run check` pass after the assessment documentation updates.
 - Shared UI framework components now live under `src/components/ui/` and are documented in `docs/ui/COMPONENT_LIBRARY.md`.
 - Dashboard now uses shared summary cards, metric cards, sections, widget containers, action rows, section actions, and empty panels.
 - Tasks/Home Maintenance now use shared summary, section header, priority badge, empty, and loading presentation while preserving swipe cards and save/delete behavior.

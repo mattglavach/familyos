@@ -59,6 +59,9 @@ This folder is the operating manual for Family OS.
 - docs/development/DEFINITION_OF_DONE.md
 - docs/development/RELEASE_PROCESS.md
 
+### Implementation
+- docs/implementation/ui-platform/00_SHADCN_VITE_ASSESSMENT.md
+
 ### UI
 - docs/ui/DESIGN_SYSTEM.md
 - docs/ui/UI_MIGRATION_BACKLOG.md

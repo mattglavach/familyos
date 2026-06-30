@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Assessed current shadcn/ui status and CRA-to-Vite migration readiness, documenting findings and recommendation in `docs/implementation/ui-platform/00_SHADCN_VITE_ASSESSMENT.md`.
 - Added the Release 0.6 shared UI framework for reusable cards, layout sections, dashboard widgets, action rows, status indicators, loading states, modal layouts, table helpers, and chart containers.
 - Migrated Dashboard presentation to shared summary cards, metric cards, dashboard sections, widget containers, action rows, section actions, and empty-state panels without changing dashboard data logic.
 - Migrated Tasks and Home Maintenance presentation to shared summary, section header, priority badge, empty-state, and loading components while preserving existing task and maintenance workflows.
