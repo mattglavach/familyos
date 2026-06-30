@@ -1,7 +1,7 @@
 # Current Sprint
 
 ## Sprint Goal
-Complete Release 0.6A.3 Calendar OAuth final verification after the CRA-to-Vite migration and determine merge readiness for `feature/household-foundation`.
+Close Release 0.6A after the CRA-to-Vite migration, signed-in local verification, Calendar OAuth verification, and Vercel deployment verification.
 
 ## Active Items
 - [x] Replace CRA build tooling with Vite
@@ -28,15 +28,15 @@ Complete Release 0.6A.3 Calendar OAuth final verification after the CRA-to-Vite 
 - [x] Verify Tasks edit/delete UI controls and cleanup
 - [x] Verify Home Maintenance zero-state add UI, create/delete controls, ownership columns, and cleanup
 - [x] Rerun Google Calendar OAuth after Google Cloud authorized `http://localhost:3000`
-- [ ] Complete Google Calendar live OAuth connect/disconnect verification
+- [x] Complete Google Calendar live OAuth verification in standard Chrome
+- [x] Verify Vercel deployment after the Vite migration
 - [x] Create `docs/implementation/ui-platform/01_VITE_MIGRATION.md`
 - [x] Update setup, deployment, planning, status, changelog, and index docs
 
 ## Blockers
-- Merge readiness remains blocked until Calendar OAuth is verified in a browser session that can complete Google Identity Services.
+- No Release 0.6A merge blockers remain.
 - The previous Google `origin_mismatch` blocker for `http://localhost:3000` is resolved.
-- Live local Google Calendar verification is now blocked because the in-app browser lands on a blank `https://accounts.google.com/gsi/transform` page before returning a token to FamilyOS.
-- Production deployment remains intentionally out of scope for this Vite migration sprint.
+- Embedded browsers such as ChatGPT Desktop and Codex preview may fail Google Identity Services popup/transform flows; standard Chrome is the verification authority.
 - Production household migration remains blocked pending review of the Tasks household RLS migration and later module-by-module rollout plan.
 
 ## Notes
@@ -49,6 +49,9 @@ Complete Release 0.6A.3 Calendar OAuth final verification after the CRA-to-Vite 
 - The unauthenticated auth shell loads at `http://localhost:3000` with no captured browser console warnings/errors.
 - Local Supabase REST is reachable, and no required browser-visible Supabase or Google Calendar env value is missing.
 - Login, session persistence, sign-out, sign-back-in, signed-in Dashboard, signed-in Tasks, task create/edit/delete UI, task ownership columns, Home Maintenance zero-state add UI, Home Maintenance create/delete UI, and Home Maintenance ownership columns passed locally.
-- Release 0.6A.3 recommendation remains `NOT READY TO MERGE` until Google Calendar OAuth is verified in a normal browser session or the in-app browser transform-flow limitation is accepted as non-application risk.
+- Release 0.6A status is `COMPLETE`.
+- Release 0.6A recommendation is `READY TO MERGE`.
+- Manual Google Calendar verification succeeded in standard Chrome. Embedded browser Google Identity Services limitations are documented as non-application risk.
+- Vercel deployment was manually verified after the Vite migration.
 - Shared UI framework components remain in `src/components/ui/`; no UI primitives were redesigned during this sprint.
 - Future flagship module work should reference `docs/architecture/MODULE_STANDARD.md`, `docs/architecture/ASSUMPTIONS_STANDARD.md`, and `docs/architecture/DECISION_ENGINE_STANDARD.md`.

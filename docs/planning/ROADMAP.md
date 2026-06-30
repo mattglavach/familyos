@@ -21,7 +21,7 @@ Target tag: `v0.5-platform-complete`
 - Baseline documentation
 
 ### Status
-Near completion. Production deployment has not occurred.
+Complete on `feature/household-foundation`. Vite migration, local Supabase, authentication, Household Context, Dashboard, Tasks, Home Maintenance, Google Calendar OAuth in standard Chrome, and Vercel deployment have been verified. Ready to merge into `main` and tag `v0.5-platform-complete`.
 
 ## Release 0.6 - Design System & Shared Platform
 

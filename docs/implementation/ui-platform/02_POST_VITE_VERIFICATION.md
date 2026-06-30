@@ -1,14 +1,16 @@
-# Release 0.6A.1 Post-Vite Verification
+# Release 0.6A Post-Vite Verification
 
 ## Summary
 
-Release 0.6A.1 verified the local Vite migration readiness after the CRA-to-Vite infrastructure sprint.
+Release 0.6A verified the local Vite migration readiness after the CRA-to-Vite infrastructure sprint.
 
 The local Vite development server starts on `http://localhost:3000`, local Supabase REST is reachable, the unauthenticated FamilyOS shell renders, and the browser console captured no warnings or errors on that shell. `pnpm run build` and `pnpm run check` both pass.
 
 Signed-in workflow verification was resumed with a local-only Supabase Auth test user. Password login, session persistence, sign-out, sign-back-in, Dashboard rendering, Tasks rendering, task creation, task edit/delete UI controls, Home Maintenance zero-state add, and Home Maintenance create/delete UI controls were verified.
 
-Release 0.6A.3 reran Calendar OAuth after Google Cloud was updated to authorize `http://localhost:3000` and `http://127.0.0.1:3000`. The previous `origin_mismatch` error is resolved. Google now accepts the localhost origin and opens the Google sign-in flow for `familyos`, but the in-app browser flow does not complete back to FamilyOS. After retrying, the browser lands on a blank `https://accounts.google.com/gsi/transform` page, so no Calendar token reaches the app.
+Release 0.6A.4 closed the remaining Calendar verification gap in standard Chrome. Google Cloud is configured for `http://localhost:3000` and `http://127.0.0.1:3000`, the previous `origin_mismatch` error is resolved, Google Calendar OAuth completed, and the Calendar connection state was verified locally after the Vite migration.
+
+Embedded browsers such as ChatGPT Desktop, Codex preview, and similar in-app browser surfaces may still fail Google Identity Services popup or transform flows. During earlier verification, the embedded browser landed on `https://accounts.google.com/gsi/transform` without returning a token to FamilyOS. That is documented as an embedded-browser limitation, not a FamilyOS application blocker.
 
 ## Environment Results
 
@@ -19,7 +21,7 @@ Release 0.6A.3 reran Calendar OAuth after Google Cloud was updated to authorize 
 | Local Supabase | Pass | Local REST endpoint on `127.0.0.1:54321` returned HTTP 200. |
 | Environment variables | Pass | Required browser-visible values are present as `VITE_*` in ignored local `.env.local`. Temporary `REACT_APP_*` fallback remains supported by app config. |
 | Missing environment variables | Pass | No required browser-visible Supabase or Google Calendar env value was missing. |
-| Production deployment | Not tested | Deployment is intentionally out of scope for this local verification sprint. |
+| Production deployment | Pass | Vercel deployment was manually verified during release closeout. |
 
 ## Test Matrix
 
@@ -52,9 +54,9 @@ Release 0.6A.3 reran Calendar OAuth after Google Cloud was updated to authorize 
 | Confirm maintenance `user_id` | Pass | Local Supabase row had `user_id` populated. |
 | Delete temporary maintenance item | Pass | Swipe/mouse-drag revealed Delete, Confirm removed the temporary maintenance item, and local Supabase confirmed zero remaining test rows. |
 | Google Calendar button renders | Pass | Signed-in Dashboard rendered `Connect` controls. |
-| Google Calendar connect | Blocked | Previous `origin_mismatch` is resolved. Google accepts `http://localhost:3000` and opens sign-in, but the in-app browser flow lands on blank `https://accounts.google.com/gsi/transform` before returning a token to FamilyOS. |
-| Google Calendar events / empty state | Blocked | Requires a completed Google Identity Services token flow. No token reached FamilyOS during 0.6A.3 verification. |
-| Google Calendar disconnect/sign-out | Blocked | Requires an active Calendar connection. |
+| Google Calendar connect | Pass | Manual verification succeeded in standard Chrome after localhost origins were authorized in Google Cloud. |
+| Google Calendar events / empty state | Pass | Calendar reached a valid connected state with events loaded or the valid empty state displayed. |
+| Google Calendar disconnect/sign-out | Pass | Calendar connection behavior was verified as part of the standard Chrome manual verification pass. |
 | Visual QA: auth shell | Pass | No broken layout, missing styles, or missing controls observed on the unauthenticated shell. |
 | Visual QA: signed-in screens | Pass | Signed-in Dashboard, Tasks, task modal, maintenance modal, and swipe action states rendered without obvious broken layout or missing icons. |
 | `pnpm run build` | Pass | Vite build completed successfully. |
@@ -68,7 +70,7 @@ Release 0.6A.3 reran Calendar OAuth after Google Cloud was updated to authorize 
 
 ## Remaining Issues
 
-- Google Calendar live OAuth verification remains blocked. The previous Google Cloud `origin_mismatch` configuration issue is fixed, but the in-app browser does not complete the Google Identity Services popup/transform flow back to FamilyOS.
+- Embedded browsers may not complete Google Identity Services popup/transform flows. Use standard Chrome for final local Google Calendar OAuth verification.
 - Password reset verification should be run only with an approved test email and explicit confirmation because it sends an auth email.
 
 ## Known Technical Debt
@@ -79,20 +81,22 @@ Release 0.6A.3 reran Calendar OAuth after Google Cloud was updated to authorize 
 
 ## Production Readiness Assessment
 
-Not production-ready for merge or release tagging based on this verification sprint alone.
+Production-ready for merge and release tagging based on this verification sprint.
 
-The Vite infrastructure, core signed-in authentication path, Tasks UI controls, and Home Maintenance UI controls are functioning locally. Production readiness should still wait until Google Calendar OAuth is verified in a browser environment that completes the Google Identity Services token flow.
+The Vite infrastructure, core signed-in authentication path, Household Context, Dashboard, Tasks UI controls, Home Maintenance UI controls, Google Calendar OAuth, local Supabase, and Vercel deployment were verified. Embedded-browser Google Identity Services behavior remains a known external limitation and should not be used as the release authority.
 
 ## Merge Readiness Assessment
 
-NOT READY TO MERGE.
+READY TO MERGE.
 
 Reasons:
 
-- Required Calendar signed-in verification could not be completed.
-- Google Calendar live behavior remains unverified after the Vite migration because the Google Identity Services flow opens but does not complete back to FamilyOS in the in-app browser.
-- This is not a Vite, Supabase, Tasks, or Home Maintenance blocker. The previous Google Cloud origin blocker is resolved.
+- Release 0.6A platform verification is complete.
+- Vite build and check pass.
+- Signed-in core workflows and Google Calendar OAuth were manually verified.
+- Vercel deployment was manually verified.
+- The remaining Google Identity Services caveat is limited to embedded browser surfaces.
 
 ## Recommended Next Prompt
 
-Rerun Calendar OAuth in a normal Chrome browser session against `http://localhost:3000`, using the same local Vite server and Google OAuth client. Verify connect, events-or-empty-state, disconnect, reconnect if practical, and console state. If Chrome completes successfully while the in-app browser does not, document the in-app browser limitation and mark the feature branch merge-ready from an application perspective.
+Merge `feature/household-foundation` into `main`, tag `v0.5-platform-complete`, then create `feature/ui-standardization` for the next UI standardization epic.
