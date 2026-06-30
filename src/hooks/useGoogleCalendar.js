@@ -82,8 +82,8 @@ export function useGoogleCalendar() {
 
   function signIn(){
     setError(null);
-    if(isPlaceholder(GOOGLE_CLIENT_ID)){setError("Google Calendar is not configured. Set REACT_APP_GOOGLE_CLIENT_ID to a Google OAuth Web client ID.");return;}
-    if(isPlaceholder(CALENDAR_ID)){setError("Google Calendar is not configured. Set REACT_APP_GOOGLE_CALENDAR_ID to primary or a specific calendar ID.");return;}
+    if(isPlaceholder(GOOGLE_CLIENT_ID)){setError("Google Calendar is not configured. Set VITE_GOOGLE_CLIENT_ID to a Google OAuth Web client ID.");return;}
+    if(isPlaceholder(CALENDAR_ID)){setError("Google Calendar is not configured. Set VITE_GOOGLE_CALENDAR_ID to primary or a specific calendar ID.");return;}
     if(!window.google?.accounts?.oauth2){
       setError(scriptLoading
         ? "Google Calendar is still loading. Try Connect again in a moment."
@@ -123,7 +123,7 @@ export function useGoogleCalendar() {
       if(res.status===401){signOut();return;}
       const data=await res.json();
       if(data.error){
-        setError(`${data.error.message} Confirm Calendar API access, OAuth consent, and REACT_APP_GOOGLE_CALENDAR_ID.`);
+        setError(`${data.error.message} Confirm Calendar API access, OAuth consent, and VITE_GOOGLE_CALENDAR_ID.`);
         setLoading(false);
         return;
       }
