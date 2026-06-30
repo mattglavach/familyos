@@ -4,12 +4,13 @@
 0.6 Design System & Shared Platform
 
 ## Current State
-Release 0.6A migrated the frontend from Create React App to Vite on `feature/household-foundation`. Release 0.6A.2 local infrastructure, core signed-in verification, Tasks UI controls, and Home Maintenance UI controls passed, but merge readiness remains blocked pending Google Calendar OAuth origin configuration. Platform Complete remains local/branch-only; production deployment has not occurred.
+Release 0.6A migrated the frontend from Create React App to Vite on `feature/household-foundation`. Release 0.6A.2 local infrastructure, core signed-in verification, Tasks UI controls, and Home Maintenance UI controls passed. Release 0.6A.3 confirmed the Google OAuth origin blocker is fixed, but merge readiness remains blocked pending Calendar OAuth completion in a browser session that returns a token to FamilyOS. Platform Complete remains local/branch-only; production deployment has not occurred.
 
 ## Completed
 - CRA-to-Vite frontend migration with Vite dev server on port `3000`
 - Post-Vite local infrastructure verification for Vite dev server, local Supabase REST reachability, auth shell rendering, build, and check
 - Post-Vite signed-in verification for password login, session persistence, sign-out/sign-back-in, Dashboard rendering, Tasks rendering, temporary task create/edit/delete UI, task ownership columns, Home Maintenance zero-state add UI, Home Maintenance create/delete UI, and Home Maintenance ownership columns
+- Calendar OAuth rerun after Google Cloud authorized `http://localhost:3000`; previous `origin_mismatch` no longer appears
 - Vite production build output preserved at `build/`
 - Browser environment variables migrated to `VITE_*` with temporary `REACT_APP_*` fallback support
 - Vite migration documentation and rollback notes
@@ -50,11 +51,10 @@ Release 0.6A migrated the frontend from Create React App to Vite on `feature/hou
 - Sprint 1E.1 Calendar OAuth verification documented as blocked until local client id is replaced
 
 ## In Progress
-- Release 0.6A.2 Calendar OAuth verification before merge readiness
+- Release 0.6A.3 Calendar OAuth completion before merge readiness
 
 ## Next
-- Add `http://localhost:3000` to the Google Cloud OAuth Web client Authorized JavaScript origins for the client configured in `VITE_GOOGLE_CLIENT_ID`
-- Complete Google Calendar live OAuth connect/events/disconnect verification with the local OAuth client
+- Complete Google Calendar live OAuth connect/events/disconnect verification in a normal Chrome browser session at `http://localhost:3000`
 - Update Vercel environment variables to `VITE_*`
 - Reassess merge readiness after the signed-in verification matrix passes
 - After Vite review, continue Release 0.6 with College deadline card/form migration using shared UI primitives
@@ -72,7 +72,7 @@ Release 0.6A migrated the frontend from Create React App to Vite on `feature/hou
 - No active deploy-blocking build errors after the Vite migration.
 - Production magic-link and password-reset redirects depend on Supabase Auth Site URL and allowed redirect URLs being set to the deployed FamilyOS origin, including `/reset-password` for recovery links.
 - Google Calendar sync requires the active browser origin to be listed in Google Cloud Console Authorized JavaScript origins for the configured OAuth client.
-- Live local Google Calendar connect is blocked by Google `origin_mismatch` for `http://localhost:3000`; this is an external Google Cloud OAuth client configuration issue.
+- Live local Google Calendar no longer fails with `origin_mismatch`, but the in-app browser lands on blank `https://accounts.google.com/gsi/transform` before returning a token to FamilyOS.
 - Optional starter data requires replacing `seed_user_id` in `supabase/seed.sql` with a local auth user UUID before manual seed loading.
 - Production household migration remains blocked until the Tasks household RLS migration, backfill state, and later module-level RLS rollout are reviewed.
 - Production password reset/change validation remains blocked until Supabase Auth Site URL, redirect URLs, and email templates are reviewed.
@@ -82,7 +82,7 @@ Release 0.6A migrated the frontend from Create React App to Vite on `feature/hou
 - App module data access still relies on current `user_id` ownership; module queries are intentionally deferred until each module receives a focused household migration.
 - Flagship modules still need shared profile, assumptions, history, decision intelligence, dashboard, and AI patterns implemented after this documentation sprint.
 - Pool, Finance, Retirement, and College internals still need dedicated UI migration passes; Release 0.6 only established reusable presentation foundations and low-risk Dashboard/Tasks/AI adoption.
-- Release 0.6A.2 is not ready to merge until Calendar OAuth is verified after Google Cloud authorized JavaScript origins are updated.
+- Release 0.6A.3 is not ready to merge until Calendar OAuth is verified in a browser session that completes the Google Identity Services token flow.
 - Vite reports a large chunk warning for the current single-bundle app; this is deferred until a later code-splitting or module-splitting sprint.
 - Legacy `REACT_APP_*` env names still work temporarily, but active docs and future configuration should use `VITE_*`.
 

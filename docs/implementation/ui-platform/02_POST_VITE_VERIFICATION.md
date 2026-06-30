@@ -6,7 +6,9 @@ Release 0.6A.1 verified the local Vite migration readiness after the CRA-to-Vite
 
 The local Vite development server starts on `http://localhost:3000`, local Supabase REST is reachable, the unauthenticated FamilyOS shell renders, and the browser console captured no warnings or errors on that shell. `pnpm run build` and `pnpm run check` both pass.
 
-Signed-in workflow verification was resumed with a local-only Supabase Auth test user. Password login, session persistence, sign-out, sign-back-in, Dashboard rendering, Tasks rendering, task creation, task edit/delete UI controls, Home Maintenance zero-state add, and Home Maintenance create/delete UI controls were verified. Google Calendar live OAuth reached Google but remains blocked by external Google Cloud configuration: `Error 400: origin_mismatch` for `http://localhost:3000`.
+Signed-in workflow verification was resumed with a local-only Supabase Auth test user. Password login, session persistence, sign-out, sign-back-in, Dashboard rendering, Tasks rendering, task creation, task edit/delete UI controls, Home Maintenance zero-state add, and Home Maintenance create/delete UI controls were verified.
+
+Release 0.6A.3 reran Calendar OAuth after Google Cloud was updated to authorize `http://localhost:3000` and `http://127.0.0.1:3000`. The previous `origin_mismatch` error is resolved. Google now accepts the localhost origin and opens the Google sign-in flow for `familyos`, but the in-app browser flow does not complete back to FamilyOS. After retrying, the browser lands on a blank `https://accounts.google.com/gsi/transform` page, so no Calendar token reaches the app.
 
 ## Environment Results
 
@@ -50,8 +52,8 @@ Signed-in workflow verification was resumed with a local-only Supabase Auth test
 | Confirm maintenance `user_id` | Pass | Local Supabase row had `user_id` populated. |
 | Delete temporary maintenance item | Pass | Swipe/mouse-drag revealed Delete, Confirm removed the temporary maintenance item, and local Supabase confirmed zero remaining test rows. |
 | Google Calendar button renders | Pass | Signed-in Dashboard rendered `Connect` controls. |
-| Google Calendar connect | Blocked | Google returned `Error 400: origin_mismatch` because `http://localhost:3000` is not registered as an authorized JavaScript origin for the configured OAuth client. |
-| Google Calendar events / empty state | Blocked | Requires Google Cloud OAuth origin configuration to allow `http://localhost:3000`. |
+| Google Calendar connect | Blocked | Previous `origin_mismatch` is resolved. Google accepts `http://localhost:3000` and opens sign-in, but the in-app browser flow lands on blank `https://accounts.google.com/gsi/transform` before returning a token to FamilyOS. |
+| Google Calendar events / empty state | Blocked | Requires a completed Google Identity Services token flow. No token reached FamilyOS during 0.6A.3 verification. |
 | Google Calendar disconnect/sign-out | Blocked | Requires an active Calendar connection. |
 | Visual QA: auth shell | Pass | No broken layout, missing styles, or missing controls observed on the unauthenticated shell. |
 | Visual QA: signed-in screens | Pass | Signed-in Dashboard, Tasks, task modal, maintenance modal, and swipe action states rendered without obvious broken layout or missing icons. |
@@ -66,7 +68,7 @@ Signed-in workflow verification was resumed with a local-only Supabase Auth test
 
 ## Remaining Issues
 
-- Google Calendar live OAuth verification remains blocked by external Google Cloud OAuth configuration: the configured client rejects `http://localhost:3000` with `origin_mismatch`.
+- Google Calendar live OAuth verification remains blocked. The previous Google Cloud `origin_mismatch` configuration issue is fixed, but the in-app browser does not complete the Google Identity Services popup/transform flow back to FamilyOS.
 - Password reset verification should be run only with an approved test email and explicit confirmation because it sends an auth email.
 
 ## Known Technical Debt
@@ -79,7 +81,7 @@ Signed-in workflow verification was resumed with a local-only Supabase Auth test
 
 Not production-ready for merge or release tagging based on this verification sprint alone.
 
-The Vite infrastructure, core signed-in authentication path, Tasks UI controls, and Home Maintenance UI controls are functioning locally. Production readiness should still wait until Google Calendar OAuth is verified after the Google Cloud authorized JavaScript origins are updated.
+The Vite infrastructure, core signed-in authentication path, Tasks UI controls, and Home Maintenance UI controls are functioning locally. Production readiness should still wait until Google Calendar OAuth is verified in a browser environment that completes the Google Identity Services token flow.
 
 ## Merge Readiness Assessment
 
@@ -87,14 +89,10 @@ NOT READY TO MERGE.
 
 Reasons:
 
-- Required signed-in verification could not be completed.
-- Google Calendar live behavior remains unverified after the Vite migration because the configured OAuth client rejects `http://localhost:3000` with `origin_mismatch`.
-- This is an external Google Cloud configuration blocker, not a local Vite, Supabase, Tasks, or Home Maintenance code blocker.
+- Required Calendar signed-in verification could not be completed.
+- Google Calendar live behavior remains unverified after the Vite migration because the Google Identity Services flow opens but does not complete back to FamilyOS in the in-app browser.
+- This is not a Vite, Supabase, Tasks, or Home Maintenance blocker. The previous Google Cloud origin blocker is resolved.
 
 ## Recommended Next Prompt
 
-Update the Google Cloud OAuth Web client used by `VITE_GOOGLE_CLIENT_ID` so Authorized JavaScript origins includes:
-
-- `http://localhost:3000`
-
-Then rerun only the Calendar connect/events-or-empty-state/disconnect verification. No app code changes are expected for that follow-up unless Google returns a different application-level error after the origin is accepted.
+Rerun Calendar OAuth in a normal Chrome browser session against `http://localhost:3000`, using the same local Vite server and Google OAuth client. Verify connect, events-or-empty-state, disconnect, reconnect if practical, and console state. If Chrome completes successfully while the in-app browser does not, document the in-app browser limitation and mark the feature branch merge-ready from an application perspective.
