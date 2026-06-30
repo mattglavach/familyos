@@ -1,10 +1,10 @@
 import { Button } from "../ui/button";
-import { Card, CardContent } from "../ui/card";
+import { InfoCard } from "../ui/cards";
 import { EmptyStatePanel } from "../ui/empty-state";
 import { FormError, FormHelp } from "../ui/form";
 import { Input } from "../ui/input";
+import { LoadingCard } from "../ui/loading";
 import { SectionHeader } from "../ui/section-header";
-import { Skeleton } from "../ui/skeleton";
 
 export function AiBriefText({ text, headingSize = "sm" }) {
   if (!text) return null;
@@ -40,24 +40,20 @@ export function AiBriefText({ text, headingSize = "sm" }) {
 
 export function AiBriefCard({ children }) {
   return (
-    <Card className="mb-3 bg-secondary shadow-none">
-      <CardContent className="p-4">{children}</CardContent>
-    </Card>
+    <InfoCard className="mb-3 bg-secondary">
+      {children}
+    </InfoCard>
   );
 }
 
 export function AiBriefLoading({ title, detail }) {
   return (
-    <Card className="my-2 bg-secondary/70 shadow-none">
-      <CardContent className="space-y-3 p-5 text-center">
+    <div className="my-2">
+      <LoadingCard className="bg-secondary/70">
         <div className="text-sm font-semibold text-muted-foreground">{title}</div>
         {detail && <div className="text-xs text-muted-foreground">{detail}</div>}
-        <div className="space-y-2 pt-2">
-          <Skeleton className="mx-auto h-3 w-4/5" />
-          <Skeleton className="mx-auto h-3 w-3/5" />
-        </div>
-      </CardContent>
-    </Card>
+      </LoadingCard>
+    </div>
   );
 }
 

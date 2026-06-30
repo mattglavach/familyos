@@ -1,12 +1,16 @@
 # Project Status
 
 ## Current Version
-0.5.1 Platform Complete
+0.6 Design System & Shared Platform
 
 ## Current State
-Platform Complete is near completion on `feature/household-foundation`. Household architecture, Household Context, local Supabase, authentication, password login, Tasks migration, Tasks household RLS, partial Dashboard migration, Home Maintenance migration, Google Calendar local integration, branding/icons, and baseline documentation are implemented or validated locally. Production deployment has not occurred.
+Release 0.6 shared UI foundation is in progress on `feature/household-foundation`. Platform Complete remains local/branch-only; production deployment has not occurred. The current sprint focuses on reusable presentation infrastructure only.
 
 ## Completed
+- Shared UI framework components for cards, layout, status, loading, dialogs, tables, charts, and dashboard widgets
+- Dashboard presentation migration to shared summary, metric, section, widget, action row, and empty-state components
+- Tasks and Home Maintenance presentation migration to shared summary, section header, priority badge, empty, and loading components
+- AI brief panel presentation migration to shared card/loading/empty primitives
 - Authoritative Family OS release roadmap through 2.0
 - Flagship module implementation standard
 - Shared assumptions standard
@@ -39,12 +43,12 @@ Platform Complete is near completion on `feature/household-foundation`. Househol
 - Sprint 1E.1 Calendar OAuth verification documented as blocked until local client id is replaced
 
 ## In Progress
-- Planning-only architecture standardization for future flagship modules
-- Final validation for the documentation sprint
+- Release 0.6 follow-on UI migration planning
 
 ## Next
+- Continue Release 0.6 with College deadline card/form migration using shared UI primitives
+- Expand shared dashboard widgets as modules are migrated into the Family Command Center
 - Tag Platform Complete as `v0.5-platform-complete` after release readiness is confirmed
-- Begin Release 0.6 Design System & Shared Platform
 - Use the module, assumptions, and decision engine standards for future Pool, Finance, Retirement, and College work
 - Replace local placeholder Google OAuth client id with the real Web client id and rerun live Calendar verification
 - Manually confirm Google Cloud OAuth JavaScript origins for Calendar sync
@@ -66,6 +70,8 @@ Platform Complete is near completion on `feature/household-foundation`. Househol
 - Existing feature screens still contain substantial inline styles and should be migrated gradually to shadcn/ui and Origin UI components during feature work.
 - App module data access still relies on current `user_id` ownership; module queries are intentionally deferred until each module receives a focused household migration.
 - Flagship modules still need shared profile, assumptions, history, decision intelligence, dashboard, and AI patterns implemented after this documentation sprint.
+- Pool, Finance, Retirement, and College internals still need dedicated UI migration passes; Release 0.6 only established reusable presentation foundations and low-risk Dashboard/Tasks/AI adoption.
+- Browser verification of signed-in Dashboard, Tasks, and Home Maintenance screens still requires a valid local auth session; the unauthenticated shell loaded without console errors.
 
 ## Last Updated
 June 30, 2026

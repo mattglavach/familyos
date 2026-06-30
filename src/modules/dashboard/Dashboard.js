@@ -1,5 +1,8 @@
 import { useMemo, useState } from "react";
 import { Loading } from "../../components/common";
+import { EmptyStatePanel } from "../../components/ui/empty-state";
+import { ActionRow, DashboardSection, SectionAction, WidgetContainer } from "../../components/ui/layout";
+import { MetricCard, SummaryCard } from "../../components/ui/cards";
 import { useHousehold } from "../../hooks/useHousehold";
 import { COLORS, MEMBER_COLORS, S } from "../../theme";
 
@@ -118,81 +121,78 @@ export function Dashboard({onNavigate,gc,deps}){
     ...homeMaint.filter(m=>m.last_completed&&daysAgo(m.last_completed)<=7).slice(0,1).map(m=>({date:m.last_completed,text:m.title,color:COLORS.slate})),
   ].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,4);
 
+  function toneFromColor(color) {
+    if(color===COLORS.red) return "red";
+    if(color===COLORS.amber) return "amber";
+    if(color===COLORS.green) return "green";
+    if(color===COLORS.blue) return "blue";
+    if(color===COLORS.purple) return "purple";
+    return "slate";
+  }
+
   function ActionItem({item,i,total}){
     return(
-      <button onClick={()=>onNavigate(item.nav)} style={{display:"flex",alignItems:"center",gap:10,width:"100%",background:"none",border:"none",padding:"9px 0",borderBottom:i<total-1?`1px solid ${COLORS.navyLight}`:"none",cursor:"pointer",textAlign:"left"}}>
-        <div style={{width:8,height:8,borderRadius:"50%",background:item.color,flexShrink:0}}/>
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{fontSize:14,fontWeight:600,color:COLORS.white,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.text}</div>
-          {item.detail&&<div style={{fontSize:12,color:item.color,marginTop:1}}>{item.detail}</div>}
-        </div>
-        <div style={{fontSize:12,color:COLORS.slate,flexShrink:0}}>></div>
-      </button>
+      <ActionRow key={i} title={item.text} detail={item.detail} indicator={item.color} onClick={()=>onNavigate(item.nav)} />
     );
   }
 
   return(
-    <div style={S.screen}> <div style={{background:COLORS.navyMid,borderRadius:16,padding:"18px 18px 14px",marginBottom:12,border:`1px solid ${COLORS.navyLight}`,borderTop:`3px solid ${totalIssues===0?COLORS.green:overdue.length>0?COLORS.red:COLORS.amber}`}}>
-        <div style={{fontSize:11,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"1px",marginBottom:6}}>This Week</div>
-        <div style={{fontSize:22,fontWeight:800,letterSpacing:"-0.5px",lineHeight:1.15,color:totalIssues===0?COLORS.green:overdue.length>0?COLORS.red:COLORS.amber,marginBottom:4}}>
-          {totalIssues===0?"All clear":`${overdue.length>0?overdue.length+" urgent":thisWeek.length+" this week"}`}
-        </div>
-        <div style={{fontSize:13,color:COLORS.slate,marginBottom:focusItems.length>0?14:0}}>{headline}</div>
+    <div style={S.screen}>
+      <SummaryCard
+        eyebrow="This Week"
+        title={totalIssues===0?"All clear":`${overdue.length>0?overdue.length+" urgent":thisWeek.length+" this week"}`}
+        detail={headline}
+        tone={totalIssues===0?"green":overdue.length>0?"red":"amber"}
+      >
         {focusItems.length>0&&focusItems.map((item,i)=><ActionItem key={i} item={item} i={i} total={focusItems.length}/>)}
-      </div> <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}}>
+      </SummaryCard>
+
+      <div className="mb-4 grid grid-cols-2 gap-2">
         {[
           {module:"Pool",color:poolColor,label:poolLabel,detail:poolDetail,nav:"pool"},
           {module:"Tasks",color:tasksColor,label:tasksLabel,detail:tasksDetail,nav:"tasks"},
           {module:"Finance",color:finColor,label:finLabel,detail:finDetail,nav:"finance"},
           {module:"College",color:collegeColor,label:collegeLabel,detail:collegeDetail,nav:"college"},
         ].map((s,i)=>(
-          <button key={i} onClick={()=>onNavigate(s.nav)} style={{background:COLORS.navyMid,border:`1px solid ${COLORS.navyLight}`,borderLeft:`3px solid ${s.color}`,borderRadius:12,padding:"12px 14px",cursor:"pointer",textAlign:"left",WebkitTapHighlightColor:"transparent"}}>
-            <div style={{fontSize:11,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:4}}>{s.module}</div>
-            <div style={{fontSize:14,fontWeight:800,color:s.color,marginBottom:3,letterSpacing:"-0.2px"}}>{s.label}</div>
-            <div style={{fontSize:11,color:COLORS.slate,lineHeight:1.35,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{s.detail}</div>
-          </button>
+          <MetricCard key={i} as="button" onClick={()=>onNavigate(s.nav)} label={s.module} value={s.label} detail={s.detail} tone={toneFromColor(s.color)} />
         ))}
-      </div> {totalActions>0&&<>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-          <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"1px"}}>Action Center</div>
-          {totalActions>5&&<button onClick={()=>setShowAllActions(p=>!p)} style={{fontSize:12,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0}}>{showAllActions?"Less":"All "+totalActions}</button>}
-        </div>
+      </div>
+
+      {totalActions>0&&<DashboardSection
+        title="Action Center"
+        action={totalActions>5&&<SectionAction onClick={()=>setShowAllActions(p=>!p)}>{showAllActions?"Less":"All "+totalActions}</SectionAction>}
+      >
         {overdue.length>0&&(
-          <div style={{background:COLORS.navyMid,borderRadius:12,borderLeft:`3px solid ${COLORS.red}`,marginBottom:8,padding:"12px 14px"}}>
-            <div style={{fontSize:11,fontWeight:700,color:COLORS.red,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8}}>Act Now - {overdue.length}</div>
+          <WidgetContainer title={`Act Now - ${overdue.length}`} className="mb-2 border-l-4 border-l-destructive">
             {overdue.slice(0,showAllActions?99:3).map((item,i)=><ActionItem key={i} item={item} i={i} total={Math.min(overdue.length,showAllActions?99:3)}/>)}
-            {!showAllActions&&overdue.length>3&&<div style={{fontSize:12,color:COLORS.slate,paddingTop:6}}>+{overdue.length-3} more</div>}
-          </div>
+            {!showAllActions&&overdue.length>3&&<div className="pt-1 text-xs text-muted-foreground">+{overdue.length-3} more</div>}
+          </WidgetContainer>
         )}
         {thisWeek.length>0&&(
-          <div style={{background:COLORS.navyMid,borderRadius:12,borderLeft:`3px solid ${COLORS.amber}`,marginBottom:8,padding:"12px 14px"}}>
-            <div style={{fontSize:11,fontWeight:700,color:COLORS.amber,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8}}>This Week - {thisWeek.length}</div>
+          <WidgetContainer title={`This Week - ${thisWeek.length}`} className="mb-2 border-l-4 border-l-amber-400">
             {thisWeek.slice(0,showAllActions?99:3).map((item,i)=><ActionItem key={i} item={item} i={i} total={Math.min(thisWeek.length,showAllActions?99:3)}/>)}
-          </div>
+          </WidgetContainer>
         )}
         {upcoming.length>0&&showAllActions&&(
-          <div style={{background:COLORS.navyMid,borderRadius:12,borderLeft:`3px solid ${COLORS.slate}`,marginBottom:8,padding:"12px 14px"}}>
-            <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8}}>Coming Up - {upcoming.length}</div>
+          <WidgetContainer title={`Coming Up - ${upcoming.length}`} className="mb-2 border-l-4 border-l-muted-foreground">
             {upcoming.slice(0,3).map((item,i)=><ActionItem key={i} item={item} i={i} total={Math.min(upcoming.length,3)}/>)}
-          </div>
+          </WidgetContainer>
         )}
-      </>}
+      </DashboardSection>}
       {totalActions===0&&(
-        <div style={{background:COLORS.green+"0d",border:`1px solid ${COLORS.green}33`,borderRadius:12,textAlign:"center",padding:"14px",marginBottom:12}}>
-          <div style={{fontSize:14,fontWeight:700,color:COLORS.green}}>All clear</div>
-          <div style={{fontSize:12,color:COLORS.slate,marginTop:3}}>Nothing needs attention right now.</div>
-        </div>
-      )} {gc.token&&<>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8,marginTop:16}}>
-          <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"1px"}}>Schedule</div>
-          <button onClick={()=>setShowFullSchedule(p=>!p)} style={{fontSize:12,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0}}>{showFullSchedule?"7 days":"30 days"}</button>
-        </div>
+        <EmptyStatePanel title="All clear" detail="Nothing needs attention right now." className="mb-3 rounded-lg border border-emerald-400/25 bg-emerald-400/5 py-5" />
+      )}
+
+      {gc.token&&<DashboardSection
+        title="Schedule"
+        action={<SectionAction onClick={()=>setShowFullSchedule(p=>!p)}>{showFullSchedule?"7 days":"30 days"}</SectionAction>}
+      >
         <div style={{marginBottom:10,display:"flex",flexWrap:"wrap",gap:4}}>
           {members.map(m=><span key={m} style={S.chip(filter===m,MEMBER_COLORS[m]||COLORS.blue)} onClick={()=>setFilter(m)}>{m}</span>)}
         </div>
         {gc.loading?<Loading/>:(
           filtered.filter(e=>visibleDays.includes(e.date)).length===0
-            ?<div style={{fontSize:13,color:COLORS.slate,textAlign:"center",padding:"20px 0"}}>No events {showFullSchedule?"in the next 30 days":"this week"}</div>
+            ?<EmptyStatePanel title="No events" detail={showFullSchedule?"No events in the next 30 days.":"No events this week."} className="py-6" />
             :visibleDays.map(day=>{
               const evs=filtered.filter(e=>e.date===day);
               if(!evs.length)return null;
@@ -225,26 +225,23 @@ export function Dashboard({onNavigate,gc,deps}){
               );
             })
         )}
-      </>}
+      </DashboardSection>}
       {!gc.token&&(
-        <div style={{background:COLORS.navyMid,borderRadius:12,border:`1px solid ${COLORS.navyLight}`,padding:"14px 16px",marginTop:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{fontSize:13,color:COLORS.slateLight}}>Connect Google Calendar to see your schedule here.</div>
+        <WidgetContainer className="mt-4" title="Schedule" subtitle="Connect Google Calendar to see your schedule here." actions={
           <button style={{...S.btnSm,fontSize:12}} onClick={gc.signIn}>Connect</button>
-        </div>
-      )} {recentActivity.length>0&&<>
-        <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"1px",marginBottom:8,marginTop:16}}>Recent Activity</div>
+        } />
+      )}
+
+      {recentActivity.length>0&&<DashboardSection title="Recent Activity">
         {recentActivity.map((a,i)=>(
-          <div key={i} style={{display:"flex",gap:10,alignItems:"center",padding:"8px 0",borderBottom:i<recentActivity.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
-            <div style={{width:6,height:6,borderRadius:"50%",background:a.color,flexShrink:0}}/>
-            <div style={{flex:1}}><div style={{fontSize:13,color:COLORS.slateLight}}>{a.text}</div></div>
-            <div style={{fontSize:11,color:COLORS.slate}}>{formatDate(a.date)}</div>
-          </div>
+          <ActionRow key={i} title={a.text} detail={formatDate(a.date)} indicator={a.color} />
         ))}
-      </>} {notes.data.length>0&&<>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:16,marginBottom:8}}>
-          <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"1px"}}>Notes</div>
-          <button onClick={()=>setShowNotes(p=>!p)} style={{fontSize:12,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0}}>{showNotes?"Hide":"Show "+notes.data.length}</button>
-        </div>
+      </DashboardSection>}
+
+      {notes.data.length>0&&<DashboardSection
+        title="Notes"
+        action={<SectionAction onClick={()=>setShowNotes(p=>!p)}>{showNotes?"Hide":"Show "+notes.data.length}</SectionAction>}
+      >
         {showNotes&&notes.data.map((n,i)=>(
           <div key={n.id} style={{background:COLORS.navyMid,borderRadius:10,padding:"12px 14px",marginBottom:6}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
@@ -257,7 +254,7 @@ export function Dashboard({onNavigate,gc,deps}){
             </div>
           </div>
         ))}
-      </>}
+      </DashboardSection>}
     </div>
   );
 }

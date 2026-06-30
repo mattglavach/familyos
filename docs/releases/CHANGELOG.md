@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- Added the Release 0.6 shared UI framework for reusable cards, layout sections, dashboard widgets, action rows, status indicators, loading states, modal layouts, table helpers, and chart containers.
+- Migrated Dashboard presentation to shared summary cards, metric cards, dashboard sections, widget containers, action rows, section actions, and empty-state panels without changing dashboard data logic.
+- Migrated Tasks and Home Maintenance presentation to shared summary, section header, priority badge, empty-state, and loading components while preserving existing task and maintenance workflows.
+- Updated AI brief panel helpers to reuse shared card, loading, and empty-state primitives without changing prompts, fetch behavior, history, or follow-up flows.
+- Documented the shared UI component library and marked the Release 0.6 shared UI framework work in the UI migration backlog.
 - Published the authoritative Family OS roadmap from 0.5.1 Platform Complete through the 2.0 ecosystem release.
 - Added the flagship module implementation standard for profile, assumptions, history, decision intelligence, AI, dashboard integration, household architecture, RLS, and testing.
 - Added the shared assumptions standard for editable recommendation inputs and their UI/AI behavior.

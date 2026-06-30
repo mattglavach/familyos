@@ -1,16 +1,18 @@
 # Current Sprint
 
 ## Sprint Goal
-Complete a planning-only architecture sprint that formalizes the long-term Family OS roadmap and establishes reusable module, assumptions, and decision-engine standards before Pool, Finance, Retirement, and College overhauls.
+Implement the Release 0.6 shared UI framework that every flagship module can reuse without redesigning Pool, Finance, Retirement, or College internals.
 
 ## Active Items
-- [x] Publish authoritative release roadmap through Family OS 2.0
-- [x] Create flagship module implementation standard
-- [x] Create shared assumptions standard
-- [x] Create shared decision engine standard
-- [x] Create Pool Intelligence 2.0 plan
-- [x] Update project status and changelog for the planning sprint
-- [x] Run validation commands
+- [x] Review current components, modules, Dashboard, Tasks, Home Maintenance, and AI components
+- [x] Add reusable shared card, layout, status, loading, modal, table, and chart presentation components
+- [x] Add reusable dashboard widget framework
+- [x] Apply shared components to Dashboard where low risk
+- [x] Apply shared components to Tasks and Home Maintenance where low risk
+- [x] Apply shared components to AI brief panel presentation
+- [x] Update UI documentation, migration backlog, project status, and changelog
+- [x] Run final validation commands
+- [x] Start local app and verify reachable shell if practical
 
 ## Blockers
 - No active Sprint 1B blocker is recorded for the household context layer.
@@ -19,10 +21,16 @@ Complete a planning-only architecture sprint that formalizes the long-term Famil
 - Production password reset/change validation remains blocked until Supabase Auth Site URL, redirect URLs, and email templates are reviewed.
 - Live local Google Calendar verification remains blocked until `.env.local` uses a real Google OAuth Web client id instead of `local-placeholder.apps.googleusercontent.com`.
 - Sprint 1E.1 could not complete live Google login/consent because the local Google OAuth client id still matches a placeholder-style value.
-- Production deployment remains intentionally out of scope for this planning sprint.
+- Production deployment remains intentionally out of scope for this Release 0.6 UI sprint.
 
 ## Notes
-- This sprint is documentation-only. No production code, schema changes, migrations, module migrations, or new application features are in scope.
+- This sprint is presentation infrastructure only. No schema changes, migrations, Supabase changes, AI prompt changes, calculations, or module workflow redesigns are in scope.
+- Shared UI framework components now live under `src/components/ui/` and are documented in `docs/ui/COMPONENT_LIBRARY.md`.
+- Dashboard now uses shared summary cards, metric cards, sections, widget containers, action rows, section actions, and empty panels.
+- Tasks/Home Maintenance now use shared summary, section header, priority badge, empty, and loading presentation while preserving swipe cards and save/delete behavior.
+- AI brief panel helpers now reuse shared card, loading, and empty-state presentation while preserving prompts and follow-up behavior.
+- `pnpm run build` and `pnpm run check` pass for the shared UI framework.
+- Local app startup reached the FamilyOS auth gate with no captured browser console warnings/errors. Dashboard, Tasks, and Home Maintenance signed-in screens still require a valid local session for visual verification.
 - Future flagship module work should reference `docs/architecture/MODULE_STANDARD.md`, `docs/architecture/ASSUMPTIONS_STANDARD.md`, and `docs/architecture/DECISION_ENGINE_STANDARD.md`.
 - Pool Intelligence 2.0 planning now lives at `docs/modules/pool/POOL_INTELLIGENCE_2_0_PLAN.md`.
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.
