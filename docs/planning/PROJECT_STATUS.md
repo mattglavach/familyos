@@ -4,11 +4,12 @@
 0.6 Design System & Shared Platform
 
 ## Current State
-Release 0.6A migrated the frontend from Create React App to Vite on `feature/household-foundation`. Release 0.6A.1 local infrastructure verification passed, but merge readiness remains blocked pending signed-in verification. Platform Complete remains local/branch-only; production deployment has not occurred.
+Release 0.6A migrated the frontend from Create React App to Vite on `feature/household-foundation`. Release 0.6A.1 local infrastructure and core signed-in verification passed, but merge readiness remains blocked pending Calendar OAuth and remaining signed-in UI control checks. Platform Complete remains local/branch-only; production deployment has not occurred.
 
 ## Completed
 - CRA-to-Vite frontend migration with Vite dev server on port `3000`
 - Post-Vite local infrastructure verification for Vite dev server, local Supabase REST reachability, auth shell rendering, build, and check
+- Post-Vite signed-in verification for password login, session persistence, sign-out/sign-back-in, Dashboard rendering, Tasks rendering, temporary task creation, task ownership columns, authenticated task update/delete cleanup, and authenticated Home Maintenance create/delete cleanup
 - Vite production build output preserved at `build/`
 - Browser environment variables migrated to `VITE_*` with temporary `REACT_APP_*` fallback support
 - Vite migration documentation and rollback notes
@@ -49,11 +50,12 @@ Release 0.6A migrated the frontend from Create React App to Vite on `feature/hou
 - Sprint 1E.1 Calendar OAuth verification documented as blocked until local client id is replaced
 
 ## In Progress
-- Release 0.6A.1 signed-in verification before merge readiness
+- Release 0.6A.1 Calendar OAuth and remaining signed-in UI control verification before merge readiness
 
 ## Next
-- Complete signed-in Dashboard, Tasks, Home Maintenance, Household Context, Authentication, and Google Calendar verification with a valid local session
-- Update local and Vercel environment variables to `VITE_*`
+- Complete Google Calendar live OAuth connect/events/disconnect verification with the local OAuth client
+- Manually verify or fix Tasks edit/delete UI controls and Home Maintenance zero-state add path
+- Update Vercel environment variables to `VITE_*`
 - Reassess merge readiness after the signed-in verification matrix passes
 - After Vite review, continue Release 0.6 with College deadline card/form migration using shared UI primitives
 - Expand shared dashboard widgets as modules are migrated into the Family Command Center
@@ -70,7 +72,7 @@ Release 0.6A migrated the frontend from Create React App to Vite on `feature/hou
 - No active deploy-blocking build errors after the Vite migration.
 - Production magic-link and password-reset redirects depend on Supabase Auth Site URL and allowed redirect URLs being set to the deployed FamilyOS origin, including `/reset-password` for recovery links.
 - Google Calendar sync requires the active browser origin to be listed in Google Cloud Console Authorized JavaScript origins for the configured OAuth client.
-- Live local Google Calendar sync also requires `.env.local` to use a real Google OAuth Web client id; `local-placeholder.apps.googleusercontent.com` produces `invalid_client`.
+- Live local Google Calendar connect timed out browser automation during Release 0.6A.1 and still needs a manual OAuth verification pass.
 - Optional starter data requires replacing `seed_user_id` in `supabase/seed.sql` with a local auth user UUID before manual seed loading.
 - Production household migration remains blocked until the Tasks household RLS migration, backfill state, and later module-level RLS rollout are reviewed.
 - Production password reset/change validation remains blocked until Supabase Auth Site URL, redirect URLs, and email templates are reviewed.
@@ -80,8 +82,8 @@ Release 0.6A migrated the frontend from Create React App to Vite on `feature/hou
 - App module data access still relies on current `user_id` ownership; module queries are intentionally deferred until each module receives a focused household migration.
 - Flagship modules still need shared profile, assumptions, history, decision intelligence, dashboard, and AI patterns implemented after this documentation sprint.
 - Pool, Finance, Retirement, and College internals still need dedicated UI migration passes; Release 0.6 only established reusable presentation foundations and low-risk Dashboard/Tasks/AI adoption.
-- Browser verification of signed-in Dashboard, Tasks, and Home Maintenance screens still requires a valid local auth session; the unauthenticated shell loaded without console errors.
-- Release 0.6A.1 is not ready to merge until signed-in verification is completed.
+- Tasks edit/delete UI controls and the Home Maintenance zero-state add path need a follow-up manual check or fix; authenticated local data paths passed.
+- Release 0.6A.1 is not ready to merge until Calendar OAuth and remaining signed-in UI control checks are completed.
 - Vite reports a large chunk warning for the current single-bundle app; this is deferred until a later code-splitting or module-splitting sprint.
 - Legacy `REACT_APP_*` env names still work temporarily, but active docs and future configuration should use `VITE_*`.
 

@@ -6,7 +6,7 @@ Release 0.6A.1 verified the local Vite migration readiness after the CRA-to-Vite
 
 The local Vite development server starts on `http://localhost:3000`, local Supabase REST is reachable, the unauthenticated FamilyOS shell renders, and the browser console captured no warnings or errors on that shell. `pnpm run build` and `pnpm run check` both pass.
 
-Signed-in workflow verification remains incomplete because the in-app browser did not have an authenticated local FamilyOS session. No password, password reset, task creation, home maintenance write, household context, or Google Calendar connect/disconnect actions were performed during this validation sprint.
+Signed-in workflow verification was resumed with a local-only Supabase Auth test user. Password login, session persistence, sign-out, sign-back-in, Dashboard rendering, Tasks rendering, task creation, authenticated task update/delete, and authenticated Home Maintenance create/delete data paths were verified. Google Calendar live OAuth remains incomplete because the browser automation session timed out during the Google Identity Services connect flow.
 
 ## Environment Results
 
@@ -15,7 +15,7 @@ Signed-in workflow verification remains incomplete because the in-app browser di
 | Branch | Pass | Verified on `feature/household-foundation`. |
 | Vite dev server | Pass | Vite served the app at `http://localhost:3000`. |
 | Local Supabase | Pass | Local REST endpoint on `127.0.0.1:54321` returned HTTP 200. |
-| Environment variables | Pass with caveat | Required browser-visible values are present through the temporary `REACT_APP_*` fallback path. `.env.example` documents `VITE_*`. |
+| Environment variables | Pass | Required browser-visible values are present as `VITE_*` in ignored local `.env.local`. Temporary `REACT_APP_*` fallback remains supported by app config. |
 | Missing environment variables | Pass | No required browser-visible Supabase or Google Calendar env value was missing. |
 | Production deployment | Not tested | Deployment is intentionally out of scope for this local verification sprint. |
 
@@ -26,34 +26,35 @@ Signed-in workflow verification remains incomplete because the in-app browser di
 | App loads at localhost | Pass | `http://localhost:3000` returned Vite app HTML and rendered the FamilyOS auth shell. |
 | Auth shell renders | Pass | Browser displayed FamilyOS sign-in UI with email, password, password reset, and magic-link fallback controls. |
 | Console errors on unauthenticated shell | Pass | No warning or error entries were captured by the browser console for the auth shell. |
-| Sign in | Blocked | No valid local authenticated session or credentials were available in the browser. |
-| Sign out | Blocked | Requires a signed-in session. |
-| Session persistence after refresh | Blocked | Requires a signed-in session. |
-| Password login | Blocked | Requires valid local credentials. |
+| Sign in | Pass | Local-only Supabase Auth test user signed in through the browser UI. |
+| Sign out | Pass | Browser returned to the auth shell after sign-out. |
+| Session persistence after refresh | Pass | Signed-in session survived a browser refresh. |
+| Password login | Pass | Email/password login passed with the local-only test user. |
 | Password reset flow | Not executed | Sending a reset email is an external auth side effect and requires a known approved email and user confirmation. |
-| Household loads | Blocked | Requires a signed-in session. |
-| Profile loads | Blocked | Requires a signed-in session. |
-| Household member loads | Blocked | Requires a signed-in session. |
-| Permissions load | Blocked | Requires a signed-in session. |
-| Dashboard loads | Blocked | Requires a signed-in session. |
-| Household task widget renders | Blocked | Requires signed-in Dashboard access. |
-| Home Maintenance widget renders | Blocked | Requires signed-in Dashboard access. |
-| Tasks list displays | Blocked | Requires signed-in Tasks access. |
-| Create task | Blocked | Requires signed-in Tasks access and would create local data. |
-| Confirm task `household_id` | Blocked | Requires temporary task creation. |
-| Confirm task `user_id` | Blocked | Requires temporary task creation. |
-| Edit task | Blocked | Requires temporary task creation. |
-| Delete temporary task | Blocked | Requires temporary task creation. |
-| Home Maintenance list displays | Blocked | Requires signed-in Home Maintenance access. |
-| Create temporary maintenance item | Blocked | Requires signed-in Home Maintenance access and would create local data. |
-| Confirm maintenance `household_id` | Blocked | Requires temporary maintenance item creation. |
-| Delete temporary maintenance item | Blocked | Requires temporary maintenance item creation. |
-| Google Calendar button renders | Blocked | Requires signed-in application shell. |
-| Google Calendar connect | Blocked | Requires signed-in session and valid Google OAuth local configuration. |
-| Google Calendar events / empty state | Blocked | Requires signed-in session and Calendar connection attempt. |
-| Google Calendar disconnect/sign-out | Blocked | Requires active Calendar connection or signed-in shell. |
+| Household loads | Pass | Local database contains active household context for the signed-in test user. |
+| Profile loads | Pass | Local profile exists for the signed-in test user. |
+| Household member loads | Pass | Local active owner membership exists for the signed-in test user. |
+| Permissions load | Pass | Owner role loaded at the data layer; signed-in app shell rendered instead of setup-required state. |
+| Dashboard loads | Pass | Signed-in Home dashboard rendered after login. |
+| Household task widget renders | Pass | Dashboard task widget rendered with all-clear state. |
+| Home Maintenance widget renders | Pass with caveat | Dashboard rendered without errors; temporary maintenance item UI refresh timed out in browser automation. |
+| Tasks list displays | Pass | Signed-in Tasks tab rendered, including List view. |
+| Create task | Pass | Temporary task was created through the browser UI. |
+| Confirm task `household_id` | Pass | Local Supabase row had `household_id` populated. |
+| Confirm task `user_id` | Pass | Local Supabase row had `user_id` populated. |
+| Edit task | Pass with caveat | Authenticated local Supabase update path passed. The visible Edit button rendered, but the browser click did not open an edit modal during automation. |
+| Delete temporary task | Pass with caveat | Authenticated local Supabase delete path cleaned up the temporary task. The visible Delete button clicked but did not remove the row during automation. |
+| Home Maintenance list displays | Partial | Tasks module shows maintenance counts; no separate Home Maintenance tab exists in this build. |
+| Create temporary maintenance item | Pass with caveat | Authenticated local Supabase create path passed with active household id. No visible add-maintenance control was available when zero maintenance records existed. |
+| Confirm maintenance `household_id` | Pass | Local Supabase row had `household_id` populated. |
+| Confirm maintenance `user_id` | Pass | Local Supabase row had `user_id` populated. |
+| Delete temporary maintenance item | Pass | Authenticated local Supabase delete path cleaned up the temporary item. |
+| Google Calendar button renders | Pass | Signed-in Dashboard rendered `Connect` controls. |
+| Google Calendar connect | Blocked | Google Identity Services connect attempt timed out the browser automation session. |
+| Google Calendar events / empty state | Blocked | Requires a completed Google OAuth token flow. |
+| Google Calendar disconnect/sign-out | Blocked | Requires an active Calendar connection. |
 | Visual QA: auth shell | Pass | No broken layout, missing styles, or missing controls observed on the unauthenticated shell. |
-| Visual QA: signed-in screens | Blocked | Requires a signed-in session. |
+| Visual QA: signed-in screens | Partial | Signed-in Dashboard and Tasks screens rendered without obvious broken layout or missing icons. Browser automation instability prevented full visual pass across all states. |
 | `pnpm run build` | Pass | Vite build completed successfully. |
 | `pnpm run check` | Pass | ESLint and Vite build completed successfully. |
 
@@ -65,22 +66,23 @@ Signed-in workflow verification remains incomplete because the in-app browser di
 
 ## Remaining Issues
 
-- Full signed-in verification is still incomplete for Authentication, Household Context, Dashboard, Tasks, Home Maintenance, and Google Calendar.
-- `.env.local` still uses legacy `REACT_APP_*` names. The app works because Vite is configured with temporary fallback support, but project configuration should be moved to `VITE_*` before production cutover.
-- Google Calendar live verification depends on a valid local OAuth Web client id and approved JavaScript origins.
+- Google Calendar live OAuth verification remains incomplete after the browser automation session timed out during connect.
+- Tasks UI delete requires follow-up: the visible Delete control clicked during automation but did not remove the row; cleanup succeeded through authenticated local Supabase.
+- Tasks UI edit requires follow-up: the visible Edit control rendered, but the browser click did not open an edit modal during automation; update succeeded through authenticated local Supabase.
+- Home Maintenance requires follow-up: the current signed-in Tasks UI did not expose a visible add-maintenance control when there were zero maintenance records; create/delete succeeded through authenticated local Supabase.
 - Password reset verification should be run only with an approved test email and explicit confirmation because it sends an auth email.
 
 ## Known Technical Debt
 
 - The current application still builds as a large single JavaScript chunk. Future module splitting or route-level dynamic imports should address the Vite chunk warning.
 - Legacy `REACT_APP_*` fallback support should be removed after deployed and local environments have fully migrated to `VITE_*`.
-- Signed-in verification requires a repeatable local test account or documented test credential flow.
+- Signed-in verification now depends on a local-only bootstrapped test user. Keep that setup documented and never commit local credentials.
 
 ## Production Readiness Assessment
 
 Not production-ready for merge or release tagging based on this verification sprint alone.
 
-The Vite infrastructure is functioning locally, but the required signed-in user journeys were not verified. Production readiness should wait until a valid local authenticated session confirms Household Context, Dashboard, Tasks writes, Home Maintenance writes, and Google Calendar behavior after the Vite migration.
+The Vite infrastructure and core signed-in authentication path are functioning locally. Production readiness should still wait until Calendar OAuth is verified and the Tasks edit/delete plus Home Maintenance add controls are checked manually or fixed in a follow-up sprint.
 
 ## Merge Readiness Assessment
 
@@ -89,8 +91,9 @@ NOT READY TO MERGE.
 Reasons:
 
 - Required signed-in verification could not be completed.
-- Local `.env.local` still relies on temporary `REACT_APP_*` fallback names.
 - Google Calendar live behavior remains unverified after the Vite migration.
+- Task edit/delete UI behavior was not fully verified through browser automation.
+- Home Maintenance add UI was not available for a zero-maintenance state.
 
 ## Recommended Next Prompt
 
