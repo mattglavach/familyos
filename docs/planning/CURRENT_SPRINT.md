@@ -1,7 +1,7 @@
 # Current Sprint
 
 ## Sprint Goal
-Complete Release 0.6A.1 local verification after the CRA-to-Vite migration and determine merge readiness for `feature/household-foundation`.
+Complete Release 0.6A.2 final signed-in verification after the CRA-to-Vite migration and determine merge readiness for `feature/household-foundation`.
 
 ## Active Items
 - [x] Replace CRA build tooling with Vite
@@ -25,16 +25,15 @@ Complete Release 0.6A.1 local verification after the CRA-to-Vite migration and d
 - [x] Verify signed-in password login, session persistence, sign-out, and sign-back-in with a local-only test user
 - [x] Verify signed-in Dashboard and Tasks rendering
 - [x] Verify temporary task create plus `household_id` and `user_id` population
-- [x] Verify authenticated task update/delete data path and cleanup
-- [x] Verify authenticated Home Maintenance create/delete data path and cleanup
+- [x] Verify Tasks edit/delete UI controls and cleanup
+- [x] Verify Home Maintenance zero-state add UI, create/delete controls, ownership columns, and cleanup
 - [ ] Complete Google Calendar live OAuth connect/disconnect verification
-- [ ] Manually verify or fix Tasks edit/delete UI controls and Home Maintenance zero-state add path
 - [x] Create `docs/implementation/ui-platform/01_VITE_MIGRATION.md`
 - [x] Update setup, deployment, planning, status, changelog, and index docs
 
 ## Blockers
-- Merge readiness remains blocked until Calendar OAuth and remaining signed-in UI control checks are completed.
-- Live local Google Calendar verification remains blocked because the browser automation session timed out during Google Identity Services connect.
+- Merge readiness remains blocked until Calendar OAuth is verified.
+- Live local Google Calendar verification is blocked by Google `origin_mismatch`; the OAuth Web client used by `VITE_GOOGLE_CLIENT_ID` must authorize `http://localhost:3000`.
 - Production deployment remains intentionally out of scope for this Vite migration sprint.
 - Production household migration remains blocked pending review of the Tasks household RLS migration and later module-by-module rollout plan.
 
@@ -47,7 +46,7 @@ Complete Release 0.6A.1 local verification after the CRA-to-Vite migration and d
 - The Vite build reports a large chunk warning for the current single-bundle app. This is expected and deferred to future code-splitting work.
 - The unauthenticated auth shell loads at `http://localhost:3000` with no captured browser console warnings/errors.
 - Local Supabase REST is reachable, and no required browser-visible Supabase or Google Calendar env value is missing.
-- Login, session persistence, sign-out, sign-back-in, signed-in Dashboard, signed-in Tasks, task create, task ownership columns, task authenticated update/delete, and Home Maintenance authenticated create/delete passed locally.
-- Release 0.6A.1 recommendation remains `NOT READY TO MERGE` until Calendar OAuth and the remaining signed-in UI control checks are completed.
+- Login, session persistence, sign-out, sign-back-in, signed-in Dashboard, signed-in Tasks, task create/edit/delete UI, task ownership columns, Home Maintenance zero-state add UI, Home Maintenance create/delete UI, and Home Maintenance ownership columns passed locally.
+- Release 0.6A.2 recommendation remains `NOT READY TO MERGE` until Google Calendar OAuth is verified after the Google Cloud authorized JavaScript origin is updated.
 - Shared UI framework components remain in `src/components/ui/`; no UI primitives were redesigned during this sprint.
 - Future flagship module work should reference `docs/architecture/MODULE_STANDARD.md`, `docs/architecture/ASSUMPTIONS_STANDARD.md`, and `docs/architecture/DECISION_ENGINE_STANDARD.md`.

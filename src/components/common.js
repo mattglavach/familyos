@@ -20,14 +20,17 @@ export function SwipeCard({children, onEdit, onDelete, style={}, activeId, setAc
   const ref=useRef(null),startX=useRef(null),isOpen=activeId===id;
   const [confirming,setConfirming]=useState(false);
   const THRESHOLD=60,REVEAL=130;
-  function onTouchStart(e){startX.current=e.touches[0].clientX;}
-  function onTouchEnd(e){
+  function completeSwipe(endX){
     if(startX.current===null)return;
-    const dx=e.changedTouches[0].clientX-startX.current;
+    const dx=endX-startX.current;
     if(dx<-THRESHOLD)setActiveId(id);
     else if(dx>THRESHOLD){setActiveId(null);setConfirming(false);}
     startX.current=null;
   }
+  function onTouchStart(e){startX.current=e.touches[0].clientX;}
+  function onTouchEnd(e){completeSwipe(e.changedTouches[0].clientX);}
+  function onMouseDown(e){startX.current=e.clientX;}
+  function onMouseUp(e){completeSwipe(e.clientX);}
   return(
     <div style={{position:"relative",marginBottom:10,borderRadius:12,overflow:"hidden"}}>
       <div style={{position:"absolute",right:0,top:0,bottom:0,display:"flex",alignItems:"stretch",borderRadius:"0 12px 12px 0"}}>
@@ -42,7 +45,7 @@ export function SwipeCard({children, onEdit, onDelete, style={}, activeId, setAc
           </div>
         }
       </div>
-      <div ref={ref} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} style={{...style,transform:`translateX(${isOpen?-(confirming?145:REVEAL):0}px)`,transition:"transform 0.25s ease",position:"relative",zIndex:1,touchAction:"pan-y"}}>{children}</div>
+      <div ref={ref} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onMouseDown={onMouseDown} onMouseUp={onMouseUp} style={{...style,transform:`translateX(${isOpen?-(confirming?145:REVEAL):0}px)`,transition:"transform 0.25s ease",position:"relative",zIndex:1,touchAction:"pan-y"}}>{children}</div>
     </div>
   );
 }

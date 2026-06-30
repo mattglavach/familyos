@@ -6,7 +6,7 @@ Release 0.6A.1 verified the local Vite migration readiness after the CRA-to-Vite
 
 The local Vite development server starts on `http://localhost:3000`, local Supabase REST is reachable, the unauthenticated FamilyOS shell renders, and the browser console captured no warnings or errors on that shell. `pnpm run build` and `pnpm run check` both pass.
 
-Signed-in workflow verification was resumed with a local-only Supabase Auth test user. Password login, session persistence, sign-out, sign-back-in, Dashboard rendering, Tasks rendering, task creation, authenticated task update/delete, and authenticated Home Maintenance create/delete data paths were verified. Google Calendar live OAuth remains incomplete because the browser automation session timed out during the Google Identity Services connect flow.
+Signed-in workflow verification was resumed with a local-only Supabase Auth test user. Password login, session persistence, sign-out, sign-back-in, Dashboard rendering, Tasks rendering, task creation, task edit/delete UI controls, Home Maintenance zero-state add, and Home Maintenance create/delete UI controls were verified. Google Calendar live OAuth reached Google but remains blocked by external Google Cloud configuration: `Error 400: origin_mismatch` for `http://localhost:3000`.
 
 ## Environment Results
 
@@ -37,24 +37,24 @@ Signed-in workflow verification was resumed with a local-only Supabase Auth test
 | Permissions load | Pass | Owner role loaded at the data layer; signed-in app shell rendered instead of setup-required state. |
 | Dashboard loads | Pass | Signed-in Home dashboard rendered after login. |
 | Household task widget renders | Pass | Dashboard task widget rendered with all-clear state. |
-| Home Maintenance widget renders | Pass with caveat | Dashboard rendered without errors; temporary maintenance item UI refresh timed out in browser automation. |
+| Home Maintenance widget renders | Pass | Dashboard rendered without errors and Home Maintenance data path was verified through the Tasks module. |
 | Tasks list displays | Pass | Signed-in Tasks tab rendered, including List view. |
 | Create task | Pass | Temporary task was created through the browser UI. |
 | Confirm task `household_id` | Pass | Local Supabase row had `household_id` populated. |
 | Confirm task `user_id` | Pass | Local Supabase row had `user_id` populated. |
-| Edit task | Pass with caveat | Authenticated local Supabase update path passed. The visible Edit button rendered, but the browser click did not open an edit modal during automation. |
-| Delete temporary task | Pass with caveat | Authenticated local Supabase delete path cleaned up the temporary task. The visible Delete button clicked but did not remove the row during automation. |
-| Home Maintenance list displays | Partial | Tasks module shows maintenance counts; no separate Home Maintenance tab exists in this build. |
-| Create temporary maintenance item | Pass with caveat | Authenticated local Supabase create path passed with active household id. No visible add-maintenance control was available when zero maintenance records existed. |
+| Edit task | Pass | Swipe/mouse-drag revealed the Edit action, the edit modal opened, and the updated task title/notes persisted. |
+| Delete temporary task | Pass | Swipe/mouse-drag revealed Delete, Confirm removed the temporary task, and local Supabase confirmed zero remaining test rows. |
+| Home Maintenance list displays | Pass | Tasks module shows Home Maintenance counts and current maintenance items. No separate Home Maintenance tab exists in this build. |
+| Create temporary maintenance item | Pass | `+ Add Maintenance` exposed the existing maintenance modal from the zero-maintenance state. |
 | Confirm maintenance `household_id` | Pass | Local Supabase row had `household_id` populated. |
 | Confirm maintenance `user_id` | Pass | Local Supabase row had `user_id` populated. |
-| Delete temporary maintenance item | Pass | Authenticated local Supabase delete path cleaned up the temporary item. |
+| Delete temporary maintenance item | Pass | Swipe/mouse-drag revealed Delete, Confirm removed the temporary maintenance item, and local Supabase confirmed zero remaining test rows. |
 | Google Calendar button renders | Pass | Signed-in Dashboard rendered `Connect` controls. |
-| Google Calendar connect | Blocked | Google Identity Services connect attempt timed out the browser automation session. |
-| Google Calendar events / empty state | Blocked | Requires a completed Google OAuth token flow. |
+| Google Calendar connect | Blocked | Google returned `Error 400: origin_mismatch` because `http://localhost:3000` is not registered as an authorized JavaScript origin for the configured OAuth client. |
+| Google Calendar events / empty state | Blocked | Requires Google Cloud OAuth origin configuration to allow `http://localhost:3000`. |
 | Google Calendar disconnect/sign-out | Blocked | Requires an active Calendar connection. |
 | Visual QA: auth shell | Pass | No broken layout, missing styles, or missing controls observed on the unauthenticated shell. |
-| Visual QA: signed-in screens | Partial | Signed-in Dashboard and Tasks screens rendered without obvious broken layout or missing icons. Browser automation instability prevented full visual pass across all states. |
+| Visual QA: signed-in screens | Pass | Signed-in Dashboard, Tasks, task modal, maintenance modal, and swipe action states rendered without obvious broken layout or missing icons. |
 | `pnpm run build` | Pass | Vite build completed successfully. |
 | `pnpm run check` | Pass | ESLint and Vite build completed successfully. |
 
@@ -66,10 +66,7 @@ Signed-in workflow verification was resumed with a local-only Supabase Auth test
 
 ## Remaining Issues
 
-- Google Calendar live OAuth verification remains incomplete after the browser automation session timed out during connect.
-- Tasks UI delete requires follow-up: the visible Delete control clicked during automation but did not remove the row; cleanup succeeded through authenticated local Supabase.
-- Tasks UI edit requires follow-up: the visible Edit control rendered, but the browser click did not open an edit modal during automation; update succeeded through authenticated local Supabase.
-- Home Maintenance requires follow-up: the current signed-in Tasks UI did not expose a visible add-maintenance control when there were zero maintenance records; create/delete succeeded through authenticated local Supabase.
+- Google Calendar live OAuth verification remains blocked by external Google Cloud OAuth configuration: the configured client rejects `http://localhost:3000` with `origin_mismatch`.
 - Password reset verification should be run only with an approved test email and explicit confirmation because it sends an auth email.
 
 ## Known Technical Debt
@@ -82,7 +79,7 @@ Signed-in workflow verification was resumed with a local-only Supabase Auth test
 
 Not production-ready for merge or release tagging based on this verification sprint alone.
 
-The Vite infrastructure and core signed-in authentication path are functioning locally. Production readiness should still wait until Calendar OAuth is verified and the Tasks edit/delete plus Home Maintenance add controls are checked manually or fixed in a follow-up sprint.
+The Vite infrastructure, core signed-in authentication path, Tasks UI controls, and Home Maintenance UI controls are functioning locally. Production readiness should still wait until Google Calendar OAuth is verified after the Google Cloud authorized JavaScript origins are updated.
 
 ## Merge Readiness Assessment
 
@@ -91,20 +88,13 @@ NOT READY TO MERGE.
 Reasons:
 
 - Required signed-in verification could not be completed.
-- Google Calendar live behavior remains unverified after the Vite migration.
-- Task edit/delete UI behavior was not fully verified through browser automation.
-- Home Maintenance add UI was not available for a zero-maintenance state.
+- Google Calendar live behavior remains unverified after the Vite migration because the configured OAuth client rejects `http://localhost:3000` with `origin_mismatch`.
+- This is an external Google Cloud configuration blocker, not a local Vite, Supabase, Tasks, or Home Maintenance code blocker.
 
 ## Recommended Next Prompt
 
-Complete signed-in Release 0.6A.1 verification with a valid local FamilyOS test account.
+Update the Google Cloud OAuth Web client used by `VITE_GOOGLE_CLIENT_ID` so Authorized JavaScript origins includes:
 
-Validate:
+- `http://localhost:3000`
 
-- Password login and sign-out.
-- Session persistence after refresh.
-- Household Context, profile, member, and permissions loading.
-- Dashboard, Tasks, and Home Maintenance signed-in rendering.
-- Temporary task create/edit/delete with `household_id` and `user_id` populated.
-- Temporary Home Maintenance item create/delete with `household_id` populated.
-- Google Calendar connect, empty/events state, and disconnect behavior with a real local OAuth Web client id.
+Then rerun only the Calendar connect/events-or-empty-state/disconnect verification. No app code changes are expected for that follow-up unless Google returns a different application-level error after the origin is accepted.

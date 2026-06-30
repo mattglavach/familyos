@@ -100,7 +100,7 @@ export function Tasks({deps}){
   function openEdit(item) {
     setEditItem(item);
     setForm({...item});
-    setShowModal(true);
+    setShowModal("task");
     setActiveSwipe(null);
   }
   function closeModal() { setShowModal(false); setEditItem(null); setForm({}); }
@@ -343,7 +343,10 @@ export function Tasks({deps}){
         {tab==="today"&&<TodayView/>}
         {tab==="list"&&<ListView/>}
       </>}
-<button style={{...S.btn,marginTop:16}} onClick={()=>{setForm({category:"Home",priority:"med",is_important:false});setShowModal("task");}}>+ Add Task</button>
+<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:16}}>
+<button style={S.btn} onClick={()=>{setForm({category:"Home",priority:"med",is_important:false});setShowModal("task");}}>+ Add Task</button>
+<button style={{...S.btn,background:COLORS.amber}} onClick={()=>{setForm({last_completed:TODAY_STR,interval_days:30});setShowModal("maint");}}>+ Add Maintenance</button>
+</div>
 {showModal==="task"&&<Modal title={editItem?"Edit Task":"Add Task"} onClose={closeModal}>
         <label style={S.label}>Title</label>
         <input style={S.input} placeholder="e.g. Mow front yard" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>

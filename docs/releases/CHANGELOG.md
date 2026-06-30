@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Completed Release 0.6A.2 final signed-in UI verification for Tasks and Home Maintenance, adding mouse-drag support to shared swipe cards, fixing the Tasks edit modal state, exposing the existing Home Maintenance add path from zero state, and documenting Google Calendar OAuth as blocked by Google `origin_mismatch` for `http://localhost:3000`.
 - Resumed Release 0.6A.1 signed-in local verification with a local-only Supabase user, validating password login, session persistence, Dashboard and Tasks rendering, task create/update/delete data paths, Home Maintenance create/delete data paths, and documenting remaining Calendar and UI-control blockers.
 - Completed Release 0.6A.1 local post-Vite infrastructure verification and documented merge readiness as blocked pending signed-in workflow validation in `docs/implementation/ui-platform/02_POST_VITE_VERIFICATION.md`.
 - Migrated the Family OS frontend from Create React App to Vite while preserving local port `3000`, build output to `build/`, Vercel API route assumptions, Tailwind/shadcn-style primitives, and temporary legacy `REACT_APP_*` environment fallback support.
