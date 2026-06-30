@@ -4,10 +4,11 @@
 0.6 Design System & Shared Platform
 
 ## Current State
-Release 0.6A migrated the frontend from Create React App to Vite on `feature/household-foundation`. Platform Complete remains local/branch-only; production deployment has not occurred.
+Release 0.6A migrated the frontend from Create React App to Vite on `feature/household-foundation`. Release 0.6A.1 local infrastructure verification passed, but merge readiness remains blocked pending signed-in verification. Platform Complete remains local/branch-only; production deployment has not occurred.
 
 ## Completed
 - CRA-to-Vite frontend migration with Vite dev server on port `3000`
+- Post-Vite local infrastructure verification for Vite dev server, local Supabase REST reachability, auth shell rendering, build, and check
 - Vite production build output preserved at `build/`
 - Browser environment variables migrated to `VITE_*` with temporary `REACT_APP_*` fallback support
 - Vite migration documentation and rollback notes
@@ -48,11 +49,12 @@ Release 0.6A migrated the frontend from Create React App to Vite on `feature/hou
 - Sprint 1E.1 Calendar OAuth verification documented as blocked until local client id is replaced
 
 ## In Progress
-- Post-migration review before additional Release 0.6 module UI work
+- Release 0.6A.1 signed-in verification before merge readiness
 
 ## Next
-- Review the Vite migration and update Vercel environment variables to `VITE_*`
-- Verify signed-in Dashboard, Tasks, Home Maintenance, Household Context, and Google Calendar with a valid local session
+- Complete signed-in Dashboard, Tasks, Home Maintenance, Household Context, Authentication, and Google Calendar verification with a valid local session
+- Update local and Vercel environment variables to `VITE_*`
+- Reassess merge readiness after the signed-in verification matrix passes
 - After Vite review, continue Release 0.6 with College deadline card/form migration using shared UI primitives
 - Expand shared dashboard widgets as modules are migrated into the Family Command Center
 - Tag Platform Complete as `v0.5-platform-complete` after release readiness is confirmed
@@ -79,6 +81,7 @@ Release 0.6A migrated the frontend from Create React App to Vite on `feature/hou
 - Flagship modules still need shared profile, assumptions, history, decision intelligence, dashboard, and AI patterns implemented after this documentation sprint.
 - Pool, Finance, Retirement, and College internals still need dedicated UI migration passes; Release 0.6 only established reusable presentation foundations and low-risk Dashboard/Tasks/AI adoption.
 - Browser verification of signed-in Dashboard, Tasks, and Home Maintenance screens still requires a valid local auth session; the unauthenticated shell loaded without console errors.
+- Release 0.6A.1 is not ready to merge until signed-in verification is completed.
 - Vite reports a large chunk warning for the current single-bundle app; this is deferred until a later code-splitting or module-splitting sprint.
 - Legacy `REACT_APP_*` env names still work temporarily, but active docs and future configuration should use `VITE_*`.
 

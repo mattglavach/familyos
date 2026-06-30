@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Completed Release 0.6A.1 local post-Vite infrastructure verification and documented merge readiness as blocked pending signed-in workflow validation in `docs/implementation/ui-platform/02_POST_VITE_VERIFICATION.md`.
 - Migrated the Family OS frontend from Create React App to Vite while preserving local port `3000`, build output to `build/`, Vercel API route assumptions, Tailwind/shadcn-style primitives, and temporary legacy `REACT_APP_*` environment fallback support.
 - Assessed current shadcn/ui status and CRA-to-Vite migration readiness, documenting findings and recommendation in `docs/implementation/ui-platform/00_SHADCN_VITE_ASSESSMENT.md`.
 - Added the Release 0.6 shared UI framework for reusable cards, layout sections, dashboard widgets, action rows, status indicators, loading states, modal layouts, table helpers, and chart containers.
