@@ -4,28 +4,28 @@
     <meta charset="utf-8" />
 
     <!-- PWA Manifest -->
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <link rel="manifest" href="/manifest.json" />
 
     <!-- Favicon -->
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <link rel="icon" type="image/png" sizes="192x192" href="%PUBLIC_URL%/icon-192.png" />
-    <link rel="icon" type="image/png" sizes="512x512" href="%PUBLIC_URL%/icon-512.png" />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
 
     <!-- Apple PWA meta tags -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="FamilyOS" />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
-    <!-- Viewport — prevents scroll bounce, fills full screen on iPhone -->
+    <!-- Viewport: prevents scroll bounce, fills full screen on iPhone -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
 
-    <!-- Theme color — matches app navy background -->
+    <!-- Theme color: matches app navy background -->
     <meta name="theme-color" content="#0F1729" />
     <meta name="msapplication-TileColor" content="#0F1729" />
 
     <!-- Basic meta -->
-    <meta name="description" content="FamilyOS — your family's personal operating system" />
+    <meta name="description" content="FamilyOS - your family's personal operating system" />
     <meta name="mobile-web-app-capable" content="yes" />
 
     <!-- Prevent phone number detection -->
@@ -57,5 +57,6 @@
   <body>
     <noscript>FamilyOS requires JavaScript to run.</noscript>
     <div id="root"></div>
+    <script type="module" src="/src/index.js"></script>
   </body>
 </html>

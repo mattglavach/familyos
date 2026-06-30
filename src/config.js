@@ -1,19 +1,22 @@
+const env = import.meta.env || {};
+const browserEnv = (viteName, legacyName) => env[viteName] || env[legacyName] || "";
+
 export const APP_CONFIG = {
-  supabaseUrl: process.env.REACT_APP_SUPABASE_URL || "",
-  supabaseAnonKey: process.env.REACT_APP_SUPABASE_ANON_KEY || "",
-  googleClientId: process.env.REACT_APP_GOOGLE_CLIENT_ID || "",
-  googleCalendarId: process.env.REACT_APP_GOOGLE_CALENDAR_ID || "",
-  approvedHouseholdEmails: (process.env.REACT_APP_APPROVED_HOUSEHOLD_EMAILS || "")
+  supabaseUrl: browserEnv("VITE_SUPABASE_URL", "REACT_APP_SUPABASE_URL"),
+  supabaseAnonKey: browserEnv("VITE_SUPABASE_ANON_KEY", "REACT_APP_SUPABASE_ANON_KEY"),
+  googleClientId: browserEnv("VITE_GOOGLE_CLIENT_ID", "REACT_APP_GOOGLE_CLIENT_ID"),
+  googleCalendarId: browserEnv("VITE_GOOGLE_CALENDAR_ID", "REACT_APP_GOOGLE_CALENDAR_ID"),
+  approvedHouseholdEmails: browserEnv("VITE_APPROVED_HOUSEHOLD_EMAILS", "REACT_APP_APPROVED_HOUSEHOLD_EMAILS")
     .split(",")
     .map(email => email.trim().toLowerCase())
     .filter(Boolean),
 };
 
 export const REQUIRED_BROWSER_CONFIG = {
-  REACT_APP_SUPABASE_URL: APP_CONFIG.supabaseUrl,
-  REACT_APP_SUPABASE_ANON_KEY: APP_CONFIG.supabaseAnonKey,
-  REACT_APP_GOOGLE_CLIENT_ID: APP_CONFIG.googleClientId,
-  REACT_APP_GOOGLE_CALENDAR_ID: APP_CONFIG.googleCalendarId,
+  VITE_SUPABASE_URL: APP_CONFIG.supabaseUrl,
+  VITE_SUPABASE_ANON_KEY: APP_CONFIG.supabaseAnonKey,
+  VITE_GOOGLE_CLIENT_ID: APP_CONFIG.googleClientId,
+  VITE_GOOGLE_CALENDAR_ID: APP_CONFIG.googleCalendarId,
 };
 
 export const CONFIG_STATUS = {

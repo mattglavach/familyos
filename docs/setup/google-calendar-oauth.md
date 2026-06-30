@@ -7,21 +7,21 @@ Family OS uses Google Identity Services in the browser to request a short-lived 
 Set these values locally in `.env.local` and in Vercel:
 
 ```env
-REACT_APP_GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
-REACT_APP_GOOGLE_CALENDAR_ID=primary
+VITE_GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
+VITE_GOOGLE_CALENDAR_ID=primary
 ```
 
-`REACT_APP_GOOGLE_CLIENT_ID` must be an OAuth 2.0 Web application client ID from Google Cloud Console. `REACT_APP_GOOGLE_CALENDAR_ID` is usually `primary`, or a specific Google Calendar ID when syncing a shared calendar.
+`VITE_GOOGLE_CLIENT_ID` must be an OAuth 2.0 Web application client ID from Google Cloud Console. `VITE_GOOGLE_CALENDAR_ID` is usually `primary`, or a specific Google Calendar ID when syncing a shared calendar. During the Vite migration window, legacy `REACT_APP_*` names are still accepted as fallback values, but new configuration should use `VITE_*`.
 
 ## OAuth Flow Used By Family OS
 
-The current implementation is in `src/App.js` in `useGoogleCalendar`.
+The current implementation is in `src/hooks/useGoogleCalendar.js`.
 
 - Google script: `https://accounts.google.com/gsi/client`
 - OAuth API: `window.google.accounts.oauth2.initTokenClient`
 - Scope: `https://www.googleapis.com/auth/calendar.readonly`
-- Client ID: `REACT_APP_GOOGLE_CLIENT_ID`
-- Calendar ID: `REACT_APP_GOOGLE_CALENDAR_ID`
+- Client ID: `VITE_GOOGLE_CLIENT_ID`
+- Calendar ID: `VITE_GOOGLE_CALENDAR_ID`
 - Runtime origin: `window.location.origin`
 - Redirect URI: none configured by Family OS for the Calendar token popup flow
 
@@ -29,12 +29,13 @@ Because the token client is initialized in browser JavaScript, Google validates 
 
 ## Required Google Cloud Console Values
 
-In Google Cloud Console, open **APIs & Services > Credentials > OAuth 2.0 Client IDs** and select the Web application client used by `REACT_APP_GOOGLE_CLIENT_ID`.
+In Google Cloud Console, open **APIs & Services > Credentials > OAuth 2.0 Client IDs** and select the Web application client used by `VITE_GOOGLE_CLIENT_ID`.
 
 Add every app origin that will run Calendar sync to **Authorized JavaScript origins**:
 
 ```text
 http://localhost:3000
+http://127.0.0.1:3000
 https://YOUR_VERCEL_PRODUCTION_DOMAIN.vercel.app
 https://YOUR_CUSTOM_DOMAIN
 ```
@@ -54,16 +55,18 @@ https://YOUR_CUSTOM_DOMAIN
 ## Local Development
 
 1. Copy `.env.example` to `.env.local`.
-2. Set `REACT_APP_GOOGLE_CLIENT_ID` to the Google OAuth Web client ID.
-3. Set `REACT_APP_GOOGLE_CALENDAR_ID` to `primary` or the target calendar ID.
-4. Add `http://localhost:3000` to Authorized JavaScript origins.
+2. Set `VITE_GOOGLE_CLIENT_ID` to the Google OAuth Web client ID.
+3. Set `VITE_GOOGLE_CALENDAR_ID` to `primary` or the target calendar ID.
+4. Add the exact local origin you use to Authorized JavaScript origins. For current local validation that usually means both:
+   - `http://localhost:3000`
+   - `http://127.0.0.1:3000`
 5. Run `pnpm start`.
 6. Open `http://localhost:3000` and click **Connect**.
 
 ## Vercel Production
 
-1. In Vercel, set `REACT_APP_GOOGLE_CLIENT_ID`.
-2. In Vercel, set `REACT_APP_GOOGLE_CALENDAR_ID`.
+1. In Vercel, set `VITE_GOOGLE_CLIENT_ID`.
+2. In Vercel, set `VITE_GOOGLE_CALENDAR_ID`.
 3. In Google Cloud Console, add the deployed Vercel production origin to Authorized JavaScript origins.
 4. If using a custom domain, add the custom domain origin too.
 5. Redeploy after changing Vercel environment variables.
@@ -77,7 +80,7 @@ When the error appears, compare the browser's current origin to Google Cloud Con
 window.location.origin
 ```
 
-That exact value must appear in Authorized JavaScript origins for the same OAuth client ID configured in `REACT_APP_GOOGLE_CLIENT_ID`.
+That exact value must appear in Authorized JavaScript origins for the same OAuth client ID configured in `VITE_GOOGLE_CLIENT_ID`.
 
 Common causes:
 

@@ -27,6 +27,13 @@ This backlog is based on a review of `src/App.js` on June 27, 2026. The app shou
 
 ## Priority 1 - Shared, Low-Risk Foundations
 
+### Release 0.6 shared UI framework
+- Scope: Add reusable card, layout, status, loading, modal, table, chart, and dashboard widget wrappers under `src/components/ui`.
+- Status: Complete.
+- Risk: Low.
+- Effort: Medium.
+- Notes: Added `SummaryCard`, `MetricCard`, `StatusCard`, `InfoCard`, `DashboardSection`, `WidgetContainer`, `ActionRow`, `PriorityBadge`, `HealthIndicator`, loading wrappers, modal layout, table empty/header helpers, chart container, and UI barrel exports. Dashboard, Tasks/Home Maintenance, and AI brief panels received low-risk presentation-only adoption.
+
 ### 1. Standardize form primitives
 - Scope: Add or wire `Input`, `Label`, `Textarea`, `Select`, `Checkbox`, and segmented control primitives.
 - Why first: Forms appear across auth, quick add, college, pool, and finance modals.
@@ -46,7 +53,7 @@ This backlog is based on a review of `src/App.js` on June 27, 2026. The app shou
 - Why first: Existing `SwipeCard` is shared and already partially migrated.
 - Risk: Low.
 - Effort: Medium.
-- Notes: Keep touch behavior stable; add visible non-swipe affordances where needed.
+- Notes: `ActionRow`, `DashboardSection`, and `WidgetContainer` now cover dashboard/list action presentation. Swipe behavior itself remains unchanged.
 
 ### 4. Standardize drawer forms
 - Scope: Move all `Modal` users to the Origin UI-style drawer shell with shared footer/action patterns.
@@ -137,4 +144,4 @@ This backlog is based on a review of `src/App.js` on June 27, 2026. The app shou
 - Redesigning existing information architecture.
 
 ## Suggested Next Step
-Migrate shared dashboard/card patterns next. Focus on reusable summary cards, metric cards, action rows, and section headers before touching Pool or Finance internals.
+Migrate College deadline cards and forms next, using the Release 0.6 card, section, status, empty, and modal primitives. Keep Pool and Finance internals deferred until their dedicated module sprints.

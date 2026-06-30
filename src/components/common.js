@@ -2,10 +2,9 @@ import { useRef, useState } from "react";
 import { Edit3, Trash2, X } from "lucide-react";
 import { COLORS, S } from "../theme";
 import { OriginDrawer } from "./origin/drawer";
-import { Card } from "./ui/card";
 import { EmptyStatePanel } from "./ui/empty-state";
+import { LoadingCard } from "./ui/loading";
 import { SectionHeader as UISectionHeader } from "./ui/section-header";
-import { Skeleton } from "./ui/skeleton";
 import { StatusBadge as UIStatusBadge } from "./ui/badge";
 
 // - SPARKLINE -
@@ -21,14 +20,17 @@ export function SwipeCard({children, onEdit, onDelete, style={}, activeId, setAc
   const ref=useRef(null),startX=useRef(null),isOpen=activeId===id;
   const [confirming,setConfirming]=useState(false);
   const THRESHOLD=60,REVEAL=130;
-  function onTouchStart(e){startX.current=e.touches[0].clientX;}
-  function onTouchEnd(e){
+  function completeSwipe(endX){
     if(startX.current===null)return;
-    const dx=e.changedTouches[0].clientX-startX.current;
+    const dx=endX-startX.current;
     if(dx<-THRESHOLD)setActiveId(id);
     else if(dx>THRESHOLD){setActiveId(null);setConfirming(false);}
     startX.current=null;
   }
+  function onTouchStart(e){startX.current=e.touches[0].clientX;}
+  function onTouchEnd(e){completeSwipe(e.changedTouches[0].clientX);}
+  function onMouseDown(e){startX.current=e.clientX;}
+  function onMouseUp(e){completeSwipe(e.clientX);}
   return(
     <div style={{position:"relative",marginBottom:10,borderRadius:12,overflow:"hidden"}}>
       <div style={{position:"absolute",right:0,top:0,bottom:0,display:"flex",alignItems:"stretch",borderRadius:"0 12px 12px 0"}}>
@@ -43,7 +45,7 @@ export function SwipeCard({children, onEdit, onDelete, style={}, activeId, setAc
           </div>
         }
       </div>
-      <div ref={ref} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} style={{...style,transform:`translateX(${isOpen?-(confirming?145:REVEAL):0}px)`,transition:"transform 0.25s ease",position:"relative",zIndex:1,touchAction:"pan-y"}}>{children}</div>
+      <div ref={ref} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onMouseDown={onMouseDown} onMouseUp={onMouseUp} style={{...style,transform:`translateX(${isOpen?-(confirming?145:REVEAL):0}px)`,transition:"transform 0.25s ease",position:"relative",zIndex:1,touchAction:"pan-y"}}>{children}</div>
     </div>
   );
 }
@@ -60,13 +62,7 @@ export function Modal({title,onClose,children}){
 export function Loading(){
   return(
     <div style={{padding:"4px 0"}}>
-      {[0.9,0.7,0.85].map((w,i)=>(
-        <Card key={i} className="mb-3 overflow-hidden p-5">
-          <Skeleton className="mb-3 h-3.5" style={{width:`${w*100}%`}}/>
-          <Skeleton className="mb-2 h-3 w-[55%]"/>
-          <Skeleton className="h-3 w-[35%]"/>
-        </Card>
-      ))}
+      {[0,1,2].map(i=><LoadingCard key={i} className="mb-3 overflow-hidden" />)}
     </div>
   );
 }

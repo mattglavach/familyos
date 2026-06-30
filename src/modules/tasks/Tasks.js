@@ -1,5 +1,9 @@
-import { useState } from "react";
-import { EmptyState, Loading, Modal, SwipeCard, SwipeHint } from "../../components/common";
+import { useMemo, useState } from "react";
+import { EmptyState, Loading, Modal, SectionHeader, SwipeCard, SwipeHint } from "../../components/common";
+import { SummaryCard } from "../../components/ui/cards";
+import { EmptyStatePanel } from "../../components/ui/empty-state";
+import { PriorityBadge } from "../../components/ui/status";
+import { useHousehold } from "../../hooks/useHousehold";
 import { COLORS, S } from "../../theme";
 
 // - TASKS (merged home maintenance + task tracker) -
@@ -8,8 +12,18 @@ export function Tasks({deps}){
     TODAY_DATE,TODAY_STR,daysBetween,nextDueDate,formatDate,
     maintStatus,maintColor,useTable,
   } = deps;
-  const tasks      = useTable("tasks","due_date",true);
-  const homeMaint  = useTable("home_maintenance","title",true);
+  const household = useHousehold();
+  const householdId = household.currentHousehold?.id || null;
+  const householdTableOptions = useMemo(()=>(
+    householdId
+      ? {
+        filters:{household_id:householdId},
+        insertDefaults:{household_id:householdId},
+      }
+      : undefined
+  ),[householdId]);
+  const tasks      = useTable("tasks","due_date",true,householdTableOptions);
+  const homeMaint  = useTable("home_maintenance","title",true,householdTableOptions);
 
   const [tab,setTab]             = useState("today");
   const [catFilter,setCatFilter] = useState("All");
@@ -86,7 +100,7 @@ export function Tasks({deps}){
   function openEdit(item) {
     setEditItem(item);
     setForm({...item});
-    setShowModal(true);
+    setShowModal("task");
     setActiveSwipe(null);
   }
   function closeModal() { setShowModal(false); setEditItem(null); setForm({}); }
@@ -148,7 +162,7 @@ export function Tasks({deps}){
             <div style={{fontSize:15,fontWeight:600,color:COLORS.white}}>{item.title}</div>
             <div style={{display:"flex",gap:8,marginTop:6,alignItems:"center",flexWrap:"wrap"}}>
               <span style={S.badge(CAT_COLORS[item.category]||COLORS.slate)}>{item.category||"Home"}</span>
-              <span style={S.badge(PRIORITY_COLORS[item.priority]||COLORS.slate)}>{item.priority||"med"}</span>
+              <PriorityBadge priority={item.priority||"med"} />
               {days!==null&&<span style={{fontSize:13,color:days<0?COLORS.red:days===0?COLORS.amber:COLORS.slate,fontWeight:600}}>
                 {days<0?`${-days}d overdue`:days===0?"Today":`in ${days}d`}
               </span>}
@@ -188,10 +202,6 @@ export function Tasks({deps}){
     );
   }
 
-  function SectionHeader({label,count,color}) {
-    return <div style={{fontSize:12,fontWeight:700,color:color||COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10,marginTop:20}}>{label}   {count}</div>;
-  }
-
   // - Today tab -
   function TodayView() {
     const urgentMaint = [...maintOverdue, ...maintDueSoon];
@@ -200,23 +210,22 @@ export function Tasks({deps}){
     const overdueCount = todayItems.filter(t=>taskStatus(t)==="overdue").length + maintOverdue.length;
     const todayCount   = todayItems.filter(t=>taskStatus(t)==="today").length;
     const importantCount = todayItems.filter(t=>taskStatus(t)==="important").length;
-    return(<>
-      <div style={{background:COLORS.navyMid,borderRadius:16,borderLeft:`4px solid ${total===0?COLORS.green:overdueCount>0?COLORS.red:COLORS.amber}`,padding:"14px 16px",marginBottom:12}}>
-        <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"1px",marginBottom:4}}>Today</div>
-        <div style={{fontSize:20,fontWeight:800,color:total===0?COLORS.green:overdueCount>0?COLORS.red:COLORS.amber,letterSpacing:"-0.3px"}}>
-          {total===0?"All clear"
+    const summaryTitle = total===0?"All clear"
             :overdueCount>0?`${overdueCount} overdue`
-            :`${total} item${total!==1?"s":""} need attention`}
-        </div>
-        <div style={{fontSize:12,color:COLORS.slate,marginTop:4}}>
-          {[
+            :`${total} item${total!==1?"s":""} need attention`;
+    const summaryDetail = [
             overdueCount>0&&`${overdueCount} overdue`,
             todayCount>0&&`${todayCount} due today`,
             importantCount>0&&`${importantCount} important`,
             urgentMaint.length>0&&`${urgentMaint.length} maintenance`,
-          ].filter(Boolean).join("  -  ")||formatDate(TODAY_STR)}
-        </div>
-      </div>
+          ].filter(Boolean).join("  -  ")||formatDate(TODAY_STR);
+    return(<>
+      <SummaryCard
+        eyebrow="Today"
+        title={summaryTitle}
+        detail={summaryDetail}
+        tone={total===0?"green":overdueCount>0?"red":"amber"}
+      />
 {showMsDo&&(
         <div style={{...S.gcBanner,marginBottom:14}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
@@ -249,10 +258,7 @@ export function Tasks({deps}){
         {maintDueSoon.map(m=><MaintCard key={m.id} item={m}/>)}
       </>}
 
-      {total===0&&<div style={{...S.card,background:COLORS.green+"11",borderColor:COLORS.green+"33",textAlign:"center",padding:"20px 16px",marginBottom:16}}>
-        <div style={{fontSize:15,fontWeight:700,color:COLORS.green}}>  Nothing needs attention today</div>
-        <div style={{fontSize:13,color:COLORS.slate,marginTop:8}}>Check the List tab to see everything.</div>
-      </div>}
+      {total===0&&<EmptyStatePanel title="Nothing needs attention today" detail="Check the List tab to see everything." className="mb-4 rounded-lg border border-emerald-400/25 bg-emerald-400/5 py-6" />}
     </>);
   }
 
@@ -337,7 +343,10 @@ export function Tasks({deps}){
         {tab==="today"&&<TodayView/>}
         {tab==="list"&&<ListView/>}
       </>}
-<button style={{...S.btn,marginTop:16}} onClick={()=>{setForm({category:"Home",priority:"med",is_important:false});setShowModal("task");}}>+ Add Task</button>
+<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:16}}>
+<button style={S.btn} onClick={()=>{setForm({category:"Home",priority:"med",is_important:false});setShowModal("task");}}>+ Add Task</button>
+<button style={{...S.btn,background:COLORS.amber}} onClick={()=>{setForm({last_completed:TODAY_STR,interval_days:30});setShowModal("maint");}}>+ Add Maintenance</button>
+</div>
 {showModal==="task"&&<Modal title={editItem?"Edit Task":"Add Task"} onClose={closeModal}>
         <label style={S.label}>Title</label>
         <input style={S.input} placeholder="e.g. Mow front yard" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>

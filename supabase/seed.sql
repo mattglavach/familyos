@@ -9,7 +9,8 @@ declare
   seed_user_id uuid := '00000000-0000-0000-0000-000000000000';
 begin
   if seed_user_id = '00000000-0000-0000-0000-000000000000' then
-    raise exception 'Replace seed_user_id with your Supabase auth user UUID before running seed.sql.';
+    raise notice 'Skipping optional starter data. Replace seed_user_id with your Supabase auth user UUID before running seed.sql manually.';
+    return;
   end if;
 
   insert into public.pool_readings (id,user_id,date,logged_at,ph,free_chlorine,cc,salt,cya,alkalinity,notes) values

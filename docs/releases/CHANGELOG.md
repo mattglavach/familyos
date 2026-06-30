@@ -1,6 +1,38 @@
 # Changelog
 
 ## Unreleased
+- Completed Release 0.6A platform release verification, including standard Chrome Google Calendar OAuth, Calendar connection, Vercel deployment, and final merge-readiness documentation. Embedded browsers may still fail Google Identity Services popup/transform flows and should not be used as the release authority.
+- Reran Release 0.6A.3 Calendar OAuth after Google Cloud authorized localhost origins; confirmed the previous `origin_mismatch` is resolved and documented the embedded-browser `gsi/transform` token-return limitation.
+- Completed Release 0.6A.2 final signed-in UI verification for Tasks and Home Maintenance, adding mouse-drag support to shared swipe cards, fixing the Tasks edit modal state, exposing the existing Home Maintenance add path from zero state, and documenting Google Calendar OAuth as blocked by Google `origin_mismatch` for `http://localhost:3000`.
+- Resumed Release 0.6A.1 signed-in local verification with a local-only Supabase user, validating password login, session persistence, Dashboard and Tasks rendering, task create/update/delete data paths, Home Maintenance create/delete data paths, and documenting remaining Calendar and UI-control blockers.
+- Completed Release 0.6A.1 local post-Vite infrastructure verification and documented merge readiness as blocked pending signed-in workflow validation in `docs/implementation/ui-platform/02_POST_VITE_VERIFICATION.md`.
+- Migrated the Family OS frontend from Create React App to Vite while preserving local port `3000`, build output to `build/`, Vercel API route assumptions, Tailwind/shadcn-style primitives, and temporary legacy `REACT_APP_*` environment fallback support.
+- Assessed current shadcn/ui status and CRA-to-Vite migration readiness, documenting findings and recommendation in `docs/implementation/ui-platform/00_SHADCN_VITE_ASSESSMENT.md`.
+- Added the Release 0.6 shared UI framework for reusable cards, layout sections, dashboard widgets, action rows, status indicators, loading states, modal layouts, table helpers, and chart containers.
+- Migrated Dashboard presentation to shared summary cards, metric cards, dashboard sections, widget containers, action rows, section actions, and empty-state panels without changing dashboard data logic.
+- Migrated Tasks and Home Maintenance presentation to shared summary, section header, priority badge, empty-state, and loading components while preserving existing task and maintenance workflows.
+- Updated AI brief panel helpers to reuse shared card, loading, and empty-state primitives without changing prompts, fetch behavior, history, or follow-up flows.
+- Documented the shared UI component library and marked the Release 0.6 shared UI framework work in the UI migration backlog.
+- Published the authoritative Family OS roadmap from 0.5.1 Platform Complete through the 2.0 ecosystem release.
+- Added the flagship module implementation standard for profile, assumptions, history, decision intelligence, AI, dashboard integration, household architecture, RLS, and testing.
+- Added the shared assumptions standard for editable recommendation inputs and their UI/AI behavior.
+- Added the shared decision engine standard with required recommendation fields and Pool, Finance, Retirement, and College examples.
+- Added the Pool Intelligence 2.0 plan covering profile, assumptions, known equipment/configuration, daily workflow, history, dashboard, AI, guardrails, confidence scoring, and implementation phases.
+- Documented Sprint 1E.1 live Calendar OAuth as blocked by a still-placeholder local Google OAuth client id.
+- Diagnosed live local Google Calendar OAuth as blocked by a placeholder client id and hardened placeholder detection before Google redirect.
+- Improved Google Calendar connection diagnostics, documented exact local OAuth origins, and verified FamilyOS icon/manifest references.
+- Migrated Home Maintenance reads/inserts in Tasks and Dashboard to use Household Context while preserving legacy `user_id` and deferring RLS.
+- Migrated Dashboard task reads to use Household Context while keeping non-migrated widgets on legacy user-scoped data access.
+- Added and locally validated a Tasks-only household-aware RLS migration while preserving legacy null-`household_id` fallback behavior.
+- Validated through the local Tasks UI that new task records write `household_id` while preserving legacy `user_id` and avoiding duplicate rows.
+- Validated local email/password auth through the app UI after household context and Tasks migration; documented future password reset/change requirements.
+- Validated clean local Supabase migration replay and prepared Tasks for household-aware reads/inserts while preserving legacy `user_id` fallback behavior.
+- Smoke tested the local household context path and added required authenticated table grants for local Supabase API access under existing RLS policies.
+- Added the app-level household context provider, hook, and Supabase household service as the foundation for future `household_id` module migrations.
+- Improved authentication UX with action-specific loading states, stricter email validation, clearer password reset confirmation, and an expired reset-link screen.
+- Added household foundation local-only migration setup documentation and Sprint 1 report; local migration apply remains blocked pending Docker Desktop, Supabase CLI, and `psql`.
+- Created a local-only household foundation migration file under `supabase/migrations/` without applying it.
+- Added a Supabase password reset flow with approved-email validation, reset email delivery, and an in-app password update screen for recovery sessions.
 - Migrated PoolBrief and RetirementBrief UI to shared AI brief panel helpers while preserving AI prompts, history, refresh, copy, and follow-up behavior.
 - Migrated app header, bottom navigation, and global loading wrapper to shared UI primitives/classes while preserving routing and auth/calendar actions.
 - Migrated AuthGate and SetupRequired to shared card, form, button, input, section header, and status badge primitives while preserving auth behavior.
