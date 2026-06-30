@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- Published the authoritative Family OS roadmap from 0.5.1 Platform Complete through the 2.0 ecosystem release.
+- Added the flagship module implementation standard for profile, assumptions, history, decision intelligence, AI, dashboard integration, household architecture, RLS, and testing.
+- Added the shared assumptions standard for editable recommendation inputs and their UI/AI behavior.
+- Added the shared decision engine standard with required recommendation fields and Pool, Finance, Retirement, and College examples.
+- Added the Pool Intelligence 2.0 plan covering profile, assumptions, known equipment/configuration, daily workflow, history, dashboard, AI, guardrails, confidence scoring, and implementation phases.
 - Documented Sprint 1E.1 live Calendar OAuth as blocked by a still-placeholder local Google OAuth client id.
 - Diagnosed live local Google Calendar OAuth as blocked by a placeholder client id and hardened placeholder detection before Google redirect.
 - Improved Google Calendar connection diagnostics, documented exact local OAuth origins, and verified FamilyOS icon/manifest references.

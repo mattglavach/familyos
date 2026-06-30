@@ -32,6 +32,9 @@ This folder is the operating manual for Family OS.
 - docs/architecture/ROUTING.md
 - docs/architecture/DEPLOYMENT.md
 - docs/architecture/ARCHITECTURE_DECISIONS.md
+- docs/architecture/MODULE_STANDARD.md
+- docs/architecture/ASSUMPTIONS_STANDARD.md
+- docs/architecture/DECISION_ENGINE_STANDARD.md
 
 ### Platform
 - docs/platform/README.md
@@ -69,6 +72,7 @@ This folder is the operating manual for Family OS.
 - Retirement
 - College
 - Pool
+  - docs/modules/pool/POOL_INTELLIGENCE_2_0_PLAN.md
 - Garden
 - Home
 - Vehicles

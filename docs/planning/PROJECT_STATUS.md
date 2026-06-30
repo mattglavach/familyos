@@ -1,12 +1,17 @@
 # Project Status
 
 ## Current Version
-0.1.0
+0.5.1 Platform Complete
 
 ## Current State
-Documentation foundation being established.
+Platform Complete is near completion on `feature/household-foundation`. Household architecture, Household Context, local Supabase, authentication, password login, Tasks migration, Tasks household RLS, partial Dashboard migration, Home Maintenance migration, Google Calendar local integration, branding/icons, and baseline documentation are implemented or validated locally. Production deployment has not occurred.
 
 ## Completed
+- Authoritative Family OS release roadmap through 2.0
+- Flagship module implementation standard
+- Shared assumptions standard
+- Shared decision engine standard
+- Pool Intelligence 2.0 planning document
 - Family OS v1 documentation workspace
 - Platform architecture documentation
 - Frontend standard foundation for Tailwind CSS, shadcn/ui primitives, Lucide icons, Recharts, and Origin UI-style drawer usage
@@ -34,9 +39,13 @@ Documentation foundation being established.
 - Sprint 1E.1 Calendar OAuth verification documented as blocked until local client id is replaced
 
 ## In Progress
-- Household foundation application integration
+- Planning-only architecture standardization for future flagship modules
+- Final validation for the documentation sprint
 
 ## Next
+- Tag Platform Complete as `v0.5-platform-complete` after release readiness is confirmed
+- Begin Release 0.6 Design System & Shared Platform
+- Use the module, assumptions, and decision engine standards for future Pool, Finance, Retirement, and College work
 - Replace local placeholder Google OAuth client id with the real Web client id and rerun live Calendar verification
 - Manually confirm Google Cloud OAuth JavaScript origins for Calendar sync
 - Review the Tasks household RLS migration before any production application
@@ -56,6 +65,7 @@ Documentation foundation being established.
 ## Technical Debt
 - Existing feature screens still contain substantial inline styles and should be migrated gradually to shadcn/ui and Origin UI components during feature work.
 - App module data access still relies on current `user_id` ownership; module queries are intentionally deferred until each module receives a focused household migration.
+- Flagship modules still need shared profile, assumptions, history, decision intelligence, dashboard, and AI patterns implemented after this documentation sprint.
 
 ## Last Updated
-June 29, 2026
+June 30, 2026

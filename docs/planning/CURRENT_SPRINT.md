@@ -1,40 +1,16 @@
 # Current Sprint
 
 ## Sprint Goal
-Establish the shared AI development workspace and documentation foundation.
+Complete a planning-only architecture sprint that formalizes the long-term Family OS roadmap and establishes reusable module, assumptions, and decision-engine standards before Pool, Finance, Retirement, and College overhauls.
 
 ## Active Items
-- [x] Add documentation structure
-- [x] Add AGENTS.md
-- [x] Add GitHub templates
-- [x] Add Platform architecture documentation
-- [x] Add frontend standard foundation
-- [x] Fix Vercel production build failure from CRA CI lint warnings
-- [x] Audit Supabase email magic-link redirect behavior for Vercel deployment
-- [x] Document Google Calendar OAuth origin configuration for local and Vercel deployments
-- [x] Add Supabase magic-link resend cooldown protection
-- [x] Make private household email/password login the primary Supabase auth path
-- [x] Add Supabase password reset flow for approved household users
-- [x] Validate current app structure
-- [x] Create household foundation branch and local-only migration file
-- [x] Validate local environment readiness for household migration
-- [x] Audit and improve authentication reset/sign-in UX without production access
-- [x] Install local Supabase prerequisites
-- [x] Create local baseline schema migration for Supabase startup
-- [x] Fix local household migration SQL ambiguity
-- [x] Allow local Supabase startup to skip optional seed data until a local auth user exists
-- [x] Add app-level household context layer
-- [x] Smoke test local household context with local auth users
-- [x] Validate clean local Supabase migration replay
-- [x] Prepare Tasks for household-aware reads and inserts
-- [x] Validate local email/password auth with Household Context and Tasks
-- [x] Validate Tasks UI writes `household_id` while preserving legacy `user_id`
-- [x] Add and locally validate Tasks-only household-aware RLS
-- [x] Migrate Dashboard task reads to Household Context while preserving legacy module widgets
-- [x] Migrate Home Maintenance data access to Household Context without enabling RLS
-- [x] Improve Google Calendar connection diagnostics and verify app icon/branding links
-- [x] Diagnose live local Calendar OAuth blocker from placeholder client id
-- [x] Document Sprint 1E.1 live Calendar OAuth blocker without exposing secrets
+- [x] Publish authoritative release roadmap through Family OS 2.0
+- [x] Create flagship module implementation standard
+- [x] Create shared assumptions standard
+- [x] Create shared decision engine standard
+- [x] Create Pool Intelligence 2.0 plan
+- [x] Update project status and changelog for the planning sprint
+- [x] Run validation commands
 
 ## Blockers
 - No active Sprint 1B blocker is recorded for the household context layer.
@@ -43,8 +19,12 @@ Establish the shared AI development workspace and documentation foundation.
 - Production password reset/change validation remains blocked until Supabase Auth Site URL, redirect URLs, and email templates are reviewed.
 - Live local Google Calendar verification remains blocked until `.env.local` uses a real Google OAuth Web client id instead of `local-placeholder.apps.googleusercontent.com`.
 - Sprint 1E.1 could not complete live Google login/consent because the local Google OAuth client id still matches a placeholder-style value.
+- Production deployment remains intentionally out of scope for this planning sprint.
 
 ## Notes
+- This sprint is documentation-only. No production code, schema changes, migrations, module migrations, or new application features are in scope.
+- Future flagship module work should reference `docs/architecture/MODULE_STANDARD.md`, `docs/architecture/ASSUMPTIONS_STANDARD.md`, and `docs/architecture/DECISION_ENGINE_STANDARD.md`.
+- Pool Intelligence 2.0 planning now lives at `docs/modules/pool/POOL_INTELLIGENCE_2_0_PLAN.md`.
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.
 - Production build now passes with `CI=true`; remaining deploy validation should happen through Vercel.
 - Email magic-link redirects are generated from the current browser origin; Supabase Auth Site URL and allowed redirect URLs must include the deployed Vercel origin.
