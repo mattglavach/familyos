@@ -1,18 +1,36 @@
 import { useState, useEffect, useCallback } from "react";
+import { useHousehold } from "../context/HouseholdContext";
 import { SEED } from "../data/seed";
-import { sb } from "../lib/supabase";
+import { supabase } from "../lib/supabase";
 // - DATA HOOK -
-export function useTable(table,orderCol,orderAsc=false){
+export function useTable(table,orderCol,orderAsc=false,options={}){
+  const household = useHousehold();
+  const {
+    householdId = household.householdId,
+    userId = household.user?.id,
+    householdScoped = true,
+  } = options || {};
   const [data,setData]=useState(null),[loading,setLoading]=useState(true);
   const load=useCallback(async()=>{
     setLoading(true);
-    try{const{data:rows,error}=await sb.from(table).order(orderCol,{ascending:orderAsc}).select();if(!error)setData(rows);else setData(SEED[table]||[]);}
+    try{
+      let query = supabase.from(table).select("*").order(orderCol,{ascending:orderAsc});
+      if (householdScoped && householdId) query = query.eq("household_id", householdId);
+      const{data:rows,error}=await query;
+      if(!error)setData(rows);else setData(SEED[table]||[]);
+    }
     catch{setData(SEED[table]||[]);}
     setLoading(false);
-  },[table,orderCol,orderAsc]);
+  },[table,orderCol,orderAsc,householdId,householdScoped]);
   useEffect(()=>{load();},[load]);
-  async function insert(row){try{const{data:r,error}=await sb.from(table).insert(row);if(!error)await load();else{console.error(`Insert failed on ${table}:`,error);setData(p=>[{...row,id:String(Date.now())},...(p||[])]);}return r;}catch(e){console.error(`Insert exception on ${table}:`,e);setData(p=>[{...row,id:String(Date.now())},...(p||[])]);}}
-  async function update(id,row){try{const{error}=await sb.from(table).eq("id",id).update(row);if(!error)await load();else{console.error(`Update failed on ${table}:`,error);setData(p=>p.map(r=>r.id===id?{...r,...row}:r));}}catch(e){console.error(`Update exception on ${table}:`,e);setData(p=>p.map(r=>r.id===id?{...r,...row}:r));}}
-  async function remove(id){try{const{error}=await sb.from(table).eq("id",id).delete();if(!error)await load();else{console.error(`Delete failed on ${table}:`,error);setData(p=>p.filter(r=>r.id!==id));}}catch(e){console.error(`Delete exception on ${table}:`,e);setData(p=>p.filter(r=>r.id!==id));}}
+  function withOwnership(row){
+    const next = { ...row };
+    if (householdScoped && householdId && next.household_id === undefined) next.household_id = householdId;
+    if (userId && next.user_id === undefined) next.user_id = userId;
+    return next;
+  }
+  async function insert(row){const nextRow=withOwnership(row);try{const{data:r,error}=await supabase.from(table).insert(nextRow).select().single();if(!error)await load();else{console.error(`Insert failed on ${table}:`,error);setData(p=>[{...nextRow,id:String(Date.now())},...(p||[])]);}return r;}catch(e){console.error(`Insert exception on ${table}:`,e);setData(p=>[{...nextRow,id:String(Date.now())},...(p||[])]);}}
+  async function update(id,row){const nextRow=withOwnership(row);try{const{error}=await supabase.from(table).update(nextRow).eq("id",id);if(!error)await load();else{console.error(`Update failed on ${table}:`,error);setData(p=>p.map(r=>r.id===id?{...r,...nextRow}:r));}}catch(e){console.error(`Update exception on ${table}:`,e);setData(p=>p.map(r=>r.id===id?{...r,...nextRow}:r));}}
+  async function remove(id){try{const{error}=await supabase.from(table).delete().eq("id",id);if(!error)await load();else{console.error(`Delete failed on ${table}:`,error);setData(p=>p.filter(r=>r.id!==id));}}catch(e){console.error(`Delete exception on ${table}:`,e);setData(p=>p.filter(r=>r.id!==id));}}
   return{data:data||[],loading,reload:load,insert,update,remove};
 }

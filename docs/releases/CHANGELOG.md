@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Began and completed Release 0.7 runtime integration with active household context, household-aware Supabase table access, Supabase-backed family member management, Settings/Profile persistence, structured task metadata writes, and a documented server-side Google Calendar connection plan.
 - Completed Release 0.6C production execution: added the production auth ownership baseline, backfilled existing module rows to the approved owner, applied the household foundation migration, validated RLS/grants/bootstrap/task metadata, and passed transaction-rolled-back app-path smoke tests without changing runtime app or localStorage behavior.
 - Added the Release 0.6C production baseline alignment plan for reconciling missing `user_id` ownership columns and public/open policy drift before re-attempting the household foundation migration.
 - Attempted the Release 0.6C production migration after target verification and local backup artifact capture; the migration failed safely during preflight because production is missing the expected `user_id` ownership baseline, and follow-up checks confirmed no Release 0.6C foundation tables were left behind.

@@ -7,6 +7,7 @@ import { TODAY_DATE, TODAY_STR, daysAgo, daysBetween, formatDate, formatDateFull
 import { useGoogleCalendar } from "../hooks/useGoogleCalendar";
 import { useSupabaseAuth } from "../hooks/useSupabaseAuth";
 import { useTable } from "../hooks/useTable";
+import { HouseholdProvider, useHousehold } from "../context/HouseholdContext";
 import { maintColor, maintStatus } from "../utils/status";
 import { College } from "../modules/college/College";
 import { Pool, getChemRecommendations } from "../modules/pool/Pool";
@@ -162,17 +163,29 @@ function GlobalLoading(){
 
 export default function App(){
   const auth = useSupabaseAuth();
+
+  if (CONFIG_STATUS.missing.length) return <SetupRequired/>;
+  if (auth.loading) return <GlobalLoading/>;
+  if (!auth.session) return <AuthGate auth={auth}/>;
+
+  return (
+    <HouseholdProvider session={auth.session}>
+      <AuthenticatedApp auth={auth}/>
+    </HouseholdProvider>
+  );
+}
+
+function AuthenticatedApp({ auth }) {
   const [tab,setTab] = useState("home");
   const gc = useGoogleCalendar();
+  const household = useHousehold();
 
   function switchTab(t){
     setTab(t);
     window.scrollTo({top:0,behavior:"auto"});
   }
 
-  if (CONFIG_STATUS.missing.length) return <SetupRequired/>;
-  if (auth.loading) return <GlobalLoading/>;
-  if (!auth.session) return <AuthGate auth={auth}/>;
+  if (household.loading) return <GlobalLoading/>;
 
   return(
     <div style={S.app}>

@@ -10,12 +10,12 @@ export const DEFAULT_SETTINGS = {
 };
 
 export const LOCAL_DATA_KEYS = [
-  SETTINGS_STORAGE_KEY,
-  "familyos_family_members_v1",
-  "familyos_task_metadata_v1",
   "gc_token",
   "gc_user_name",
   "gc_last_synced_at",
+  SETTINGS_STORAGE_KEY,
+  "familyos_family_members_v1",
+  "familyos_task_metadata_v1",
 ];
 
 export const TASK_CATEGORY_OPTIONS = ["Home", "Pool", "Yard", "College", "Finance", "Personal", "Work"];
