@@ -11,6 +11,8 @@ Represents the family/household.
 ### family_members
 Stores family member details.
 
+Release 0.6B implementation note: the current dashboard family member manager is client-side only and stores editable member preferences in browser localStorage. No Supabase family member table is used by the current deployed app until the household/family member migration is applied in a later database milestone.
+
 ### tasks
 Stores chores, reminders, and general tasks.
 

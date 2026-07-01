@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
   CalendarCheck,
@@ -7,18 +7,30 @@ import {
   ChevronRight,
   Clock,
   DollarSign,
+  Edit3,
   GraduationCap,
   ListTodo,
   NotebookText,
+  Trash2,
+  UserPlus,
+  UserRound,
+  Users,
   Waves,
 } from "lucide-react";
 import { Badge, StatusBadge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { EmptyStatePanel } from "../../components/ui/empty-state";
+import { FormError, FormGroup, FormHelp, FormRow, FormSection } from "../../components/ui/form";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
 import { SectionHeader } from "../../components/ui/section-header";
+import { Select } from "../../components/ui/select";
 import { Skeleton } from "../../components/ui/skeleton";
+import { Textarea } from "../../components/ui/textarea";
+import { OriginDrawer } from "../../components/origin/drawer";
 import { COLORS, MEMBER_COLORS, S } from "../../theme";
+import { useFamilyMembers } from "./useFamilyMembers";
 
 const toneByColor = {
   [COLORS.red]: "red",
@@ -29,8 +41,8 @@ const toneByColor = {
   [COLORS.slate]: "slate",
 };
 
-const memberFilters = ["All", "Aubrey", "Blake", "Brayden", "Matt", "Kalee"];
-const assignableMembers = ["Aubrey", "Blake", "Brayden", "Matt", "Kalee"];
+const memberRoles = ["Parent", "Child", "Family", "Caregiver"];
+const memberColors = [COLORS.blue, COLORS.purple, COLORS.red, COLORS.green, COLORS.amber, COLORS.slate];
 
 function toneForColor(color) {
   return toneByColor[color] || "slate";
@@ -51,6 +63,247 @@ function calendarStatus(gc) {
   if (gc.status === "synced") return { label: "Synced", status: "connected", detail: `${formatSyncTime(gc.lastSyncedAt)} from ${gc.sourceLabel}.` };
   if (gc.status === "connecting" || gc.status === "script-loading") return { label: "Connecting", status: "warning", detail: "Opening Google Calendar sign-in." };
   return { label: "Connected", status: "connected", detail: `${formatSyncTime(gc.lastSyncedAt)} from ${gc.sourceLabel}.` };
+}
+
+function initialsFor(name) {
+  const parts = String(name || "?").trim().split(/\s+/).filter(Boolean);
+  return parts.slice(0, 2).map(part => part[0]?.toUpperCase()).join("") || "?";
+}
+
+function getMemberColor(member, fallbackName) {
+  return member?.color || MEMBER_COLORS[fallbackName] || COLORS.slate;
+}
+
+function memberStatusTone(status) {
+  return status === "inactive" ? "neutral" : "healthy";
+}
+
+function MemberAvatar({ member, name, size = "md" }) {
+  const color = getMemberColor(member, name);
+  const label = member?.name || name || "Unknown";
+  const sizeClass = size === "sm" ? "h-8 w-8 text-xs" : "h-11 w-11 text-sm";
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center justify-center rounded-full font-extrabold text-white ${sizeClass}`}
+      style={{ background: color }}
+      aria-label={label}
+    >
+      {initialsFor(label)}
+    </span>
+  );
+}
+
+function memberReferences(member, events, tasks, collegeGoals) {
+  const name = member.name.toLowerCase();
+  const eventCount = events.filter(event => String(event.member || "").toLowerCase() === name).length;
+  const taskCount = tasks.filter(task => {
+    const haystack = `${task.title || ""} ${task.category || ""} ${task.notes || ""}`.toLowerCase();
+    return haystack.includes(name);
+  }).length;
+  const collegeCount = collegeGoals.filter(goal => String(goal.child_name || "").toLowerCase() === name).length;
+  return { eventCount, taskCount, collegeCount, total: eventCount + taskCount + collegeCount };
+}
+
+function emptyMemberForm() {
+  return { name: "", role: "Family", status: "active", color: COLORS.blue, notes: "" };
+}
+
+function MemberFormDrawer({ open, mode, member, onClose, onSave, onDeactivate, onRemove, references }) {
+  const [form, setForm] = useState(() => member ? { ...member } : emptyMemberForm());
+  const [formError, setFormError] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      setForm(member ? { ...member } : emptyMemberForm());
+      setFormError("");
+    }
+  }, [open, member]);
+
+  if (!open) return null;
+
+  function save() {
+    const result = onSave(form);
+    if (!result.ok) {
+      setFormError(result.error);
+      return;
+    }
+    onClose();
+  }
+
+  function deactivate() {
+    const result = onDeactivate?.();
+    if (!result.ok) {
+      setFormError(result.error);
+      return;
+    }
+    onClose();
+  }
+
+  function remove() {
+    const result = onRemove?.();
+    if (!result.ok) {
+      setFormError(result.error);
+      return;
+    }
+    onClose();
+  }
+
+  return (
+    <OriginDrawer
+      open={open}
+      onOpenChange={nextOpen => !nextOpen && onClose()}
+      title={mode === "edit" ? "Edit Family Member" : "Add Family Member"}
+      description="Member details personalize dashboard assignment and schedule views on this device."
+      footer={
+        <>
+          {mode === "edit" && form.status !== "inactive" && (
+            <Button type="button" variant="secondary" onClick={deactivate}>Deactivate</Button>
+          )}
+          {mode === "edit" && references?.total === 0 && (
+            <Button type="button" variant="destructive-outline" onClick={remove}>
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+              Remove
+            </Button>
+          )}
+          <Button type="button" onClick={save}>{mode === "edit" ? "Save" : "Add"}</Button>
+        </>
+      }
+    >
+      <FormSection>
+        <FormGroup>
+          <Label>Name</Label>
+          <Input value={form.name || ""} placeholder="Family member name" onChange={event => setForm(previous => ({ ...previous, name: event.target.value }))} />
+        </FormGroup>
+        <FormRow>
+          <FormGroup>
+            <Label>Role</Label>
+            <Select value={form.role || "Family"} onChange={event => setForm(previous => ({ ...previous, role: event.target.value }))}>
+              {memberRoles.map(role => <option key={role} value={role}>{role}</option>)}
+            </Select>
+          </FormGroup>
+          <FormGroup>
+            <Label>Status</Label>
+            <Select value={form.status || "active"} onChange={event => setForm(previous => ({ ...previous, status: event.target.value }))}>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </Select>
+          </FormGroup>
+        </FormRow>
+        <FormGroup>
+          <Label>Color</Label>
+          <div className="flex flex-wrap gap-2">
+            {memberColors.map(color => (
+              <button
+                key={color}
+                type="button"
+                aria-label={`Use ${color}`}
+                className={`h-9 w-9 rounded-full border ${form.color === color ? "border-white" : "border-border"}`}
+                style={{ background: color }}
+                onClick={() => setForm(previous => ({ ...previous, color }))}
+              />
+            ))}
+          </div>
+        </FormGroup>
+        <FormGroup>
+          <Label>Notes</Label>
+          <Textarea value={form.notes || ""} placeholder="Optional context" onChange={event => setForm(previous => ({ ...previous, notes: event.target.value }))} />
+        </FormGroup>
+        {mode === "edit" && references?.total > 0 && (
+          <FormHelp>
+            This member has {references.total} current dashboard reference{references.total === 1 ? "" : "s"}. Deactivate keeps historical schedule and planning context intact.
+          </FormHelp>
+        )}
+        {formError && <FormError>{formError}</FormError>}
+      </FormSection>
+    </OriginDrawer>
+  );
+}
+
+function FamilyOverview({
+  members,
+  loading,
+  error,
+  events,
+  tasks,
+  collegeGoals,
+  onAdd,
+  onEdit,
+}) {
+  if (loading) return <SectionSkeleton rows={2} />;
+
+  const activeCount = members.filter(member => member.status !== "inactive").length;
+  const inactiveCount = members.length - activeCount;
+
+  return (
+    <Card>
+      <CardHeader className="p-4 pb-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Users className="h-4 w-4 text-primary" aria-hidden="true" />
+              Family
+            </CardTitle>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <StatusBadge status="healthy">{activeCount} active</StatusBadge>
+              {inactiveCount > 0 && <StatusBadge status="neutral">{inactiveCount} inactive</StatusBadge>}
+            </div>
+          </div>
+          <Button type="button" variant="secondary" size="xs" onClick={onAdd}>
+            <UserPlus className="h-4 w-4" aria-hidden="true" />
+            Add
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3 px-4 pb-4 pt-0">
+        {error && (
+          <div className="rounded-lg border border-amber-400/35 bg-amber-400/10 p-3 text-xs leading-5 text-amber-200">
+            {error}
+          </div>
+        )}
+        {members.length === 0 ? (
+          <EmptyStatePanel
+            icon={<UserRound className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />}
+            title="No family members yet"
+            detail="Add household members to personalize schedule filters and dashboard references."
+            action="Add member"
+            onAction={onAdd}
+            className="py-8"
+          />
+        ) : (
+          <div className="space-y-2">
+            {members.map(member => {
+              const references = memberReferences(member, events, tasks, collegeGoals);
+              return (
+                <div key={member.id} className="rounded-lg border border-border bg-secondary/35 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 gap-3">
+                      <MemberAvatar member={member} />
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="truncate text-sm font-bold text-foreground">{member.name || "Unnamed"}</div>
+                          <StatusBadge status={memberStatusTone(member.status)}>{member.status || "active"}</StatusBadge>
+                        </div>
+                        <div className="mt-1 text-xs text-muted-foreground">{member.role || "Family"}</div>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          <Badge variant="blue">{references.eventCount} events</Badge>
+                          <Badge variant="purple">{references.taskCount} task refs</Badge>
+                          <Badge variant="green">{references.collegeCount} college</Badge>
+                        </div>
+                      </div>
+                    </div>
+                    <Button type="button" variant="secondary" size="icon-xs" aria-label={`Edit ${member.name}`} onClick={() => onEdit(member)}>
+                      <Edit3 className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  </div>
+                  {member.notes && <div className="mt-3 text-xs leading-5 text-muted-foreground">{member.notes}</div>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 function SectionSkeleton({ rows = 3 }) {
@@ -134,17 +387,17 @@ function ActionGroup({ title, count, color, items, showAll, defaultLimit, onNavi
   );
 }
 
-function MemberFilter({ value, active, onSelect }) {
-  const color = MEMBER_COLORS[value] || COLORS.blue;
+function MemberFilter({ value, active, onSelect, color }) {
+  const chipColor = color || MEMBER_COLORS[value] || COLORS.blue;
   return (
     <button
       type="button"
       onClick={() => onSelect(value)}
       className="min-h-8 rounded-full border px-3 text-xs font-semibold"
       style={{
-        borderColor: active ? color : COLORS.navyLight,
-        background: active ? `${color}26` : "transparent",
-        color: active ? color : COLORS.slateLight,
+        borderColor: active ? chipColor : COLORS.navyLight,
+        background: active ? `${chipColor}26` : "transparent",
+        color: active ? chipColor : COLORS.slateLight,
       }}
     >
       {value}
@@ -152,10 +405,11 @@ function MemberFilter({ value, active, onSelect }) {
   );
 }
 
-function ScheduleEvent({ event, reassigning, setReassigning, setOverrides, dateLabel }) {
-  const memberColor = MEMBER_COLORS[event.member] || COLORS.slate;
+function ScheduleEvent({ event, reassigning, setReassigning, setOverrides, dateLabel, memberByName, assignableMembers }) {
+  const assignedMember = memberByName[String(event.member || "").toLowerCase()];
+  const eventMemberColor = getMemberColor(assignedMember, event.member);
   return (
-    <div className="rounded-lg border border-border bg-card p-3" style={{ borderLeft: `3px solid ${memberColor}` }}>
+    <div className="rounded-lg border border-border bg-card p-3" style={{ borderLeft: `3px solid ${eventMemberColor}` }}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold text-foreground">{event.title}</div>
@@ -167,7 +421,7 @@ function ScheduleEvent({ event, reassigning, setReassigning, setOverrides, dateL
           </div>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-2">
-          <Badge variant={toneForColor(memberColor)} className="max-w-20 truncate">{event.member}</Badge>
+          <Badge variant={toneForColor(eventMemberColor)} className="max-w-20 truncate">{event.member}</Badge>
           <Button type="button" variant="secondary" size="xs" onClick={() => setReassigning(reassigning === event.id ? null : event.id)}>
             Reassign
           </Button>
@@ -177,11 +431,12 @@ function ScheduleEvent({ event, reassigning, setReassigning, setOverrides, dateL
         <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
           {assignableMembers.map(member => (
             <MemberFilter
-              key={member}
-              value={member}
-              active={event.member === member}
+              key={member.id}
+              value={member.name}
+              color={member.color}
+              active={event.member === member.name}
               onSelect={() => {
-                setOverrides(previous => ({ ...previous, [event.id]: member }));
+                setOverrides(previous => ({ ...previous, [event.id]: member.name }));
                 setReassigning(null);
               }}
             />
@@ -196,6 +451,9 @@ function SchedulePanel({
   gc,
   filteredEvents,
   visibleDays,
+  memberFilters,
+  assignableMembers,
+  memberByName,
   showFullSchedule,
   setShowFullSchedule,
   filter,
@@ -266,7 +524,7 @@ function SchedulePanel({
       <CardContent className="space-y-3 px-4 pb-4 pt-0">
         <div className="flex flex-wrap gap-2">
           {memberFilters.map(member => (
-            <MemberFilter key={member} value={member} active={filter === member} onSelect={setFilter} />
+            <MemberFilter key={member.id || member.name} value={member.name} color={member.color} active={filter === member.name} onSelect={setFilter} />
           ))}
         </div>
         {gc.error && (
@@ -308,6 +566,8 @@ function SchedulePanel({
                     reassigning={reassigning}
                     setReassigning={setReassigning}
                     setOverrides={setOverrides}
+                    memberByName={memberByName}
+                    assignableMembers={assignableMembers}
                   />
                 ))}
               </div>
@@ -329,6 +589,8 @@ function SchedulePanel({
                           reassigning={reassigning}
                           setReassigning={setReassigning}
                           setOverrides={setOverrides}
+                          memberByName={memberByName}
+                          assignableMembers={assignableMembers}
                           dateLabel={formatDateFull(day)}
                         />
                       ))}
@@ -359,6 +621,8 @@ export function Dashboard({ onNavigate, gc, deps }) {
   const notes = useTable("notes", "created_at");
   const taskData = useTable("tasks", "due_date", true);
   const treatments = useTable("pool_treatments", "logged_at");
+  const collegeGoals = useTable("college_goal", "target_year", true);
+  const family = useFamilyMembers();
 
   const [showFullSchedule, setShowFullSchedule] = useState(false);
   const [showAllActions, setShowAllActions] = useState(false);
@@ -366,6 +630,7 @@ export function Dashboard({ onNavigate, gc, deps }) {
   const [filter, setFilter] = useState("All");
   const [overrides, setOverrides] = useState({});
   const [reassigning, setReassigning] = useState(null);
+  const [memberDrawer, setMemberDrawer] = useState({ open: false, mode: "add", member: null });
 
   const isLoading = [
     homeMaint,
@@ -376,6 +641,7 @@ export function Dashboard({ onNavigate, gc, deps }) {
     notes,
     taskData,
     treatments,
+    collegeGoals,
   ].some(table => table.loading);
 
   const assump = assumptions.data[0];
@@ -402,6 +668,16 @@ export function Dashboard({ onNavigate, gc, deps }) {
     () => (gc.token ? gc.events : []).map(event => ({ ...event, member: overrides[event.id] || event.member })),
     [gc.events, gc.token, overrides]
   );
+  const activeMembers = family.activeMembers;
+  const memberFilters = useMemo(() => [{ id: "all", name: "All", color: COLORS.blue }, ...activeMembers], [activeMembers]);
+  const assignableMembers = activeMembers;
+  const memberByName = family.memberByName;
+
+  useEffect(() => {
+    if (filter === "All") return;
+    if (!activeMembers.some(member => member.name === filter)) setFilter("All");
+  }, [activeMembers, filter]);
+
   const filteredEvents = allEvents.filter(event => filter === "All" || event.member === filter);
   const next7Days = Array.from({ length: 7 }, (_, index) => {
     const date = new Date(TODAY_DATE);
@@ -460,9 +736,10 @@ export function Dashboard({ onNavigate, gc, deps }) {
     overdue.push({ text: event.title, color: COLORS.blue, nav: "home", detail: event.time || "Today" });
   });
   filteredEvents.filter(event => next7Days.includes(event.date) && event.date !== TODAY_STR).slice(0, 3).forEach(event => {
+    const assignedMember = memberByName[String(event.member || "").toLowerCase()];
     thisWeek.push({
       text: event.title,
-      color: MEMBER_COLORS[event.member] || COLORS.slate,
+      color: getMemberColor(assignedMember, event.member),
       nav: "home",
       detail: `${event.time || ""} ${formatDate(event.date)}`.trim(),
     });
@@ -502,6 +779,40 @@ export function Dashboard({ onNavigate, gc, deps }) {
     { module: "Finance", color: finColor, label: finLabel, detail: finDetail, nav: "finance", icon: DollarSign },
     { module: "College", color: collegeColor, label: collegeLabel, detail: collegeDetail, nav: "college", icon: GraduationCap },
   ];
+
+  const editingReferences = memberDrawer.member
+    ? memberReferences(memberDrawer.member, allEvents, taskData.data, collegeGoals.data)
+    : { eventCount: 0, taskCount: 0, collegeCount: 0, total: 0 };
+
+  function openAddMember() {
+    setMemberDrawer({ open: true, mode: "add", member: null });
+  }
+
+  function openEditMember(member) {
+    setMemberDrawer({ open: true, mode: "edit", member });
+  }
+
+  function closeMemberDrawer() {
+    setMemberDrawer({ open: false, mode: "add", member: null });
+  }
+
+  function saveMember(form) {
+    if (memberDrawer.mode === "edit" && memberDrawer.member) {
+      return family.updateMember(memberDrawer.member.id, form);
+    }
+    return family.addMember(form);
+  }
+
+  function deactivateEditingMember() {
+    if (!memberDrawer.member) return { ok: false, error: "No family member selected." };
+    return family.deactivateMember(memberDrawer.member.id);
+  }
+
+  function removeEditingMember() {
+    if (!memberDrawer.member) return { ok: false, error: "No family member selected." };
+    if (editingReferences.total > 0) return family.deactivateMember(memberDrawer.member.id);
+    return family.removeMember(memberDrawer.member.id);
+  }
 
   const recentActivity = [
     ...readings.data.slice(0, 2).map(reading => ({ date: reading.date, text: `Pool reading - pH ${reading.ph || "--"} FC ${reading.free_chlorine || "--"}`, color: COLORS.blue })),
@@ -555,6 +866,17 @@ export function Dashboard({ onNavigate, gc, deps }) {
         {modules.map(item => <ModuleCard key={item.module} item={item} onNavigate={onNavigate} />)}
       </div>
 
+      <FamilyOverview
+        members={family.members}
+        loading={family.loading}
+        error={family.error}
+        events={allEvents}
+        tasks={taskData.data}
+        collegeGoals={collegeGoals.data}
+        onAdd={openAddMember}
+        onEdit={openEditMember}
+      />
+
       <section>
         <SectionHeader
           title="Action Center"
@@ -597,6 +919,9 @@ export function Dashboard({ onNavigate, gc, deps }) {
         reassigning={reassigning}
         setReassigning={setReassigning}
         setOverrides={setOverrides}
+        memberFilters={memberFilters}
+        assignableMembers={assignableMembers}
+        memberByName={memberByName}
         formatDateFull={formatDateFull}
         todayString={TODAY_STR}
       />
@@ -673,6 +998,16 @@ export function Dashboard({ onNavigate, gc, deps }) {
         ) : null}
       </section>
 
+      <MemberFormDrawer
+        open={memberDrawer.open}
+        mode={memberDrawer.mode}
+        member={memberDrawer.member}
+        references={editingReferences}
+        onClose={closeMemberDrawer}
+        onSave={saveMember}
+        onDeactivate={deactivateEditingMember}
+        onRemove={removeEditingMember}
+      />
     </div>
   );
 }
