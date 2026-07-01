@@ -19,13 +19,14 @@ Release 0.6B dashboard implementation is in progress.
 - Release 0.6B Milestone 1 dashboard layout pass
 - Release 0.6B Milestone 2 Google Calendar integration pass
 - Release 0.6B Milestone 3 family member management pass
+- Release 0.6B Milestone 4 task management MVP
 
 ## In Progress
-- Release 0.6B task management follow-up milestone
+- Release 0.6B final dashboard hardening follow-up milestone
 
 ## Next
-- Review Milestone 3 family member dashboard behavior
-- Continue with Milestone 4 task management MVP pass
+- Review Milestone 4 task management MVP behavior
+- Continue with Milestone 5 mobile responsiveness, loading states, and error-state hardening pass
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
 
 ## Known Bugs
@@ -34,6 +35,7 @@ Release 0.6B dashboard implementation is in progress.
 - Production magic-link redirects depend on Supabase Auth Site URL and allowed redirect URLs being set to the deployed FamilyOS origin.
 - Google Calendar sync requires the active browser origin to be listed in Google Cloud Console Authorized JavaScript origins for the configured OAuth client.
 - Dashboard family member edits are stored in browser localStorage for Release 0.6B because the current applied Supabase schema does not include a family member table.
+- Task assignee, status, created date, and completed date are stored in browser localStorage for Release 0.6B because the current applied Supabase tasks table does not include those columns.
 
 ## Technical Debt
 - Existing feature screens still contain substantial inline styles and should be migrated gradually to shadcn/ui and Origin UI components during feature work.

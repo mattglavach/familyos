@@ -20,7 +20,8 @@ Build the first usable Family OS dashboard for Release 0.6B.
 - [x] Complete Milestone 1 dashboard layout pass
 - [x] Milestone 2 Google Calendar integration pass
 - [x] Milestone 3 family member management pass
-- [ ] Milestone 4 task management MVP pass
+- [x] Milestone 4 task management MVP pass
+- [ ] Milestone 5 mobile responsiveness, loading states, and error-state hardening pass
 
 ## Blockers
 
@@ -40,3 +41,4 @@ Build the first usable Family OS dashboard for Release 0.6B.
 - Release 0.6B Milestone 1 migrates the dashboard command center to shared cards, status badges, buttons, skeleton loading states, empty states, and Lucide icons while preserving the current user-scoped Supabase table hooks and Google Calendar behavior.
 - Release 0.6B Milestone 2 keeps the existing browser popup OAuth flow and improves dashboard calendar sync states, expired-token and permission handling, empty calendar handling, event grouping, source labels, and last-sync visibility.
 - Release 0.6B Milestone 3 adds dashboard family member management with local editable members, active/inactive states, member colors, role labels, assignment filters, and reference-aware removal/deactivation. This milestone does not add Supabase family-member persistence because the current applied schema does not include a family member table.
+- Release 0.6B Milestone 4 replaces the legacy inline-style task screen with a shared-card task MVP covering dashboard task groups, create/edit/complete/reopen/delete/reassign actions, filters, sorting, validation, toast feedback, and local task metadata for fields not yet present in the applied Supabase schema.

@@ -1,392 +1,847 @@
-import { useState } from "react";
-import { EmptyState, Loading, Modal, SwipeCard, SwipeHint } from "../../components/common";
-import { COLORS, S } from "../../theme";
+import { useEffect, useMemo, useState } from "react";
+import {
+  AlertTriangle,
+  CalendarClock,
+  CheckCircle2,
+  Clock,
+  Edit3,
+  ListFilter,
+  Plus,
+  RotateCcw,
+  Trash2,
+  UserRound,
+  Users,
+  Wrench,
+} from "lucide-react";
+import { Badge, StatusBadge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { EmptyStatePanel } from "../../components/ui/empty-state";
+import { FormError, FormGroup, FormHelp, FormRow, FormSection } from "../../components/ui/form";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+import { SectionHeader } from "../../components/ui/section-header";
+import { SegmentedControl } from "../../components/ui/segmented-control";
+import { Select } from "../../components/ui/select";
+import { Skeleton } from "../../components/ui/skeleton";
+import { Textarea } from "../../components/ui/textarea";
+import { OriginDrawer } from "../../components/origin/drawer";
+import { COLORS, MEMBER_COLORS, S } from "../../theme";
+import { useFamilyMembers } from "../dashboard/useFamilyMembers";
 
-// - TASKS (merged home maintenance + task tracker) -
-export function Tasks({deps}){
-  const {
-    TODAY_DATE,TODAY_STR,daysBetween,nextDueDate,formatDate,
-    maintStatus,maintColor,useTable,
-  } = deps;
-  const tasks      = useTable("tasks","due_date",true);
-  const homeMaint  = useTable("home_maintenance","title",true);
+const TASK_METADATA_KEY = "familyos_task_metadata_v1";
 
-  const [tab,setTab]             = useState("today");
-  const [catFilter,setCatFilter] = useState("All");
-  const [showModal,setShowModal] = useState(false);
-  const [editItem,setEditItem]   = useState(null);
-  const [form,setForm]           = useState({});
-  const [activeSwipe,setActiveSwipe] = useState(null);
-  const [showMsDo,setShowMsDo]   = useState(false);
-  const [showCompleted,setShowCompleted] = useState(false);
-  const [showOkMaint,setShowOkMaint] = useState(false);
+const CATEGORY_OPTIONS = ["Home", "Pool", "Yard", "College", "Finance", "Personal", "Work"];
+const PRIORITY_OPTIONS = [
+  { value: "low", label: "Low" },
+  { value: "med", label: "Medium" },
+  { value: "high", label: "High" },
+];
+const STATUS_OPTIONS = ["Not Started", "In Progress", "Completed"];
+const DUE_FILTERS = [
+  { value: "all", label: "All Due" },
+  { value: "overdue", label: "Overdue" },
+  { value: "today", label: "Today" },
+  { value: "upcoming", label: "Upcoming" },
+];
 
-  const CATS = ["All","Pool","Yard","Home","College","Finance","Personal","Work"];
-  const CAT_COLORS = {
-    Pool:COLORS.blue, Yard:COLORS.green, Home:COLORS.amber,
-    College:COLORS.red, Finance:COLORS.green, Personal:COLORS.purple,
-    Work:COLORS.blue, All:COLORS.slate,
+const CATEGORY_TONES = {
+  Pool: "blue",
+  Yard: "green",
+  Home: "amber",
+  College: "red",
+  Finance: "green",
+  Personal: "purple",
+  Work: "blue",
+};
+const PRIORITY_TONES = { high: "red", med: "amber", low: "slate" };
+const STATUS_TONES = { "Not Started": "neutral", "In Progress": "info", Completed: "complete" };
+const PRIORITY_WEIGHT = { high: 3, med: 2, low: 1 };
+
+function todayIso() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function readTaskMetadata() {
+  try {
+    const raw = localStorage.getItem(TASK_METADATA_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeTaskMetadata(metadata) {
+  localStorage.setItem(TASK_METADATA_KEY, JSON.stringify(metadata));
+}
+
+function priorityLabel(priority) {
+  return PRIORITY_OPTIONS.find(option => option.value === priority)?.label || "Medium";
+}
+
+function memberColor(name, members) {
+  const member = members.find(item => item.name === name);
+  return member?.color || MEMBER_COLORS[name] || COLORS.slate;
+}
+
+function effectiveDueDate(task, nextDueDate) {
+  if (task.due_date) return task.due_date;
+  if (task.recurring_interval_days && task.last_completed) {
+    return nextDueDate(task.last_completed, task.recurring_interval_days);
+  }
+  return null;
+}
+
+function dueBucket(task, daysBetween, nextDueDate) {
+  if (task.completed) return "completed";
+  const dueDate = effectiveDueDate(task, nextDueDate);
+  if (!dueDate) return "upcoming";
+  const days = daysBetween(dueDate);
+  if (days < 0) return "overdue";
+  if (days === 0) return "today";
+  return "upcoming";
+}
+
+function normalizeTask(row, metadata, nextDueDate) {
+  const extra = metadata[row.id] || {};
+  const completed = !!row.completed;
+  return {
+    ...row,
+    description: row.notes || extra.description || "",
+    assignee: extra.assignee || "Family",
+    status: completed ? "Completed" : extra.status || "Not Started",
+    created_at: extra.created_at || row.created_at || row.created_date || null,
+    completed_at: extra.completed_at || (completed && !row.recurring_interval_days ? row.last_completed : null),
+    effective_due_date: effectiveDueDate(row, nextDueDate),
   };
-  const PRIORITY_COLORS = {high:COLORS.red, med:COLORS.amber, low:COLORS.slate};
+}
 
-  // - Derive task states -
-  // Compute effective due date for recurring tasks without a fixed due_date
-  function effectiveDueDate(t) {
-    if(t.due_date) return t.due_date;
-    if(t.recurring_interval_days && t.last_completed) {
-      return nextDueDate(t.last_completed, t.recurring_interval_days);
-    }
-    return null;
-  }
+function emptyTaskForm(defaultAssignee = "Family") {
+  return {
+    title: "",
+    description: "",
+    assignee: defaultAssignee,
+    due_date: "",
+    priority: "med",
+    status: "Not Started",
+    category: "Home",
+    recurring_interval_days: "",
+  };
+}
 
-  function taskStatus(t) {
-    if(t.completed && !t.recurring_interval_days) return "done";
-    const eff = effectiveDueDate(t);
-    if(!eff && !t.is_important) return "backlog";
-    if(!eff && t.is_important) return "important";
-    const days = daysBetween(eff);
-    if(days < 0) return "overdue";
-    if(days === 0) return "today";
-    if(days <= 2) return "today";
-    if(days <= 7) return "this-week";
-    return "upcoming";
-  }
+function taskToForm(task) {
+  return {
+    title: task.title || "",
+    description: task.description || task.notes || "",
+    assignee: task.assignee || "Family",
+    due_date: task.due_date || "",
+    priority: task.priority || "med",
+    status: task.status || (task.completed ? "Completed" : "Not Started"),
+    category: task.category || "Home",
+    recurring_interval_days: task.recurring_interval_days || "",
+  };
+}
 
-  function taskColor(status) {
-    return status==="overdue"?COLORS.red:status==="today"?COLORS.amber:status==="important"?COLORS.purple:status==="this-week"?COLORS.blue:COLORS.slate;
-  }
+function taskRowFromForm(form, id, currentTask, todayString) {
+  const completed = form.status === "Completed";
+  return {
+    ...(id ? { id } : {}),
+    title: form.title.trim(),
+    category: form.category || "Home",
+    priority: form.priority || "med",
+    due_date: form.due_date || null,
+    recurring_interval_days: form.recurring_interval_days ? Number(form.recurring_interval_days) : null,
+    last_completed: completed ? todayString : currentTask?.last_completed || null,
+    is_important: form.priority === "high",
+    notes: form.description || "",
+    completed,
+  };
+}
 
-  // Mark a task done   if recurring, reset due_date and clear completed
-  async function markDone(item) {
-    if(item.recurring_interval_days) {
-      const nextDue = new Date(TODAY_DATE);
-      nextDue.setDate(nextDue.getDate() + item.recurring_interval_days);
-      const nextDueStr = nextDue.toISOString().split("T")[0];
-      await tasks.update(item.id, {
-        title:item.title, category:item.category||"Home", priority:item.priority||"med",
-        due_date:nextDueStr, recurring_interval_days:item.recurring_interval_days,
-        last_completed:TODAY_STR, is_important:item.is_important||false,
-        notes:item.notes||"", completed:false,
-      });
-    } else {
-      await tasks.update(item.id, {
-        title:item.title, category:item.category||"Home", priority:item.priority||"med",
-        due_date:item.due_date||null, recurring_interval_days:item.recurring_interval_days||null,
-        last_completed:TODAY_STR, is_important:item.is_important||false,
-        notes:item.notes||"", completed:true,
-      });
-    }
-  }
+function validateTask(form) {
+  if (!form.title.trim()) return "Task title is required.";
+  if (form.recurring_interval_days && Number(form.recurring_interval_days) < 1) return "Recurring interval must be at least 1 day.";
+  return "";
+}
 
-  // Also mark home_maintenance done
-  async function markMaintDone(item) {
-    await homeMaint.update(item.id, {title:item.title, last_completed:TODAY_STR, interval_days:item.interval_days, notes:item.notes||""});
-  }
+function sortTasks(items, sortBy) {
+  const copy = [...items];
+  return copy.sort((a, b) => {
+    if (sortBy === "priority") return (PRIORITY_WEIGHT[b.priority] || 0) - (PRIORITY_WEIGHT[a.priority] || 0);
+    if (sortBy === "created") return String(b.created_at || "").localeCompare(String(a.created_at || ""));
+    if (sortBy === "assignee") return String(a.assignee || "").localeCompare(String(b.assignee || ""));
+    return String(a.effective_due_date || "9999-12-31").localeCompare(String(b.effective_due_date || "9999-12-31"));
+  });
+}
 
-  function openEdit(item) {
-    setEditItem(item);
-    setForm({...item});
-    setShowModal(true);
-    setActiveSwipe(null);
-  }
-  function closeModal() { setShowModal(false); setEditItem(null); setForm({}); }
-
-  async function saveTask() {
-    if(!form.title) return;
-    const row = {
-      title:form.title,
-      category:form.category||"Home",
-      priority:form.priority||"med",
-      due_date:form.due_date||null,
-      recurring_interval_days:form.recurring_interval_days ? +form.recurring_interval_days : null,
-      last_completed:form.last_completed||null,
-      is_important:form.is_important||false,
-      notes:form.notes||"",
-      completed:false,
-    };
-    if(editItem) await tasks.update(editItem.id, row);
-    else await tasks.insert(row);
-    closeModal();
-  }
-
-  async function deleteTask(id) { await tasks.remove(id); setActiveSwipe(null); }
-
-  // - Filtered task lists -
-  const allActive = tasks.data.filter(t => !t.completed || t.recurring_interval_days);
-  const filtered  = catFilter==="All" ? allActive : allActive.filter(t=>t.category===catFilter);
-
-  const todayItems    = filtered.filter(t => taskStatus(t)==="overdue" || taskStatus(t)==="today" || (t.is_important && taskStatus(t)!=="done"));
-  const thisWeekItems = filtered.filter(t => taskStatus(t)==="this-week" && !t.is_important);
-  const upcomingItems = filtered.filter(t => taskStatus(t)==="upcoming");
-  const backlogItems  = filtered.filter(t => taskStatus(t)==="backlog" && !t.is_important);
-  const completedItems = tasks.data.filter(t => t.completed && !t.recurring_interval_days);
-
-  // Home maintenance urgency groups
-  const maintOverdue  = homeMaint.data.filter(m=>maintStatus(m)==="overdue").sort((a,b)=>daysBetween(nextDueDate(a.last_completed,a.interval_days))-daysBetween(nextDueDate(b.last_completed,b.interval_days)));
-  const maintDueSoon  = homeMaint.data.filter(m=>maintStatus(m)==="due-soon").sort((a,b)=>daysBetween(nextDueDate(a.last_completed,a.interval_days))-daysBetween(nextDueDate(b.last_completed,b.interval_days)));
-  const maintOk       = homeMaint.data.filter(m=>maintStatus(m)==="ok").sort((a,b)=>daysBetween(nextDueDate(a.last_completed,a.interval_days))-daysBetween(nextDueDate(b.last_completed,b.interval_days)));
-
-  // - Subcomponents -
-  function TaskCard({item}) {
-    const status = taskStatus(item);
-    const color  = taskColor(status);
-    const eff    = effectiveDueDate(item);
-    const days   = eff ? daysBetween(eff) : null;
-    const isRecurring = !!item.recurring_interval_days;
-
-    return(
-      <SwipeCard id={item.id} activeId={activeSwipe} setActiveId={setActiveSwipe}
-        onEdit={()=>openEdit(item)}
-        onDelete={()=>deleteTask(item.id)}
-        style={S.statusCard(color)}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-          <div style={{flex:1,paddingRight:8}}>
-            <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginBottom:4}}>
-              {item.is_important&&<span style={{fontSize:11,color:COLORS.purple,fontWeight:700}}>  IMPORTANT</span>}
-              {isRecurring&&<span style={{fontSize:11,color:COLORS.slate,fontWeight:600}}>  every {item.recurring_interval_days}d</span>}
-            </div>
-            <div style={{fontSize:15,fontWeight:600,color:COLORS.white}}>{item.title}</div>
-            <div style={{display:"flex",gap:8,marginTop:6,alignItems:"center",flexWrap:"wrap"}}>
-              <span style={S.badge(CAT_COLORS[item.category]||COLORS.slate)}>{item.category||"Home"}</span>
-              <span style={S.badge(PRIORITY_COLORS[item.priority]||COLORS.slate)}>{item.priority||"med"}</span>
-              {days!==null&&<span style={{fontSize:13,color:days<0?COLORS.red:days===0?COLORS.amber:COLORS.slate,fontWeight:600}}>
-                {days<0?`${-days}d overdue`:days===0?"Today":`in ${days}d`}
-              </span>}
-              {item.last_completed&&<span style={{fontSize:11,color:COLORS.slate}}>done {formatDate(item.last_completed)}</span>}
-            </div>
-            {item.notes&&<div style={{fontSize:13,color:COLORS.slate,marginTop:6,fontStyle:"italic",lineHeight:1.4}}>{item.notes}</div>}
-          </div>
-          <button style={{...S.btnCheck,marginLeft:8,flexShrink:0}} onClick={()=>markDone(item)}> </button>
-        </div>
-      </SwipeCard>
-    );
-  }
-
-  function MaintCard({item}) {
-    const st    = maintStatus(item);
-    const color = maintColor(st);
-    const nd    = nextDueDate(item.last_completed,item.interval_days);
-    const days  = daysBetween(nd);
-    const pct   = Math.max(0,Math.min(100,100-(days/item.interval_days)*100));
-    return(
-      <SwipeCard id={`m-${item.id}`} activeId={activeSwipe} setActiveId={setActiveSwipe}
-        onEdit={()=>{setEditItem({...item,_isMaint:true});setForm({...item});setShowModal("maint");setActiveSwipe(null);}}
-        onDelete={()=>{homeMaint.remove(item.id);setActiveSwipe(null);}}
-        style={S.statusCard(color)}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-          <div style={{flex:1}}>
-            <div style={{fontSize:15,fontWeight:600}}>{item.title}</div>
-            <div style={{fontSize:13,color:COLORS.slate,marginTop:2}}>
-              {st==="overdue"?`Overdue by ${-days}d`:st==="due-soon"?`Due in ${days}d`:`Due ${formatDate(nd)}`}
-              {item.notes?`   ${item.notes}`:""}
-            </div>
-            <div style={S.progress}><div style={S.progressFill(pct,color)}/></div>
-          </div>
-          <button style={{...S.btnCheck,marginLeft:12}} onClick={()=>markMaintDone(item)}> </button>
-        </div>
-      </SwipeCard>
-    );
-  }
-
-  function SectionHeader({label,count,color}) {
-    return <div style={{fontSize:12,fontWeight:700,color:color||COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10,marginTop:20}}>{label}   {count}</div>;
-  }
-
-  // - Today tab -
-  function TodayView() {
-    const urgentMaint = [...maintOverdue, ...maintDueSoon];
-    const total = todayItems.length + urgentMaint.length;
-
-    const overdueCount = todayItems.filter(t=>taskStatus(t)==="overdue").length + maintOverdue.length;
-    const todayCount   = todayItems.filter(t=>taskStatus(t)==="today").length;
-    const importantCount = todayItems.filter(t=>taskStatus(t)==="important").length;
-    return(<>
-      <div style={{background:COLORS.navyMid,borderRadius:16,borderLeft:`4px solid ${total===0?COLORS.green:overdueCount>0?COLORS.red:COLORS.amber}`,padding:"14px 16px",marginBottom:12}}>
-        <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"1px",marginBottom:4}}>Today</div>
-        <div style={{fontSize:20,fontWeight:800,color:total===0?COLORS.green:overdueCount>0?COLORS.red:COLORS.amber,letterSpacing:"-0.3px"}}>
-          {total===0?"All clear"
-            :overdueCount>0?`${overdueCount} overdue`
-            :`${total} item${total!==1?"s":""} need attention`}
-        </div>
-        <div style={{fontSize:12,color:COLORS.slate,marginTop:4}}>
-          {[
-            overdueCount>0&&`${overdueCount} overdue`,
-            todayCount>0&&`${todayCount} due today`,
-            importantCount>0&&`${importantCount} important`,
-            urgentMaint.length>0&&`${urgentMaint.length} maintenance`,
-          ].filter(Boolean).join("  -  ")||formatDate(TODAY_STR)}
-        </div>
+function Toast({ toast, onDismiss }) {
+  if (!toast) return null;
+  return (
+    <div className="fixed bottom-24 left-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-lg border border-border bg-card px-4 py-3 text-sm font-semibold text-card-foreground shadow-soft">
+      <div className="flex items-center justify-between gap-3">
+        <span>{toast.message}</span>
+        <Button type="button" variant="ghost" size="xs" onClick={onDismiss}>Dismiss</Button>
       </div>
-{showMsDo&&(
-        <div style={{...S.gcBanner,marginBottom:14}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-            <div style={{flex:1}}>
-              <div style={{fontSize:14,fontWeight:700,color:COLORS.blue,marginBottom:4}}>  Microsoft To Do</div>
-              <div style={{fontSize:13,color:COLORS.slateLight,lineHeight:1.5}}>To sync with Microsoft To Do, go to <strong>Settings   Connected Apps</strong> in Claude and connect Microsoft To Do. Once connected, tasks can flow both ways.</div>
-            </div>
-            <button onClick={()=>setShowMsDo(false)} style={{background:"none",border:"none",color:COLORS.slate,cursor:"pointer",fontSize:16,padding:2,flexShrink:0}}> </button>
-          </div>
-        </div>
-      )}
-{todayItems.filter(t=>taskStatus(t)==="overdue").length>0&&<>
-        <SectionHeader label="   Overdue" count={todayItems.filter(t=>taskStatus(t)==="overdue").length} color={COLORS.red}/>
-        {todayItems.filter(t=>taskStatus(t)==="overdue").map(t=><TaskCard key={t.id} item={t}/>)}
-      </>}
-{maintOverdue.length>0&&<>
-        <SectionHeader label="  Maintenance Overdue" count={maintOverdue.length} color={COLORS.red}/>
-        {maintOverdue.map(m=><MaintCard key={m.id} item={m}/>)}
-      </>}
-{todayItems.filter(t=>taskStatus(t)==="today"&&!t.is_important).length>0&&<>
-        <SectionHeader label="  Due Today" count={todayItems.filter(t=>taskStatus(t)==="today"&&!t.is_important).length} color={COLORS.amber}/>
-        {todayItems.filter(t=>taskStatus(t)==="today"&&!t.is_important).map(t=><TaskCard key={t.id} item={t}/>)}
-      </>}
-{todayItems.filter(t=>t.is_important&&taskStatus(t)!=="overdue"&&taskStatus(t)!=="today").length>0&&<>
-        <SectionHeader label="  Important" count={todayItems.filter(t=>t.is_important&&taskStatus(t)!=="overdue"&&taskStatus(t)!=="today").length} color={COLORS.purple}/>
-        {todayItems.filter(t=>t.is_important&&taskStatus(t)!=="overdue"&&taskStatus(t)!=="today").map(t=><TaskCard key={t.id} item={t}/>)}
-      </>}
-{maintDueSoon.length>0&&<>
-        <SectionHeader label="  Maintenance Due This Week" count={maintDueSoon.length} color={COLORS.amber}/>
-        {maintDueSoon.map(m=><MaintCard key={m.id} item={m}/>)}
-      </>}
-
-      {total===0&&<div style={{...S.card,background:COLORS.green+"11",borderColor:COLORS.green+"33",textAlign:"center",padding:"20px 16px",marginBottom:16}}>
-        <div style={{fontSize:15,fontWeight:700,color:COLORS.green}}>  Nothing needs attention today</div>
-        <div style={{fontSize:13,color:COLORS.slate,marginTop:8}}>Check the List tab to see everything.</div>
-      </div>}
-    </>);
-  }
-
-  // - List tab -
-  function ListView() {
-    return(<>
-<div style={{marginBottom:12}}>
-        {CATS.map(c=><span key={c} style={S.chip(catFilter===c, CAT_COLORS[c]||COLORS.slate)} onClick={()=>setCatFilter(c)}>{c}</span>)}
-      </div>
-{thisWeekItems.length>0&&<>
-        <SectionHeader label="  This Week" count={thisWeekItems.length} color={COLORS.blue}/>
-        {thisWeekItems.map(t=><TaskCard key={t.id} item={t}/>)}
-      </>}
-{upcomingItems.length>0&&<>
-        <SectionHeader label="  Upcoming" count={upcomingItems.length} color={COLORS.slate}/>
-        {upcomingItems.map(t=><TaskCard key={t.id} item={t}/>)}
-      </>}
-{backlogItems.length>0&&<>
-        <SectionHeader label="  Backlog" count={backlogItems.length} color={COLORS.slate}/>
-        {backlogItems.map(t=><TaskCard key={t.id} item={t}/>)}
-      </>}
-{(catFilter==="All"||catFilter==="Home")&&<>
-        {(maintOverdue.length>0||maintDueSoon.length>0)&&<>
-          <SectionHeader label="  Maintenance" count={homeMaint.data.length} color={COLORS.amber}/>
-          {[...maintOverdue,...maintDueSoon].map(m=><MaintCard key={m.id} item={m}/>)}
-        </>}
-        {maintOk.length>0&&<>
-          <button onClick={()=>setShowOkMaint(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"center",marginBottom:showOkMaint?8:0,marginTop:8}}>
-            {showOkMaint?`Hide ${maintOk.length} current maintenance items`:`Show ${maintOk.length} current maintenance items  `}
-          </button>
-          {showOkMaint&&<>
-            <SectionHeader label="  Maintenance Current" count={maintOk.length} color={COLORS.green}/>
-            {maintOk.map(m=><MaintCard key={m.id} item={m}/>)}
-          </>}
-        </>}
-      </>}
-
-      {filteredIsEmpty()&&<EmptyState icon=" " title="No tasks here" detail={catFilter==="All"?"Add a task to get started.":`No ${catFilter} tasks yet.`}/>}
-{completedItems.length>0&&<>
-        <button onClick={()=>setShowCompleted(p=>!p)} style={{...S.btnSm,width:"100%",textAlign:"center",marginTop:12,marginBottom:showCompleted?8:0}}>
-          {showCompleted?`Hide ${completedItems.length} completed`:`Show ${completedItems.length} completed`}
-        </button>
-        {showCompleted&&completedItems.map(t=>(
-          <div key={t.id} style={{...S.card,opacity:0.5,marginBottom:8}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{fontSize:14,textDecoration:"line-through",color:COLORS.slate}}>{t.title}</div>
-              <button style={S.btnSm} onClick={()=>tasks.update(t.id,{title:t.title,category:t.category||"Home",priority:t.priority||"med",due_date:t.due_date||null,recurring_interval_days:t.recurring_interval_days||null,last_completed:t.last_completed||null,is_important:t.is_important||false,notes:t.notes||"",completed:false})}>Undo</button>
-            </div>
-          </div>
-        ))}
-      </>}
-    </>);
-  }
-
-  function filteredIsEmpty() {
-    const hasMaint = (catFilter==="All"||catFilter==="Home") && homeMaint.data.length>0;
-    return thisWeekItems.length===0 && upcomingItems.length===0 && backlogItems.length===0 && !hasMaint;
-  }
-
-  // - Maintenance edit modal -
-  async function saveMaint() {
-    if(!form.title||!form.interval_days)return;
-    const row={title:form.title,last_completed:form.last_completed||TODAY_STR,interval_days:+form.interval_days,notes:form.notes||""};
-    if(editItem&&editItem.id) await homeMaint.update(editItem.id,row);
-    else await homeMaint.insert(row);
-    setShowModal(false);setEditItem(null);setForm({});
-  }
-
-  return(
-    <div style={S.screen}>
-<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <div style={{fontSize:13,color:COLORS.slate}}>{tasks.data.length} tasks   {homeMaint.data.length} maintenance</div>
-        <button onClick={()=>setShowMsDo(p=>!p)} style={{...S.btnSm,fontSize:12,padding:"5px 10px"}}>  MS To Do</button>
-      </div>
-
-      <div style={S.tabs}>
-        {["today","list"].map(t=><button key={t} style={S.tabBtn(tab===t)} onClick={()=>setTab(t)}>{t==="today"?"Today":"List"}</button>)}
-      </div>
-
-      {(tasks.loading||homeMaint.loading)?<Loading/>:<>
-        <SwipeHint/>
-        {tab==="today"&&<TodayView/>}
-        {tab==="list"&&<ListView/>}
-      </>}
-<button style={{...S.btn,marginTop:16}} onClick={()=>{setForm({category:"Home",priority:"med",is_important:false});setShowModal("task");}}>+ Add Task</button>
-{showModal==="task"&&<Modal title={editItem?"Edit Task":"Add Task"} onClose={closeModal}>
-        <label style={S.label}>Title</label>
-        <input style={S.input} placeholder="e.g. Mow front yard" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
-
-        <label style={S.label}>Category</label>
-        <div>{CATS.filter(c=>c!=="All").map(c=><span key={c} style={S.chip(form.category===c,CAT_COLORS[c])} onClick={()=>setForm(p=>({...p,category:c}))}>{c}</span>)}</div>
-
-        <label style={{...S.label,marginTop:12}}>Priority</label>
-        <div>{["high","med","low"].map(p=><span key={p} style={S.chip(form.priority===p,PRIORITY_COLORS[p])} onClick={()=>setForm(prev=>({...prev,priority:p}))}>{p}</span>)}</div>
-
-        <div style={{display:"flex",alignItems:"center",gap:10,margin:"14px 0 6px"}}>
-          <div style={{width:20,height:20,borderRadius:6,border:`2px solid ${form.is_important?COLORS.purple:COLORS.slate}`,background:form.is_important?COLORS.purple:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}} onClick={()=>setForm(p=>({...p,is_important:!p.is_important}))}>
-            {form.is_important&&<span style={{color:"#fff",fontSize:12,lineHeight:1}}> </span>}
-          </div>
-          <label style={{...S.label,marginBottom:0,cursor:"pointer"}} onClick={()=>setForm(p=>({...p,is_important:!p.is_important}))}>  Mark as important (shows in Today even without a due date)</label>
-        </div>
-
-        <label style={{...S.label,marginTop:10}}>Due Date (optional)</label>
-        <input type="date" style={S.input} value={form.due_date||""} onChange={e=>setForm(p=>({...p,due_date:e.target.value}))}/>
-
-        <label style={S.label}>Recurring interval (optional)</label>
-        <div style={{marginBottom:10}}>
-          {[null,7,14,30,60,90,180,365].map(d=><span key={d||"none"} style={S.chip(form.recurring_interval_days===(d?String(d):null)||form.recurring_interval_days===d,COLORS.blue)} onClick={()=>setForm(p=>({...p,recurring_interval_days:d}))}>
-            {d===null?"None":d===7?"Weekly":d===14?"Biweekly":d===30?"Monthly":d===60?"2 Mo":d===90?"Quarterly":d===180?"6 Mo":"Annual"}
-          </span>)}
-        </div>
-        {form.recurring_interval_days&&<input type="number" style={S.input} placeholder="Or custom days" value={form.recurring_interval_days||""} onChange={e=>setForm(p=>({...p,recurring_interval_days:e.target.value}))}/>}
-
-        <label style={S.label}>Notes (optional)</label>
-        <input style={S.input} placeholder="Any details" value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
-
-        <button style={{...S.btn,marginTop:16}} onClick={saveTask}>{editItem?"Save Changes":"Add Task"}</button>
-      </Modal>}
-{showModal==="maint"&&<Modal title={editItem?.id?"Edit Maintenance Item":"Add Maintenance Item"} onClose={()=>{setShowModal(false);setEditItem(null);setForm({});}}>
-        <label style={S.label}>Item Name</label>
-        <input style={S.input} placeholder="e.g. HVAC Filter" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
-        <label style={S.label}>Interval</label>
-        <div style={{marginBottom:10}}>
-          {[14,30,60,90,180,365].map(d=><span key={d} style={S.chip(+form.interval_days===d,COLORS.blue)} onClick={()=>setForm(p=>({...p,interval_days:d}))}>{d}d</span>)}
-        </div>
-        <input type="number" style={S.input} placeholder="Or enter custom days" value={form.interval_days||""} onChange={e=>setForm(p=>({...p,interval_days:e.target.value}))}/>
-        <label style={S.label}>Last Completed</label>
-        <input type="date" style={S.input} value={form.last_completed||""} onChange={e=>setForm(p=>({...p,last_completed:e.target.value}))}/>
-        <label style={S.label}>Notes (optional)</label>
-        <input style={S.input} placeholder="e.g. 16x25x1, check Grainger" value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
-        <button style={{...S.btn,marginTop:10}} onClick={saveMaint}>{editItem?.id?"Save Changes":"Add Item"}</button>
-      </Modal>}
     </div>
   );
 }
 
-// - AI POOL BRIEF -
+function MetricCard({ icon: Icon, label, value, tone = "blue" }) {
+  const valueColor = tone === "red" ? COLORS.red : COLORS.white;
+  return (
+    <Card className="min-h-[92px]">
+      <CardContent className="p-3">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</div>
+          <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+        </div>
+        <div className="text-2xl font-extrabold" style={{ color: valueColor }}>{value}</div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TaskSkeleton() {
+  return (
+    <div className="space-y-3">
+      {[0, 1, 2].map(index => (
+        <Card key={index}>
+          <CardContent className="space-y-3 p-4">
+            <Skeleton className="h-4 w-4/5" />
+            <Skeleton className="h-3 w-3/5" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function TaskCard({ task, members, daysBetween, formatDate, onEdit, onComplete, onReopen, onDelete, onReassign }) {
+  const dueDate = task.effective_due_date;
+  const days = dueDate ? daysBetween(dueDate) : null;
+  const overdue = days !== null && days < 0 && task.status !== "Completed";
+  const accent = task.status === "Completed" ? COLORS.green : overdue ? COLORS.red : task.priority === "high" ? COLORS.purple : memberColor(task.assignee, members);
+
+  return (
+    <Card style={{ borderLeft: `3px solid ${accent}` }}>
+      <CardContent className="space-y-3 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="mb-2 flex flex-wrap items-center gap-1.5">
+              <StatusBadge status={STATUS_TONES[task.status]}>{task.status}</StatusBadge>
+              <Badge variant={PRIORITY_TONES[task.priority]}>{priorityLabel(task.priority)}</Badge>
+              <Badge variant={CATEGORY_TONES[task.category] || "slate"}>{task.category || "Home"}</Badge>
+            </div>
+            <div className={`text-base font-bold leading-tight text-foreground ${task.status === "Completed" ? "line-through opacity-70" : ""}`}>{task.title}</div>
+            {task.description && <div className="mt-2 text-sm leading-6 text-muted-foreground">{task.description}</div>}
+          </div>
+          <Button type="button" variant="secondary" size="icon-xs" aria-label={`Edit ${task.title}`} onClick={() => onEdit(task)}>
+            <Edit3 className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1 font-semibold" style={{ color: memberColor(task.assignee, members) }}>
+            <UserRound className="h-3.5 w-3.5" aria-hidden="true" />
+            {task.assignee || "Family"}
+          </span>
+          {dueDate && (
+            <span className={overdue ? "font-semibold text-destructive" : days === 0 ? "font-semibold text-amber-300" : ""}>
+              {overdue ? `${-days}d overdue` : days === 0 ? "Due today" : `Due ${formatDate(dueDate)}`}
+            </span>
+          )}
+          {task.created_at && <span>Created {formatDate(task.created_at)}</span>}
+          {task.completed_at && <span>Completed {formatDate(task.completed_at)}</span>}
+          {task.recurring_interval_days && <span>Every {task.recurring_interval_days}d</span>}
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+          <Select value={task.assignee || "Family"} onChange={event => onReassign(task, event.target.value)} aria-label={`Reassign ${task.title}`}>
+            <option value="Family">Family</option>
+            {members.filter(member => member.status !== "inactive").map(member => (
+              <option key={member.id} value={member.name}>{member.name}</option>
+            ))}
+          </Select>
+          <div className="flex flex-wrap gap-2">
+            {task.status === "Completed" ? (
+              <Button type="button" variant="secondary" size="sm" onClick={() => onReopen(task)}>
+                <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                Reopen
+              </Button>
+            ) : (
+              <Button type="button" size="sm" onClick={() => onComplete(task)}>
+                <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                Complete
+              </Button>
+            )}
+            <Button type="button" variant="destructive-outline" size="sm" onClick={() => onDelete(task)}>
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+              Delete
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TaskList({ title, count, tone, tasks, emptyTitle, emptyDetail, renderTask }) {
+  return (
+    <section>
+      <SectionHeader title={title} count={count} tone={tone} />
+      {tasks.length ? (
+        <div className="space-y-3">{tasks.map(renderTask)}</div>
+      ) : (
+        <Card>
+          <EmptyStatePanel title={emptyTitle} detail={emptyDetail} className="py-7" />
+        </Card>
+      )}
+    </section>
+  );
+}
+
+function TaskDrawer({ open, mode, form, setForm, members, error, onClose, onSave }) {
+  return (
+    <OriginDrawer
+      open={open}
+      onOpenChange={nextOpen => !nextOpen && onClose()}
+      title={mode === "edit" ? "Edit Task" : "Create Task"}
+      description="Tasks support shared household work, module categories, assignment, priority, status, and due dates."
+      footer={
+        <>
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button type="button" onClick={onSave}>{mode === "edit" ? "Save" : "Create"}</Button>
+        </>
+      }
+    >
+      <FormSection>
+        <FormGroup>
+          <Label>Title</Label>
+          <Input value={form.title} placeholder="What needs to happen?" onChange={event => setForm(previous => ({ ...previous, title: event.target.value }))} />
+        </FormGroup>
+        <FormGroup>
+          <Label>Description / Notes</Label>
+          <Textarea value={form.description} placeholder="Add context, steps, or reminders." onChange={event => setForm(previous => ({ ...previous, description: event.target.value }))} />
+        </FormGroup>
+        <FormRow>
+          <FormGroup>
+            <Label>Assignee</Label>
+            <Select value={form.assignee} onChange={event => setForm(previous => ({ ...previous, assignee: event.target.value }))}>
+              <option value="Family">Family</option>
+              {members.filter(member => member.status !== "inactive").map(member => (
+                <option key={member.id} value={member.name}>{member.name}</option>
+              ))}
+            </Select>
+          </FormGroup>
+          <FormGroup>
+            <Label>Due Date</Label>
+            <Input type="date" value={form.due_date} onChange={event => setForm(previous => ({ ...previous, due_date: event.target.value }))} />
+          </FormGroup>
+        </FormRow>
+        <FormRow>
+          <FormGroup>
+            <Label>Priority</Label>
+            <Select value={form.priority} onChange={event => setForm(previous => ({ ...previous, priority: event.target.value }))}>
+              {PRIORITY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </Select>
+          </FormGroup>
+          <FormGroup>
+            <Label>Status</Label>
+            <Select value={form.status} onChange={event => setForm(previous => ({ ...previous, status: event.target.value }))}>
+              {STATUS_OPTIONS.map(status => <option key={status} value={status}>{status}</option>)}
+            </Select>
+          </FormGroup>
+        </FormRow>
+        <FormRow>
+          <FormGroup>
+            <Label>Category</Label>
+            <Select value={form.category} onChange={event => setForm(previous => ({ ...previous, category: event.target.value }))}>
+              {CATEGORY_OPTIONS.map(category => <option key={category} value={category}>{category}</option>)}
+            </Select>
+          </FormGroup>
+          <FormGroup>
+            <Label>Repeat Every Days</Label>
+            <Input type="number" min="1" placeholder="Optional" value={form.recurring_interval_days} onChange={event => setForm(previous => ({ ...previous, recurring_interval_days: event.target.value }))} />
+          </FormGroup>
+        </FormRow>
+        <FormHelp>Assignee, status, created date, and completed date are stored locally until the shared household task schema is migrated.</FormHelp>
+        {error && <FormError>{error}</FormError>}
+      </FormSection>
+    </OriginDrawer>
+  );
+}
+
+function MaintenanceCard({ item, maintStatus, maintColor, nextDueDate, daysBetween, formatDate, onComplete }) {
+  const status = maintStatus(item);
+  const color = maintColor(status);
+  const dueDate = nextDueDate(item.last_completed, item.interval_days);
+  const days = daysBetween(dueDate);
+  return (
+    <Card style={{ borderLeft: `3px solid ${color}` }}>
+      <CardContent className="flex items-start justify-between gap-3 p-4">
+        <div className="min-w-0">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <Badge variant={status === "overdue" ? "red" : status === "due-soon" ? "amber" : "green"}>{status.replace("-", " ")}</Badge>
+            <Badge variant="slate">Every {item.interval_days}d</Badge>
+          </div>
+          <div className="text-sm font-bold text-foreground">{item.title}</div>
+          <div className="mt-1 text-xs leading-5 text-muted-foreground">
+            {days < 0 ? `Overdue by ${-days}d` : days === 0 ? "Due today" : `Due ${formatDate(dueDate)}`}
+            {item.notes ? ` - ${item.notes}` : ""}
+          </div>
+        </div>
+        <Button type="button" variant="secondary" size="sm" onClick={() => onComplete(item)}>
+          <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+          Done
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function Tasks({ deps }) {
+  const {
+    TODAY_DATE, TODAY_STR, daysBetween, nextDueDate, formatDate,
+    maintStatus, maintColor, useTable,
+  } = deps;
+
+  const taskTable = useTable("tasks", "due_date", true);
+  const homeMaint = useTable("home_maintenance", "title", true);
+  const family = useFamilyMembers();
+
+  const [metadata, setMetadata] = useState({});
+  const [metadataError, setMetadataError] = useState("");
+  const [view, setView] = useState("dashboard");
+  const [memberFilter, setMemberFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [priorityFilter, setPriorityFilter] = useState("All");
+  const [categoryFilter, setCategoryFilter] = useState("All");
+  const [dueFilter, setDueFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("due");
+  const [drawer, setDrawer] = useState({ open: false, mode: "create", task: null });
+  const [form, setForm] = useState(emptyTaskForm());
+  const [formError, setFormError] = useState("");
+  const [toast, setToast] = useState(null);
+
+  useEffect(() => {
+    const nextMetadata = readTaskMetadata();
+    setMetadata(nextMetadata);
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timeout = setTimeout(() => setToast(null), 3500);
+    return () => clearTimeout(timeout);
+  }, [toast]);
+
+  const members = family.members;
+  const activeMembers = family.activeMembers;
+  const tasks = useMemo(
+    () => taskTable.data.map(task => normalizeTask(task, metadata, nextDueDate)),
+    [taskTable.data, metadata, nextDueDate]
+  );
+
+  const taskStats = useMemo(() => {
+    const open = tasks.filter(task => task.status !== "Completed");
+    const overdue = open.filter(task => dueBucket(task, daysBetween, nextDueDate) === "overdue");
+    const today = open.filter(task => dueBucket(task, daysBetween, nextDueDate) === "today");
+    const upcoming = open.filter(task => dueBucket(task, daysBetween, nextDueDate) === "upcoming");
+    const recentlyCompleted = tasks
+      .filter(task => task.status === "Completed")
+      .sort((a, b) => String(b.completed_at || "").localeCompare(String(a.completed_at || "")))
+      .slice(0, 5);
+    const defaultMember = activeMembers.find(member => member.name === "Matt")?.name || activeMembers[0]?.name || "Family";
+    return {
+      open,
+      overdue,
+      today,
+      upcoming,
+      recentlyCompleted,
+      myTasks: open.filter(task => task.assignee === defaultMember),
+      familyTasks: open.filter(task => !task.assignee || task.assignee === "Family"),
+    };
+  }, [activeMembers, daysBetween, nextDueDate, tasks]);
+
+  const filteredTasks = useMemo(() => {
+    const filtered = tasks.filter(task => {
+      if (view === "completed" && task.status !== "Completed") return false;
+      if (view !== "completed" && task.status === "Completed") return false;
+      if (memberFilter !== "All" && task.assignee !== memberFilter) return false;
+      if (statusFilter !== "All" && task.status !== statusFilter) return false;
+      if (priorityFilter !== "All" && task.priority !== priorityFilter) return false;
+      if (categoryFilter !== "All" && task.category !== categoryFilter) return false;
+      if (dueFilter !== "all" && dueBucket(task, daysBetween, nextDueDate) !== dueFilter) return false;
+      return true;
+    });
+    return sortTasks(filtered, sortBy);
+  }, [categoryFilter, daysBetween, dueFilter, memberFilter, nextDueDate, priorityFilter, sortBy, statusFilter, tasks, view]);
+
+  const urgentMaint = homeMaint.data
+    .filter(item => ["overdue", "due-soon"].includes(maintStatus(item)))
+    .sort((a, b) => daysBetween(nextDueDate(a.last_completed, a.interval_days)) - daysBetween(nextDueDate(b.last_completed, b.interval_days)));
+
+  function persistMetadata(nextMetadata) {
+    try {
+      writeTaskMetadata(nextMetadata);
+      setMetadata(nextMetadata);
+      setMetadataError("");
+      return true;
+    } catch {
+      setMetadataError("Task details could not be saved on this device.");
+      return false;
+    }
+  }
+
+  function patchTaskMetadata(id, patch) {
+    const nextMetadata = { ...metadata, [id]: { ...(metadata[id] || {}), ...patch } };
+    return persistMetadata(nextMetadata);
+  }
+
+  function removeTaskMetadata(id) {
+    const nextMetadata = { ...metadata };
+    delete nextMetadata[id];
+    return persistMetadata(nextMetadata);
+  }
+
+  function notify(message) {
+    setToast({ message });
+  }
+
+  function openCreateTask() {
+    setForm(emptyTaskForm(activeMembers[0]?.name || "Family"));
+    setDrawer({ open: true, mode: "create", task: null });
+    setFormError("");
+  }
+
+  function openEditTask(task) {
+    setForm(taskToForm(task));
+    setDrawer({ open: true, mode: "edit", task });
+    setFormError("");
+  }
+
+  function closeDrawer() {
+    setDrawer({ open: false, mode: "create", task: null });
+    setForm(emptyTaskForm());
+    setFormError("");
+  }
+
+  async function saveTask() {
+    const validationError = validateTask(form);
+    if (validationError) {
+      setFormError(validationError);
+      return;
+    }
+
+    const id = drawer.task?.id || `task-${Date.now()}`;
+    const createdAt = drawer.task?.created_at || todayIso();
+    const completedAt = form.status === "Completed" ? drawer.task?.completed_at || TODAY_STR : null;
+    const row = taskRowFromForm(form, id, drawer.task, TODAY_STR);
+
+    if (drawer.mode === "edit" && drawer.task) await taskTable.update(drawer.task.id, row);
+    else await taskTable.insert(row);
+
+    const ok = patchTaskMetadata(id, {
+      assignee: form.assignee || "Family",
+      status: form.status,
+      description: form.description || "",
+      created_at: createdAt,
+      completed_at: completedAt,
+    });
+    closeDrawer();
+    notify(ok ? (drawer.mode === "edit" ? "Task updated." : "Task created.") : "Task saved, but local task details could not be stored.");
+  }
+
+  async function completeTask(task) {
+    if (task.recurring_interval_days) {
+      const nextDue = new Date(TODAY_DATE);
+      nextDue.setDate(nextDue.getDate() + Number(task.recurring_interval_days));
+      await taskTable.update(task.id, {
+        title: task.title,
+        category: task.category || "Home",
+        priority: task.priority || "med",
+        due_date: nextDue.toISOString().split("T")[0],
+        recurring_interval_days: Number(task.recurring_interval_days),
+        last_completed: TODAY_STR,
+        is_important: task.priority === "high" || !!task.is_important,
+        notes: task.description || "",
+        completed: false,
+      });
+      patchTaskMetadata(task.id, { status: "Not Started", completed_at: TODAY_STR });
+      notify("Recurring task completed and rescheduled.");
+      return;
+    }
+
+    await taskTable.update(task.id, {
+      title: task.title,
+      category: task.category || "Home",
+      priority: task.priority || "med",
+      due_date: task.due_date || null,
+      recurring_interval_days: task.recurring_interval_days || null,
+      last_completed: TODAY_STR,
+      is_important: task.priority === "high" || !!task.is_important,
+      notes: task.description || "",
+      completed: true,
+    });
+    patchTaskMetadata(task.id, { status: "Completed", completed_at: TODAY_STR });
+    notify("Task completed.");
+  }
+
+  async function reopenTask(task) {
+    await taskTable.update(task.id, {
+      title: task.title,
+      category: task.category || "Home",
+      priority: task.priority || "med",
+      due_date: task.due_date || null,
+      recurring_interval_days: task.recurring_interval_days || null,
+      last_completed: task.last_completed || null,
+      is_important: task.priority === "high" || !!task.is_important,
+      notes: task.description || "",
+      completed: false,
+    });
+    patchTaskMetadata(task.id, { status: "In Progress", completed_at: null });
+    notify("Task reopened.");
+  }
+
+  async function deleteTask(task) {
+    if (!window.confirm(`Delete "${task.title}"? This cannot be undone.`)) return;
+    await taskTable.remove(task.id);
+    removeTaskMetadata(task.id);
+    notify("Task deleted.");
+  }
+
+  function reassignTask(task, assignee) {
+    patchTaskMetadata(task.id, { assignee });
+    notify(`Task assigned to ${assignee}.`);
+  }
+
+  async function completeMaintenance(item) {
+    await homeMaint.update(item.id, {
+      title: item.title,
+      last_completed: TODAY_STR,
+      interval_days: item.interval_days,
+      notes: item.notes || "",
+    });
+    notify("Maintenance item completed.");
+  }
+
+  const renderTask = task => (
+    <TaskCard
+      key={task.id}
+      task={task}
+      members={members}
+      daysBetween={daysBetween}
+      formatDate={formatDate}
+      onEdit={openEditTask}
+      onComplete={completeTask}
+      onReopen={reopenTask}
+      onDelete={deleteTask}
+      onReassign={reassignTask}
+    />
+  );
+
+  const loading = taskTable.loading || homeMaint.loading || family.loading;
+  const readWarning = "Supabase task read/write failures are still masked by the shared useTable seed fallback; this screen surfaces local metadata save errors only.";
+
+  return (
+    <div style={S.screen} className="space-y-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Tasks</div>
+          <div className="mt-1 text-2xl font-extrabold text-foreground">{taskStats.open.length} open</div>
+        </div>
+        <Button type="button" onClick={openCreateTask}>
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          New Task
+        </Button>
+      </div>
+
+      {(metadataError || family.error) && (
+        <div className="rounded-lg border border-amber-400/35 bg-amber-400/10 p-3 text-xs leading-5 text-amber-200">
+          {metadataError || family.error}
+        </div>
+      )}
+
+      <SegmentedControl
+        value={view}
+        onValueChange={setView}
+        options={[
+          { value: "dashboard", label: "Dashboard" },
+          { value: "all", label: "All Tasks" },
+          { value: "completed", label: "Completed" },
+        ]}
+        className="w-full"
+        itemClassName="flex-1"
+        ariaLabel="Task views"
+      />
+
+      {loading ? (
+        <TaskSkeleton />
+      ) : view === "dashboard" ? (
+        <>
+          <div className="grid grid-cols-2 gap-2.5">
+            <MetricCard icon={UserRound} label="My Tasks" value={taskStats.myTasks.length} />
+            <MetricCard icon={Users} label="Family Tasks" value={taskStats.familyTasks.length} />
+            <MetricCard icon={AlertTriangle} label="Overdue" value={taskStats.overdue.length} tone="red" />
+            <MetricCard icon={Clock} label="Due Today" value={taskStats.today.length} />
+            <MetricCard icon={CalendarClock} label="Upcoming" value={taskStats.upcoming.length} />
+            <MetricCard icon={CheckCircle2} label="Completed" value={taskStats.recentlyCompleted.length} />
+          </div>
+
+          <TaskList
+            title="Overdue Tasks"
+            count={taskStats.overdue.length}
+            tone="red"
+            tasks={sortTasks(taskStats.overdue, "due").slice(0, 4)}
+            emptyTitle="No overdue tasks"
+            emptyDetail="Anything late will be promoted here."
+            renderTask={renderTask}
+          />
+          <TaskList
+            title="Due Today"
+            count={taskStats.today.length}
+            tone="amber"
+            tasks={sortTasks(taskStats.today, "priority").slice(0, 4)}
+            emptyTitle="Nothing due today"
+            emptyDetail="Today is clear for the current filters."
+            renderTask={renderTask}
+          />
+          <TaskList
+            title="Upcoming"
+            count={taskStats.upcoming.length}
+            tone="blue"
+            tasks={sortTasks(taskStats.upcoming, "due").slice(0, 5)}
+            emptyTitle="No upcoming tasks"
+            emptyDetail="Create a task with a future due date to plan ahead."
+            renderTask={renderTask}
+          />
+          <TaskList
+            title="Recently Completed"
+            count={taskStats.recentlyCompleted.length}
+            tone="green"
+            tasks={taskStats.recentlyCompleted}
+            emptyTitle="No completed tasks yet"
+            emptyDetail="Completed work will appear here."
+            renderTask={renderTask}
+          />
+
+          <section>
+            <SectionHeader title="Home Maintenance" count={urgentMaint.length} tone="amber" />
+            {urgentMaint.length ? (
+              <div className="space-y-3">
+                {urgentMaint.map(item => (
+                  <MaintenanceCard
+                    key={item.id}
+                    item={item}
+                    maintStatus={maintStatus}
+                    maintColor={maintColor}
+                    nextDueDate={nextDueDate}
+                    daysBetween={daysBetween}
+                    formatDate={formatDate}
+                    onComplete={completeMaintenance}
+                  />
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <EmptyStatePanel
+                  icon={<Wrench className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />}
+                  title="Maintenance is current"
+                  detail="Due and overdue home maintenance will show here."
+                  className="py-7"
+                />
+              </Card>
+            )}
+          </section>
+        </>
+      ) : (
+        <>
+          <Card>
+            <CardHeader className="p-4 pb-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <ListFilter className="h-4 w-4 text-primary" aria-hidden="true" />
+                Filters
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 px-4 pb-4 pt-0">
+              <FormRow>
+                <FormGroup>
+                  <Label>Family Member</Label>
+                  <Select value={memberFilter} onChange={event => setMemberFilter(event.target.value)}>
+                    <option value="All">All</option>
+                    <option value="Family">Family</option>
+                    {activeMembers.map(member => <option key={member.id} value={member.name}>{member.name}</option>)}
+                  </Select>
+                </FormGroup>
+                <FormGroup>
+                  <Label>Status</Label>
+                  <Select value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>
+                    <option value="All">All</option>
+                    {STATUS_OPTIONS.map(status => <option key={status} value={status}>{status}</option>)}
+                  </Select>
+                </FormGroup>
+              </FormRow>
+              <FormRow>
+                <FormGroup>
+                  <Label>Priority</Label>
+                  <Select value={priorityFilter} onChange={event => setPriorityFilter(event.target.value)}>
+                    <option value="All">All</option>
+                    {PRIORITY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </Select>
+                </FormGroup>
+                <FormGroup>
+                  <Label>Category</Label>
+                  <Select value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)}>
+                    <option value="All">All</option>
+                    {CATEGORY_OPTIONS.map(category => <option key={category} value={category}>{category}</option>)}
+                  </Select>
+                </FormGroup>
+              </FormRow>
+              <FormRow>
+                <FormGroup>
+                  <Label>Due</Label>
+                  <Select value={dueFilter} onChange={event => setDueFilter(event.target.value)}>
+                    {DUE_FILTERS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </Select>
+                </FormGroup>
+                <FormGroup>
+                  <Label>Sort</Label>
+                  <Select value={sortBy} onChange={event => setSortBy(event.target.value)}>
+                    <option value="due">Due date</option>
+                    <option value="priority">Priority</option>
+                    <option value="created">Created date</option>
+                    <option value="assignee">Assignee</option>
+                  </Select>
+                </FormGroup>
+              </FormRow>
+              <FormHelp>{readWarning}</FormHelp>
+            </CardContent>
+          </Card>
+
+          <TaskList
+            title={view === "completed" ? "Completed Tasks" : "Family Tasks"}
+            count={filteredTasks.length}
+            tone={view === "completed" ? "green" : "blue"}
+            tasks={filteredTasks}
+            emptyTitle="No matching tasks"
+            emptyDetail="Adjust filters or create a new task."
+            renderTask={renderTask}
+          />
+        </>
+      )}
+
+      <TaskDrawer
+        open={drawer.open}
+        mode={drawer.mode}
+        form={form}
+        setForm={setForm}
+        members={members}
+        error={formError}
+        onClose={closeDrawer}
+        onSave={saveTask}
+      />
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
+    </div>
+  );
+}

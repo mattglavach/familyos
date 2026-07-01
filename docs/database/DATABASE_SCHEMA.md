@@ -16,6 +16,8 @@ Release 0.6B implementation note: the current dashboard family member manager is
 ### tasks
 Stores chores, reminders, and general tasks.
 
+Release 0.6B implementation note: the applied Supabase `tasks` table currently persists `title`, `category`, `priority`, `due_date`, `recurring_interval_days`, `last_completed`, `is_important`, `notes`, and `completed`. The task MVP uses browser localStorage metadata keyed by task id for `assignee`, detailed `status`, `created_at`, and `completed_at` until the future shared household task schema is migrated.
+
 ### finance_accounts
 Stores accounts for net worth and planning.
 
