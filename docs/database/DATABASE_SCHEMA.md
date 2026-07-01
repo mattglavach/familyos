@@ -8,6 +8,8 @@ No Release 0.6C migration has been applied yet. The current executable database 
 
 Milestone 2 adds a production migration draft at `supabase/migrations/20260701_release_0_6c_household_foundation.sql`. It is not applied by this milestone. The draft creates the household foundation tables, adds nullable `household_id` compatibility columns to existing module tables, adds structured task metadata columns, and preserves existing module-table `user_id` RLS behavior for staged rollout.
 
+Milestone 3 adds the dry-run and smoke-test guide at `docs/database/RELEASE_0_6C_MIGRATION_VALIDATION.md`. SQL execution validation remains pending until the draft is run in a disposable local or staging Supabase database.
+
 The selected household role vocabulary is `owner`, `adult`, `teen`, `child`, and `viewer`. `owner` can manage household membership, `adult` can manage household operating data, and `teen`/`child`/`viewer` are conservative read-oriented roles until child-safe product flows are implemented.
 
 ## Core Tables

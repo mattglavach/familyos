@@ -51,7 +51,7 @@ The production migration draft:
 - enables RLS for only the new foundation tables;
 - intentionally leaves current module-table `user_id` RLS policies unchanged.
 
-The draft should be reviewed and dry-run against a staging Supabase copy before production.
+The draft should be reviewed and dry-run against a staging Supabase copy before production. Milestone 3 adds the validation checklist and dry-run guide at `docs/database/RELEASE_0_6C_MIGRATION_VALIDATION.md`.
 
 ## Release 0.6B Local Storage Audit
 
@@ -249,7 +249,20 @@ Do not implement server-side OAuth token storage in Milestone 1. The minimal dir
 - Run migration work against a local or staging Supabase copy before production.
 - Add explicit rollback/support notes before applying any production migration.
 
-## Recommended Milestone 3
+## Milestone 3 Validation Preparation
+
+Milestone 3 does not apply the migration. It adds a dedicated validation guide covering:
+
+- syntax and idempotency checks;
+- bootstrap and backfill expectations;
+- foundation-table RLS behavior;
+- owner, adult, teen, child, viewer, and non-member smoke tests;
+- existing user-owned module-table compatibility;
+- rollback considerations and production readiness gates.
+
+Execution remains pending until the migration can be run with `psql` or the Supabase CLI against a disposable local or staging database.
+
+## Recommended Milestone 4
 
 Validate the production migration draft against a local or staging Supabase copy:
 

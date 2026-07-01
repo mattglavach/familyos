@@ -4,7 +4,7 @@
 0.6C
 
 ## Current State
-Release 0.6C data foundation work is in progress. A production household foundation migration draft exists, but no Release 0.6C database migration has been applied.
+Release 0.6C data foundation work is in progress. A production household foundation migration draft and validation guide exist, but no Release 0.6C database migration has been applied.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -25,9 +25,10 @@ Release 0.6C data foundation work is in progress. A production household foundat
 - Release 0.6B Milestone 7 stability and release candidate pass
 - Release 0.6C Milestone 1 data model audit and migration plan
 - Release 0.6C Milestone 2 production household foundation migration draft
+- Release 0.6C Milestone 3 migration dry-run preparation and validation plan
 
 ## In Progress
-- Release 0.6C household foundation validation planning
+- Release 0.6C household foundation dry-run execution planning
 
 ## Next
 - Dry-run the production household foundation migration draft against a local or staging Supabase copy
@@ -46,6 +47,7 @@ Release 0.6C data foundation work is in progress. A production household foundat
 - Six-item bottom navigation should be checked on physical mobile devices before broad family use.
 - The legacy household foundation migration is marked local-only and must not be applied to production.
 - The Release 0.6C production migration draft must be dry-run and RLS-tested before production use.
+- SQL execution validation is pending because this workspace does not currently expose `psql` or the Supabase CLI.
 
 ## Technical Debt
 - Existing feature screens still contain substantial inline styles and should be migrated gradually to shadcn/ui and Origin UI components during feature work.
