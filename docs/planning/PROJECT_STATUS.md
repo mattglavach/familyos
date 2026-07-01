@@ -4,7 +4,7 @@
 0.6C
 
 ## Current State
-Release 0.6C data foundation planning is in progress. No Release 0.6C database migration has been applied.
+Release 0.6C data foundation work is in progress. A production household foundation migration draft exists, but no Release 0.6C database migration has been applied.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -24,13 +24,14 @@ Release 0.6C data foundation planning is in progress. No Release 0.6C database m
 - Release 0.6B Milestone 6 settings/profile pass
 - Release 0.6B Milestone 7 stability and release candidate pass
 - Release 0.6C Milestone 1 data model audit and migration plan
+- Release 0.6C Milestone 2 production household foundation migration draft
 
 ## In Progress
-- Release 0.6C data foundation migration planning
+- Release 0.6C household foundation validation planning
 
 ## Next
-- Review and convert the existing local-only household foundation migration into a production-ready migration draft
-- Resolve household role vocabulary before applying schema changes
+- Dry-run the production household foundation migration draft against a local or staging Supabase copy
+- Run RLS smoke tests for owner, adult, teen, child, viewer, and non-member users
 - Plan app active-household context and data-service changes before replacing user-owned RLS
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
 
@@ -43,12 +44,14 @@ Release 0.6C data foundation planning is in progress. No Release 0.6C database m
 - Task assignee, status, created date, and completed date are stored in browser localStorage for Release 0.6B because the current applied Supabase tasks table does not include those columns.
 - Google Calendar token storage remains browser-local in Release 0.6B and should move server-side in a later calendar connection milestone.
 - Six-item bottom navigation should be checked on physical mobile devices before broad family use.
-- The existing household foundation migration is marked local-only and must not be applied to production without review.
+- The legacy household foundation migration is marked local-only and must not be applied to production.
+- The Release 0.6C production migration draft must be dry-run and RLS-tested before production use.
 
 ## Technical Debt
 - Existing feature screens still contain substantial inline styles and should be migrated gradually to shadcn/ui and Origin UI components during feature work.
 - Release 0.6B relies on temporary localStorage metadata for settings, family members, task metadata, and calendar tokens until the household/profile/task/calendar schema work is completed.
 - Current Supabase module tables still use direct `user_id = auth.uid()` RLS; household-scoped RLS must be introduced only after backfill and active-household app context are validated.
+- The household foundation draft intentionally keeps module-table `user_id` RLS in place while adding nullable `household_id` fields for staged migration.
 
 ## Last Updated
 July 1, 2026

@@ -38,7 +38,8 @@
 
 ## Next Schema Migration Track
 - [x] Audit current data gaps and existing household foundation migration work.
-- [ ] Convert local-only household foundation migration into a production-ready migration draft.
+- [x] Convert local-only household foundation migration into a production-ready migration draft.
+- [ ] Dry-run production household foundation migration draft and smoke-test RLS.
 - [ ] Household and people/family member persistence.
 - [ ] Shared task schema fields for assignee, status, created/completed timestamps, module ownership, and recurrence clarity.
 - [ ] Settings/profile persistence beyond browser localStorage.

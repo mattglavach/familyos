@@ -6,6 +6,10 @@ Release 0.6C starts the migration from Release 0.6B browser-local metadata to du
 
 No Release 0.6C migration has been applied yet. The current executable database remains `supabase/schema.sql`, which uses user-owned rows and `user_id = auth.uid()` RLS policies.
 
+Milestone 2 adds a production migration draft at `supabase/migrations/20260701_release_0_6c_household_foundation.sql`. It is not applied by this milestone. The draft creates the household foundation tables, adds nullable `household_id` compatibility columns to existing module tables, adds structured task metadata columns, and preserves existing module-table `user_id` RLS behavior for staged rollout.
+
+The selected household role vocabulary is `owner`, `adult`, `teen`, `child`, and `viewer`. `owner` can manage household membership, `adult` can manage household operating data, and `teen`/`child`/`viewer` are conservative read-oriented roles until child-safe product flows are implemented.
+
 ## Core Tables
 
 ### profiles
@@ -14,10 +18,19 @@ Stores authenticated user profile details.
 ### households
 Represents the family/household.
 
-### family_members
-Stores family member details.
+### people
+Stores durable household people and family member records, including people who do not authenticate.
 
 Release 0.6B implementation note: the current dashboard family member manager is client-side only and stores editable member preferences in browser localStorage. No Supabase family member table is used by the current deployed app until the household/family member migration is applied in a later database milestone.
+
+### household_members
+Connects authenticated users and optional people records to households with role-based access.
+
+### household_settings
+Stores household-wide defaults such as task defaults when they should be shared.
+
+### user_preferences
+Stores user-specific defaults such as preferred household or default person.
 
 ### tasks
 Stores chores, reminders, and general tasks.

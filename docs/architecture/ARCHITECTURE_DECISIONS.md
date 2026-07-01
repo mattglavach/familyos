@@ -20,6 +20,28 @@ Record decisions that shape the product.
 
 ## Decisions
 
+### July 1, 2026
+
+### Decision
+Use `owner`, `adult`, `teen`, `child`, and `viewer` as the standard household role vocabulary for Release 0.6C.
+
+### Context
+Earlier household architecture docs used both `admin`/`adult` and `owner`/`adult` language. The Release 0.6C production migration draft needs one vocabulary before RLS and app household context work proceed.
+
+### Options Considered
+- Use `admin`, `adult`, `child`, and `guest`.
+- Use only `owner` and `adult` for the first release.
+- Use `owner`, `adult`, `teen`, `child`, and `viewer`.
+
+### Decision Rationale
+`owner` clearly describes membership and household-settings authority without implying every trusted adult is also the account owner. `adult` covers normal household operators. `teen`, `child`, and `viewer` reserve conservative future roles for child-safe and read-limited experiences without granting management rights.
+
+### Tradeoffs
+The first RLS draft must keep teen, child, and viewer permissions conservative until product flows and child-safe views are implemented. More nuanced permissions can be added later without renaming core roles.
+
+### Follow-up
+Dry-run the Release 0.6C household foundation migration and smoke-test RLS behavior for owner, adult, teen, child, viewer, and non-member users before production use.
+
 ### June 27, 2026
 
 ### Decision

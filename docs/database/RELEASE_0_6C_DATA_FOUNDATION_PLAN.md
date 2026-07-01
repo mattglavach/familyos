@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Release 0.6C moves Family OS from Release 0.6B's browser-local dashboard features toward durable, multi-device Supabase-backed data. Milestone 1 is an audit and plan only: no migrations are applied and no runtime behavior changes are required.
+Release 0.6C moves Family OS from Release 0.6B's browser-local dashboard features toward durable, multi-device Supabase-backed data. Milestone 1 was an audit and plan only. Milestone 2 adds a production migration draft, but does not apply it or change runtime app behavior.
 
 ## Current Executable Schema
 
@@ -36,7 +36,22 @@ Do not duplicate the earlier household foundation work. The existing local-only 
 - bootstrap/backfill from current `user_id` data
 - initial RLS helpers and policies for the new foundation tables
 
-That migration is explicitly marked local-only and not production-ready. Release 0.6C should review, trim, and convert it into a production migration path rather than creating a parallel model.
+That migration is explicitly marked local-only and not production-ready. Release 0.6C Milestone 2 converts the same foundation direction into `supabase/migrations/20260701_release_0_6c_household_foundation.sql` rather than creating a competing household model.
+
+## Milestone 2 Production Draft
+
+The production migration draft:
+
+- creates `profiles`, `households`, `people`, `household_members`, `household_settings`, and `user_preferences`;
+- creates `familyos_internal.household_bootstrap_map` for support/backfill traceability;
+- adds nullable `household_id` columns to existing module tables while retaining `user_id`;
+- adds task metadata columns for `assigned_person_id`, `status`, `created_at`, `updated_at`, `completed_at`, `module_key`, `created_by_user_id`, and `updated_by_user_id`;
+- bootstraps one default household per existing auth user;
+- creates default owner membership, household settings, and user preference rows;
+- enables RLS for only the new foundation tables;
+- intentionally leaves current module-table `user_id` RLS policies unchanged.
+
+The draft should be reviewed and dry-run against a staging Supabase copy before production.
 
 ## Release 0.6B Local Storage Audit
 
@@ -152,7 +167,15 @@ Create or finalize:
   - `status text default 'active'`
   - timestamps
 
-Role naming should be decided before migration. Prior docs use both `owner`/`adult` and `admin`/`adult` language. For 0.6C, prefer one vocabulary before writing production SQL.
+Milestone 2 standardizes household roles as `owner`, `adult`, `teen`, `child`, and `viewer`.
+
+Rationale:
+
+- `owner` is clearer than `admin` for the person who controls membership and household-level settings.
+- `adult` covers trusted household operators without making every adult a membership owner.
+- `teen`, `child`, and `viewer` reserve conservative read-limited roles for future child-safe and guest-like experiences without granting management rights.
+
+Initial RLS treats `owner` and `adult` as household managers for people/settings data, reserves membership changes for `owner`, and keeps `teen`/`child`/`viewer` read-oriented.
 
 ### Phase 2: Compatibility Household Columns
 
@@ -178,7 +201,7 @@ Keep existing `completed`, `last_completed`, and recurrence fields during compat
 
 ### Phase 4: Settings / Preferences
 
-Add:
+The Milestone 2 draft adds:
 
 - `household_settings`
   - `household_id uuid primary key references households(id)`
@@ -226,12 +249,12 @@ Do not implement server-side OAuth token storage in Milestone 1. The minimal dir
 - Run migration work against a local or staging Supabase copy before production.
 - Add explicit rollback/support notes before applying any production migration.
 
-## Recommended Milestone 2
+## Recommended Milestone 3
 
-Convert the existing local-only household foundation migration into a reviewed production-ready migration draft:
+Validate the production migration draft against a local or staging Supabase copy:
 
-1. Resolve role vocabulary.
-2. Decide single-household-first behavior explicitly.
-3. Confirm bootstrap naming and backfill assumptions.
-4. Keep module-table RLS unchanged in the first production migration.
-5. Add task/settings columns only after the foundation migration is reviewed, or split them into a separate migration for safer rollout.
+1. Run the migration on a disposable database seeded from `supabase/schema.sql`.
+2. Confirm the bootstrap creates one household, owner membership, settings row, and user preference row per auth user.
+3. Confirm existing module rows remain readable through current `user_id` RLS.
+4. Smoke-test foundation RLS for owner, adult, teen, child, viewer, and non-member users.
+5. Review whether task/settings columns should remain in this migration or split into a follow-up migration before production.

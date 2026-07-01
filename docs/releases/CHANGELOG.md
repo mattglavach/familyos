@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Drafted the Release 0.6C production household foundation migration for profiles, households, people, household memberships, settings/preferences, nullable household compatibility fields, structured task metadata, bootstrap/backfill behavior, and foundation-table RLS without changing runtime app behavior.
 - Began Release 0.6C data foundation planning with an audit of the current user-owned Supabase schema, the local-only household foundation migration, Release 0.6B localStorage metadata, and the minimal schema direction for households, members, profiles, task metadata, settings/preferences, and future calendar connections.
 
 ## Release 0.6B - 2026-07-01

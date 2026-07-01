@@ -26,11 +26,12 @@ Plan the Release 0.6C data foundation so Release 0.6B browser-local features can
 - [x] Milestone 7 stability and release candidate pass
 - [x] Begin Release 0.6C branch
 - [x] Release 0.6C Milestone 1 data model audit and migration plan
+- [x] Release 0.6C Milestone 2 production household foundation migration draft
 
 ## Blockers
 
 - Release 0.6B has no active code blockers after local lint/build validation. Real-device family testing and Vercel deployment validation remain before broad use.
-- Release 0.6C must not apply production migrations until the existing local-only household foundation draft is reviewed and converted into a production-ready migration.
+- Release 0.6C must not apply the production household foundation draft until it has been dry-run against a local or staging Supabase copy with RLS smoke tests.
 
 ## Notes
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.
@@ -54,3 +55,5 @@ Plan the Release 0.6C data foundation so Release 0.6B browser-local features can
 - Release 0.6B Milestone 7 closes the release candidate with lint/build validation, release notes, known limitations, no schema changes, and a manual QA checklist for dashboard, calendar, family, tasks, settings, navigation, and mobile layouts.
 - Release 0.6C Milestone 1 audits the current user-owned Supabase schema, the local-only household foundation migration, and Release 0.6B localStorage usage for family members, settings, task metadata, and Google Calendar token/sync metadata.
 - Release 0.6C should reuse and review `supabase/migrations/20260627_household_foundation.sql` rather than creating a competing household model.
+- Release 0.6C Milestone 2 adds `supabase/migrations/20260701_release_0_6c_household_foundation.sql` as a production migration draft for profiles, households, people, household members, household/user settings, nullable household compatibility columns, and structured task metadata. It does not change runtime app behavior or apply the migration.
+- Release 0.6C standardizes household roles as `owner`, `adult`, `teen`, `child`, and `viewer`; only owner/adult roles manage household operating data in the initial RLS draft, and membership changes are owner-only.
