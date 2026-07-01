@@ -45,7 +45,9 @@
 - [x] Repeat migration validation on fresh schema-only and sanitized staging-like databases.
 - [x] Run app smoke tests against the migrated local/staging schema.
 - [x] Complete production backup/rollback review and recommend applying the combined migration as-is.
-- [ ] Capture production backup artifacts and owner go/no-go approval immediately before applying the migration.
+- [x] Capture production backup artifacts and verify production target for the first Release 0.6C attempt.
+- [ ] Reconcile production auth ownership baseline before re-attempting Release 0.6C.
+- [ ] Re-attempt Release 0.6C after production baseline alignment passes validation.
 - [ ] Household and people/family member persistence.
 - [ ] Shared task schema fields for assignee, status, created/completed timestamps, module ownership, and recurrence clarity.
 - [ ] Settings/profile persistence beyond browser localStorage.

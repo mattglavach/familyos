@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Attempted the Release 0.6C production migration after target verification and local backup artifact capture; the migration failed safely during preflight because production is missing the expected `user_id` ownership baseline, and follow-up checks confirmed no Release 0.6C foundation tables were left behind.
 - Completed Release 0.6C production readiness signoff review without touching production; confirmed backup method, restore/rollback path, migration file, validation SQL scope, post-migration smoke checks, and the owner go/no-go gate, with a recommendation to apply the combined migration as-is after backup capture and explicit approval.
 - Ran Release 0.6C app smoke tests against the migrated local Supabase API, fixed missing post-migration auth user bootstrap with an `auth.users` insert trigger, documented passing auth/profile/household/settings/task/module compatibility checks, and added a production readiness checklist without touching production or changing localStorage behavior.
 - Validated the revised Release 0.6C household foundation migration against fresh schema-only and staging-like local databases, added authenticated module-table grants required for clean installs, and documented passing idempotency, validation SQL, RLS, and task compatibility checks without production or runtime app changes.

@@ -4,7 +4,7 @@
 0.6C
 
 ## Current State
-Release 0.6C data foundation work is production-ready pending backup capture and explicit owner go/no-go approval. The household foundation migration has passed disposable local, fresh schema-only, staging-like local, and app smoke validation after three compatibility revisions, but no Release 0.6C database migration has been applied to production.
+Release 0.6C data foundation production execution is blocked by production baseline drift. The household foundation migration passed disposable local, fresh schema-only, staging-like local, and app smoke validation after three compatibility revisions, but the first production attempt failed safely during preflight because production module tables do not yet have the expected `user_id` ownership baseline.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -31,13 +31,15 @@ Release 0.6C data foundation work is production-ready pending backup capture and
 - Release 0.6C Milestone 6 fresh schema-only and staging-like migration validation, idempotency checks, RLS smoke tests, and task compatibility checks
 - Release 0.6C Milestone 7 migrated-local app smoke tests, post-migration auth user bootstrap trigger, and production readiness checklist
 - Release 0.6C Milestone 8 production readiness signoff review and recommendation to apply the combined migration as-is after backup capture and owner approval
+- Release 0.6C production attempt 1 target verification, backup artifact capture, failed preflight, and baseline drift diagnosis
 
 ## In Progress
-- Release 0.6C household foundation production execution pending owner approval
+- Release 0.6C production baseline alignment planning
 
 ## Next
-- Capture production backup artifacts and owner go/no-go approval before execution
-- Apply the combined foundation/task/settings migration as one production migration if approved
+- Plan and validate production auth ownership baseline alignment for missing `user_id` columns and user-owned RLS
+- Decide explicit ownership/backfill behavior for existing production module rows
+- Re-run Release 0.6C validation after the production baseline is aligned
 - Plan app active-household context and data-service changes before replacing user-owned RLS
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
 
@@ -51,7 +53,7 @@ Release 0.6C data foundation work is production-ready pending backup capture and
 - Google Calendar token storage remains browser-local in Release 0.6B and should move server-side in a later calendar connection milestone.
 - Six-item bottom navigation should be checked on physical mobile devices before broad family use.
 - The legacy household foundation migration is marked local-only and must not be applied to production.
-- The Release 0.6C production migration draft passed disposable local, fresh schema-only, staging-like, migrated-local app smoke validation, and production readiness signoff review, but must not be applied until backup artifacts are captured and owner go/no-go approval is recorded.
+- The Release 0.6C production migration draft passed disposable local, fresh schema-only, staging-like, migrated-local app smoke validation, and production readiness signoff review, but production is missing the expected earlier `user_id` ownership baseline. The first production attempt failed during preflight and no Release 0.6C foundation tables were applied.
 
 ## Technical Debt
 - Existing feature screens still contain substantial inline styles and should be migrated gradually to shadcn/ui and Origin UI components during feature work.

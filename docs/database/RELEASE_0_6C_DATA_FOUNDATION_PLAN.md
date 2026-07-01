@@ -381,3 +381,18 @@ Recommendation:
 
 - Apply the combined Release 0.6C migration as-is after backup artifacts are captured and owner go/no-go approval is explicitly recorded.
 - Do not split the migration unless the owner rejects applying foundation, task metadata, and settings/preference changes together.
+
+## Production Attempt 1 Result
+
+The first production attempt was blocked by preflight schema drift after backup artifacts were captured and the target project was verified.
+
+Result:
+
+- Target project: `dsowansazqleudupnjug` / `FamilyOS`.
+- Migration attempted: `supabase/migrations/20260701_release_0_6c_household_foundation.sql`.
+- Outcome: failed and rolled back during preflight.
+- Cause: production module tables do not yet have the `user_id` ownership columns expected by the Release 0.6C migration.
+- Follow-up read-only checks confirmed production still has public/open module-table policies rather than the current repo baseline's user-owned `familyos_user_all` policies.
+- No Release 0.6C foundation tables were left behind.
+
+The recommendation to apply the combined Release 0.6C migration as-is is withdrawn until production baseline alignment is complete. The next milestone should reconcile the earlier auth ownership baseline before re-attempting Release 0.6C.

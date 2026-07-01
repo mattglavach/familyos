@@ -268,6 +268,47 @@ Recommendation:
 - Rationale: fresh schema, staging-like, idempotency, RLS, task compatibility, and migrated-local app smoke checks have passed, and the migration remains staged by preserving current `user_id = auth.uid()` module-table RLS while adding nullable household compatibility fields.
 - Production remains blocked until the backup artifacts are captured and the owner records the final go decision.
 
+## Release 0.6C Production Attempt 1
+
+Status: blocked by production baseline drift. The Release 0.6C migration was attempted against the verified linked production project `dsowansazqleudupnjug` after backup artifact capture, but the migration did not apply.
+
+Target verification:
+
+- Supabase CLI link target: `dsowansazqleudupnjug`.
+- Project name from linked metadata: `FamilyOS`.
+- Region supplied by owner: East US (North Virginia).
+
+Backup artifacts captured before the attempt:
+
+- `schema-public-auth.sql`
+- `data-public.sql`
+- `data-auth.sql`
+- `baseline-counts.sql` and `baseline-counts.txt`
+- `production-schema-drift.sql` and `production-schema-drift.txt`
+- `production-policy-sample.sql` and `production-policy-sample.txt`
+- `post-failed-attempt-foundation-tables.sql` and `post-failed-attempt-foundation-tables.txt`
+
+The backup artifacts are stored under the untracked local `backups/` directory and must not be committed.
+
+Result:
+
+- Migration command: `npx supabase db query --linked --file supabase/migrations/20260701_release_0_6c_household_foundation.sql`.
+- Outcome: failed during the migration preflight and rolled back.
+- Error class: production baseline/schema drift.
+- Preflight failure: all current module tables were missing the expected `user_id` ownership column.
+- Read-only follow-up checks confirmed current production module tables have RLS enabled with public/open policies, not the user-owned `familyos_user_all` policies expected by the Release 0.6C migration.
+- Read-only follow-up checks found no Release 0.6C foundation tables left behind after the failed transaction.
+
+Production is not ready for the Release 0.6C household foundation migration until the earlier auth ownership baseline is reconciled. Do not force the 0.6C migration past this preflight.
+
+Recommended next step:
+
+1. Create a dedicated production baseline alignment milestone.
+2. Decide which production auth user should own existing module rows, or whether rows should remain unowned until manually assigned.
+3. Apply or revise the earlier user-owned `user_id`/RLS baseline migration with explicit backfill ownership.
+4. Re-run Release 0.6C fresh/staging/local app smoke validation against that production-like baseline.
+5. Re-attempt the Release 0.6C production migration only after the baseline alignment passes.
+
 ## Production Readiness Checklist
 
 ### Backup Steps
