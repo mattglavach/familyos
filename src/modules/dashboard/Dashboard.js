@@ -50,7 +50,9 @@ function toneForColor(color) {
 
 function formatSyncTime(value) {
   if (!value) return "Not synced yet";
-  return `Synced ${new Date(value).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
+  const syncedAt = new Date(value);
+  if (Number.isNaN(syncedAt.getTime())) return "Sync time unavailable";
+  return `Synced ${syncedAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
 }
 
 function calendarStatus(gc) {
@@ -94,13 +96,14 @@ function MemberAvatar({ member, name, size = "md" }) {
 }
 
 function memberReferences(member, events, tasks, collegeGoals) {
-  const name = member.name.toLowerCase();
-  const eventCount = events.filter(event => String(event.member || "").toLowerCase() === name).length;
-  const taskCount = tasks.filter(task => {
+  const name = String(member?.name || "").toLowerCase();
+  if (!name) return { eventCount: 0, taskCount: 0, collegeCount: 0, total: 0 };
+  const eventCount = (events || []).filter(event => String(event?.member || "").toLowerCase() === name).length;
+  const taskCount = (tasks || []).filter(task => {
     const haystack = `${task.title || ""} ${task.category || ""} ${task.notes || ""}`.toLowerCase();
     return haystack.includes(name);
   }).length;
-  const collegeCount = collegeGoals.filter(goal => String(goal.child_name || "").toLowerCase() === name).length;
+  const collegeCount = (collegeGoals || []).filter(goal => String(goal?.child_name || "").toLowerCase() === name).length;
   return { eventCount, taskCount, collegeCount, total: eventCount + taskCount + collegeCount };
 }
 
@@ -406,37 +409,39 @@ function MemberFilter({ value, active, onSelect, color }) {
 }
 
 function ScheduleEvent({ event, reassigning, setReassigning, setOverrides, dateLabel, memberByName, assignableMembers }) {
-  const assignedMember = memberByName[String(event.member || "").toLowerCase()];
-  const eventMemberColor = getMemberColor(assignedMember, event.member);
+  const assignedMember = memberByName[String(event?.member || "").toLowerCase()];
+  const eventMemberColor = getMemberColor(assignedMember, event?.member);
+  const title = event?.title || "Untitled event";
+  const eventId = event?.id || `${event?.date || "event"}-${title}`;
   return (
     <div className="rounded-lg border border-border bg-card p-3" style={{ borderLeft: `3px solid ${eventMemberColor}` }}>
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-semibold text-foreground">{event.title}</div>
+          <div className="truncate text-sm font-semibold text-foreground">{title}</div>
           <div className="mt-1 text-xs leading-5 text-muted-foreground">
-            {dateLabel ? `${dateLabel} - ` : ""}{event.time || "All day"}{event.location ? ` - ${event.location}` : ""}
+            {dateLabel ? `${dateLabel} - ` : ""}{event?.time || "All day"}{event?.location ? ` - ${event.location}` : ""}
           </div>
           <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-            {event.source || "Google Calendar"}
+            {event?.source || "Google Calendar"}
           </div>
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-2">
-          <Badge variant={toneForColor(eventMemberColor)} className="max-w-20 truncate">{event.member}</Badge>
-          <Button type="button" variant="secondary" size="xs" onClick={() => setReassigning(reassigning === event.id ? null : event.id)}>
+        <div className="flex shrink-0 flex-wrap items-center gap-2 sm:flex-col sm:items-end">
+          <Badge variant={toneForColor(eventMemberColor)} className="max-w-32 truncate">{event?.member || "Unassigned"}</Badge>
+          <Button type="button" variant="secondary" size="xs" disabled={!assignableMembers.length} onClick={() => setReassigning(reassigning === eventId ? null : eventId)}>
             Reassign
           </Button>
         </div>
       </div>
-      {reassigning === event.id && (
+      {reassigning === eventId && (
         <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
           {assignableMembers.map(member => (
             <MemberFilter
               key={member.id}
               value={member.name}
               color={member.color}
-              active={event.member === member.name}
+              active={event?.member === member.name}
               onSelect={() => {
-                setOverrides(previous => ({ ...previous, [event.id]: member.name }));
+                setOverrides(previous => ({ ...previous, [eventId]: member.name }));
                 setReassigning(null);
               }}
             />
@@ -470,7 +475,7 @@ function SchedulePanel({
     return (
       <Card style={{ borderLeft: `3px solid ${gc.status === "expired" || gc.error ? COLORS.amber : COLORS.slate}` }}>
         <CardContent className="space-y-3 pt-5">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 gap-3">
               <CalendarX className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
               <div className="min-w-0">
@@ -493,7 +498,7 @@ function SchedulePanel({
     );
   }
 
-  const visibleEvents = filteredEvents.filter(event => visibleDays.includes(event.date));
+  const visibleEvents = filteredEvents.filter(event => event?.date && visibleDays.includes(event.date));
   const todayEvents = visibleEvents.filter(event => event.date === todayString);
   const upcomingEvents = visibleEvents.filter(event => event.date !== todayString);
 
@@ -665,7 +670,18 @@ export function Dashboard({ onNavigate, gc, deps }) {
   });
 
   const allEvents = useMemo(
-    () => (gc.token ? gc.events : []).map(event => ({ ...event, member: overrides[event.id] || event.member })),
+    () => (gc.token ? gc.events : [])
+      .filter(event => event && typeof event === "object")
+      .map((event, index) => {
+        const eventId = event.id || `${event.date || "event"}-${index}`;
+        return {
+          ...event,
+          id: eventId,
+          title: event.title || "Untitled event",
+          member: overrides[eventId] || event.member || "Family",
+          source: event.source || "Google Calendar",
+        };
+      }),
     [gc.events, gc.token, overrides]
   );
   const activeMembers = family.activeMembers;

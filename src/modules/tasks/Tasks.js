@@ -64,16 +64,29 @@ function todayIso() {
 
 function readTaskMetadata() {
   try {
+    if (typeof window === "undefined" || !window.localStorage) return {};
     const raw = localStorage.getItem(TASK_METADATA_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    return Object.fromEntries(
+      Object.entries(parsed)
+        .filter(([, value]) => value && typeof value === "object" && !Array.isArray(value))
+        .map(([key, value]) => [key, {
+          assignee: typeof value.assignee === "string" ? value.assignee : "Family",
+          status: STATUS_OPTIONS.includes(value.status) ? value.status : "Not Started",
+          description: typeof value.description === "string" ? value.description : "",
+          created_at: typeof value.created_at === "string" ? value.created_at : null,
+          completed_at: typeof value.completed_at === "string" ? value.completed_at : null,
+        }])
+    );
   } catch {
     return {};
   }
 }
 
 function writeTaskMetadata(metadata) {
+  if (typeof window === "undefined" || !window.localStorage) throw new Error("localStorage unavailable");
   localStorage.setItem(TASK_METADATA_KEY, JSON.stringify(metadata));
 }
 
@@ -89,7 +102,11 @@ function memberColor(name, members) {
 function effectiveDueDate(task, nextDueDate) {
   if (task.due_date) return task.due_date;
   if (task.recurring_interval_days && task.last_completed) {
-    return nextDueDate(task.last_completed, task.recurring_interval_days);
+    try {
+      return nextDueDate(task.last_completed, Number(task.recurring_interval_days));
+    } catch {
+      return null;
+    }
   }
   return null;
 }
@@ -99,22 +116,29 @@ function dueBucket(task, daysBetween, nextDueDate) {
   const dueDate = effectiveDueDate(task, nextDueDate);
   if (!dueDate) return "upcoming";
   const days = daysBetween(dueDate);
+  if (Number.isNaN(days)) return "upcoming";
   if (days < 0) return "overdue";
   if (days === 0) return "today";
   return "upcoming";
 }
 
-function normalizeTask(row, metadata, nextDueDate) {
-  const extra = metadata[row.id] || {};
-  const completed = !!row.completed;
+function normalizeTask(row, metadata, nextDueDate, index = 0) {
+  const source = row && typeof row === "object" ? row : {};
+  const id = source.id || `task-row-${index}`;
+  const extra = metadata[id] || {};
+  const completed = !!source.completed;
   return {
-    ...row,
-    description: row.notes || extra.description || "",
+    ...source,
+    id,
+    title: source.title || "Untitled task",
+    category: source.category || "Home",
+    priority: source.priority || "med",
+    description: source.notes || extra.description || "",
     assignee: extra.assignee || "Family",
     status: completed ? "Completed" : extra.status || "Not Started",
-    created_at: extra.created_at || row.created_at || row.created_date || null,
-    completed_at: extra.completed_at || (completed && !row.recurring_interval_days ? row.last_completed : null),
-    effective_due_date: effectiveDueDate(row, nextDueDate),
+    created_at: extra.created_at || source.created_at || source.created_date || null,
+    completed_at: extra.completed_at || (completed && !source.recurring_interval_days ? source.last_completed : null),
+    effective_due_date: effectiveDueDate(source, nextDueDate),
   };
 }
 
@@ -176,10 +200,19 @@ function sortTasks(items, sortBy) {
   });
 }
 
+function safeMaintenanceDueDate(item, nextDueDate) {
+  try {
+    if (!item?.last_completed || !item?.interval_days) return null;
+    return nextDueDate(item.last_completed, Number(item.interval_days));
+  } catch {
+    return null;
+  }
+}
+
 function Toast({ toast, onDismiss }) {
   if (!toast) return null;
   return (
-    <div className="fixed bottom-24 left-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-lg border border-border bg-card px-4 py-3 text-sm font-semibold text-card-foreground shadow-soft">
+    <div className="fixed bottom-24 left-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-lg border border-border bg-card px-4 py-3 text-sm font-semibold text-card-foreground shadow-soft" role="status" aria-live="polite">
       <div className="flex items-center justify-between gap-3">
         <span>{toast.message}</span>
         <Button type="button" variant="ghost" size="xs" onClick={onDismiss}>Dismiss</Button>
@@ -221,7 +254,7 @@ function TaskSkeleton() {
 function TaskCard({ task, members, daysBetween, formatDate, onEdit, onComplete, onReopen, onDelete, onReassign }) {
   const dueDate = task.effective_due_date;
   const days = dueDate ? daysBetween(dueDate) : null;
-  const overdue = days !== null && days < 0 && task.status !== "Completed";
+  const overdue = days !== null && !Number.isNaN(days) && days < 0 && task.status !== "Completed";
   const accent = task.status === "Completed" ? COLORS.green : overdue ? COLORS.red : task.priority === "high" ? COLORS.purple : memberColor(task.assignee, members);
 
   return (
@@ -257,14 +290,14 @@ function TaskCard({ task, members, daysBetween, formatDate, onEdit, onComplete, 
           {task.recurring_interval_days && <span>Every {task.recurring_interval_days}d</span>}
         </div>
 
-        <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+        <div className="grid gap-2 md:grid-cols-[1fr_auto]">
           <Select value={task.assignee || "Family"} onChange={event => onReassign(task, event.target.value)} aria-label={`Reassign ${task.title}`}>
             <option value="Family">Family</option>
             {members.filter(member => member.status !== "inactive").map(member => (
               <option key={member.id} value={member.name}>{member.name}</option>
             ))}
           </Select>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
             {task.status === "Completed" ? (
               <Button type="button" variant="secondary" size="sm" onClick={() => onReopen(task)}>
                 <RotateCcw className="h-4 w-4" aria-hidden="true" />
@@ -276,7 +309,7 @@ function TaskCard({ task, members, daysBetween, formatDate, onEdit, onComplete, 
                 Complete
               </Button>
             )}
-            <Button type="button" variant="destructive-outline" size="sm" onClick={() => onDelete(task)}>
+            <Button type="button" variant="destructive-outline" size="sm" onClick={() => onDelete(task)} aria-label={`Delete ${task.title}`}>
               <Trash2 className="h-4 w-4" aria-hidden="true" />
               Delete
             </Button>
@@ -318,17 +351,17 @@ function TaskDrawer({ open, mode, form, setForm, members, error, onClose, onSave
     >
       <FormSection>
         <FormGroup>
-          <Label>Title</Label>
-          <Input value={form.title} placeholder="What needs to happen?" onChange={event => setForm(previous => ({ ...previous, title: event.target.value }))} />
+          <Label htmlFor="task-title">Title</Label>
+          <Input id="task-title" value={form.title} placeholder="What needs to happen?" onChange={event => setForm(previous => ({ ...previous, title: event.target.value }))} />
         </FormGroup>
         <FormGroup>
-          <Label>Description / Notes</Label>
-          <Textarea value={form.description} placeholder="Add context, steps, or reminders." onChange={event => setForm(previous => ({ ...previous, description: event.target.value }))} />
+          <Label htmlFor="task-description">Description / Notes</Label>
+          <Textarea id="task-description" value={form.description} placeholder="Add context, steps, or reminders." onChange={event => setForm(previous => ({ ...previous, description: event.target.value }))} />
         </FormGroup>
         <FormRow>
           <FormGroup>
-            <Label>Assignee</Label>
-            <Select value={form.assignee} onChange={event => setForm(previous => ({ ...previous, assignee: event.target.value }))}>
+            <Label htmlFor="task-assignee">Assignee</Label>
+            <Select id="task-assignee" value={form.assignee} onChange={event => setForm(previous => ({ ...previous, assignee: event.target.value }))}>
               <option value="Family">Family</option>
               {members.filter(member => member.status !== "inactive").map(member => (
                 <option key={member.id} value={member.name}>{member.name}</option>
@@ -336,34 +369,34 @@ function TaskDrawer({ open, mode, form, setForm, members, error, onClose, onSave
             </Select>
           </FormGroup>
           <FormGroup>
-            <Label>Due Date</Label>
-            <Input type="date" value={form.due_date} onChange={event => setForm(previous => ({ ...previous, due_date: event.target.value }))} />
+            <Label htmlFor="task-due-date">Due Date</Label>
+            <Input id="task-due-date" type="date" value={form.due_date} onChange={event => setForm(previous => ({ ...previous, due_date: event.target.value }))} />
           </FormGroup>
         </FormRow>
         <FormRow>
           <FormGroup>
-            <Label>Priority</Label>
-            <Select value={form.priority} onChange={event => setForm(previous => ({ ...previous, priority: event.target.value }))}>
+            <Label htmlFor="task-priority">Priority</Label>
+            <Select id="task-priority" value={form.priority} onChange={event => setForm(previous => ({ ...previous, priority: event.target.value }))}>
               {PRIORITY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
             </Select>
           </FormGroup>
           <FormGroup>
-            <Label>Status</Label>
-            <Select value={form.status} onChange={event => setForm(previous => ({ ...previous, status: event.target.value }))}>
+            <Label htmlFor="task-status">Status</Label>
+            <Select id="task-status" value={form.status} onChange={event => setForm(previous => ({ ...previous, status: event.target.value }))}>
               {STATUS_OPTIONS.map(status => <option key={status} value={status}>{status}</option>)}
             </Select>
           </FormGroup>
         </FormRow>
         <FormRow>
           <FormGroup>
-            <Label>Category</Label>
-            <Select value={form.category} onChange={event => setForm(previous => ({ ...previous, category: event.target.value }))}>
+            <Label htmlFor="task-category">Category</Label>
+            <Select id="task-category" value={form.category} onChange={event => setForm(previous => ({ ...previous, category: event.target.value }))}>
               {CATEGORY_OPTIONS.map(category => <option key={category} value={category}>{category}</option>)}
             </Select>
           </FormGroup>
           <FormGroup>
-            <Label>Repeat Every Days</Label>
-            <Input type="number" min="1" placeholder="Optional" value={form.recurring_interval_days} onChange={event => setForm(previous => ({ ...previous, recurring_interval_days: event.target.value }))} />
+            <Label htmlFor="task-repeat-days">Repeat Every Days</Label>
+            <Input id="task-repeat-days" type="number" min="1" placeholder="Optional" value={form.recurring_interval_days} onChange={event => setForm(previous => ({ ...previous, recurring_interval_days: event.target.value }))} />
           </FormGroup>
         </FormRow>
         <FormHelp>Assignee, status, created date, and completed date are stored locally until the shared household task schema is migrated.</FormHelp>
@@ -376,11 +409,11 @@ function TaskDrawer({ open, mode, form, setForm, members, error, onClose, onSave
 function MaintenanceCard({ item, maintStatus, maintColor, nextDueDate, daysBetween, formatDate, onComplete }) {
   const status = maintStatus(item);
   const color = maintColor(status);
-  const dueDate = nextDueDate(item.last_completed, item.interval_days);
-  const days = daysBetween(dueDate);
+  const dueDate = safeMaintenanceDueDate(item, nextDueDate);
+  const days = dueDate ? daysBetween(dueDate) : null;
   return (
     <Card style={{ borderLeft: `3px solid ${color}` }}>
-      <CardContent className="flex items-start justify-between gap-3 p-4">
+      <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <Badge variant={status === "overdue" ? "red" : status === "due-soon" ? "amber" : "green"}>{status.replace("-", " ")}</Badge>
@@ -388,11 +421,11 @@ function MaintenanceCard({ item, maintStatus, maintColor, nextDueDate, daysBetwe
           </div>
           <div className="text-sm font-bold text-foreground">{item.title}</div>
           <div className="mt-1 text-xs leading-5 text-muted-foreground">
-            {days < 0 ? `Overdue by ${-days}d` : days === 0 ? "Due today" : `Due ${formatDate(dueDate)}`}
+            {days === null || Number.isNaN(days) ? "Due date unavailable" : days < 0 ? `Overdue by ${-days}d` : days === 0 ? "Due today" : `Due ${formatDate(dueDate)}`}
             {item.notes ? ` - ${item.notes}` : ""}
           </div>
         </div>
-        <Button type="button" variant="secondary" size="sm" onClick={() => onComplete(item)}>
+        <Button type="button" variant="secondary" size="sm" className="w-full sm:w-auto" onClick={() => onComplete(item)}>
           <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
           Done
         </Button>
@@ -439,7 +472,7 @@ export function Tasks({ deps }) {
   const members = family.members;
   const activeMembers = family.activeMembers;
   const tasks = useMemo(
-    () => taskTable.data.map(task => normalizeTask(task, metadata, nextDueDate)),
+    () => taskTable.data.map((task, index) => normalizeTask(task, metadata, nextDueDate, index)),
     [taskTable.data, metadata, nextDueDate]
   );
 
@@ -479,8 +512,12 @@ export function Tasks({ deps }) {
   }, [categoryFilter, daysBetween, dueFilter, memberFilter, nextDueDate, priorityFilter, sortBy, statusFilter, tasks, view]);
 
   const urgentMaint = homeMaint.data
-    .filter(item => ["overdue", "due-soon"].includes(maintStatus(item)))
-    .sort((a, b) => daysBetween(nextDueDate(a.last_completed, a.interval_days)) - daysBetween(nextDueDate(b.last_completed, b.interval_days)));
+    .filter(item => item?.title && ["overdue", "due-soon"].includes(maintStatus(item)))
+    .sort((a, b) => {
+      const aDue = safeMaintenanceDueDate(a, nextDueDate);
+      const bDue = safeMaintenanceDueDate(b, nextDueDate);
+      return (aDue ? daysBetween(aDue) : 9999) - (bDue ? daysBetween(bDue) : 9999);
+    });
 
   function persistMetadata(nextMetadata) {
     try {

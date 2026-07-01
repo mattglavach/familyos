@@ -93,6 +93,7 @@ function GlobalInteractionStyles(){
         @keyframes shimmer{from{transform:translateX(-100%);}to{transform:translateX(100%);}}
         button:active{opacity:0.65 !important;transform:scale(0.97);}
         input:focus,textarea:focus,select:focus{border-color:#4A90D9 !important;box-shadow:0 0 0 3px rgba(74,144,217,0.18) !important;}
+        button:focus-visible{outline:2px solid #4A90D9;outline-offset:2px;}
         button{-webkit-tap-highlight-color:transparent;}
         *{-webkit-tap-highlight-color:transparent;}
         ::placeholder{color:#4a5a78;}
@@ -116,7 +117,7 @@ function AppHeader({tab, auth, gc}){
         <div style={S.logo} className="truncate">{tab==="home"?<><span style={S.logoAccent}>Family</span>OS</>:TITLES[tab]}</div>
         {tab==="home"&&<div className="mt-1 truncate text-xs text-muted-foreground">{formatTodayShort()}</div>}
       </div>
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
         <Button type="button" variant="secondary" size="xs" onClick={auth.signOut}>Sign out</Button>
         {gc.token
           ?<StatusBadge status={calendarStatus} className="max-w-28 truncate">{calendarLabel}</StatusBadge>
@@ -164,7 +165,7 @@ export default function App(){
 
   function switchTab(t){
     setTab(t);
-    window.scrollTo({top:0,behavior:"instant"});
+    window.scrollTo({top:0,behavior:"auto"});
   }
 
   if (CONFIG_STATUS.missing.length) return <SetupRequired/>;

@@ -16,18 +16,21 @@ function normalizeName(name) {
 }
 
 function normalizeMember(member, index = 0) {
-  const name = normalizeName(member.name);
+  const source = member && typeof member === "object" ? member : {};
+  const name = normalizeName(source.name);
+  const fallbackId = name.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "member";
   return {
-    id: member.id || `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now()}-${index}`,
+    id: source.id || `${fallbackId}-${Date.now()}-${index}`,
     name,
-    role: member.role || "Family",
-    status: member.status === "inactive" ? "inactive" : "active",
-    color: member.color || MEMBER_COLORS[name] || COLORS.blue,
-    notes: member.notes || "",
+    role: source.role || "Family",
+    status: source.status === "inactive" ? "inactive" : "active",
+    color: source.color || MEMBER_COLORS[name] || COLORS.blue,
+    notes: source.notes || "",
   };
 }
 
 function readStoredMembers() {
+  if (typeof window === "undefined" || !window.localStorage) return DEFAULT_FAMILY_MEMBERS;
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return DEFAULT_FAMILY_MEMBERS;
   const parsed = JSON.parse(raw);
@@ -63,6 +66,7 @@ export function useFamilyMembers() {
 
   const persist = useCallback(nextMembers => {
     try {
+      if (typeof window === "undefined" || !window.localStorage) throw new Error("localStorage unavailable");
       localStorage.setItem(STORAGE_KEY, JSON.stringify(nextMembers));
       setMembers(nextMembers);
       setError("");

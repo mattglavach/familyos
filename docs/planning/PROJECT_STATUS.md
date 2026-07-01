@@ -20,13 +20,14 @@ Release 0.6B dashboard implementation is in progress.
 - Release 0.6B Milestone 2 Google Calendar integration pass
 - Release 0.6B Milestone 3 family member management pass
 - Release 0.6B Milestone 4 task management MVP
+- Release 0.6B Milestone 5 UX hardening pass
 
 ## In Progress
-- Release 0.6B final dashboard hardening follow-up milestone
+- Release 0.6B settings/profile follow-up milestone
 
 ## Next
-- Review Milestone 4 task management MVP behavior
-- Continue with Milestone 5 mobile responsiveness, loading states, and error-state hardening pass
+- Review Milestone 5 hardened dashboard/task/family/calendar behavior on real mobile viewport
+- Continue with Milestone 6 settings and profile pass
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
 
 ## Known Bugs
