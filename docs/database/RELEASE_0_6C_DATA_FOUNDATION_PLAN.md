@@ -334,3 +334,33 @@ Prepare production readiness without applying the migration:
 2. Document production backup, restore, and rollback steps.
 3. Review whether to keep foundation, task metadata, and settings in one production migration or split before production.
 4. Prepare a production application checklist and go/no-go decision.
+
+## Milestone 7 App Smoke Tests and Production Readiness
+
+Milestone 7 ran app-facing smoke tests against the migrated local Supabase API. Production was not touched.
+
+Initial finding:
+
+- A disposable local auth user could be created and could sign in with password auth, but post-migration bootstrap rows were missing because the migration only bootstrapped users present at migration time.
+
+Validated revision:
+
+- The migration now adds `public.familyos_bootstrap_auth_user()` and an `after insert on auth.users` trigger.
+- The trigger creates the new user's profile, default household, active owner membership, household settings, user preferences, and bootstrap mapping.
+- The revised migration re-applied cleanly to the local database.
+
+Smoke-test result:
+
+- Auth/login, profile bootstrap, household bootstrap/current household resolution, owner membership, user preferences read/write, household settings read/write, task list/create/update/delete, and representative module nullable `household_id` compatibility passed.
+- Tested representative modules: `notes`, `home_maintenance`, `pool_readings`, `college_deadlines`, and `finance_action_items`.
+- No runtime app code changed.
+- No localStorage migration behavior changed.
+
+## Recommended Milestone 8
+
+Prepare final production execution readiness:
+
+1. Review and approve the production backup/rollback checklist.
+2. Decide whether to apply the combined foundation/task/settings migration as one production migration or split it.
+3. Run one final production preflight against the real production baseline counts.
+4. If approved, schedule a production migration window and capture owner signoff.

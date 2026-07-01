@@ -202,9 +202,108 @@ RLS and compatibility:
 
 Remaining validation before production:
 
-- Run app smoke tests against a migrated local or staging database.
 - Prepare and review production backup and rollback steps.
 - Decide whether to apply this combined foundation/task/settings migration as one production migration or split it before production.
+
+## Release 0.6C Milestone 7 Results
+
+Milestone 7 ran app-facing smoke tests against the migrated local Supabase database only. No production database was touched.
+
+Environment:
+
+- Local Supabase status: running through `npx supabase status`.
+- API target: local `127.0.0.1` Supabase API.
+- Database: local `postgres` database in the `supabase_db_familyos` container.
+- Fixture: one disposable local auth user created through the local Supabase Admin API and deleted after testing.
+
+Initial finding and migration revision:
+
+- First app smoke run passed local auth user creation and password login but failed profile bootstrap because users created after the migration had no `profiles`, `households`, `household_members`, `household_settings`, or `user_preferences` rows.
+- The migration now creates `public.familyos_bootstrap_auth_user()` and an `after insert on auth.users` trigger named `familyos_bootstrap_auth_user_on_insert`.
+- The trigger bootstraps the new user's profile, default household, owner membership, household settings, user preferences, and internal bootstrap mapping.
+- The revised migration was re-applied to the local database and completed successfully. No production database was touched.
+
+App smoke-test results after the trigger revision:
+
+- Authentication/password login: pass.
+- Profile bootstrap for a post-migration auth user: pass.
+- Household bootstrap and current household resolution: pass.
+- Owner membership bootstrap: pass.
+- `user_preferences` read/write: pass.
+- `household_settings` read/write: pass.
+- Task list read: pass.
+- Task create/update/delete through app-style current `tasks` fields: pass.
+- Task `household_id` nullable compatibility for current app writes: pass.
+- Existing module nullable `household_id` compatibility: pass for `notes`, `home_maintenance`, `pool_readings`, `college_deadlines`, and `finance_action_items`.
+- Fixture cleanup: pass. The disposable household was deleted before deleting the disposable auth user, and inserted module rows were deleted.
+
+LocalStorage behavior:
+
+- No runtime app code was changed.
+- No localStorage migration behavior was added, removed, or modified.
+- Release 0.6B browser-local keys for family members, settings/profile, task metadata, and Google Calendar token/sync metadata remain unchanged until a future runtime migration milestone.
+
+Production status:
+
+- Production migration execution: not run.
+- Production database touched: no.
+- Production readiness recommendation: app smoke tests now pass locally, but production should remain blocked until backup/rollback steps are reviewed and an owner go/no-go decision is recorded.
+
+## Production Readiness Checklist
+
+### Backup Steps
+
+- [ ] Confirm the target production Supabase project/ref and that the connection string is production.
+- [ ] Pause app deployments or user-facing writes if needed for the migration window.
+- [ ] Create a Supabase-managed database backup or point-in-time recovery marker immediately before migration.
+- [ ] Export a schema-only backup with `pg_dump --schema-only`.
+- [ ] Export data backups for `auth.users`, current module tables, and any existing household foundation tables if present.
+- [ ] Record current migration history and row counts for auth users, module rows, profiles, households, people, memberships, settings, and preferences.
+- [ ] Store backups in an approved private location and verify restore access before proceeding.
+
+### Rollback Plan
+
+- [ ] Preferred rollback: restore the pre-migration database backup or PITR marker if production validation fails.
+- [ ] If a full restore is not acceptable, pause the app and run a reviewed rollback script that removes only Release 0.6C-created triggers, functions, policies, indexes, tables, and nullable columns.
+- [ ] Do not manually delete production household rows without first preserving `familyos_internal.household_bootstrap_map`.
+- [ ] Confirm rollback keeps existing user-owned module rows and `user_id = auth.uid()` RLS intact.
+- [ ] Re-run pre-migration app smoke tests after rollback before reopening writes.
+
+### Go/No-Go Gates
+
+- [ ] Production backup and restore path verified.
+- [ ] Migration file exactly matches the committed Release 0.6C candidate.
+- [ ] Fresh schema, staging-like, RLS, idempotency, and app smoke tests are green.
+- [ ] Owner approves applying foundation, task metadata, and settings changes in one migration.
+- [ ] If owner does not approve the combined migration, split task/settings additions into a later migration before production.
+- [ ] No production secrets or browser-local OAuth tokens are included in migration artifacts.
+
+### Production Migration Execution Sequence
+
+- [ ] Announce migration window and freeze unrelated app/database changes.
+- [ ] Capture backups and baseline counts.
+- [ ] Apply `supabase/migrations/20260701_release_0_6c_household_foundation.sql` once against production.
+- [ ] Save command output and any warnings.
+- [ ] Re-run the migration only if the first run fully commits and the team is validating idempotency intentionally.
+- [ ] Do not deploy runtime app changes as part of this migration unless separately approved.
+
+### Post-Migration Validation
+
+- [ ] Verify `profiles`, `households`, `people`, `household_members`, `household_settings`, and `user_preferences` exist.
+- [ ] Verify every existing `auth.users` row has a profile, bootstrap mapping, active owner membership, household settings row, and user preferences row.
+- [ ] Verify module rows with existing `user_id` values have `household_id` backfilled where a bootstrap household exists.
+- [ ] Verify current app login, task read/create/update/delete, and key module reads/writes still work.
+- [ ] Verify a newly created auth user receives bootstrap foundation rows through the trigger.
+- [ ] Verify non-member access remains denied for household foundation tables.
+- [ ] Confirm no localStorage migration behavior changed.
+
+### Owner/Signoff Decision Points
+
+- [ ] Approve production backup completeness before migration.
+- [ ] Approve the go/no-go decision after preflight checks.
+- [ ] Approve post-migration validation results.
+- [ ] Approve reopening writes and continuing to runtime integration milestones.
+- [ ] Record whether the combined migration should stay as one migration or be split before production.
 
 ## Validation Checklist
 
@@ -263,12 +362,12 @@ Remaining validation before production:
 
 ### Production Readiness Gates
 
-- [ ] Migration applies cleanly to a schema-only disposable database.
-- [ ] Migration applies cleanly to a representative staging copy with existing auth users and module rows.
-- [ ] Migration can be re-run without duplicate records or failing idempotent operations.
-- [ ] Verification queries match expected counts.
-- [ ] RLS smoke tests pass for owner, adult, teen, child, viewer, and non-member users.
-- [ ] Existing app flows still work against staging because module-table `user_id` RLS remains intact.
+- [x] Migration applies cleanly to a schema-only disposable database.
+- [x] Migration applies cleanly to a representative staging copy with existing auth users and module rows.
+- [x] Migration can be re-run without duplicate records or failing idempotent operations.
+- [x] Verification queries match expected counts.
+- [x] RLS smoke tests pass for owner, adult, teen, child, viewer, and non-member users.
+- [x] Existing app flows still work against the migrated local database because module-table `user_id` RLS remains intact.
 - [ ] A database backup and rollback plan exist.
 - [ ] Runtime app integration plan is approved separately.
 
@@ -633,7 +732,6 @@ Findings:
 
 - Confirm the migration runs against a database that matches the real production baseline.
 - Confirm the RLS smoke-test JWT setup matches the active Supabase environment.
-- Confirm existing app reads/writes still work against a migrated local or staging database because module-table `user_id` RLS remains in place.
 - Confirm backup and rollback procedures before production execution.
 - Confirm whether task/settings additions should remain in this migration or be split before production.
 
@@ -652,3 +750,7 @@ Milestone 5 executed the migration against the disposable local Supabase databas
 ## Release 0.6C Milestone 6 Status
 
 Milestone 6 executed the revised migration against fresh schema-only and staging-like disposable local databases, revised the migration to grant authenticated module-table privileges required for clean installs, reran the migration successfully for idempotency, and completed validation SQL, RLS smoke tests, and task compatibility checks without touching production or changing runtime app behavior.
+
+## Release 0.6C Milestone 7 Status
+
+Milestone 7 ran app smoke tests against the migrated local Supabase API, found and fixed missing post-migration auth user bootstrap with a database trigger, reran the migration locally, and passed auth, profile, household, preferences/settings, task CRUD, and representative module compatibility smoke tests. Production remains untouched and blocked pending backup/rollback review and owner go/no-go approval.

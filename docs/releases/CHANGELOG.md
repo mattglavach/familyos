@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Ran Release 0.6C app smoke tests against the migrated local Supabase API, fixed missing post-migration auth user bootstrap with an `auth.users` insert trigger, documented passing auth/profile/household/settings/task/module compatibility checks, and added a production readiness checklist without touching production or changing localStorage behavior.
 - Validated the revised Release 0.6C household foundation migration against fresh schema-only and staging-like local databases, added authenticated module-table grants required for clean installs, and documented passing idempotency, validation SQL, RLS, and task compatibility checks without production or runtime app changes.
 - Executed the Release 0.6C household foundation migration against the disposable local Supabase database, fixed a validated compatibility issue with existing 20260627 local foundation tables, passed the revised migration and idempotency re-run, and documented validation SQL plus RLS smoke-test results.
 - Marked the Release 0.6C migration dry run as execution-pending in this workspace because `psql` and the Supabase CLI are unavailable; added exact local/staging commands, a results template, and remaining manual checks to the validation guide.

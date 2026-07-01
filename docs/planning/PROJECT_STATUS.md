@@ -4,7 +4,7 @@
 0.6C
 
 ## Current State
-Release 0.6C data foundation work is in progress. The household foundation migration has passed disposable local, fresh schema-only, and staging-like local validation after two compatibility revisions, but no Release 0.6C database migration has been applied to production.
+Release 0.6C data foundation work is in progress. The household foundation migration has passed disposable local, fresh schema-only, staging-like local, and app smoke validation after three compatibility revisions, but no Release 0.6C database migration has been applied to production.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -29,13 +29,14 @@ Release 0.6C data foundation work is in progress. The household foundation migra
 - Release 0.6C Milestone 4 dry-run execution-pending update with exact local/staging commands
 - Release 0.6C Milestone 5 local household foundation migration dry run, revision, validation SQL, and RLS smoke tests
 - Release 0.6C Milestone 6 fresh schema-only and staging-like migration validation, idempotency checks, RLS smoke tests, and task compatibility checks
+- Release 0.6C Milestone 7 migrated-local app smoke tests, post-migration auth user bootstrap trigger, and production readiness checklist
 
 ## In Progress
-- Release 0.6C household foundation app smoke testing and production readiness review
+- Release 0.6C household foundation production readiness review
 
 ## Next
-- Run app smoke tests against the migrated local/staging database
-- Prepare production backup, rollback, and go/no-go checklist
+- Review and approve production backup, rollback, and go/no-go checklist
+- Decide whether to apply the combined foundation/task/settings migration as one production migration or split it
 - Plan app active-household context and data-service changes before replacing user-owned RLS
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
 
@@ -49,7 +50,7 @@ Release 0.6C data foundation work is in progress. The household foundation migra
 - Google Calendar token storage remains browser-local in Release 0.6B and should move server-side in a later calendar connection milestone.
 - Six-item bottom navigation should be checked on physical mobile devices before broad family use.
 - The legacy household foundation migration is marked local-only and must not be applied to production.
-- The Release 0.6C production migration draft passed disposable local, fresh schema-only, and staging-like validation, but must still pass app smoke tests and backup/rollback review before production use.
+- The Release 0.6C production migration draft passed disposable local, fresh schema-only, staging-like, and migrated-local app smoke validation, but must still pass backup/rollback review and owner go/no-go approval before production use.
 
 ## Technical Debt
 - Existing feature screens still contain substantial inline styles and should be migrated gradually to shadcn/ui and Origin UI components during feature work.

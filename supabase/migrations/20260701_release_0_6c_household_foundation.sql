@@ -88,6 +88,114 @@ begin
 end;
 $$;
 
+create or replace function public.familyos_bootstrap_auth_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, auth, familyos_internal
+as $$
+declare
+  default_household_id uuid;
+begin
+  insert into public.profiles(id, email, display_name, created_at, updated_at)
+  values (
+    new.id,
+    new.email,
+    nullif(coalesce(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name'), ''),
+    now(),
+    now()
+  )
+  on conflict (id) do update
+  set email = excluded.email,
+      display_name = coalesce(public.profiles.display_name, excluded.display_name),
+      updated_at = now();
+
+  select household.id
+  into default_household_id
+  from public.households household
+  where household.bootstrap_source_user_id = new.id
+  limit 1;
+
+  if default_household_id is null then
+    insert into public.households(
+      name,
+      created_by_user_id,
+      status,
+      bootstrap_source_user_id,
+      bootstrap_migration_key
+    )
+    values (
+      'Family household',
+      new.id,
+      'active',
+      new.id,
+      '20260701_release_0_6c_household_foundation'
+    )
+    on conflict do nothing
+    returning id into default_household_id;
+  end if;
+
+  if default_household_id is null then
+    select household.id
+    into default_household_id
+    from public.households household
+    where household.bootstrap_source_user_id = new.id
+    limit 1;
+  end if;
+
+  if default_household_id is not null then
+    insert into familyos_internal.household_bootstrap_map(
+      migration_key,
+      user_id,
+      household_id,
+      source,
+      created_at,
+      updated_at
+    )
+    values (
+      '20260701_release_0_6c_household_foundation',
+      new.id,
+      default_household_id,
+      'auth.users',
+      now(),
+      now()
+    )
+    on conflict (user_id) do update
+    set household_id = excluded.household_id,
+        migration_key = excluded.migration_key,
+        source = excluded.source,
+        updated_at = now();
+
+    insert into public.household_members(household_id, user_id, role, status)
+    values (default_household_id, new.id, 'owner', 'active')
+    on conflict do nothing;
+
+    update public.household_members household_member
+    set role = 'owner',
+        status = 'active',
+        updated_at = now()
+    where household_member.household_id = default_household_id
+      and household_member.user_id = new.id
+      and (
+        household_member.role <> 'owner'
+        or household_member.status <> 'active'
+      );
+
+    insert into public.household_settings(household_id)
+    values (default_household_id)
+    on conflict (household_id) do nothing;
+
+    insert into public.user_preferences(user_id, default_household_id)
+    values (new.id, default_household_id)
+    on conflict (user_id) do update
+    set default_household_id = coalesce(public.user_preferences.default_household_id, excluded.default_household_id),
+        updated_at = now();
+  end if;
+
+  return new;
+end;
+$$;
+
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text,
@@ -464,6 +572,11 @@ drop trigger if exists tasks_set_updated_at on public.tasks;
 create trigger tasks_set_updated_at
 before update on public.tasks
 for each row execute function public.familyos_set_updated_at();
+
+drop trigger if exists familyos_bootstrap_auth_user_on_insert on auth.users;
+create trigger familyos_bootstrap_auth_user_on_insert
+after insert on auth.users
+for each row execute function public.familyos_bootstrap_auth_user();
 
 create or replace function public.familyos_has_household_role(
   target_household_id uuid,
