@@ -1,7 +1,7 @@
 # Current Sprint
 
 ## Sprint Goal
-Establish the shared AI development workspace and documentation foundation.
+Build the first usable Family OS dashboard for Release 0.6B.
 
 ## Active Items
 - [x] Add documentation structure
@@ -15,9 +15,19 @@ Establish the shared AI development workspace and documentation foundation.
 - [x] Add Supabase magic-link resend cooldown protection
 - [x] Make private household email/password login the primary Supabase auth path
 - [x] Validate current app structure
-- [ ] Identify next implementation target
+- [x] Identify next implementation target
+- [x] Begin Release 0.6B branch
+- [x] Complete Milestone 1 dashboard layout pass
+- [x] Milestone 2 Google Calendar integration pass
+- [x] Milestone 3 family member management pass
+- [x] Milestone 4 task management MVP pass
+- [x] Milestone 5 mobile responsiveness, loading states, and error-state hardening pass
+- [x] Milestone 6 settings and profile pass
+- [x] Milestone 7 stability and release candidate pass
 
 ## Blockers
+
+- Release 0.6B has no active code blockers after local lint/build validation. Real-device family testing and Vercel deployment validation remain before broad use.
 
 ## Notes
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.
@@ -31,6 +41,11 @@ Establish the shared AI development workspace and documentation foundation.
 - AuthGate and SetupRequired now use shared UI primitives while preserving password sign-in, magic-link fallback, setup gating, and Supabase auth behavior.
 - App shell/navigation now uses shared UI primitives/classes while preserving tab routing, active tab behavior, sign-out, and Google Calendar connect/sync actions.
 - PoolBrief and RetirementBrief now use shared AI brief panel helpers while preserving AI prompts, history, refresh/regenerate, copy, and follow-up behavior.
-- Next UI migration target is shared dashboard/card patterns before Pool or Finance internals.
-
 - App structure refactor moved the shell, hooks, and user-facing modules out of the monolithic src/App.js; pnpm run check passes after the split.
+- Release 0.6B Milestone 1 migrates the dashboard command center to shared cards, status badges, buttons, skeleton loading states, empty states, and Lucide icons while preserving the current user-scoped Supabase table hooks and Google Calendar behavior.
+- Release 0.6B Milestone 2 keeps the existing browser popup OAuth flow and improves dashboard calendar sync states, expired-token and permission handling, empty calendar handling, event grouping, source labels, and last-sync visibility.
+- Release 0.6B Milestone 3 adds dashboard family member management with local editable members, active/inactive states, member colors, role labels, assignment filters, and reference-aware removal/deactivation. This milestone does not add Supabase family-member persistence because the current applied schema does not include a family member table.
+- Release 0.6B Milestone 4 replaces the legacy inline-style task screen with a shared-card task MVP covering dashboard task groups, create/edit/complete/reopen/delete/reassign actions, filters, sorting, validation, toast feedback, and local task metadata for fields not yet present in the applied Supabase schema.
+- Release 0.6B Milestone 5 hardens the dashboard, calendar, family, tasks, and app shell UX with safer localStorage parsing, malformed event/task fallbacks, responsive action rows, focus visibility, labelled task drawer fields, toast live-region semantics, and mobile QA coverage notes.
+- Release 0.6B Milestone 6 adds a Settings/Profile screen with signed-in user details, local household defaults, task defaults, Google Calendar status and reconnect/clear-token actions, local metadata visibility, sign-out, and confirmed local app data reset without database schema changes.
+- Release 0.6B Milestone 7 closes the release candidate with lint/build validation, release notes, known limitations, no schema changes, and a manual QA checklist for dashboard, calendar, family, tasks, settings, navigation, and mobile layouts.

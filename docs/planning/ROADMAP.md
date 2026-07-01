@@ -1,24 +1,24 @@
 # Roadmap
 
 ## Phase 0 - Foundation
-- [ ] Documentation system
-- [ ] AGENTS.md
-- [ ] GitHub templates
-- [ ] Confirm current architecture
-- [ ] Confirm deployment flow
+- [x] Documentation system
+- [x] AGENTS.md
+- [x] GitHub templates
+- [x] Confirm current architecture
+- [x] Confirm deployment flow
 
 ## Phase 1 - Core App
-- [ ] Authentication
-- [ ] App shell
-- [ ] Navigation
-- [ ] Dashboard
-- [ ] Family members
-- [ ] Settings
+- [x] Authentication
+- [x] App shell
+- [x] Navigation
+- [x] Dashboard
+- [x] Family members
+- [x] Settings
 
 ## Phase 2 - High-Value Modules
 - [ ] Pool
 - [ ] Finance
-- [ ] Tasks
+- [x] Tasks
 - [ ] Garden
 - [ ] Home
 
@@ -35,3 +35,9 @@
 - [ ] Alerts
 - [ ] Predictive insights
 - [ ] Voice interface
+
+## Next Schema Migration Track
+- [ ] Household and people/family member persistence.
+- [ ] Shared task schema fields for assignee, status, created/completed timestamps, module ownership, and recurrence clarity.
+- [ ] Server-side Google Calendar connection model and token storage.
+- [ ] Settings/profile persistence beyond browser localStorage.

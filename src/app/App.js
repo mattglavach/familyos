@@ -12,6 +12,7 @@ import { College } from "../modules/college/College";
 import { Pool, getChemRecommendations } from "../modules/pool/Pool";
 import { Finance, calcRetirementProjection, formatMoneyShort } from "../modules/finance/Finance";
 import { QuickAdd } from "../modules/quick-add/QuickAdd";
+import { Settings } from "../modules/settings/Settings";
 import { TABS, TITLES } from "./navigation/tabs";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
@@ -93,24 +94,36 @@ function GlobalInteractionStyles(){
         @keyframes shimmer{from{transform:translateX(-100%);}to{transform:translateX(100%);}}
         button:active{opacity:0.65 !important;transform:scale(0.97);}
         input:focus,textarea:focus,select:focus{border-color:#4A90D9 !important;box-shadow:0 0 0 3px rgba(74,144,217,0.18) !important;}
+        button:focus-visible{outline:2px solid #4A90D9;outline-offset:2px;}
         button{-webkit-tap-highlight-color:transparent;}
         *{-webkit-tap-highlight-color:transparent;}
         ::placeholder{color:#4a5a78;}
       `}</style>;
 }
 
-function AppHeader({tab, auth, gc}){
+function AppHeader({tab, auth, gc, onSettings}){
+  const calendarLabel = gc.loading || gc.status === "syncing"
+    ? "Syncing"
+    : gc.error
+      ? "Calendar issue"
+      : gc.status === "empty"
+        ? "No events"
+        : gc.userName
+          ? `${gc.userName} Synced`
+          : "Synced";
+  const calendarStatus = gc.error ? "warning" : gc.loading || gc.status === "syncing" ? "warning" : "connected";
   return <header className="sticky top-0 z-10 border-b border-border bg-card/95 px-5 pb-3.5 pt-[calc(env(safe-area-inset-top)+16px)] backdrop-blur">
     <div className="flex items-center justify-between gap-3">
       <div className="min-w-0">
         <div style={S.logo} className="truncate">{tab==="home"?<><span style={S.logoAccent}>Family</span>OS</>:TITLES[tab]}</div>
         {tab==="home"&&<div className="mt-1 truncate text-xs text-muted-foreground">{formatTodayShort()}</div>}
       </div>
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+        {tab !== "settings" && <Button type="button" variant="secondary" size="xs" onClick={onSettings}>Settings</Button>}
         <Button type="button" variant="secondary" size="xs" onClick={auth.signOut}>Sign out</Button>
         {gc.token
-          ?<StatusBadge status="connected" className="max-w-28 truncate">{gc.userName?`${gc.userName} Synced`:"Synced"}</StatusBadge>
-          :<Button type="button" variant="outline" size="xs" onClick={gc.signIn}>Connect</Button>
+          ?<StatusBadge status={calendarStatus} className="max-w-28 truncate">{calendarLabel}</StatusBadge>
+          :<Button type="button" variant="outline" size="xs" loading={gc.status==="connecting"||gc.status==="script-loading"} onClick={gc.signIn}>Connect</Button>
         }
       </div>
     </div>
@@ -154,7 +167,7 @@ export default function App(){
 
   function switchTab(t){
     setTab(t);
-    window.scrollTo({top:0,behavior:"instant"});
+    window.scrollTo({top:0,behavior:"auto"});
   }
 
   if (CONFIG_STATUS.missing.length) return <SetupRequired/>;
@@ -164,7 +177,7 @@ export default function App(){
   return(
     <div style={S.app}>
       <GlobalInteractionStyles/>
-      <AppHeader tab={tab} auth={auth} gc={gc}/>
+      <AppHeader tab={tab} auth={auth} gc={gc} onSettings={()=>switchTab("settings")}/>
 
       {tab==="home"&&<Dashboard onNavigate={switchTab} gc={gc} deps={{
         TODAY_DATE,TODAY_STR,daysAgo,daysBetween,nextDueDate,formatDate,formatDateFull,
@@ -177,6 +190,7 @@ export default function App(){
       }}/>} 
       {tab==="pool"&&<Pool/>}
       {tab==="finance"&&<Finance/>}
+      {tab==="settings"&&<Settings auth={auth} gc={gc}/>}
 
       <QuickAdd onNavigate={switchTab}/>
       <BottomNavigation tab={tab} onNavigate={switchTab}/>

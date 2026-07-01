@@ -4,6 +4,7 @@ export const TABS = [
   { id: "pool", label: "Pool", iconKey: "pool" },
   { id: "tasks", label: "Tasks", iconKey: "tasks" },
   { id: "college", label: "College", iconKey: "college" },
+  { id: "settings", label: "Settings", iconKey: "settings" },
 ];
 
 export const TITLES = {
@@ -12,4 +13,5 @@ export const TITLES = {
   tasks: "Tasks",
   pool: "Pool",
   finance: "Finance",
+  settings: "Settings",
 };
