@@ -59,7 +59,7 @@ Release 0.6C data foundation is complete in production. Release 0.7 is the activ
 - Legacy browser metadata keys for Release 0.6B settings, family members, and task metadata may remain on devices until local browser data is reset, but they are no longer the normal persistence path.
 - Six-item bottom navigation should be checked on physical mobile devices before broad family use.
 - The legacy household foundation migration is marked local-only and must not be applied to production.
-- Release 0.6C introduced household foundation tables and nullable household compatibility fields, but the runtime app still uses browser-local metadata until Release 0.7 integration work.
+- Release 0.7 now uses the household foundation for active household context, family members, settings/profile defaults, and task metadata while preserving staged module-table compatibility.
 
 ## Technical Debt
 - Existing feature screens still contain substantial inline styles and should be migrated gradually to shadcn/ui and Origin UI components during feature work.
