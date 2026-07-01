@@ -1,5 +1,11 @@
 # Database Schema
 
+## Release 0.6C Data Foundation
+
+Release 0.6C starts the migration from Release 0.6B browser-local metadata to durable Supabase-backed household data. See `docs/database/RELEASE_0_6C_DATA_FOUNDATION_PLAN.md` for the Milestone 1 audit, current gaps, and proposed schema direction.
+
+No Release 0.6C migration has been applied yet. The current executable database remains `supabase/schema.sql`, which uses user-owned rows and `user_id = auth.uid()` RLS policies.
+
 ## Core Tables
 
 ### profiles

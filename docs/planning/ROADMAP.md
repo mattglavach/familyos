@@ -37,7 +37,9 @@
 - [ ] Voice interface
 
 ## Next Schema Migration Track
+- [x] Audit current data gaps and existing household foundation migration work.
+- [ ] Convert local-only household foundation migration into a production-ready migration draft.
 - [ ] Household and people/family member persistence.
 - [ ] Shared task schema fields for assignee, status, created/completed timestamps, module ownership, and recurrence clarity.
-- [ ] Server-side Google Calendar connection model and token storage.
 - [ ] Settings/profile persistence beyond browser localStorage.
+- [ ] Server-side Google Calendar connection model and token storage.
