@@ -46,6 +46,8 @@
 - [x] Run app smoke tests against the migrated local/staging schema.
 - [x] Complete production backup/rollback review and recommend applying the combined migration as-is.
 - [x] Capture production backup artifacts and verify production target for the first Release 0.6C attempt.
+- [x] Document production auth ownership baseline alignment plan.
+- [ ] Build and validate production auth ownership baseline migration after owner UUID approval.
 - [ ] Reconcile production auth ownership baseline before re-attempting Release 0.6C.
 - [ ] Re-attempt Release 0.6C after production baseline alignment passes validation.
 - [ ] Household and people/family member persistence.

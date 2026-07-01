@@ -32,13 +32,14 @@ Release 0.6C data foundation production execution is blocked by production basel
 - Release 0.6C Milestone 7 migrated-local app smoke tests, post-migration auth user bootstrap trigger, and production readiness checklist
 - Release 0.6C Milestone 8 production readiness signoff review and recommendation to apply the combined migration as-is after backup capture and owner approval
 - Release 0.6C production attempt 1 target verification, backup artifact capture, failed preflight, and baseline drift diagnosis
+- Release 0.6C production baseline alignment plan for missing `user_id` ownership and public/open policy drift
 
 ## In Progress
 - Release 0.6C production baseline alignment planning
 
 ## Next
-- Plan and validate production auth ownership baseline alignment for missing `user_id` columns and user-owned RLS
-- Decide explicit ownership/backfill behavior for existing production module rows
+- Create and validate the production auth ownership baseline alignment migration against a disposable production-drift clone
+- Decide explicit ownership/backfill behavior for existing production module rows before production execution
 - Re-run Release 0.6C validation after the production baseline is aligned
 - Plan app active-household context and data-service changes before replacing user-owned RLS
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
@@ -60,6 +61,7 @@ Release 0.6C data foundation production execution is blocked by production basel
 - Release 0.6B relies on temporary localStorage metadata for settings, family members, task metadata, and calendar tokens until the household/profile/task/calendar schema work is completed.
 - Current Supabase module tables still use direct `user_id = auth.uid()` RLS; household-scoped RLS must be introduced only after backfill and active-household app context are validated.
 - The household foundation draft intentionally keeps module-table `user_id` RLS in place while adding nullable `household_id` fields for staged migration.
+- Production baseline alignment requires an explicit owner UUID decision for existing rows; this cannot be inferred safely by automation.
 
 ## Last Updated
 July 1, 2026

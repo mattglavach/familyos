@@ -14,6 +14,8 @@ Milestone 6 validated the revised migration against fresh schema-only and stagin
 
 Milestone 7 ran app smoke tests against the migrated local Supabase API. The smoke test found and fixed missing bootstrap behavior for auth users created after the migration; the migration now adds `public.familyos_bootstrap_auth_user()` and an `auth.users` insert trigger that creates the user's profile, default household, owner membership, household settings, user preferences, and bootstrap mapping.
 
+Production note: the first Release 0.6C production attempt failed safely because production is missing the earlier `user_id` ownership baseline expected by `supabase/schema.sql`. See `docs/database/RELEASE_0_6C_PRODUCTION_BASELINE_ALIGNMENT.md` before re-attempting Release 0.6C production migration.
+
 The selected household role vocabulary is `owner`, `adult`, `teen`, `child`, and `viewer`. `owner` can manage household membership, `adult` can manage household operating data, and `teen`/`child`/`viewer` are conservative read-oriented roles until child-safe product flows are implemented.
 
 Compatibility note: the migration keeps `people.member_type = 'child_profile'` valid alongside the Release 0.6C member-type values so local/staging databases that already ran the 20260627 household foundation draft remain upgradeable.

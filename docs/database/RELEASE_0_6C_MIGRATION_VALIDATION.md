@@ -309,6 +309,8 @@ Recommended next step:
 4. Re-run Release 0.6C fresh/staging/local app smoke validation against that production-like baseline.
 5. Re-attempt the Release 0.6C production migration only after the baseline alignment passes.
 
+See `docs/database/RELEASE_0_6C_PRODUCTION_BASELINE_ALIGNMENT.md` for the production baseline alignment plan, owner decision, validation scope, and stop conditions.
+
 ## Production Readiness Checklist
 
 ### Backup Steps

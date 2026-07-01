@@ -34,11 +34,12 @@ Plan the Release 0.6C data foundation so Release 0.6B browser-local features can
 - [x] Release 0.6C Milestone 7 app smoke tests and production readiness checklist
 - [x] Release 0.6C Milestone 8 production readiness signoff review
 - [x] Release 0.6C production attempt 1 blocked by baseline schema drift
+- [x] Release 0.6C production baseline alignment plan
 
 ## Blockers
 
 - Release 0.6B has no active code blockers after local lint/build validation. Real-device family testing and Vercel deployment validation remain before broad use.
-- Release 0.6C production migration is blocked because production module tables are missing the expected `user_id` ownership baseline. Reconcile the earlier auth ownership migration before re-attempting Release 0.6C.
+- Release 0.6C production migration is blocked because production module tables are missing the expected `user_id` ownership baseline. The owner must approve which auth user owns existing production rows before baseline alignment can be applied.
 
 ## Notes
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.
@@ -71,3 +72,4 @@ Plan the Release 0.6C data foundation so Release 0.6B browser-local features can
 - Release 0.6C Milestone 7 runs app smoke tests against the migrated local Supabase API, adds the auth-user bootstrap trigger after smoke tests exposed missing post-migration bootstrap rows, passes auth/profile/household/settings/task/module compatibility checks, and leaves production and browser localStorage behavior unchanged.
 - Release 0.6C Milestone 8 confirms the production backup method, restore/rollback path, migration file, validation SQL scope, post-migration smoke checks, and owner go/no-go gate. Recommendation: apply the combined Release 0.6C migration as-is after backup capture and explicit owner approval.
 - Release 0.6C production attempt 1 verified the linked production target and captured local backup artifacts, but the migration failed safely during preflight because production is still on the older public/open module-table policy baseline without `user_id` ownership columns. No Release 0.6C foundation tables were left behind.
+- Release 0.6C production baseline alignment planning documents the required owner/backfill decision, recommended temporary owner approach, validation scope, and stop conditions before another production attempt.
