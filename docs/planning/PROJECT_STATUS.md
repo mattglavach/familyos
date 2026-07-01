@@ -21,13 +21,14 @@ Release 0.6B dashboard implementation is in progress.
 - Release 0.6B Milestone 3 family member management pass
 - Release 0.6B Milestone 4 task management MVP
 - Release 0.6B Milestone 5 UX hardening pass
+- Release 0.6B Milestone 6 settings/profile pass
 
 ## In Progress
-- Release 0.6B settings/profile follow-up milestone
+- Release 0.6B stability and release candidate follow-up milestone
 
 ## Next
-- Review Milestone 5 hardened dashboard/task/family/calendar behavior on real mobile viewport
-- Continue with Milestone 6 settings and profile pass
+- Review Milestone 6 settings/profile behavior on real mobile viewport
+- Continue with Milestone 7 stability and release candidate pass
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
 
 ## Known Bugs

@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Added the Release 0.6B Settings/Profile experience with signed-in profile details, household defaults, task defaults, Google Calendar status/actions, local metadata visibility, sign-out, and confirmed local data reset without changing the database schema.
 - Hardened the Release 0.6B dashboard, calendar, family, task, and app shell UX with safer malformed-data handling, more responsive action layouts, clearer focus states, labelled task drawer fields, toast live-region semantics, and documentation for mobile QA readiness.
 - Implemented the Release 0.6B task management MVP with task dashboard groups, create/edit/complete/reopen/delete/reassign actions, filtering, sorting, validation, loading/empty states, delete confirmation, toast feedback, and temporary local metadata for assignee/status/created/completed fields.
 - Improved Release 0.6B family member management on the dashboard with editable member cards, initials/colors/roles/statuses, local add/edit/deactivate/remove flows, schedule assignment filters, and defensive local-save error handling without changing the database schema.

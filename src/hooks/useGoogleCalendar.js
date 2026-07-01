@@ -118,6 +118,11 @@ export function useGoogleCalendar() {
     setStatus("signed-out");
     setError(null);
   },[clearConnection]);
+  const clearLocalConnection=useCallback(()=>{
+    clearConnection({revoke:false});
+    setStatus("signed-out");
+    setError(null);
+  },[clearConnection]);
 
   const fetchEvents=useCallback(async(accessToken)=>{
     if(!accessToken){setStatus("signed-out");return;}
@@ -162,5 +167,5 @@ export function useGoogleCalendar() {
   },[clearConnection]);
 
   useEffect(()=>{if(token)fetchEvents(token);},[token,fetchEvents]);
-  return{token,events,loading,error,status,scriptReady,lastSyncedAt,calendarId:CALENDAR_ID,sourceLabel:sourceLabel(),signIn,signOut,refresh:()=>fetchEvents(token),userName};
+  return{token,events,loading,error,status,scriptReady,lastSyncedAt,calendarId:CALENDAR_ID,sourceLabel:sourceLabel(),signIn,signOut,clearLocalConnection,refresh:()=>fetchEvents(token),userName};
 }

@@ -28,6 +28,7 @@ import { Textarea } from "../../components/ui/textarea";
 import { OriginDrawer } from "../../components/origin/drawer";
 import { COLORS, MEMBER_COLORS, S } from "../../theme";
 import { useFamilyMembers } from "../dashboard/useFamilyMembers";
+import { readLocalSettings } from "../settings/localSettings";
 
 const TASK_METADATA_KEY = "familyos_task_metadata_v1";
 
@@ -142,15 +143,15 @@ function normalizeTask(row, metadata, nextDueDate, index = 0) {
   };
 }
 
-function emptyTaskForm(defaultAssignee = "Family") {
+function emptyTaskForm(defaultAssignee = "Family", defaults = {}) {
   return {
     title: "",
     description: "",
     assignee: defaultAssignee,
     due_date: "",
-    priority: "med",
+    priority: defaults.taskDefaultPriority || "med",
     status: "Not Started",
-    category: "Home",
+    category: defaults.taskDefaultCategory || "Home",
     recurring_interval_days: "",
   };
 }
@@ -547,7 +548,11 @@ export function Tasks({ deps }) {
   }
 
   function openCreateTask() {
-    setForm(emptyTaskForm(activeMembers[0]?.name || "Family"));
+    const localSettings = readLocalSettings();
+    const defaultAssignee = localSettings.defaultFamilyMember && localSettings.defaultFamilyMember !== "Family"
+      ? localSettings.defaultFamilyMember
+      : activeMembers[0]?.name || "Family";
+    setForm(emptyTaskForm(defaultAssignee, localSettings));
     setDrawer({ open: true, mode: "create", task: null });
     setFormError("");
   }

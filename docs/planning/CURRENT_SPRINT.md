@@ -22,7 +22,8 @@ Build the first usable Family OS dashboard for Release 0.6B.
 - [x] Milestone 3 family member management pass
 - [x] Milestone 4 task management MVP pass
 - [x] Milestone 5 mobile responsiveness, loading states, and error-state hardening pass
-- [ ] Milestone 6 settings and profile pass
+- [x] Milestone 6 settings and profile pass
+- [ ] Milestone 7 stability and release candidate pass
 
 ## Blockers
 
@@ -44,3 +45,4 @@ Build the first usable Family OS dashboard for Release 0.6B.
 - Release 0.6B Milestone 3 adds dashboard family member management with local editable members, active/inactive states, member colors, role labels, assignment filters, and reference-aware removal/deactivation. This milestone does not add Supabase family-member persistence because the current applied schema does not include a family member table.
 - Release 0.6B Milestone 4 replaces the legacy inline-style task screen with a shared-card task MVP covering dashboard task groups, create/edit/complete/reopen/delete/reassign actions, filters, sorting, validation, toast feedback, and local task metadata for fields not yet present in the applied Supabase schema.
 - Release 0.6B Milestone 5 hardens the dashboard, calendar, family, tasks, and app shell UX with safer localStorage parsing, malformed event/task fallbacks, responsive action rows, focus visibility, labelled task drawer fields, toast live-region semantics, and mobile QA coverage notes.
+- Release 0.6B Milestone 6 adds a Settings/Profile screen with signed-in user details, local household defaults, task defaults, Google Calendar status and reconnect/clear-token actions, local metadata visibility, sign-out, and confirmed local app data reset without database schema changes.

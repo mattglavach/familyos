@@ -12,6 +12,7 @@ import { College } from "../modules/college/College";
 import { Pool, getChemRecommendations } from "../modules/pool/Pool";
 import { Finance, calcRetirementProjection, formatMoneyShort } from "../modules/finance/Finance";
 import { QuickAdd } from "../modules/quick-add/QuickAdd";
+import { Settings } from "../modules/settings/Settings";
 import { TABS, TITLES } from "./navigation/tabs";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
@@ -100,7 +101,7 @@ function GlobalInteractionStyles(){
       `}</style>;
 }
 
-function AppHeader({tab, auth, gc}){
+function AppHeader({tab, auth, gc, onSettings}){
   const calendarLabel = gc.loading || gc.status === "syncing"
     ? "Syncing"
     : gc.error
@@ -118,6 +119,7 @@ function AppHeader({tab, auth, gc}){
         {tab==="home"&&<div className="mt-1 truncate text-xs text-muted-foreground">{formatTodayShort()}</div>}
       </div>
       <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+        {tab !== "settings" && <Button type="button" variant="secondary" size="xs" onClick={onSettings}>Settings</Button>}
         <Button type="button" variant="secondary" size="xs" onClick={auth.signOut}>Sign out</Button>
         {gc.token
           ?<StatusBadge status={calendarStatus} className="max-w-28 truncate">{calendarLabel}</StatusBadge>
@@ -175,7 +177,7 @@ export default function App(){
   return(
     <div style={S.app}>
       <GlobalInteractionStyles/>
-      <AppHeader tab={tab} auth={auth} gc={gc}/>
+      <AppHeader tab={tab} auth={auth} gc={gc} onSettings={()=>switchTab("settings")}/>
 
       {tab==="home"&&<Dashboard onNavigate={switchTab} gc={gc} deps={{
         TODAY_DATE,TODAY_STR,daysAgo,daysBetween,nextDueDate,formatDate,formatDateFull,
@@ -188,6 +190,7 @@ export default function App(){
       }}/>} 
       {tab==="pool"&&<Pool/>}
       {tab==="finance"&&<Finance/>}
+      {tab==="settings"&&<Settings auth={auth} gc={gc}/>}
 
       <QuickAdd onNavigate={switchTab}/>
       <BottomNavigation tab={tab} onNavigate={switchTab}/>
