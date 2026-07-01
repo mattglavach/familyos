@@ -4,7 +4,7 @@
 0.6C
 
 ## Current State
-Release 0.6C data foundation work is in progress. A production household foundation migration draft and validation guide exist, but no Release 0.6C database migration has been applied. The dry run remains pending because this workspace does not expose `psql` or the Supabase CLI.
+Release 0.6C data foundation work is in progress. The household foundation migration has passed a disposable local Supabase dry run after one compatibility revision, but no Release 0.6C database migration has been applied to production.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -27,13 +27,15 @@ Release 0.6C data foundation work is in progress. A production household foundat
 - Release 0.6C Milestone 2 production household foundation migration draft
 - Release 0.6C Milestone 3 migration dry-run preparation and validation plan
 - Release 0.6C Milestone 4 dry-run execution-pending update with exact local/staging commands
+- Release 0.6C Milestone 5 local household foundation migration dry run, revision, validation SQL, and RLS smoke tests
 
 ## In Progress
-- Release 0.6C household foundation dry-run execution
+- Release 0.6C household foundation production readiness validation
 
 ## Next
-- Run the documented pending commands in an environment with `psql` or the Supabase CLI
-- Run RLS smoke tests for owner, adult, teen, child, viewer, and non-member users
+- Repeat the revised migration on a fresh schema-only local database
+- Repeat the revised migration on a sanitized staging-like database with representative data
+- Run app smoke tests against the migrated local/staging database
 - Plan app active-household context and data-service changes before replacing user-owned RLS
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
 
@@ -47,8 +49,7 @@ Release 0.6C data foundation work is in progress. A production household foundat
 - Google Calendar token storage remains browser-local in Release 0.6B and should move server-side in a later calendar connection milestone.
 - Six-item bottom navigation should be checked on physical mobile devices before broad family use.
 - The legacy household foundation migration is marked local-only and must not be applied to production.
-- The Release 0.6C production migration draft must be dry-run and RLS-tested before production use.
-- SQL execution validation is pending because this workspace does not currently expose `psql` or the Supabase CLI.
+- The Release 0.6C production migration draft passed a disposable local dry run, but must still pass fresh schema-only and sanitized staging-like validation before production use.
 
 ## Technical Debt
 - Existing feature screens still contain substantial inline styles and should be migrated gradually to shadcn/ui and Origin UI components during feature work.

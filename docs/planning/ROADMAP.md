@@ -41,7 +41,8 @@
 - [x] Convert local-only household foundation migration into a production-ready migration draft.
 - [x] Prepare dry-run checklist and RLS smoke-test plan for the production household foundation migration draft.
 - [x] Document execution-pending dry-run commands and results template for environments with SQL tooling.
-- [ ] Execute dry-run production household foundation migration and smoke-test RLS.
+- [x] Execute disposable local dry-run production household foundation migration and smoke-test RLS.
+- [ ] Repeat migration validation on fresh schema-only and sanitized staging-like databases.
 - [ ] Household and people/family member persistence.
 - [ ] Shared task schema fields for assignee, status, created/completed timestamps, module ownership, and recurrence clarity.
 - [ ] Settings/profile persistence beyond browser localStorage.

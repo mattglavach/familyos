@@ -183,6 +183,25 @@ revoke all on table familyos_internal.household_bootstrap_map from public;
 revoke all on table familyos_internal.household_bootstrap_map from anon;
 revoke all on table familyos_internal.household_bootstrap_map from authenticated;
 
+-- Upgrade existing local foundation tables from the earlier 20260627 draft.
+alter table public.people
+  add column if not exists display_name text,
+  add column if not exists color text,
+  add column if not exists status text not null default 'active';
+
+alter table public.people
+  drop constraint if exists people_member_type_check,
+  drop constraint if exists people_status_check,
+  add constraint people_member_type_check
+    check (member_type in ('adult', 'teen', 'child', 'child_profile', 'viewer', 'other')),
+  add constraint people_status_check
+    check (status in ('active', 'inactive'));
+
+alter table public.household_members
+  drop constraint if exists household_members_role_check,
+  add constraint household_members_role_check
+    check (role in ('owner', 'adult', 'teen', 'child', 'viewer'));
+
 create index if not exists profiles_email_idx on public.profiles(email);
 create index if not exists households_created_by_user_id_idx on public.households(created_by_user_id);
 create index if not exists households_status_idx on public.households(status);

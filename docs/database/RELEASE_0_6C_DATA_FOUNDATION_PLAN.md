@@ -273,12 +273,30 @@ The validation guide now includes:
 - a dry-run results template;
 - manual checks still required before production readiness.
 
-## Recommended Milestone 5
+## Milestone 5 Local Dry Run
 
-Execute the production migration draft against a local or staging Supabase copy:
+Milestone 5 executed the migration against the disposable local Supabase database using `npx supabase status` and `docker exec supabase_db_familyos psql`.
 
-1. Run the migration on a disposable database seeded from `supabase/schema.sql`.
-2. Confirm the bootstrap creates one household, owner membership, settings row, and user preference row per auth user.
-3. Confirm existing module rows remain readable through current `user_id` RLS.
-4. Smoke-test foundation RLS for owner, adult, teen, child, viewer, and non-member users.
-5. Review whether task/settings columns should remain in this migration or split into a follow-up migration before production.
+Results:
+
+- Initial migration attempt failed and rolled back because the existing local `20260627` foundation tables did not have `people.status` before the draft tried to create `people_household_status_idx`.
+- The migration was revised to upgrade existing foundation tables before indexing:
+  - add `people.display_name`, `people.color`, and `people.status` if missing;
+  - broaden `people_member_type_check`;
+  - broaden `household_members_role_check`.
+- Revised migration execution passed.
+- Idempotency re-run passed.
+- Validation SQL passed for bootstrap counts, duplicate guards, module backfill, task metadata, expected columns, and updated constraints.
+- RLS smoke tests passed for owner, adult, teen, child, viewer, non-member denial, and existing user-owned `tasks` compatibility.
+
+Compatibility note: `people.member_type` now accepts `child_profile` in addition to the Release 0.6C values so local/staging databases that previously ran the 20260627 draft remain upgradeable.
+
+## Recommended Milestone 6
+
+Repeat and harden validation before production:
+
+1. Run the revised migration on a fresh schema-only local database.
+2. Run the revised migration on a sanitized staging copy with representative production-like data.
+3. Confirm app smoke tests still pass against the migrated local/staging database.
+4. Document production backup and rollback steps.
+5. Decide whether the migration is ready for production application or needs another revision.

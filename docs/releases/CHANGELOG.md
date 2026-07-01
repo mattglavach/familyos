@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Executed the Release 0.6C household foundation migration against the disposable local Supabase database, fixed a validated compatibility issue with existing 20260627 local foundation tables, passed the revised migration and idempotency re-run, and documented validation SQL plus RLS smoke-test results.
 - Marked the Release 0.6C migration dry run as execution-pending in this workspace because `psql` and the Supabase CLI are unavailable; added exact local/staging commands, a results template, and remaining manual checks to the validation guide.
 - Added the Release 0.6C migration validation guide with dry-run setup steps, verification SQL, RLS smoke tests, rollback considerations, and production readiness gates for the household foundation draft.
 - Drafted the Release 0.6C production household foundation migration for profiles, households, people, household memberships, settings/preferences, nullable household compatibility fields, structured task metadata, bootstrap/backfill behavior, and foundation-table RLS without changing runtime app behavior.

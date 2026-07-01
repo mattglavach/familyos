@@ -23,7 +23,7 @@ Do not apply this migration to production until every production readiness gate 
   - one viewer
   - one non-member
 
-This repository workspace does not currently expose `psql` or the Supabase CLI, so execution validation remains pending until run in an environment with SQL tooling.
+Milestone 5 validated the migration with `npx supabase status` and `docker exec ... psql` against the disposable local Supabase database.
 
 ## Release 0.6C Milestone 4 Status
 
@@ -38,6 +38,78 @@ Status:
 - Migration revisions from actual execution: none.
 
 Do not treat the migration as production-ready until the commands in this guide have been run against a disposable local or staging Supabase database and the results template below has been completed.
+
+## Release 0.6C Milestone 5 Results
+
+Milestone 5 executed the household foundation migration against the disposable local Supabase database only. No production database was touched.
+
+Environment:
+
+- Local Supabase status: running through `npx supabase status`.
+- Database execution path: `docker exec supabase_db_familyos psql -U postgres -d postgres`.
+- Local migration history before the dry run: `20260626`, `20260627`.
+- Existing local foundation state before the dry run: `profiles`, `households`, `people`, `household_members`, and `familyos_internal.household_bootstrap_map` already existed from the earlier local-only foundation migration.
+
+Execution:
+
+- First migration attempt: failed and rolled back.
+- Failure: `people.status` did not exist when the draft attempted to create `people_household_status_idx`.
+- Revision made: the migration now upgrades existing 20260627 foundation tables before indexing by adding missing `people.display_name`, `people.color`, and `people.status` columns and broadening existing `people_member_type_check` and `household_members_role_check` constraints.
+- Revised migration run: passed.
+- Idempotency re-run: passed.
+- Runtime app behavior changed: no.
+- Production database touched: no.
+
+Validation SQL results:
+
+- `auth.users`: 3.
+- `profiles`: 3.
+- `households`: 4. One household was pre-existing local data beyond the three bootstrap households.
+- `familyos_internal.household_bootstrap_map`: 3.
+- active owner memberships: 3.
+- `household_settings`: 3.
+- `user_preferences`: 3.
+- duplicate bootstrap households: 0 rows.
+- duplicate active user memberships per household: 0 rows.
+- module rows with `user_id` but missing `household_id`: 0 across all module tables.
+- populated module data during validation: `tasks` had 1 row with `user_id` and 1 row with `household_id`.
+- task metadata issues: 0 missing status, 0 missing module key, 0 completed/status mismatches, 0 missing creator values for rows with `user_id`.
+
+Column and constraint results:
+
+- `household_settings` and `user_preferences` exist with expected columns.
+- `tasks` has `household_id`, `assigned_person_id`, `status`, `created_at`, `updated_at`, `completed_at`, `module_key`, `created_by_user_id`, and `updated_by_user_id`.
+- `household_members_role_check` allows `owner`, `adult`, `teen`, `child`, and `viewer`.
+- `people_member_type_check` allows `adult`, `teen`, `child`, `child_profile`, `viewer`, and `other`. `child_profile` is retained for compatibility with the earlier local foundation draft.
+- `tasks_status_check` allows `not_started`, `in_progress`, and `completed`.
+- `tasks_module_key_not_blank_check` is present.
+
+RLS smoke-test results:
+
+- Owner household read: pass.
+- Owner membership update: pass.
+- Adult people insert: pass.
+- Adult membership update denial: pass. The update returned 0 rows under RLS.
+- Teen people read: pass.
+- Teen people insert denial: pass.
+- Child people read: pass.
+- Child people insert denial: pass.
+- Viewer people read: pass.
+- Viewer people insert denial: pass.
+- Non-member household read denial: pass. The select returned 0 rows.
+- Non-member people insert denial: pass.
+- Existing user-owned `tasks` read and insert compatibility: pass.
+
+Smoke-test cleanup:
+
+- Temporary cross-household memberships used for adult/teen/child/viewer RLS tests were deleted after validation.
+
+Remaining validation before production:
+
+- Repeat the dry run against a fresh schema-only local database.
+- Repeat the dry run against a sanitized staging copy that is closer to production data.
+- Confirm app smoke tests against the migrated local/staging database.
+- Prepare explicit production backup and rollback steps.
 
 ## Validation Checklist
 
@@ -474,4 +546,12 @@ Findings:
 
 ## Release 0.6C Milestone 3 Status
 
-This guide prepares validation but does not execute the migration. Execution remains pending until `psql` or Supabase CLI tooling is available in a local/staging environment.
+Milestone 3 prepared this validation guide but did not execute the migration.
+
+## Release 0.6C Milestone 4 Status
+
+Milestone 4 documented the execution-pending path because SQL tooling was not available in the earlier workspace context.
+
+## Release 0.6C Milestone 5 Status
+
+Milestone 5 executed the migration against the disposable local Supabase database, revised the migration for compatibility with the earlier local foundation draft, reran the migration successfully, reran it for idempotency, and completed validation SQL plus RLS smoke tests.
