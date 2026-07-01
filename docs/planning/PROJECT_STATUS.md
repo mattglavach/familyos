@@ -1,10 +1,10 @@
 # Project Status
 
 ## Current Version
-0.6B
+0.7
 
 ## Current State
-Release 0.6B is a local release candidate ready for tag and family testing after review.
+Release 0.6C data foundation is complete in production. Release 0.7 is the active development target for runtime integration on top of the household foundation schema.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -23,14 +23,29 @@ Release 0.6B is a local release candidate ready for tag and family testing after
 - Release 0.6B Milestone 5 UX hardening pass
 - Release 0.6B Milestone 6 settings/profile pass
 - Release 0.6B Milestone 7 stability and release candidate pass
+- Release 0.6C Milestone 1 data model audit and migration plan
+- Release 0.6C Milestone 2 production household foundation migration draft
+- Release 0.6C Milestone 3 migration dry-run preparation and validation plan
+- Release 0.6C Milestone 4 dry-run execution-pending update with exact local/staging commands
+- Release 0.6C Milestone 5 local household foundation migration dry run, revision, validation SQL, and RLS smoke tests
+- Release 0.6C Milestone 6 fresh schema-only and staging-like migration validation, idempotency checks, RLS smoke tests, and task compatibility checks
+- Release 0.6C Milestone 7 migrated-local app smoke tests, post-migration auth user bootstrap trigger, and production readiness checklist
+- Release 0.6C Milestone 8 production readiness signoff review and recommendation to apply the combined migration as-is after backup capture and owner approval
+- Release 0.6C production attempt 1 target verification, backup artifact capture, failed preflight, and baseline drift diagnosis
+- Release 0.6C production baseline alignment plan for missing `user_id` ownership and public/open policy drift
+- Release 0.6C production auth ownership baseline migration with approved owner backfill
+- Release 0.6C production household foundation migration
+- Release 0.6C production validation SQL, grants validation, RLS checks, and app-path smoke tests
 
 ## In Progress
-- Release 0.6B family testing and release review
+- Release 0.7 kickoff planning
 
 ## Next
-- Tag Release 0.6B after review
-- Validate deployed Vercel build and Google Calendar OAuth origin
-- Begin household/family member/task schema migration planning
+- Plan app active-household context and data-service changes before replacing user-owned RLS.
+- Migrate family members from browser localStorage to the `people` / `household_members` foundation.
+- Migrate settings/profile defaults to `household_settings` and `user_preferences`.
+- Migrate task metadata writes to the structured task columns.
+- Plan server-side Google Calendar connection storage.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
 
 ## Known Bugs
@@ -42,10 +57,15 @@ Release 0.6B is a local release candidate ready for tag and family testing after
 - Task assignee, status, created date, and completed date are stored in browser localStorage for Release 0.6B because the current applied Supabase tasks table does not include those columns.
 - Google Calendar token storage remains browser-local in Release 0.6B and should move server-side in a later calendar connection milestone.
 - Six-item bottom navigation should be checked on physical mobile devices before broad family use.
+- The legacy household foundation migration is marked local-only and must not be applied to production.
+- Release 0.6C introduced household foundation tables and nullable household compatibility fields, but the runtime app still uses browser-local metadata until Release 0.7 integration work.
 
 ## Technical Debt
 - Existing feature screens still contain substantial inline styles and should be migrated gradually to shadcn/ui and Origin UI components during feature work.
 - Release 0.6B relies on temporary localStorage metadata for settings, family members, task metadata, and calendar tokens until the household/profile/task/calendar schema work is completed.
+- Current Supabase module tables still use direct `user_id = auth.uid()` RLS; household-scoped RLS must be introduced only after backfill and active-household app context are validated.
+- The household foundation draft intentionally keeps module-table `user_id` RLS in place while adding nullable `household_id` fields for staged migration.
+- Release 0.6C production baseline alignment backfilled existing module rows to the approved owner UUID. Future household-scoped sharing should move access through `household_id` once active-household runtime context is implemented.
 
 ## Last Updated
 July 1, 2026
