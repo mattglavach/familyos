@@ -10,6 +10,8 @@ Milestone 2 adds a production migration draft at `supabase/migrations/20260701_r
 
 Milestone 3 adds the dry-run and smoke-test guide at `docs/database/RELEASE_0_6C_MIGRATION_VALIDATION.md`. Milestone 5 executed the draft against the disposable local Supabase database, revised the migration for compatibility with the earlier local-only 20260627 foundation tables, and passed the revised execution, idempotency re-run, validation SQL, and RLS smoke tests.
 
+Milestone 6 validated the revised migration against fresh schema-only and staging-like disposable local databases. A second validated migration revision grants `select`, `insert`, `update`, and `delete` on existing module tables to `authenticated` so current user-owned RLS policies can continue to work on clean installs.
+
 The selected household role vocabulary is `owner`, `adult`, `teen`, `child`, and `viewer`. `owner` can manage household membership, `adult` can manage household operating data, and `teen`/`child`/`viewer` are conservative read-oriented roles until child-safe product flows are implemented.
 
 Compatibility note: the migration keeps `people.member_type = 'child_profile'` valid alongside the Release 0.6C member-type values so local/staging databases that already ran the 20260627 household foundation draft remain upgradeable.

@@ -30,11 +30,12 @@ Plan the Release 0.6C data foundation so Release 0.6B browser-local features can
 - [x] Release 0.6C Milestone 3 migration dry-run preparation and validation plan
 - [x] Release 0.6C Milestone 4 migration dry-run execution-pending update
 - [x] Release 0.6C Milestone 5 local household foundation migration dry run and revision
+- [x] Release 0.6C Milestone 6 fresh schema and staging-like migration validation
 
 ## Blockers
 
 - Release 0.6B has no active code blockers after local lint/build validation. Real-device family testing and Vercel deployment validation remain before broad use.
-- Release 0.6C must not apply the production household foundation draft to production until the revised migration has also passed a fresh schema-only dry run, a sanitized staging-like dry run, app smoke tests, and backup/rollback review.
+- Release 0.6C must not apply the production household foundation draft to production until app smoke tests and backup/rollback review are complete.
 
 ## Notes
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.
@@ -63,3 +64,4 @@ Plan the Release 0.6C data foundation so Release 0.6B browser-local features can
 - Release 0.6C Milestone 3 adds `docs/database/RELEASE_0_6C_MIGRATION_VALIDATION.md` with the dry-run checklist, disposable Supabase setup guidance, verification SQL, RLS smoke tests, rollback considerations, and production readiness gates. It does not apply the migration.
 - Release 0.6C Milestone 4 rechecks local SQL tooling and confirms `psql` and the Supabase CLI are unavailable in this workspace. The migration was not executed; the validation guide now includes exact pending commands, a dry-run results template, and manual checks still required.
 - Release 0.6C Milestone 5 executes the migration against the disposable local Supabase database, finds and fixes one compatibility issue with existing 20260627 local foundation tables, passes the revised migration run, passes the idempotency re-run, passes validation SQL, and passes RLS smoke tests for owner, adult, teen, child, viewer, non-member denial, and existing user-owned task compatibility.
+- Release 0.6C Milestone 6 validates the revised migration on fresh schema-only and staging-like local databases, adds authenticated module-table grants required for clean installs, passes idempotency, validation SQL, RLS smoke tests, and task compatibility checks, and leaves production/runtime behavior unchanged.

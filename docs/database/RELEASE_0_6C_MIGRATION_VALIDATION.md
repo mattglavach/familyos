@@ -23,7 +23,7 @@ Do not apply this migration to production until every production readiness gate 
   - one viewer
   - one non-member
 
-Milestone 5 validated the migration with `npx supabase status` and `docker exec ... psql` against the disposable local Supabase database.
+Milestone 5 validated the migration with `npx supabase status` and `docker exec ... psql` against the disposable local Supabase database. Milestone 6 repeated validation against fresh schema-only and staging-like disposable local databases.
 
 ## Release 0.6C Milestone 4 Status
 
@@ -37,7 +37,7 @@ Status:
 - RLS smoke tests: pending.
 - Migration revisions from actual execution: none.
 
-Do not treat the migration as production-ready until the commands in this guide have been run against a disposable local or staging Supabase database and the results template below has been completed.
+Milestones 5 and 6 completed the local dry-run path after concrete migration revisions. Do not apply the migration to production until app smoke tests and production backup/rollback review are also complete.
 
 ## Release 0.6C Milestone 5 Results
 
@@ -106,10 +106,105 @@ Smoke-test cleanup:
 
 Remaining validation before production:
 
-- Repeat the dry run against a fresh schema-only local database.
-- Repeat the dry run against a sanitized staging copy that is closer to production data.
 - Confirm app smoke tests against the migrated local/staging database.
 - Prepare explicit production backup and rollback steps.
+
+## Release 0.6C Milestone 6 Results
+
+Milestone 6 validated the revised migration against two additional disposable local databases inside the local Supabase Postgres container. No production database was touched.
+
+### Fresh Schema-Only Validation
+
+Environment:
+
+- Disposable database: `familyos_06c_fresh`.
+- Baseline: minimal local `auth` prelude plus `supabase/schema.sql`.
+- Seed data: 3 disposable auth users and 1 representative task.
+
+Execution:
+
+- Baseline schema applied: pass.
+- First revised migration run: pass.
+- Idempotency re-run: pass.
+- Runtime app behavior changed: no.
+- Production database touched: no.
+
+Validation SQL:
+
+- `auth.users`: 3.
+- `profiles`: 3.
+- `households`: 3.
+- `familyos_internal.household_bootstrap_map`: 3.
+- active owner memberships: 3.
+- `household_settings`: 3.
+- `user_preferences`: 3.
+- duplicate bootstrap users: 0.
+- duplicate active memberships: 0.
+- task rows with `user_id`: 1.
+- task rows with `household_id`: 1.
+- task rows missing `household_id`: 0.
+- task metadata issues: 0 missing status, 0 missing module key, 0 completed/status mismatches, 0 missing creator values.
+
+RLS and compatibility:
+
+- Owner household read: pass.
+- Owner membership update: pass.
+- Adult people insert: pass.
+- Adult membership update denial: pass.
+- Teen, child, and viewer read checks: pass.
+- Teen, child, viewer, and non-member people insert denial: pass.
+- Non-member household read denial: pass.
+- Existing user-owned `tasks` read and insert compatibility: pass.
+
+Finding and revision:
+
+- Fresh schema validation exposed that the baseline module tables had RLS policies but no `authenticated` table privileges, causing existing user-owned `tasks` compatibility to fail with `permission denied for table tasks`.
+- The migration now grants `select`, `insert`, `update`, and `delete` on each existing module table to `authenticated` while preserving the existing `user_id = auth.uid()` RLS policy as the row access boundary.
+
+### Staging-Like Validation
+
+Environment:
+
+- Disposable database: `familyos_06c_stage_like`.
+- Baseline: minimal local `auth` prelude plus `supabase/schema.sql`.
+- Seed data: 3 disposable auth users and representative sanitized rows in `notes`, `tasks`, `pool_readings`, `finance_action_items`, `college_deadlines`, `home_maintenance`, and `mortgage`.
+
+Execution:
+
+- Baseline schema applied: pass.
+- First revised migration run: pass.
+- Idempotency re-run: pass.
+- Runtime app behavior changed: no.
+- Production database touched: no.
+
+Validation SQL:
+
+- `auth.users`: 3.
+- `profiles`: 3.
+- `households`: 3.
+- `familyos_internal.household_bootstrap_map`: 3.
+- active owner memberships: 3.
+- `household_settings`: 3.
+- `user_preferences`: 3.
+- duplicate bootstrap users: 0.
+- duplicate active memberships: 0.
+- module rows with `user_id` but missing `household_id`: 0.
+- representative rows backfilled successfully in `notes`, `tasks`, `pool_readings`, `finance_action_items`, `college_deadlines`, `home_maintenance`, and `mortgage`.
+- task metadata issues: 0 missing status, 0 missing module key, 0 completed/status mismatches, 0 missing creator values.
+
+RLS and compatibility:
+
+- Owner household read: pass.
+- Existing user-owned `tasks` read compatibility: pass.
+- Adult household manage helper: pass.
+- Adult people insert: pass.
+- Non-member household read denial: pass.
+
+Remaining validation before production:
+
+- Run app smoke tests against a migrated local or staging database.
+- Prepare and review production backup and rollback steps.
+- Decide whether to apply this combined foundation/task/settings migration as one production migration or split it before production.
 
 ## Validation Checklist
 
@@ -537,10 +632,8 @@ Findings:
 ## Manual Checks Still Required
 
 - Confirm the migration runs against a database that matches the real production baseline.
-- Confirm bootstrap behavior with users who have no module rows.
-- Confirm backfill behavior with users who have records in multiple modules.
 - Confirm the RLS smoke-test JWT setup matches the active Supabase environment.
-- Confirm existing app reads/writes still work in staging after migration because module-table `user_id` RLS remains in place.
+- Confirm existing app reads/writes still work against a migrated local or staging database because module-table `user_id` RLS remains in place.
 - Confirm backup and rollback procedures before production execution.
 - Confirm whether task/settings additions should remain in this migration or be split before production.
 
@@ -555,3 +648,7 @@ Milestone 4 documented the execution-pending path because SQL tooling was not av
 ## Release 0.6C Milestone 5 Status
 
 Milestone 5 executed the migration against the disposable local Supabase database, revised the migration for compatibility with the earlier local foundation draft, reran the migration successfully, reran it for idempotency, and completed validation SQL plus RLS smoke tests.
+
+## Release 0.6C Milestone 6 Status
+
+Milestone 6 executed the revised migration against fresh schema-only and staging-like disposable local databases, revised the migration to grant authenticated module-table privileges required for clean installs, reran the migration successfully for idempotency, and completed validation SQL, RLS smoke tests, and task compatibility checks without touching production or changing runtime app behavior.

@@ -300,3 +300,37 @@ Repeat and harden validation before production:
 3. Confirm app smoke tests still pass against the migrated local/staging database.
 4. Document production backup and rollback steps.
 5. Decide whether the migration is ready for production application or needs another revision.
+
+## Milestone 6 Fresh and Staging-Like Validation
+
+Milestone 6 validated the revised migration against two disposable local databases:
+
+- `familyos_06c_fresh`, a clean baseline made from a minimal local `auth` prelude plus `supabase/schema.sql`;
+- `familyos_06c_stage_like`, a staging-like dataset with representative sanitized rows across `notes`, `tasks`, `pool_readings`, `finance_action_items`, `college_deadlines`, `home_maintenance`, and `mortgage`.
+
+Results:
+
+- Fresh schema baseline apply passed.
+- Fresh schema migration execution passed.
+- Fresh schema idempotency re-run passed.
+- Fresh validation SQL passed.
+- Fresh RLS smoke tests passed after fixture setup.
+- Staging-like baseline apply passed.
+- Staging-like migration execution passed.
+- Staging-like idempotency re-run passed.
+- Staging-like validation SQL passed.
+- Staging-like RLS/task compatibility checks passed.
+
+Validated revision:
+
+- Fresh schema validation found that existing module tables had RLS policies but no `authenticated` table privileges, causing user-owned `tasks` compatibility to fail before RLS could evaluate.
+- The migration now grants `select`, `insert`, `update`, and `delete` on each existing module table to `authenticated` while keeping existing `user_id = auth.uid()` RLS policies as the row-level access boundary.
+
+## Recommended Milestone 7
+
+Prepare production readiness without applying the migration:
+
+1. Run app smoke tests against the migrated local database.
+2. Document production backup, restore, and rollback steps.
+3. Review whether to keep foundation, task metadata, and settings in one production migration or split before production.
+4. Prepare a production application checklist and go/no-go decision.

@@ -247,6 +247,10 @@ begin
       table_name || '_household_id_idx',
       table_name
     );
+    execute format(
+      'grant select, insert, update, delete on public.%I to authenticated',
+      table_name
+    );
   end loop;
 end $$;
 
