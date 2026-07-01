@@ -32,11 +32,12 @@ Plan the Release 0.6C data foundation so Release 0.6B browser-local features can
 - [x] Release 0.6C Milestone 5 local household foundation migration dry run and revision
 - [x] Release 0.6C Milestone 6 fresh schema and staging-like migration validation
 - [x] Release 0.6C Milestone 7 app smoke tests and production readiness checklist
+- [x] Release 0.6C Milestone 8 production readiness signoff review
 
 ## Blockers
 
 - Release 0.6B has no active code blockers after local lint/build validation. Real-device family testing and Vercel deployment validation remain before broad use.
-- Release 0.6C must not apply the production household foundation draft to production until backup/rollback review and owner go/no-go approval are complete.
+- Release 0.6C must not apply the production household foundation draft to production until backup artifacts are captured and owner go/no-go approval is explicitly recorded.
 
 ## Notes
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.
@@ -67,3 +68,4 @@ Plan the Release 0.6C data foundation so Release 0.6B browser-local features can
 - Release 0.6C Milestone 5 executes the migration against the disposable local Supabase database, finds and fixes one compatibility issue with existing 20260627 local foundation tables, passes the revised migration run, passes the idempotency re-run, passes validation SQL, and passes RLS smoke tests for owner, adult, teen, child, viewer, non-member denial, and existing user-owned task compatibility.
 - Release 0.6C Milestone 6 validates the revised migration on fresh schema-only and staging-like local databases, adds authenticated module-table grants required for clean installs, passes idempotency, validation SQL, RLS smoke tests, and task compatibility checks, and leaves production/runtime behavior unchanged.
 - Release 0.6C Milestone 7 runs app smoke tests against the migrated local Supabase API, adds the auth-user bootstrap trigger after smoke tests exposed missing post-migration bootstrap rows, passes auth/profile/household/settings/task/module compatibility checks, and leaves production and browser localStorage behavior unchanged.
+- Release 0.6C Milestone 8 confirms the production backup method, restore/rollback path, migration file, validation SQL scope, post-migration smoke checks, and owner go/no-go gate. Recommendation: apply the combined Release 0.6C migration as-is after backup capture and explicit owner approval.

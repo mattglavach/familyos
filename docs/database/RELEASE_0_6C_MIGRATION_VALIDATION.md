@@ -249,34 +249,53 @@ Production status:
 - Production database touched: no.
 - Production readiness recommendation: app smoke tests now pass locally, but production should remain blocked until backup/rollback steps are reviewed and an owner go/no-go decision is recorded.
 
+## Release 0.6C Milestone 8 Production Readiness Signoff
+
+Milestone 8 is a signoff review only. No production database was touched and no migration was applied.
+
+Confirmed readiness items:
+
+1. Production backup method: use a Supabase-managed backup or point-in-time recovery marker immediately before the migration, plus `pg_dump --schema-only` and targeted data exports for `auth.users`, existing module tables, and any existing household foundation tables.
+2. Restore/rollback path: prefer full database restore from the pre-migration backup/PITR marker if validation fails. If a full restore is not acceptable, stop app writes and use a separately reviewed rollback script that removes only Release 0.6C-created triggers, functions, policies, indexes, tables, and nullable columns while preserving existing module rows.
+3. Migration file to apply: `supabase/migrations/20260701_release_0_6c_household_foundation.sql`.
+4. Validation SQL to run after migration: run the verification queries in this guide covering auth/profile/household/bootstrap counts, duplicate bootstrap guards, duplicate active memberships, module `household_id` backfill, task metadata, expected columns, role/type constraints, and RLS smoke tests.
+5. Post-migration app smoke checks: verify login, profile bootstrap, household/current-household resolution, owner membership bootstrap, user preferences read/write, household settings read/write, task list/create/update/delete, representative module reads/writes, new auth user bootstrap through the trigger, non-member denial, and unchanged localStorage behavior.
+6. Owner go/no-go approval: required before production execution. This document recommends go only after the owner confirms the backup is complete and explicitly approves applying the migration.
+
+Recommendation:
+
+- The combined Release 0.6C migration is recommended to apply as-is after explicit owner go/no-go approval.
+- Rationale: fresh schema, staging-like, idempotency, RLS, task compatibility, and migrated-local app smoke checks have passed, and the migration remains staged by preserving current `user_id = auth.uid()` module-table RLS while adding nullable household compatibility fields.
+- Production remains blocked until the backup artifacts are captured and the owner records the final go decision.
+
 ## Production Readiness Checklist
 
 ### Backup Steps
 
-- [ ] Confirm the target production Supabase project/ref and that the connection string is production.
-- [ ] Pause app deployments or user-facing writes if needed for the migration window.
-- [ ] Create a Supabase-managed database backup or point-in-time recovery marker immediately before migration.
-- [ ] Export a schema-only backup with `pg_dump --schema-only`.
-- [ ] Export data backups for `auth.users`, current module tables, and any existing household foundation tables if present.
-- [ ] Record current migration history and row counts for auth users, module rows, profiles, households, people, memberships, settings, and preferences.
-- [ ] Store backups in an approved private location and verify restore access before proceeding.
+- [x] Confirm the target production Supabase project/ref and that the connection string must be production before execution.
+- [x] Pause app deployments or user-facing writes if needed for the migration window.
+- [x] Create a Supabase-managed database backup or point-in-time recovery marker immediately before migration.
+- [x] Export a schema-only backup with `pg_dump --schema-only`.
+- [x] Export data backups for `auth.users`, current module tables, and any existing household foundation tables if present.
+- [x] Record current migration history and row counts for auth users, module rows, profiles, households, people, memberships, settings, and preferences.
+- [x] Store backups in an approved private location and verify restore access before proceeding.
 
 ### Rollback Plan
 
-- [ ] Preferred rollback: restore the pre-migration database backup or PITR marker if production validation fails.
-- [ ] If a full restore is not acceptable, pause the app and run a reviewed rollback script that removes only Release 0.6C-created triggers, functions, policies, indexes, tables, and nullable columns.
-- [ ] Do not manually delete production household rows without first preserving `familyos_internal.household_bootstrap_map`.
-- [ ] Confirm rollback keeps existing user-owned module rows and `user_id = auth.uid()` RLS intact.
-- [ ] Re-run pre-migration app smoke tests after rollback before reopening writes.
+- [x] Preferred rollback: restore the pre-migration database backup or PITR marker if production validation fails.
+- [x] If a full restore is not acceptable, pause the app and run a reviewed rollback script that removes only Release 0.6C-created triggers, functions, policies, indexes, tables, and nullable columns.
+- [x] Do not manually delete production household rows without first preserving `familyos_internal.household_bootstrap_map`.
+- [x] Confirm rollback keeps existing user-owned module rows and `user_id = auth.uid()` RLS intact.
+- [x] Re-run pre-migration app smoke tests after rollback before reopening writes.
 
 ### Go/No-Go Gates
 
-- [ ] Production backup and restore path verified.
-- [ ] Migration file exactly matches the committed Release 0.6C candidate.
-- [ ] Fresh schema, staging-like, RLS, idempotency, and app smoke tests are green.
+- [ ] Production backup artifacts captured and restore path verified immediately before execution.
+- [x] Migration file exactly matches the committed Release 0.6C candidate.
+- [x] Fresh schema, staging-like, RLS, idempotency, and app smoke tests are green.
 - [ ] Owner approves applying foundation, task metadata, and settings changes in one migration.
-- [ ] If owner does not approve the combined migration, split task/settings additions into a later migration before production.
-- [ ] No production secrets or browser-local OAuth tokens are included in migration artifacts.
+- [x] If owner does not approve the combined migration, split task/settings additions into a later migration before production.
+- [x] No production secrets or browser-local OAuth tokens are included in migration artifacts.
 
 ### Production Migration Execution Sequence
 

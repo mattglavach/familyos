@@ -364,3 +364,20 @@ Prepare final production execution readiness:
 2. Decide whether to apply the combined foundation/task/settings migration as one production migration or split it.
 3. Run one final production preflight against the real production baseline counts.
 4. If approved, schedule a production migration window and capture owner signoff.
+
+## Milestone 8 Production Readiness Signoff
+
+Milestone 8 reviewed production readiness without applying the migration to production.
+
+Confirmed:
+
+- Production backup method: Supabase-managed backup or PITR marker plus schema-only and targeted data exports.
+- Restore/rollback path: full restore from backup/PITR is preferred; partial rollback requires a separately reviewed rollback script and paused writes.
+- Migration file: `supabase/migrations/20260701_release_0_6c_household_foundation.sql`.
+- Post-migration validation: run the validation SQL and RLS smoke tests from `docs/database/RELEASE_0_6C_MIGRATION_VALIDATION.md`.
+- App smoke checks: login, profile bootstrap, household resolution, preferences/settings, task CRUD, representative module compatibility, new auth user bootstrap, non-member denial, and unchanged localStorage behavior.
+
+Recommendation:
+
+- Apply the combined Release 0.6C migration as-is after backup artifacts are captured and owner go/no-go approval is explicitly recorded.
+- Do not split the migration unless the owner rejects applying foundation, task metadata, and settings/preference changes together.
