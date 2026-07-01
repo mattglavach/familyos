@@ -4,7 +4,7 @@
 0.1.0
 
 ## Current State
-Documentation foundation being established.
+Release 0.6B dashboard implementation is in progress.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -16,14 +16,15 @@ Documentation foundation being established.
 - Private household email/password login as the primary Supabase auth path
 - Google Calendar OAuth origin setup documentation for local and Vercel deployments
 - Modular app structure with app shell, hooks, modules, and refactor documentation
+- Release 0.6B Milestone 1 dashboard layout pass
 
 ## In Progress
-- Shared GitHub workspace documentation
+- Release 0.6B Google Calendar, family member, and task management follow-up milestones
 
 ## Next
-- Prepare household migration draft plan
-- Prioritize next module
-- Create first implementation package for Codex
+- Review Milestone 1 dashboard layout
+- Continue with Milestone 2 Google Calendar integration pass
+- Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
 
 ## Known Bugs
 
@@ -35,4 +36,4 @@ Documentation foundation being established.
 - Existing feature screens still contain substantial inline styles and should be migrated gradually to shadcn/ui and Origin UI components during feature work.
 
 ## Last Updated
-June 27, 2026
+July 1, 2026

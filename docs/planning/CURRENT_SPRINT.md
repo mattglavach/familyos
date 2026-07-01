@@ -1,7 +1,7 @@
 # Current Sprint
 
 ## Sprint Goal
-Establish the shared AI development workspace and documentation foundation.
+Build the first usable Family OS dashboard for Release 0.6B.
 
 ## Active Items
 - [x] Add documentation structure
@@ -15,7 +15,10 @@ Establish the shared AI development workspace and documentation foundation.
 - [x] Add Supabase magic-link resend cooldown protection
 - [x] Make private household email/password login the primary Supabase auth path
 - [x] Validate current app structure
-- [ ] Identify next implementation target
+- [x] Identify next implementation target
+- [x] Begin Release 0.6B branch
+- [x] Complete Milestone 1 dashboard layout pass
+- [ ] Milestone 2 Google Calendar integration pass
 
 ## Blockers
 
@@ -31,6 +34,5 @@ Establish the shared AI development workspace and documentation foundation.
 - AuthGate and SetupRequired now use shared UI primitives while preserving password sign-in, magic-link fallback, setup gating, and Supabase auth behavior.
 - App shell/navigation now uses shared UI primitives/classes while preserving tab routing, active tab behavior, sign-out, and Google Calendar connect/sync actions.
 - PoolBrief and RetirementBrief now use shared AI brief panel helpers while preserving AI prompts, history, refresh/regenerate, copy, and follow-up behavior.
-- Next UI migration target is shared dashboard/card patterns before Pool or Finance internals.
-
 - App structure refactor moved the shell, hooks, and user-facing modules out of the monolithic src/App.js; pnpm run check passes after the split.
+- Release 0.6B Milestone 1 migrates the dashboard command center to shared cards, status badges, buttons, skeleton loading states, empty states, and Lucide icons while preserving the current user-scoped Supabase table hooks and Google Calendar behavior.

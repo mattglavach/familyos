@@ -1,254 +1,614 @@
-import { useState } from "react";
-import { Loading } from "../../components/common";
+import { useMemo, useState } from "react";
+import {
+  CalendarDays,
+  CheckCircle2,
+  ChevronRight,
+  Clock,
+  DollarSign,
+  GraduationCap,
+  ListTodo,
+  NotebookText,
+  RefreshCw,
+  Waves,
+} from "lucide-react";
+import { Badge, StatusBadge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { EmptyStatePanel } from "../../components/ui/empty-state";
+import { SectionHeader } from "../../components/ui/section-header";
+import { Skeleton } from "../../components/ui/skeleton";
 import { COLORS, MEMBER_COLORS, S } from "../../theme";
 
-// - DASHBOARD -
-export function Dashboard({onNavigate,gc,deps}){
-  const {
-    TODAY_DATE,TODAY_STR,daysAgo,daysBetween,nextDueDate,formatDate,formatDateFull,
-    formatMoneyShort,maintStatus,useTable,calcRetirementProjection,getChemRecommendations,
-  } = deps;
-  const{data:homeMaint}   =useTable("home_maintenance","title",true);
-  const{data:deadlines}   =useTable("college_deadlines","due_date",true);
-  const readings          =useTable("pool_readings","logged_at");
-  const assumptions       =useTable("retirement_assumptions","id",true);
-  const accounts          =useTable("retirement_accounts","name",true);
-  const notes             =useTable("notes","created_at");
-  const taskData          =useTable("tasks","due_date",true);
-  const treatments        =useTable("pool_treatments","logged_at");
+const toneByColor = {
+  [COLORS.red]: "red",
+  [COLORS.amber]: "amber",
+  [COLORS.green]: "green",
+  [COLORS.blue]: "blue",
+  [COLORS.purple]: "purple",
+  [COLORS.slate]: "slate",
+};
 
-  const [showFullSchedule,setShowFullSchedule]=useState(false);
-  const [showAllActions,setShowAllActions]=useState(false);
-  const [showNotes,setShowNotes]=useState(true);
-  const [filter,setFilter]=useState("All");
-  const [overrides,setOverrides]=useState({});
-  const [reassigning,setReassigning]=useState(null);
-  const members=["All","Aubrey","Blake","Brayden","Matt","Kalee"];
+const memberFilters = ["All", "Aubrey", "Blake", "Brayden", "Matt", "Kalee"];
+const assignableMembers = ["Aubrey", "Blake", "Brayden", "Matt", "Kalee"];
 
-  const assump=assumptions.data[0];
-  const retProj=assump?calcRetirementProjection(accounts.data,assump):null;
-  const lastReading=readings.data[0];
-  const chemRecs=lastReading?getChemRecommendations(lastReading,readings.data,null):[];
-  const highChemRecs=chemRecs.filter(r=>r.priority==="high");
-  const medChemRecs=chemRecs.filter(r=>r.priority==="med");
-  const poolDaysAgo=lastReading?daysAgo(lastReading.date):null;
-  const poolStale=poolDaysAgo!==null&&poolDaysAgo>=3;
+function toneForColor(color) {
+  return toneByColor[color] || "slate";
+}
 
-  const overdueHomeMaint=homeMaint.filter(m=>maintStatus(m)==="overdue");
-  const dueSoonHomeMaint=homeMaint.filter(m=>maintStatus(m)==="due-soon");
-  const urgentDeadlines=deadlines.filter(d=>!d.completed&&daysBetween(d.due_date)<=14);
-  const upcomingDeadlines=deadlines.filter(d=>!d.completed&&daysBetween(d.due_date)>14&&daysBetween(d.due_date)<=60);
-  const urgentTasks=taskData.data.filter(t=>{
-    if(t.completed&&!t.recurring_interval_days)return false;
-    if(t.is_important)return true;
-    if(t.due_date&&daysBetween(t.due_date)<=0)return true;
-    return false;
-  });
-
-  const allEvents=(gc.token?gc.events:[]).map(e=>({...e,member:overrides[e.id]||e.member}));
-  const filtered=allEvents.filter(e=>filter==="All"||e.member===filter);
-  const next7Days=Array.from({length:7},(_,i)=>{const d=new Date(TODAY_DATE);d.setDate(d.getDate()+i);return d.toISOString().split("T")[0];});
-  const next30Days=Array.from({length:30},(_,i)=>{const d=new Date(TODAY_DATE);d.setDate(d.getDate()+i);return d.toISOString().split("T")[0];});
-  const visibleDays=showFullSchedule?next30Days:next7Days;
-
-  // Build action lists
-  const overdue=[],thisWeek=[],upcoming=[];
-  if(poolStale) overdue.push({text:`Pool not tested in ${poolDaysAgo} days`,color:COLORS.amber,nav:"pool",detail:"Log a reading"});
-  highChemRecs.forEach(r=>{overdue.push({text:r.action,color:COLORS.red,nav:"pool",detail:null});});
-  medChemRecs.slice(0,2).forEach(r=>{thisWeek.push({text:r.action,color:COLORS.amber,nav:"pool",detail:null});});
-  overdueHomeMaint.forEach(m=>{const days=-daysBetween(nextDueDate(m.last_completed,m.interval_days));overdue.push({text:m.title,color:COLORS.red,nav:"tasks",detail:`${days}d overdue`});});
-  dueSoonHomeMaint.forEach(m=>{const days=daysBetween(nextDueDate(m.last_completed,m.interval_days));thisWeek.push({text:m.title,color:COLORS.amber,nav:"tasks",detail:`due in ${days}d`});});
-  urgentTasks.slice(0,4).forEach(t=>{const days=t.due_date?daysBetween(t.due_date):null,isOverdue=days!==null&&days<0,item={text:t.title,color:isOverdue?COLORS.red:t.is_important?COLORS.purple:COLORS.amber,nav:"tasks",detail:isOverdue?`${-days}d overdue`:days===0?"Today":t.is_important?"Important":days!==null?`in ${days}d`:null};isOverdue?overdue.push(item):thisWeek.push(item);});
-  urgentDeadlines.forEach(d=>{const days=daysBetween(d.due_date),item={text:d.title,color:days<=4?COLORS.red:COLORS.amber,nav:"college",detail:days===0?"Today":days<0?`${-days}d overdue`:`in ${days}d`};days<=4?overdue.push(item):thisWeek.push(item);});
-  upcomingDeadlines.forEach(d=>{upcoming.push({text:d.title,color:COLORS.slate,nav:"college",detail:`in ${daysBetween(d.due_date)}d`});});
-  filtered.filter(e=>e.date===TODAY_STR).forEach(e=>{overdue.push({text:e.title,color:COLORS.blue,nav:"home",detail:e.time||"Today"});});
-  filtered.filter(e=>next7Days.includes(e.date)&&e.date!==TODAY_STR).slice(0,3).forEach(e=>{thisWeek.push({text:e.title,color:MEMBER_COLORS[e.member]||COLORS.slate,nav:"home",detail:`${e.time||""} ${formatDate(e.date)}`.trim()});});
-
-  const totalActions=overdue.length+thisWeek.length+upcoming.length;
-  const focusItems=[...overdue,...thisWeek].slice(0,5);
-
-  // Family Health statuses
-  const poolColor=highChemRecs.length>0?COLORS.red:medChemRecs.length>0?COLORS.amber:poolStale?COLORS.amber:COLORS.green;
-  const poolLabel=highChemRecs.length>0?"Action needed":medChemRecs.length>0?"Monitor":poolStale?`${poolDaysAgo}d since test`:"Good";
-  const poolDetail=highChemRecs.length>0?highChemRecs[0].action.slice(0,35)+"...":lastReading?`pH ${lastReading.ph||"--"} FC ${lastReading.free_chlorine||"--"} Salt ${lastReading.salt||"--"}`:"No readings";
-
-  const tasksOverdue=overdueHomeMaint.length+urgentTasks.filter(t=>t.due_date&&daysBetween(t.due_date)<0).length;
-  const tasksDueSoon=dueSoonHomeMaint.length+urgentTasks.filter(t=>t.is_important&&(!t.due_date||daysBetween(t.due_date)>=0)).length;
-  const tasksColor=tasksOverdue>0?COLORS.red:tasksDueSoon>0?COLORS.amber:COLORS.green;
-  const tasksLabel=tasksOverdue>0?`${tasksOverdue} overdue`:tasksDueSoon>0?`${tasksDueSoon} this week`:"All clear";
-  const tasksDetail=tasksOverdue>0?`${overdueHomeMaint[0]?.title||urgentTasks[0]?.title||""}`.slice(0,35):tasksDueSoon>0?"Maintenance due":"Nothing overdue";
-
-  const finColor=retProj?retProj.statusColor:COLORS.slate;
-  const finLabel=retProj?retProj.statusLabel.split(" - ")[0].split("--")[0].trim().slice(0,16):"No data";
-  const finDetail=retProj?`Age ${assump.retirement_age} - ${retProj.gap>0?"-"+formatMoneyShort(retProj.gap)+" gap":"surplus "+formatMoneyShort(-retProj.gap)}`:"Add accounts";
-
-  const collegeColor=urgentDeadlines.length>0?COLORS.amber:COLORS.green;
-  const collegeLabel=urgentDeadlines.length>0?`${urgentDeadlines.length} deadline${urgentDeadlines.length>1?"s":""}`:upcomingDeadlines.length>0?"Coming up":"On track";
-  const collegeDetail=urgentDeadlines.length>0?urgentDeadlines[0].title.slice(0,35):upcomingDeadlines.length>0?`Next: ${upcomingDeadlines[0].title.slice(0,28)}`:"No urgent deadlines";
-
-  // Weekly headline sentence
-  const totalIssues=overdue.length+thisWeek.length;
-  let headline="";
-  if(totalIssues===0) headline="All clear - nothing needs attention.";
-  else {
-    const parts=[];
-    if(overdue.length>0) parts.push(`${overdue.length} item${overdue.length>1?"s":""} need action now`);
-    if(thisWeek.length>0) parts.push(`${thisWeek.length} due this week`);
-    headline=parts.join(", ")+".";
-  }
-
-  const recentActivity=[
-    ...readings.data.slice(0,2).map(r=>({date:r.date,text:`Pool reading - pH ${r.ph||"--"} FC ${r.free_chlorine||"--"}`,color:COLORS.blue})),
-    ...treatments.data.slice(0,2).map(t=>{
-      const chems=[t.muriatic_acid_oz&&`${t.muriatic_acid_oz}oz acid`,t.salt_lbs&&`${t.salt_lbs}lb salt`,t.cya_oz&&`${t.cya_oz}oz CYA`].filter(Boolean);
-      return{date:t.date,text:`Treatment - ${chems.length>0?chems.join(", "):"maintenance"}`,color:COLORS.green};
-    }),
-    ...deadlines.filter(d=>d.completed).slice(0,1).map(d=>({date:d.due_date,text:`College: ${d.title}`,color:COLORS.green})),
-    ...homeMaint.filter(m=>m.last_completed&&daysAgo(m.last_completed)<=7).slice(0,1).map(m=>({date:m.last_completed,text:m.title,color:COLORS.slate})),
-  ].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,4);
-
-  function ActionItem({item,i,total}){
-    return(
-      <button onClick={()=>onNavigate(item.nav)} style={{display:"flex",alignItems:"center",gap:10,width:"100%",background:"none",border:"none",padding:"9px 0",borderBottom:i<total-1?`1px solid ${COLORS.navyLight}`:"none",cursor:"pointer",textAlign:"left"}}>
-        <div style={{width:8,height:8,borderRadius:"50%",background:item.color,flexShrink:0}}/>
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{fontSize:14,fontWeight:600,color:COLORS.white,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.text}</div>
-          {item.detail&&<div style={{fontSize:12,color:item.color,marginTop:1}}>{item.detail}</div>}
-        </div>
-        <div style={{fontSize:12,color:COLORS.slate,flexShrink:0}}>></div>
-      </button>
-    );
-  }
-
-  return(
-    <div style={S.screen}> <div style={{background:COLORS.navyMid,borderRadius:16,padding:"18px 18px 14px",marginBottom:12,border:`1px solid ${COLORS.navyLight}`,borderTop:`3px solid ${totalIssues===0?COLORS.green:overdue.length>0?COLORS.red:COLORS.amber}`}}>
-        <div style={{fontSize:11,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"1px",marginBottom:6}}>This Week</div>
-        <div style={{fontSize:22,fontWeight:800,letterSpacing:"-0.5px",lineHeight:1.15,color:totalIssues===0?COLORS.green:overdue.length>0?COLORS.red:COLORS.amber,marginBottom:4}}>
-          {totalIssues===0?"All clear":`${overdue.length>0?overdue.length+" urgent":thisWeek.length+" this week"}`}
-        </div>
-        <div style={{fontSize:13,color:COLORS.slate,marginBottom:focusItems.length>0?14:0}}>{headline}</div>
-        {focusItems.length>0&&focusItems.map((item,i)=><ActionItem key={i} item={item} i={i} total={focusItems.length}/>)}
-      </div> <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}}>
-        {[
-          {module:"Pool",color:poolColor,label:poolLabel,detail:poolDetail,nav:"pool"},
-          {module:"Tasks",color:tasksColor,label:tasksLabel,detail:tasksDetail,nav:"tasks"},
-          {module:"Finance",color:finColor,label:finLabel,detail:finDetail,nav:"finance"},
-          {module:"College",color:collegeColor,label:collegeLabel,detail:collegeDetail,nav:"college"},
-        ].map((s,i)=>(
-          <button key={i} onClick={()=>onNavigate(s.nav)} style={{background:COLORS.navyMid,border:`1px solid ${COLORS.navyLight}`,borderLeft:`3px solid ${s.color}`,borderRadius:12,padding:"12px 14px",cursor:"pointer",textAlign:"left",WebkitTapHighlightColor:"transparent"}}>
-            <div style={{fontSize:11,color:COLORS.slate,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:4}}>{s.module}</div>
-            <div style={{fontSize:14,fontWeight:800,color:s.color,marginBottom:3,letterSpacing:"-0.2px"}}>{s.label}</div>
-            <div style={{fontSize:11,color:COLORS.slate,lineHeight:1.35,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{s.detail}</div>
-          </button>
-        ))}
-      </div> {totalActions>0&&<>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-          <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"1px"}}>Action Center</div>
-          {totalActions>5&&<button onClick={()=>setShowAllActions(p=>!p)} style={{fontSize:12,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0}}>{showAllActions?"Less":"All "+totalActions}</button>}
-        </div>
-        {overdue.length>0&&(
-          <div style={{background:COLORS.navyMid,borderRadius:12,borderLeft:`3px solid ${COLORS.red}`,marginBottom:8,padding:"12px 14px"}}>
-            <div style={{fontSize:11,fontWeight:700,color:COLORS.red,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8}}>Act Now - {overdue.length}</div>
-            {overdue.slice(0,showAllActions?99:3).map((item,i)=><ActionItem key={i} item={item} i={i} total={Math.min(overdue.length,showAllActions?99:3)}/>)}
-            {!showAllActions&&overdue.length>3&&<div style={{fontSize:12,color:COLORS.slate,paddingTop:6}}>+{overdue.length-3} more</div>}
-          </div>
-        )}
-        {thisWeek.length>0&&(
-          <div style={{background:COLORS.navyMid,borderRadius:12,borderLeft:`3px solid ${COLORS.amber}`,marginBottom:8,padding:"12px 14px"}}>
-            <div style={{fontSize:11,fontWeight:700,color:COLORS.amber,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8}}>This Week - {thisWeek.length}</div>
-            {thisWeek.slice(0,showAllActions?99:3).map((item,i)=><ActionItem key={i} item={item} i={i} total={Math.min(thisWeek.length,showAllActions?99:3)}/>)}
-          </div>
-        )}
-        {upcoming.length>0&&showAllActions&&(
-          <div style={{background:COLORS.navyMid,borderRadius:12,borderLeft:`3px solid ${COLORS.slate}`,marginBottom:8,padding:"12px 14px"}}>
-            <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8}}>Coming Up - {upcoming.length}</div>
-            {upcoming.slice(0,3).map((item,i)=><ActionItem key={i} item={item} i={i} total={Math.min(upcoming.length,3)}/>)}
-          </div>
-        )}
-      </>}
-      {totalActions===0&&(
-        <div style={{background:COLORS.green+"0d",border:`1px solid ${COLORS.green}33`,borderRadius:12,textAlign:"center",padding:"14px",marginBottom:12}}>
-          <div style={{fontSize:14,fontWeight:700,color:COLORS.green}}>All clear</div>
-          <div style={{fontSize:12,color:COLORS.slate,marginTop:3}}>Nothing needs attention right now.</div>
-        </div>
-      )} {gc.token&&<>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8,marginTop:16}}>
-          <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"1px"}}>Schedule</div>
-          <button onClick={()=>setShowFullSchedule(p=>!p)} style={{fontSize:12,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0}}>{showFullSchedule?"7 days":"30 days"}</button>
-        </div>
-        <div style={{marginBottom:10,display:"flex",flexWrap:"wrap",gap:4}}>
-          {members.map(m=><span key={m} style={S.chip(filter===m,MEMBER_COLORS[m]||COLORS.blue)} onClick={()=>setFilter(m)}>{m}</span>)}
-        </div>
-        {gc.loading?<Loading/>:(
-          filtered.filter(e=>visibleDays.includes(e.date)).length===0
-            ?<div style={{fontSize:13,color:COLORS.slate,textAlign:"center",padding:"20px 0"}}>No events {showFullSchedule?"in the next 30 days":"this week"}</div>
-            :visibleDays.map(day=>{
-              const evs=filtered.filter(e=>e.date===day);
-              if(!evs.length)return null;
-              const isToday=day===TODAY_STR;
-              return(
-                <div key={day}>
-                  <div style={{fontSize:11,fontWeight:700,color:isToday?COLORS.blue:COLORS.slate,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:6,marginTop:12}}>{isToday?"Today":formatDateFull(day)}</div>
-                  {evs.map(e=>(
-                    <div key={e.id} style={{background:COLORS.navyMid,borderRadius:10,borderLeft:`3px solid ${MEMBER_COLORS[e.member]||COLORS.slate}`,marginBottom:6,padding:"10px 12px"}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                        <div style={{flex:1}}>
-                          <div style={{fontSize:14,fontWeight:600}}>{e.title}</div>
-                          <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>{e.time||"All day"}{e.location?` - ${e.location}`:""}</div>
-                        </div>
-                        <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
-                          <span style={{...S.badge(MEMBER_COLORS[e.member]||COLORS.slate),fontSize:11}}>{e.member}</span>
-                          <button style={{...S.btnSm,fontSize:11,padding:"2px 6px"}} onClick={()=>setReassigning(reassigning===e.id?null:e.id)}>reassign</button>
-                        </div>
-                      </div>
-                      {reassigning===e.id&&(
-                        <div style={{marginTop:8,display:"flex",flexWrap:"wrap",gap:4}}>
-                          {["Aubrey","Blake","Brayden","Matt","Kalee"].map(m=>(
-                            <span key={m} style={S.chip(e.member===m,MEMBER_COLORS[m])} onClick={()=>{setOverrides(p=>({...p,[e.id]:m}));setReassigning(null);}}>{m}</span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              );
-            })
-        )}
-      </>}
-      {!gc.token&&(
-        <div style={{background:COLORS.navyMid,borderRadius:12,border:`1px solid ${COLORS.navyLight}`,padding:"14px 16px",marginTop:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{fontSize:13,color:COLORS.slateLight}}>Connect Google Calendar to see your schedule here.</div>
-          <button style={{...S.btnSm,fontSize:12}} onClick={gc.signIn}>Connect</button>
-        </div>
-      )} {recentActivity.length>0&&<>
-        <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"1px",marginBottom:8,marginTop:16}}>Recent Activity</div>
-        {recentActivity.map((a,i)=>(
-          <div key={i} style={{display:"flex",gap:10,alignItems:"center",padding:"8px 0",borderBottom:i<recentActivity.length-1?`1px solid ${COLORS.navyLight}`:"none"}}>
-            <div style={{width:6,height:6,borderRadius:"50%",background:a.color,flexShrink:0}}/>
-            <div style={{flex:1}}><div style={{fontSize:13,color:COLORS.slateLight}}>{a.text}</div></div>
-            <div style={{fontSize:11,color:COLORS.slate}}>{formatDate(a.date)}</div>
+function SectionSkeleton({ rows = 3 }) {
+  return (
+    <Card>
+      <CardContent className="space-y-3 pt-5">
+        {Array.from({ length: rows }, (_, index) => (
+          <div key={index} className="space-y-2">
+            <Skeleton className="h-3.5 w-4/5" />
+            <Skeleton className="h-3 w-2/5" />
           </div>
         ))}
-      </>} {notes.data.length>0&&<>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:16,marginBottom:8}}>
-          <div style={{fontSize:11,fontWeight:700,color:COLORS.slate,textTransform:"uppercase",letterSpacing:"1px"}}>Notes</div>
-          <button onClick={()=>setShowNotes(p=>!p)} style={{fontSize:12,color:COLORS.blue,background:"none",border:"none",cursor:"pointer",padding:0}}>{showNotes?"Hide":"Show "+notes.data.length}</button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ActionRow({ item, showDivider, onNavigate }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onNavigate(item.nav)}
+      className={`flex min-h-12 w-full items-center gap-3 py-2.5 text-left ${showDivider ? "border-b border-border" : ""}`}
+    >
+      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: item.color }} />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-semibold text-foreground">{item.text}</span>
+        {item.detail && <span className="mt-0.5 block text-xs font-medium" style={{ color: item.color }}>{item.detail}</span>}
+      </span>
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+    </button>
+  );
+}
+
+function ModuleCard({ item, onNavigate }) {
+  const Icon = item.icon;
+  return (
+    <button
+      type="button"
+      onClick={() => onNavigate(item.nav)}
+      className="min-h-[132px] rounded-lg border border-border bg-card p-3.5 text-left shadow-soft transition-colors hover:bg-accent"
+      style={{ borderLeft: `3px solid ${item.color}` }}
+    >
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
+          <Icon className="h-4 w-4" aria-hidden="true" />
+          {item.module}
         </div>
-        {showNotes&&notes.data.map((n,i)=>(
-          <div key={n.id} style={{background:COLORS.navyMid,borderRadius:10,padding:"12px 14px",marginBottom:6}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-              <div style={{flex:1,minWidth:0}}>
-                {n.title&&<div style={{fontSize:14,fontWeight:700,marginBottom:3}}>{n.title}</div>}
-                <div style={{fontSize:13,color:COLORS.slateLight,lineHeight:1.5}}>{n.body}</div>
-                <div style={{fontSize:11,color:COLORS.slate,marginTop:6}}>{new Date(n.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>
-              </div>
-              <span style={{...S.badge(COLORS.slate),fontSize:11,flexShrink:0,marginLeft:10}}>{n.tag||"General"}</span>
-            </div>
-          </div>
+        <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+      </div>
+      <div className="mb-1 text-sm font-extrabold leading-tight" style={{ color: item.color }}>{item.label}</div>
+      <div className="line-clamp-2 text-xs leading-5 text-muted-foreground">{item.detail}</div>
+    </button>
+  );
+}
+
+function ActionGroup({ title, count, color, items, showAll, defaultLimit, onNavigate }) {
+  const visibleItems = items.slice(0, showAll ? 99 : defaultLimit);
+  if (!items.length) return null;
+  return (
+    <Card className="overflow-hidden" style={{ borderLeft: `3px solid ${color}` }}>
+      <CardHeader className="p-4 pb-1">
+        <div className="text-xs font-bold uppercase tracking-[0.08em]" style={{ color }}>
+          {title} <span className="text-muted-foreground">{count}</span>
+        </div>
+      </CardHeader>
+      <CardContent className="px-4 pb-3 pt-0">
+        {visibleItems.map((item, index) => (
+          <ActionRow
+            key={`${title}-${item.text}-${index}`}
+            item={item}
+            showDivider={index < visibleItems.length - 1}
+            onNavigate={onNavigate}
+          />
         ))}
-      </>}
+        {!showAll && items.length > defaultLimit && (
+          <div className="pt-2 text-xs font-medium text-muted-foreground">+{items.length - defaultLimit} more</div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function MemberFilter({ value, active, onSelect }) {
+  const color = MEMBER_COLORS[value] || COLORS.blue;
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(value)}
+      className="min-h-8 rounded-full border px-3 text-xs font-semibold"
+      style={{
+        borderColor: active ? color : COLORS.navyLight,
+        background: active ? `${color}26` : "transparent",
+        color: active ? color : COLORS.slateLight,
+      }}
+    >
+      {value}
+    </button>
+  );
+}
+
+function ScheduleEvent({ event, reassigning, setReassigning, setOverrides }) {
+  const memberColor = MEMBER_COLORS[event.member] || COLORS.slate;
+  return (
+    <div className="rounded-lg border border-border bg-card p-3" style={{ borderLeft: `3px solid ${memberColor}` }}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-semibold text-foreground">{event.title}</div>
+          <div className="mt-1 text-xs leading-5 text-muted-foreground">
+            {event.time || "All day"}{event.location ? ` - ${event.location}` : ""}
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <Badge variant={toneForColor(memberColor)} className="max-w-20 truncate">{event.member}</Badge>
+          <Button type="button" variant="secondary" size="xs" onClick={() => setReassigning(reassigning === event.id ? null : event.id)}>
+            Reassign
+          </Button>
+        </div>
+      </div>
+      {reassigning === event.id && (
+        <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
+          {assignableMembers.map(member => (
+            <MemberFilter
+              key={member}
+              value={member}
+              active={event.member === member}
+              onSelect={() => {
+                setOverrides(previous => ({ ...previous, [event.id]: member }));
+                setReassigning(null);
+              }}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
+function SchedulePanel({
+  gc,
+  filteredEvents,
+  visibleDays,
+  showFullSchedule,
+  setShowFullSchedule,
+  filter,
+  setFilter,
+  reassigning,
+  setReassigning,
+  setOverrides,
+  formatDateFull,
+  todayString,
+}) {
+  if (!gc.token) {
+    return (
+      <Card>
+        <CardContent className="space-y-3 pt-5">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-foreground">Calendar not connected</div>
+              <div className="mt-1 text-xs leading-5 text-muted-foreground">Connect Google Calendar to show this week's family schedule.</div>
+            </div>
+            <Button type="button" size="sm" onClick={gc.signIn}>Connect</Button>
+          </div>
+          {gc.error && (
+            <div className="rounded-lg border border-destructive/35 bg-destructive/10 p-3 text-xs leading-5 text-destructive">
+              {gc.error}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
 
+  const visibleEvents = filteredEvents.filter(event => visibleDays.includes(event.date));
+
+  return (
+    <Card>
+      <CardHeader className="p-4 pb-2">
+        <div className="flex items-center justify-between gap-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <CalendarDays className="h-4 w-4 text-primary" aria-hidden="true" />
+            Schedule
+          </CardTitle>
+          <Button type="button" variant="secondary" size="xs" onClick={() => setShowFullSchedule(value => !value)}>
+            {showFullSchedule ? "7 days" : "30 days"}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3 px-4 pb-4 pt-0">
+        <div className="flex flex-wrap gap-2">
+          {memberFilters.map(member => (
+            <MemberFilter key={member} value={member} active={filter === member} onSelect={setFilter} />
+          ))}
+        </div>
+        {gc.error && (
+          <div className="rounded-lg border border-destructive/35 bg-destructive/10 p-3 text-xs leading-5 text-destructive">
+            {gc.error}
+          </div>
+        )}
+        {gc.loading ? (
+          <div className="space-y-3 py-2">
+            <Skeleton className="h-3.5 w-4/5" />
+            <Skeleton className="h-3 w-2/5" />
+            <Skeleton className="h-3.5 w-3/5" />
+          </div>
+        ) : visibleEvents.length === 0 ? (
+          <EmptyStatePanel
+            title={showFullSchedule ? "No events in the next 30 days" : "No events this week"}
+            detail="Calendar events will appear here after the next sync."
+            className="py-8"
+          />
+        ) : (
+          visibleDays.map(day => {
+            const eventsForDay = filteredEvents.filter(event => event.date === day);
+            if (!eventsForDay.length) return null;
+            const isToday = day === todayString;
+            return (
+              <div key={day} className="space-y-2">
+                <div className={`text-xs font-bold uppercase tracking-[0.08em] ${isToday ? "text-primary" : "text-muted-foreground"}`}>
+                  {isToday ? "Today" : formatDateFull(day)}
+                </div>
+                {eventsForDay.map(event => (
+                  <ScheduleEvent
+                    key={event.id}
+                    event={event}
+                    reassigning={reassigning}
+                    setReassigning={setReassigning}
+                    setOverrides={setOverrides}
+                  />
+                ))}
+              </div>
+            );
+          })
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// - DASHBOARD -
+export function Dashboard({ onNavigate, gc, deps }) {
+  const {
+    TODAY_DATE, TODAY_STR, daysAgo, daysBetween, nextDueDate, formatDate, formatDateFull,
+    formatMoneyShort, maintStatus, useTable, calcRetirementProjection, getChemRecommendations,
+  } = deps;
+
+  const homeMaint = useTable("home_maintenance", "title", true);
+  const deadlines = useTable("college_deadlines", "due_date", true);
+  const readings = useTable("pool_readings", "logged_at");
+  const assumptions = useTable("retirement_assumptions", "id", true);
+  const accounts = useTable("retirement_accounts", "name", true);
+  const notes = useTable("notes", "created_at");
+  const taskData = useTable("tasks", "due_date", true);
+  const treatments = useTable("pool_treatments", "logged_at");
+
+  const [showFullSchedule, setShowFullSchedule] = useState(false);
+  const [showAllActions, setShowAllActions] = useState(false);
+  const [showNotes, setShowNotes] = useState(true);
+  const [filter, setFilter] = useState("All");
+  const [overrides, setOverrides] = useState({});
+  const [reassigning, setReassigning] = useState(null);
+
+  const isLoading = [
+    homeMaint,
+    deadlines,
+    readings,
+    assumptions,
+    accounts,
+    notes,
+    taskData,
+    treatments,
+  ].some(table => table.loading);
+
+  const assump = assumptions.data[0];
+  const retProj = assump ? calcRetirementProjection(accounts.data, assump) : null;
+  const lastReading = readings.data[0];
+  const chemRecs = lastReading ? getChemRecommendations(lastReading, readings.data, null) : [];
+  const highChemRecs = chemRecs.filter(rec => rec.priority === "high");
+  const medChemRecs = chemRecs.filter(rec => rec.priority === "med");
+  const poolDaysAgo = lastReading ? daysAgo(lastReading.date) : null;
+  const poolStale = poolDaysAgo !== null && poolDaysAgo >= 3;
+
+  const overdueHomeMaint = homeMaint.data.filter(item => maintStatus(item) === "overdue");
+  const dueSoonHomeMaint = homeMaint.data.filter(item => maintStatus(item) === "due-soon");
+  const urgentDeadlines = deadlines.data.filter(deadline => !deadline.completed && daysBetween(deadline.due_date) <= 14);
+  const upcomingDeadlines = deadlines.data.filter(deadline => !deadline.completed && daysBetween(deadline.due_date) > 14 && daysBetween(deadline.due_date) <= 60);
+  const urgentTasks = taskData.data.filter(task => {
+    if (task.completed && !task.recurring_interval_days) return false;
+    if (task.is_important) return true;
+    if (task.due_date && daysBetween(task.due_date) <= 0) return true;
+    return false;
+  });
+
+  const allEvents = useMemo(
+    () => (gc.token ? gc.events : []).map(event => ({ ...event, member: overrides[event.id] || event.member })),
+    [gc.events, gc.token, overrides]
+  );
+  const filteredEvents = allEvents.filter(event => filter === "All" || event.member === filter);
+  const next7Days = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(TODAY_DATE);
+    date.setDate(date.getDate() + index);
+    return date.toISOString().split("T")[0];
+  });
+  const next30Days = Array.from({ length: 30 }, (_, index) => {
+    const date = new Date(TODAY_DATE);
+    date.setDate(date.getDate() + index);
+    return date.toISOString().split("T")[0];
+  });
+  const visibleDays = showFullSchedule ? next30Days : next7Days;
+
+  const overdue = [];
+  const thisWeek = [];
+  const upcoming = [];
+
+  if (poolStale) overdue.push({ text: `Pool not tested in ${poolDaysAgo} days`, color: COLORS.amber, nav: "pool", detail: "Log a reading" });
+  highChemRecs.forEach(rec => overdue.push({ text: rec.action, color: COLORS.red, nav: "pool", detail: null }));
+  medChemRecs.slice(0, 2).forEach(rec => thisWeek.push({ text: rec.action, color: COLORS.amber, nav: "pool", detail: null }));
+  overdueHomeMaint.forEach(item => {
+    const days = -daysBetween(nextDueDate(item.last_completed, item.interval_days));
+    overdue.push({ text: item.title, color: COLORS.red, nav: "tasks", detail: `${days}d overdue` });
+  });
+  dueSoonHomeMaint.forEach(item => {
+    const days = daysBetween(nextDueDate(item.last_completed, item.interval_days));
+    thisWeek.push({ text: item.title, color: COLORS.amber, nav: "tasks", detail: `due in ${days}d` });
+  });
+  urgentTasks.slice(0, 4).forEach(task => {
+    const days = task.due_date ? daysBetween(task.due_date) : null;
+    const isOverdue = days !== null && days < 0;
+    const item = {
+      text: task.title,
+      color: isOverdue ? COLORS.red : task.is_important ? COLORS.purple : COLORS.amber,
+      nav: "tasks",
+      detail: isOverdue ? `${-days}d overdue` : days === 0 ? "Today" : task.is_important ? "Important" : days !== null ? `in ${days}d` : null,
+    };
+    if (isOverdue) overdue.push(item);
+    else thisWeek.push(item);
+  });
+  urgentDeadlines.forEach(deadline => {
+    const days = daysBetween(deadline.due_date);
+    const item = {
+      text: deadline.title,
+      color: days <= 4 ? COLORS.red : COLORS.amber,
+      nav: "college",
+      detail: days === 0 ? "Today" : days < 0 ? `${-days}d overdue` : `in ${days}d`,
+    };
+    if (days <= 4) overdue.push(item);
+    else thisWeek.push(item);
+  });
+  upcomingDeadlines.forEach(deadline => {
+    upcoming.push({ text: deadline.title, color: COLORS.slate, nav: "college", detail: `in ${daysBetween(deadline.due_date)}d` });
+  });
+  filteredEvents.filter(event => event.date === TODAY_STR).forEach(event => {
+    overdue.push({ text: event.title, color: COLORS.blue, nav: "home", detail: event.time || "Today" });
+  });
+  filteredEvents.filter(event => next7Days.includes(event.date) && event.date !== TODAY_STR).slice(0, 3).forEach(event => {
+    thisWeek.push({
+      text: event.title,
+      color: MEMBER_COLORS[event.member] || COLORS.slate,
+      nav: "home",
+      detail: `${event.time || ""} ${formatDate(event.date)}`.trim(),
+    });
+  });
+
+  const totalActions = overdue.length + thisWeek.length + upcoming.length;
+  const focusItems = [...overdue, ...thisWeek].slice(0, 5);
+  const totalIssues = overdue.length + thisWeek.length;
+  const headline = totalIssues === 0
+    ? "Nothing needs attention right now."
+    : [
+      overdue.length > 0 ? `${overdue.length} item${overdue.length > 1 ? "s" : ""} need action now` : null,
+      thisWeek.length > 0 ? `${thisWeek.length} due this week` : null,
+    ].filter(Boolean).join(", ") + ".";
+
+  const poolColor = highChemRecs.length > 0 ? COLORS.red : medChemRecs.length > 0 ? COLORS.amber : poolStale ? COLORS.amber : COLORS.green;
+  const poolLabel = highChemRecs.length > 0 ? "Action needed" : medChemRecs.length > 0 ? "Monitor" : poolStale ? `${poolDaysAgo}d since test` : "Good";
+  const poolDetail = highChemRecs.length > 0 ? `${highChemRecs[0].action.slice(0, 38)}...` : lastReading ? `pH ${lastReading.ph || "--"} FC ${lastReading.free_chlorine || "--"} Salt ${lastReading.salt || "--"}` : "No readings yet";
+
+  const tasksOverdue = overdueHomeMaint.length + urgentTasks.filter(task => task.due_date && daysBetween(task.due_date) < 0).length;
+  const tasksDueSoon = dueSoonHomeMaint.length + urgentTasks.filter(task => task.is_important && (!task.due_date || daysBetween(task.due_date) >= 0)).length;
+  const tasksColor = tasksOverdue > 0 ? COLORS.red : tasksDueSoon > 0 ? COLORS.amber : COLORS.green;
+  const tasksLabel = tasksOverdue > 0 ? `${tasksOverdue} overdue` : tasksDueSoon > 0 ? `${tasksDueSoon} this week` : "All clear";
+  const tasksDetail = tasksOverdue > 0 ? `${overdueHomeMaint[0]?.title || urgentTasks[0]?.title || ""}`.slice(0, 38) : tasksDueSoon > 0 ? "Maintenance due" : "Nothing overdue";
+
+  const finColor = retProj ? retProj.statusColor : COLORS.slate;
+  const finLabel = retProj ? retProj.statusLabel.split(" - ")[0].split("--")[0].trim().slice(0, 18) : "No data";
+  const finDetail = retProj ? `Age ${assump.retirement_age} - ${retProj.gap > 0 ? `-${formatMoneyShort(retProj.gap)} gap` : `surplus ${formatMoneyShort(-retProj.gap)}`}` : "Add accounts";
+
+  const collegeColor = urgentDeadlines.length > 0 ? COLORS.amber : COLORS.green;
+  const collegeLabel = urgentDeadlines.length > 0 ? `${urgentDeadlines.length} deadline${urgentDeadlines.length > 1 ? "s" : ""}` : upcomingDeadlines.length > 0 ? "Coming up" : "On track";
+  const collegeDetail = urgentDeadlines.length > 0 ? urgentDeadlines[0].title.slice(0, 38) : upcomingDeadlines.length > 0 ? `Next: ${upcomingDeadlines[0].title.slice(0, 32)}` : "No urgent deadlines";
+
+  const modules = [
+    { module: "Pool", color: poolColor, label: poolLabel, detail: poolDetail, nav: "pool", icon: Waves },
+    { module: "Tasks", color: tasksColor, label: tasksLabel, detail: tasksDetail, nav: "tasks", icon: ListTodo },
+    { module: "Finance", color: finColor, label: finLabel, detail: finDetail, nav: "finance", icon: DollarSign },
+    { module: "College", color: collegeColor, label: collegeLabel, detail: collegeDetail, nav: "college", icon: GraduationCap },
+  ];
+
+  const recentActivity = [
+    ...readings.data.slice(0, 2).map(reading => ({ date: reading.date, text: `Pool reading - pH ${reading.ph || "--"} FC ${reading.free_chlorine || "--"}`, color: COLORS.blue })),
+    ...treatments.data.slice(0, 2).map(treatment => {
+      const chemicals = [
+        treatment.muriatic_acid_oz && `${treatment.muriatic_acid_oz}oz acid`,
+        treatment.salt_lbs && `${treatment.salt_lbs}lb salt`,
+        treatment.cya_oz && `${treatment.cya_oz}oz CYA`,
+      ].filter(Boolean);
+      return { date: treatment.date, text: `Treatment - ${chemicals.length > 0 ? chemicals.join(", ") : "maintenance"}`, color: COLORS.green };
+    }),
+    ...deadlines.data.filter(deadline => deadline.completed).slice(0, 1).map(deadline => ({ date: deadline.due_date, text: `College: ${deadline.title}`, color: COLORS.green })),
+    ...homeMaint.data.filter(item => item.last_completed && daysAgo(item.last_completed) <= 7).slice(0, 1).map(item => ({ date: item.last_completed, text: item.title, color: COLORS.slate })),
+  ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 4);
+
+  return (
+    <div style={S.screen} className="space-y-5">
+      <Card className="overflow-hidden" style={{ borderTop: `3px solid ${totalIssues === 0 ? COLORS.green : overdue.length > 0 ? COLORS.red : COLORS.amber}` }}>
+        <CardContent className="p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">This Week</div>
+            <StatusBadge status={totalIssues === 0 ? "healthy" : overdue.length > 0 ? "urgent" : "warning"}>
+              {totalIssues === 0 ? "All clear" : overdue.length > 0 ? `${overdue.length} urgent` : `${thisWeek.length} due`}
+            </StatusBadge>
+          </div>
+          <div className="mb-1 text-2xl font-extrabold leading-tight tracking-normal" style={{ color: totalIssues === 0 ? COLORS.green : overdue.length > 0 ? COLORS.red : COLORS.amber }}>
+            {totalIssues === 0 ? "All clear" : overdue.length > 0 ? `${overdue.length} urgent` : `${thisWeek.length} this week`}
+          </div>
+          <p className="mb-2 text-sm leading-6 text-muted-foreground">{headline}</p>
+          {isLoading ? (
+            <div className="space-y-3 pt-2">
+              <Skeleton className="h-3.5 w-4/5" />
+              <Skeleton className="h-3.5 w-3/5" />
+            </div>
+          ) : focusItems.length > 0 ? (
+            <div className="mt-3 border-t border-border">
+              {focusItems.map((item, index) => (
+                <ActionRow
+                  key={`${item.text}-${index}`}
+                  item={item}
+                  showDivider={index < focusItems.length - 1}
+                  onNavigate={onNavigate}
+                />
+              ))}
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-2 gap-2.5">
+        {modules.map(item => <ModuleCard key={item.module} item={item} onNavigate={onNavigate} />)}
+      </div>
+
+      <section>
+        <SectionHeader
+          title="Action Center"
+          count={totalActions}
+          tone={overdue.length > 0 ? "red" : thisWeek.length > 0 ? "amber" : "green"}
+          action={totalActions > 5 ? (
+            <Button type="button" variant="ghost" size="xs" onClick={() => setShowAllActions(value => !value)}>
+              {showAllActions ? "Less" : `All ${totalActions}`}
+            </Button>
+          ) : null}
+        />
+        {isLoading ? (
+          <SectionSkeleton />
+        ) : totalActions === 0 ? (
+          <Card>
+            <EmptyStatePanel
+              icon={<CheckCircle2 className="mx-auto h-8 w-8 text-emerald-300" aria-hidden="true" />}
+              title="Nothing needs attention"
+              detail="The dashboard will surface urgent tasks, deadlines, calendar events, and module alerts here."
+              className="py-8"
+            />
+          </Card>
+        ) : (
+          <div className="space-y-2.5">
+            <ActionGroup title="Act Now" count={overdue.length} color={COLORS.red} items={overdue} showAll={showAllActions} defaultLimit={3} onNavigate={onNavigate} />
+            <ActionGroup title="This Week" count={thisWeek.length} color={COLORS.amber} items={thisWeek} showAll={showAllActions} defaultLimit={3} onNavigate={onNavigate} />
+            {showAllActions && <ActionGroup title="Coming Up" count={upcoming.length} color={COLORS.slate} items={upcoming} showAll defaultLimit={3} onNavigate={onNavigate} />}
+          </div>
+        )}
+      </section>
+
+      <SchedulePanel
+        gc={gc}
+        filteredEvents={filteredEvents}
+        visibleDays={visibleDays}
+        showFullSchedule={showFullSchedule}
+        setShowFullSchedule={setShowFullSchedule}
+        filter={filter}
+        setFilter={setFilter}
+        reassigning={reassigning}
+        setReassigning={setReassigning}
+        setOverrides={setOverrides}
+        formatDateFull={formatDateFull}
+        todayString={TODAY_STR}
+      />
+
+      <section>
+        <SectionHeader title="Recent Activity" tone="blue" />
+        {isLoading ? (
+          <SectionSkeleton rows={2} />
+        ) : recentActivity.length > 0 ? (
+          <Card>
+            <CardContent className="px-4 py-2">
+              {recentActivity.map((activity, index) => (
+                <div key={`${activity.text}-${index}`} className={`flex min-h-11 items-center gap-3 py-2 ${index < recentActivity.length - 1 ? "border-b border-border" : ""}`}>
+                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: activity.color }} />
+                  <div className="min-w-0 flex-1 truncate text-sm text-secondary-foreground">{activity.text}</div>
+                  <div className="shrink-0 text-xs text-muted-foreground">{formatDate(activity.date)}</div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <EmptyStatePanel
+              icon={<Clock className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />}
+              title="No recent activity"
+              detail="Completed work and new readings will appear here."
+              className="py-8"
+            />
+          </Card>
+        )}
+      </section>
+
+      <section>
+        <SectionHeader
+          title="Notes"
+          count={notes.data.length}
+          tone="neutral"
+          action={notes.data.length > 0 ? (
+            <Button type="button" variant="ghost" size="xs" onClick={() => setShowNotes(value => !value)}>
+              {showNotes ? "Hide" : "Show"}
+            </Button>
+          ) : null}
+        />
+        {notes.loading ? (
+          <SectionSkeleton rows={2} />
+        ) : notes.data.length === 0 ? (
+          <Card>
+            <EmptyStatePanel
+              icon={<NotebookText className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />}
+              title="No notes yet"
+              detail="Household notes added from Quick Add will show on the dashboard."
+              className="py-8"
+            />
+          </Card>
+        ) : showNotes ? (
+          <div className="space-y-2.5">
+            {notes.data.map(note => (
+              <Card key={note.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      {note.title && <div className="mb-1 truncate text-sm font-bold text-foreground">{note.title}</div>}
+                      <div className="text-sm leading-6 text-secondary-foreground">{note.body}</div>
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        {new Date(note.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </div>
+                    </div>
+                    <Badge variant="slate" className="shrink-0">{note.tag || "General"}</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : null}
+      </section>
+
+      {gc.token && (
+        <div className="pb-2">
+          <Button type="button" variant="secondary" size="sm" className="w-full" onClick={gc.refresh} loading={gc.loading}>
+            <RefreshCw className="h-4 w-4" aria-hidden="true" />
+            Refresh calendar
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
