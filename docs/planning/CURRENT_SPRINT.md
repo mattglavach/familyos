@@ -23,9 +23,11 @@ Build the first usable Family OS dashboard for Release 0.6B.
 - [x] Milestone 4 task management MVP pass
 - [x] Milestone 5 mobile responsiveness, loading states, and error-state hardening pass
 - [x] Milestone 6 settings and profile pass
-- [ ] Milestone 7 stability and release candidate pass
+- [x] Milestone 7 stability and release candidate pass
 
 ## Blockers
+
+- Release 0.6B has no active code blockers after local lint/build validation. Real-device family testing and Vercel deployment validation remain before broad use.
 
 ## Notes
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.
@@ -46,3 +48,4 @@ Build the first usable Family OS dashboard for Release 0.6B.
 - Release 0.6B Milestone 4 replaces the legacy inline-style task screen with a shared-card task MVP covering dashboard task groups, create/edit/complete/reopen/delete/reassign actions, filters, sorting, validation, toast feedback, and local task metadata for fields not yet present in the applied Supabase schema.
 - Release 0.6B Milestone 5 hardens the dashboard, calendar, family, tasks, and app shell UX with safer localStorage parsing, malformed event/task fallbacks, responsive action rows, focus visibility, labelled task drawer fields, toast live-region semantics, and mobile QA coverage notes.
 - Release 0.6B Milestone 6 adds a Settings/Profile screen with signed-in user details, local household defaults, task defaults, Google Calendar status and reconnect/clear-token actions, local metadata visibility, sign-out, and confirmed local app data reset without database schema changes.
+- Release 0.6B Milestone 7 closes the release candidate with lint/build validation, release notes, known limitations, no schema changes, and a manual QA checklist for dashboard, calendar, family, tasks, settings, navigation, and mobile layouts.
