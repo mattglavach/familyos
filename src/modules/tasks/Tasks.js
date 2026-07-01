@@ -27,8 +27,8 @@ import { Skeleton } from "../../components/ui/skeleton";
 import { Textarea } from "../../components/ui/textarea";
 import { OriginDrawer } from "../../components/origin/drawer";
 import { COLORS, MEMBER_COLORS, S } from "../../theme";
+import { useHousehold } from "../../context/HouseholdContext";
 import { useFamilyMembers } from "../dashboard/useFamilyMembers";
-import { readLocalSettings } from "../settings/localSettings";
 
 const TASK_METADATA_KEY = "familyos_task_metadata_v1";
 
@@ -58,10 +58,8 @@ const CATEGORY_TONES = {
 const PRIORITY_TONES = { high: "red", med: "amber", low: "slate" };
 const STATUS_TONES = { "Not Started": "neutral", "In Progress": "info", Completed: "complete" };
 const PRIORITY_WEIGHT = { high: 3, med: 2, low: 1 };
-
-function todayIso() {
-  return new Date().toISOString().split("T")[0];
-}
+const DB_STATUS_TO_UI = { not_started: "Not Started", in_progress: "In Progress", completed: "Completed" };
+const UI_STATUS_TO_DB = { "Not Started": "not_started", "In Progress": "in_progress", Completed: "completed" };
 
 function readTaskMetadata() {
   try {
@@ -86,11 +84,6 @@ function readTaskMetadata() {
   }
 }
 
-function writeTaskMetadata(metadata) {
-  if (typeof window === "undefined" || !window.localStorage) throw new Error("localStorage unavailable");
-  localStorage.setItem(TASK_METADATA_KEY, JSON.stringify(metadata));
-}
-
 function priorityLabel(priority) {
   return PRIORITY_OPTIONS.find(option => option.value === priority)?.label || "Medium";
 }
@@ -98,6 +91,16 @@ function priorityLabel(priority) {
 function memberColor(name, members) {
   const member = members.find(item => item.name === name);
   return member?.color || MEMBER_COLORS[name] || COLORS.slate;
+}
+
+function memberNameById(id, members) {
+  if (!id) return "Family";
+  return members.find(member => member.id === id)?.name || "Family";
+}
+
+function memberIdByName(name, members) {
+  if (!name || name === "Family") return null;
+  return members.find(member => member.name === name)?.id || null;
 }
 
 function effectiveDueDate(task, nextDueDate) {
@@ -123,11 +126,13 @@ function dueBucket(task, daysBetween, nextDueDate) {
   return "upcoming";
 }
 
-function normalizeTask(row, metadata, nextDueDate, index = 0) {
+function normalizeTask(row, metadata, members, nextDueDate, index = 0) {
   const source = row && typeof row === "object" ? row : {};
   const id = source.id || `task-row-${index}`;
   const extra = metadata[id] || {};
   const completed = !!source.completed;
+  const dbStatus = DB_STATUS_TO_UI[source.status] || null;
+  const legacyAssignee = extra.assignee || "Family";
   return {
     ...source,
     id,
@@ -135,10 +140,10 @@ function normalizeTask(row, metadata, nextDueDate, index = 0) {
     category: source.category || "Home",
     priority: source.priority || "med",
     description: source.notes || extra.description || "",
-    assignee: extra.assignee || "Family",
-    status: completed ? "Completed" : extra.status || "Not Started",
+    assignee: source.assigned_person_id ? memberNameById(source.assigned_person_id, members) : legacyAssignee,
+    status: completed ? "Completed" : dbStatus || extra.status || "Not Started",
     created_at: extra.created_at || source.created_at || source.created_date || null,
-    completed_at: extra.completed_at || (completed && !source.recurring_interval_days ? source.last_completed : null),
+    completed_at: source.completed_at || extra.completed_at || (completed && !source.recurring_interval_days ? source.last_completed : null),
     effective_due_date: effectiveDueDate(source, nextDueDate),
   };
 }
@@ -182,6 +187,16 @@ function taskRowFromForm(form, id, currentTask, todayString) {
     is_important: form.priority === "high",
     notes: form.description || "",
     completed,
+  };
+}
+
+function taskMetadataFromForm(form, members, currentTask, todayString) {
+  const completed = form.status === "Completed";
+  return {
+    assigned_person_id: memberIdByName(form.assignee, members),
+    status: UI_STATUS_TO_DB[form.status] || "not_started",
+    completed_at: completed ? currentTask?.completed_at || todayString : null,
+    module_key: currentTask?.module_key || "tasks",
   };
 }
 
@@ -400,7 +415,7 @@ function TaskDrawer({ open, mode, form, setForm, members, error, onClose, onSave
             <Input id="task-repeat-days" type="number" min="1" placeholder="Optional" value={form.recurring_interval_days} onChange={event => setForm(previous => ({ ...previous, recurring_interval_days: event.target.value }))} />
           </FormGroup>
         </FormRow>
-        <FormHelp>Assignee, status, created date, and completed date are stored locally until the shared household task schema is migrated.</FormHelp>
+        <FormHelp>Assignee, status, created date, and completed date are stored with the household task record.</FormHelp>
         {error && <FormError>{error}</FormError>}
       </FormSection>
     </OriginDrawer>
@@ -444,9 +459,10 @@ export function Tasks({ deps }) {
   const taskTable = useTable("tasks", "due_date", true);
   const homeMaint = useTable("home_maintenance", "title", true);
   const family = useFamilyMembers();
+  const household = useHousehold();
 
   const [metadata, setMetadata] = useState({});
-  const [metadataError, setMetadataError] = useState("");
+  const [metadataError] = useState("");
   const [view, setView] = useState("dashboard");
   const [memberFilter, setMemberFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -473,8 +489,8 @@ export function Tasks({ deps }) {
   const members = family.members;
   const activeMembers = family.activeMembers;
   const tasks = useMemo(
-    () => taskTable.data.map((task, index) => normalizeTask(task, metadata, nextDueDate, index)),
-    [taskTable.data, metadata, nextDueDate]
+    () => taskTable.data.map((task, index) => normalizeTask(task, metadata, members, nextDueDate, index)),
+    [members, taskTable.data, metadata, nextDueDate]
   );
 
   const taskStats = useMemo(() => {
@@ -520,39 +536,18 @@ export function Tasks({ deps }) {
       return (aDue ? daysBetween(aDue) : 9999) - (bDue ? daysBetween(bDue) : 9999);
     });
 
-  function persistMetadata(nextMetadata) {
-    try {
-      writeTaskMetadata(nextMetadata);
-      setMetadata(nextMetadata);
-      setMetadataError("");
-      return true;
-    } catch {
-      setMetadataError("Task details could not be saved on this device.");
-      return false;
-    }
-  }
-
-  function patchTaskMetadata(id, patch) {
-    const nextMetadata = { ...metadata, [id]: { ...(metadata[id] || {}), ...patch } };
-    return persistMetadata(nextMetadata);
-  }
-
-  function removeTaskMetadata(id) {
-    const nextMetadata = { ...metadata };
-    delete nextMetadata[id];
-    return persistMetadata(nextMetadata);
-  }
-
   function notify(message) {
     setToast({ message });
   }
 
   function openCreateTask() {
-    const localSettings = readLocalSettings();
-    const defaultAssignee = localSettings.defaultFamilyMember && localSettings.defaultFamilyMember !== "Family"
-      ? localSettings.defaultFamilyMember
-      : activeMembers[0]?.name || "Family";
-    setForm(emptyTaskForm(defaultAssignee, localSettings));
+    const defaultMember = family.members.find(member => member.id === household.userPreferences?.default_person_id);
+    const defaultAssignee = defaultMember?.name || activeMembers[0]?.name || "Family";
+    const defaultPriority = household.userPreferences?.default_task_priority || household.householdSettings?.default_task_priority;
+    setForm(emptyTaskForm(defaultAssignee, {
+      taskDefaultCategory: household.userPreferences?.default_task_category || household.householdSettings?.default_task_category || "Home",
+      taskDefaultPriority: defaultPriority === "medium" ? "med" : defaultPriority || "med",
+    }));
     setDrawer({ open: true, mode: "create", task: null });
     setFormError("");
   }
@@ -577,22 +572,18 @@ export function Tasks({ deps }) {
     }
 
     const id = drawer.task?.id || `task-${Date.now()}`;
-    const createdAt = drawer.task?.created_at || todayIso();
-    const completedAt = form.status === "Completed" ? drawer.task?.completed_at || TODAY_STR : null;
-    const row = taskRowFromForm(form, id, drawer.task, TODAY_STR);
+    const row = {
+      ...taskRowFromForm(form, id, drawer.task, TODAY_STR),
+      ...taskMetadataFromForm(form, members, drawer.task, TODAY_STR),
+      created_by_user_id: drawer.task?.created_by_user_id || household.user?.id || null,
+      updated_by_user_id: household.user?.id || null,
+    };
 
     if (drawer.mode === "edit" && drawer.task) await taskTable.update(drawer.task.id, row);
     else await taskTable.insert(row);
 
-    const ok = patchTaskMetadata(id, {
-      assignee: form.assignee || "Family",
-      status: form.status,
-      description: form.description || "",
-      created_at: createdAt,
-      completed_at: completedAt,
-    });
     closeDrawer();
-    notify(ok ? (drawer.mode === "edit" ? "Task updated." : "Task created.") : "Task saved, but local task details could not be stored.");
+    notify(drawer.mode === "edit" ? "Task updated." : "Task created.");
   }
 
   async function completeTask(task) {
@@ -609,8 +600,12 @@ export function Tasks({ deps }) {
         is_important: task.priority === "high" || !!task.is_important,
         notes: task.description || "",
         completed: false,
+        assigned_person_id: task.assigned_person_id || memberIdByName(task.assignee, members),
+        status: "not_started",
+        completed_at: TODAY_STR,
+        module_key: task.module_key || "tasks",
+        updated_by_user_id: household.user?.id || null,
       });
-      patchTaskMetadata(task.id, { status: "Not Started", completed_at: TODAY_STR });
       notify("Recurring task completed and rescheduled.");
       return;
     }
@@ -625,8 +620,12 @@ export function Tasks({ deps }) {
       is_important: task.priority === "high" || !!task.is_important,
       notes: task.description || "",
       completed: true,
+      assigned_person_id: task.assigned_person_id || memberIdByName(task.assignee, members),
+      status: "completed",
+      completed_at: TODAY_STR,
+      module_key: task.module_key || "tasks",
+      updated_by_user_id: household.user?.id || null,
     });
-    patchTaskMetadata(task.id, { status: "Completed", completed_at: TODAY_STR });
     notify("Task completed.");
   }
 
@@ -641,20 +640,38 @@ export function Tasks({ deps }) {
       is_important: task.priority === "high" || !!task.is_important,
       notes: task.description || "",
       completed: false,
+      assigned_person_id: task.assigned_person_id || memberIdByName(task.assignee, members),
+      status: "in_progress",
+      completed_at: null,
+      module_key: task.module_key || "tasks",
+      updated_by_user_id: household.user?.id || null,
     });
-    patchTaskMetadata(task.id, { status: "In Progress", completed_at: null });
     notify("Task reopened.");
   }
 
   async function deleteTask(task) {
     if (!window.confirm(`Delete "${task.title}"? This cannot be undone.`)) return;
     await taskTable.remove(task.id);
-    removeTaskMetadata(task.id);
     notify("Task deleted.");
   }
 
-  function reassignTask(task, assignee) {
-    patchTaskMetadata(task.id, { assignee });
+  async function reassignTask(task, assignee) {
+    await taskTable.update(task.id, {
+      title: task.title,
+      category: task.category || "Home",
+      priority: task.priority || "med",
+      due_date: task.due_date || null,
+      recurring_interval_days: task.recurring_interval_days || null,
+      last_completed: task.last_completed || null,
+      is_important: task.priority === "high" || !!task.is_important,
+      notes: task.description || "",
+      completed: task.status === "Completed",
+      assigned_person_id: memberIdByName(assignee, members),
+      status: UI_STATUS_TO_DB[task.status] || "not_started",
+      completed_at: task.completed_at || null,
+      module_key: task.module_key || "tasks",
+      updated_by_user_id: household.user?.id || null,
+    });
     notify(`Task assigned to ${assignee}.`);
   }
 
@@ -684,7 +701,7 @@ export function Tasks({ deps }) {
   );
 
   const loading = taskTable.loading || homeMaint.loading || family.loading;
-  const readWarning = "Supabase task read/write failures are still masked by the shared useTable seed fallback; this screen surfaces local metadata save errors only.";
+  const readWarning = "Task assignment, status, created date, and completed date now use Supabase task columns. Older browser metadata is read only as a legacy fallback when a row has not been updated yet.";
 
   return (
     <div style={S.screen} className="space-y-5">

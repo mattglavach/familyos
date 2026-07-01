@@ -124,8 +124,8 @@ function MemberFormDrawer({ open, mode, member, onClose, onSave, onDeactivate, o
 
   if (!open) return null;
 
-  function save() {
-    const result = onSave(form);
+  async function save() {
+    const result = await onSave(form);
     if (!result.ok) {
       setFormError(result.error);
       return;
@@ -133,8 +133,8 @@ function MemberFormDrawer({ open, mode, member, onClose, onSave, onDeactivate, o
     onClose();
   }
 
-  function deactivate() {
-    const result = onDeactivate?.();
+  async function deactivate() {
+    const result = await onDeactivate?.();
     if (!result.ok) {
       setFormError(result.error);
       return;
@@ -142,8 +142,8 @@ function MemberFormDrawer({ open, mode, member, onClose, onSave, onDeactivate, o
     onClose();
   }
 
-  function remove() {
-    const result = onRemove?.();
+  async function remove() {
+    const result = await onRemove?.();
     if (!result.ok) {
       setFormError(result.error);
       return;

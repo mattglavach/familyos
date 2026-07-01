@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { COLORS, MEMBER_COLORS } from "../../theme";
-
-const STORAGE_KEY = "familyos_family_members_v1";
+import { useHousehold } from "../../context/HouseholdContext";
+import { supabase } from "../../lib/supabase";
 
 export const DEFAULT_FAMILY_MEMBERS = [
   { id: "matt", name: "Matt", role: "Parent", status: "active", color: MEMBER_COLORS.Matt || COLORS.blue, notes: "" },
@@ -13,6 +13,41 @@ export const DEFAULT_FAMILY_MEMBERS = [
 
 function normalizeName(name) {
   return String(name || "").trim().replace(/\s+/g, " ");
+}
+
+function memberTypeFromRole(role) {
+  const value = String(role || "").toLowerCase();
+  if (value === "parent" || value === "caregiver" || value === "adult") return "adult";
+  if (value === "teen") return "teen";
+  if (value === "child") return "child";
+  if (value === "viewer") return "viewer";
+  return "other";
+}
+
+function displayRoleFromPerson(person, membership) {
+  if (person?.relationship) return person.relationship;
+  if (membership?.role === "owner" || membership?.role === "adult") return "Parent";
+  if (membership?.role === "teen") return "Teen";
+  if (membership?.role === "child" || person?.member_type === "child") return "Child";
+  if (person?.member_type === "adult") return "Parent";
+  if (person?.member_type === "viewer") return "Viewer";
+  return "Family";
+}
+
+function personName(person) {
+  return normalizeName(person?.display_name || [person?.first_name, person?.last_name].filter(Boolean).join(" "));
+}
+
+function memberFromPerson(person, membership) {
+  const name = personName(person);
+  return normalizeMember({
+    id: person.id,
+    name,
+    role: displayRoleFromPerson(person, membership),
+    status: person.status,
+    color: person.color || MEMBER_COLORS[name] || COLORS.blue,
+    notes: person.notes || "",
+  });
 }
 
 function normalizeMember(member, index = 0) {
@@ -29,16 +64,6 @@ function normalizeMember(member, index = 0) {
   };
 }
 
-function readStoredMembers() {
-  if (typeof window === "undefined" || !window.localStorage) return DEFAULT_FAMILY_MEMBERS;
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return DEFAULT_FAMILY_MEMBERS;
-  const parsed = JSON.parse(raw);
-  if (!Array.isArray(parsed)) return DEFAULT_FAMILY_MEMBERS;
-  const members = parsed.map(normalizeMember).filter(member => member.name);
-  return members.length ? members : DEFAULT_FAMILY_MEMBERS;
-}
-
 function validateMember(input, members, editingId) {
   const name = normalizeName(input.name);
   if (!name) return "Name is required.";
@@ -48,62 +73,112 @@ function validateMember(input, members, editingId) {
 }
 
 export function useFamilyMembers() {
-  const [members, setMembers] = useState(DEFAULT_FAMILY_MEMBERS);
-  const [loading, setLoading] = useState(true);
+  const household = useHousehold();
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    try {
-      setMembers(readStoredMembers());
-      setError("");
-    } catch {
-      setMembers(DEFAULT_FAMILY_MEMBERS);
-      setError("Family member changes could not be loaded. Showing the default household list.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    const membershipByPersonId = household.memberships.reduce((map, membership) => {
+      if (membership.person_id) map[membership.person_id] = membership;
+      return map;
+    }, {});
+    const nextMembers = household.people
+      .map(person => memberFromPerson(person, membershipByPersonId[person.id]))
+      .filter(member => member.name);
+    setMembers(nextMembers.length ? nextMembers : household.householdId && !household.error && !household.loading ? [] : DEFAULT_FAMILY_MEMBERS);
+    setLoading(household.loading);
+    setError(household.error);
+  }, [household.error, household.householdId, household.loading, household.memberships, household.people]);
 
-  const persist = useCallback(nextMembers => {
-    try {
-      if (typeof window === "undefined" || !window.localStorage) throw new Error("localStorage unavailable");
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(nextMembers));
-      setMembers(nextMembers);
-      setError("");
-      return true;
-    } catch {
-      setError("Family member changes could not be saved on this device.");
-      return false;
+  const saveMembership = useCallback(async (personId, role, status = "active") => {
+    if (!household.householdId || !personId) return;
+    const { error: membershipError } = await supabase.from("household_members").insert({
+      household_id: household.householdId,
+      person_id: personId,
+      role: memberTypeFromRole(role) === "other" ? "viewer" : memberTypeFromRole(role),
+      status,
+    });
+    if (membershipError) {
+      console.info("Household member row was not created; people row remains available:", membershipError);
     }
-  }, []);
+  }, [household.householdId]);
 
-  const addMember = useCallback(input => {
+  const addMember = useCallback(async input => {
     const validationError = validateMember(input, members);
     if (validationError) return { ok: false, error: validationError };
-    const member = normalizeMember({ ...input, id: `member-${Date.now()}` });
-    const ok = persist([...members, member]);
-    return { ok, error: ok ? "" : "Family member changes could not be saved on this device." };
-  }, [members, persist]);
+    if (!household.householdId || !household.canManageHousehold) {
+      return { ok: false, error: "Only household managers can add family members." };
+    }
+    const member = normalizeMember(input);
+    try {
+      const { data, error: personError } = await supabase.from("people").insert({
+        household_id: household.householdId,
+        display_name: member.name,
+        first_name: member.name.split(" ")[0] || null,
+        relationship: member.role,
+        member_type: memberTypeFromRole(member.role),
+        color: member.color,
+        status: member.status,
+        notes: member.notes,
+      }).select().single();
+      if (personError) throw personError;
+      await saveMembership(data.id, member.role, member.status);
+      await household.refresh();
+      return { ok: true, error: "" };
+    } catch (error) {
+      console.error("Family member add failed:", error);
+      setError("Family member could not be saved to Supabase.");
+      return { ok: false, error: "Family member could not be saved to Supabase." };
+    }
+  }, [household, members, saveMembership]);
 
-  const updateMember = useCallback((id, input) => {
+  const updateMember = useCallback(async (id, input) => {
     const validationError = validateMember(input, members, id);
     if (validationError) return { ok: false, error: validationError };
-    const nextMembers = members.map(member => member.id === id ? normalizeMember({ ...member, ...input, id }) : member);
-    const ok = persist(nextMembers);
-    return { ok, error: ok ? "" : "Family member changes could not be saved on this device." };
-  }, [members, persist]);
+    if (!household.canManageHousehold) {
+      return { ok: false, error: "Only household managers can update family members." };
+    }
+    const member = normalizeMember({ ...input, id });
+    try {
+      const { error: updateError } = await supabase.from("people").update({
+        display_name: member.name,
+        first_name: member.name.split(" ")[0] || null,
+        relationship: member.role,
+        member_type: memberTypeFromRole(member.role),
+        color: member.color,
+        status: member.status,
+        notes: member.notes,
+      }).eq("id", id);
+      if (updateError) throw updateError;
+      await household.refresh();
+      return { ok: true, error: "" };
+    } catch (error) {
+      console.error("Family member update failed:", error);
+      setError("Family member could not be updated in Supabase.");
+      return { ok: false, error: "Family member could not be updated in Supabase." };
+    }
+  }, [household, members]);
 
-  const deactivateMember = useCallback(id => {
-    const nextMembers = members.map(member => member.id === id ? { ...member, status: "inactive" } : member);
-    const ok = persist(nextMembers);
-    return { ok, error: ok ? "" : "Family member changes could not be saved on this device." };
-  }, [members, persist]);
+  const deactivateMember = useCallback(async id => {
+    if (!household.canManageHousehold) {
+      return { ok: false, error: "Only household managers can deactivate family members." };
+    }
+    try {
+      const { error: updateError } = await supabase.from("people").update({ status: "inactive" }).eq("id", id);
+      if (updateError) throw updateError;
+      await household.refresh();
+      return { ok: true, error: "" };
+    } catch (error) {
+      console.error("Family member deactivate failed:", error);
+      setError("Family member could not be deactivated in Supabase.");
+      return { ok: false, error: "Family member could not be deactivated in Supabase." };
+    }
+  }, [household]);
 
   const removeMember = useCallback(id => {
-    const nextMembers = members.filter(member => member.id !== id);
-    const ok = persist(nextMembers);
-    return { ok, error: ok ? "" : "Family member changes could not be saved on this device." };
-  }, [members, persist]);
+    return deactivateMember(id);
+  }, [deactivateMember]);
 
   const activeMembers = useMemo(() => members.filter(member => member.status !== "inactive"), [members]);
   const memberByName = useMemo(() => {

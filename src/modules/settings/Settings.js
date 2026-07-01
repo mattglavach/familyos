@@ -22,6 +22,8 @@ import { SectionHeader } from "../../components/ui/section-header";
 import { Select } from "../../components/ui/select";
 import { S } from "../../theme";
 import { APP_CONFIG, CONFIG_STATUS } from "../../config";
+import { useHousehold } from "../../context/HouseholdContext";
+import { supabase } from "../../lib/supabase";
 import { useFamilyMembers } from "../dashboard/useFamilyMembers";
 import {
   DEFAULT_SETTINGS,
@@ -29,8 +31,6 @@ import {
   TASK_CATEGORY_OPTIONS,
   TASK_PRIORITY_OPTIONS,
   localDataSnapshot,
-  readLocalSettings,
-  writeLocalSettings,
 } from "./localSettings";
 
 function formatDateTime(value) {
@@ -79,11 +79,25 @@ function SettingRow({ label, value, badge }) {
 }
 
 export function Settings({ auth, gc }) {
+  const household = useHousehold();
   const family = useFamilyMembers();
-  const [settings, setSettings] = useState(() => readLocalSettings());
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [snapshot, setSnapshot] = useState(() => localDataSnapshot());
   const [error, setError] = useState("");
   const [toast, setToast] = useState(null);
+
+  useEffect(() => {
+    const defaultPerson = household.userPreferences?.default_person_id;
+    const defaultMember = family.members.find(member => member.id === defaultPerson);
+    const defaultPriority = household.userPreferences?.default_task_priority || household.householdSettings?.default_task_priority;
+    setSettings({
+      householdName: household.household?.name || DEFAULT_SETTINGS.householdName,
+      profileName: household.profile?.display_name || "",
+      defaultFamilyMember: defaultMember?.id || "Family",
+      taskDefaultCategory: household.userPreferences?.default_task_category || household.householdSettings?.default_task_category || DEFAULT_SETTINGS.taskDefaultCategory,
+      taskDefaultPriority: defaultPriority === "medium" ? "med" : defaultPriority || DEFAULT_SETTINGS.taskDefaultPriority,
+    });
+  }, [family.members, household.household, household.householdSettings, household.profile, household.userPreferences]);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -99,10 +113,38 @@ export function Settings({ auth, gc }) {
     setSnapshot(localDataSnapshot());
   }
 
-  function saveSettings() {
+  function dbPriority(value) {
+    return value === "med" ? "medium" : value;
+  }
+
+  async function saveSettings() {
     try {
-      const next = writeLocalSettings(settings);
-      setSettings(next);
+      if (!household.householdId) throw new Error("Missing active household.");
+      const defaultPersonId = settings.defaultFamilyMember === "Family" ? null : settings.defaultFamilyMember;
+      const profileName = String(settings.profileName || "").trim() || null;
+      const householdName = String(settings.householdName || "").trim() || DEFAULT_SETTINGS.householdName;
+      const taskPriority = dbPriority(settings.taskDefaultPriority);
+
+      const operations = [
+        supabase.from("profiles").update({ display_name: profileName }).eq("id", auth.session.user.id),
+        supabase.from("households").update({ name: householdName }).eq("id", household.householdId),
+        supabase.from("household_settings").upsert({
+          household_id: household.householdId,
+          default_task_category: settings.taskDefaultCategory,
+          default_task_priority: taskPriority,
+        }),
+        supabase.from("user_preferences").upsert({
+          user_id: auth.session.user.id,
+          default_household_id: household.householdId,
+          default_person_id: defaultPersonId,
+          default_task_category: settings.taskDefaultCategory,
+          default_task_priority: taskPriority,
+        }),
+      ];
+      const results = await Promise.all(operations);
+      const failed = results.find(result => result.error);
+      if (failed) throw failed.error;
+      await household.refresh();
       setError("");
       refreshSnapshot();
       notify("Settings saved.");
@@ -124,7 +166,7 @@ export function Settings({ auth, gc }) {
   }
 
   function resetLocalData() {
-    if (!window.confirm("Reset local FamilyOS data on this device? This clears local family members, task metadata, settings, and calendar tokens.")) return;
+    if (!window.confirm("Reset local FamilyOS browser data on this device? Supabase household, profile, family member, and task data will not be deleted.")) return;
     LOCAL_DATA_KEYS.forEach(key => window.localStorage.removeItem(key));
     gc.clearLocalConnection?.();
     setSettings(DEFAULT_SETTINGS);
@@ -156,12 +198,17 @@ export function Settings({ auth, gc }) {
             <UserRound className="h-4 w-4 text-primary" aria-hidden="true" />
             Profile
           </CardTitle>
-          <CardDescription>Signed-in Supabase session details for this device.</CardDescription>
+          <CardDescription>Signed-in Supabase profile and session details.</CardDescription>
         </CardHeader>
         <CardContent className="px-4 pb-4 pt-0">
+          <FormGroup className="mb-3">
+            <Label htmlFor="profile-name">Display Name</Label>
+            <Input id="profile-name" value={settings.profileName || ""} onChange={event => setSettings(previous => ({ ...previous, profileName: event.target.value }))} />
+          </FormGroup>
           <SettingRow label="Email" value={email} />
           <SettingRow label="User ID" value={userId} />
-          <SettingRow label="Release" value="Release 0.6B" badge={<Badge variant="blue">0.6B</Badge>} />
+          <SettingRow label="Household Role" value={household.membership?.role || "Unavailable"} />
+          <SettingRow label="Release" value="Release 0.7" badge={<Badge variant="blue">0.7</Badge>} />
         </CardContent>
       </Card>
 
@@ -171,7 +218,7 @@ export function Settings({ auth, gc }) {
             <Users className="h-4 w-4 text-primary" aria-hidden="true" />
             Household Defaults
           </CardTitle>
-          <CardDescription>These preferences are stored locally until the household profile schema is ready.</CardDescription>
+          <CardDescription>Stored in Supabase household settings and user preferences.</CardDescription>
         </CardHeader>
         <CardContent className="px-4 pb-4 pt-0">
           <FormSection>
@@ -184,7 +231,7 @@ export function Settings({ auth, gc }) {
                 <Label htmlFor="default-family-member">Default Family Member</Label>
                 <Select id="default-family-member" value={settings.defaultFamilyMember} onChange={event => setSettings(previous => ({ ...previous, defaultFamilyMember: event.target.value }))}>
                   <option value="Family">Family</option>
-                  {activeMembers.map(member => <option key={member.id} value={member.name}>{member.name}</option>)}
+                  {activeMembers.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}
                 </Select>
               </FormGroup>
               <FormGroup>
@@ -246,7 +293,7 @@ export function Settings({ auth, gc }) {
             <Database className="h-4 w-4 text-primary" aria-hidden="true" />
             Local Data
           </CardTitle>
-          <CardDescription>Temporary metadata stored on this device for Release 0.6B.</CardDescription>
+          <CardDescription>Remaining browser-only tokens and legacy metadata on this device.</CardDescription>
         </CardHeader>
         <CardContent className="px-4 pb-4 pt-0">
           {snapshot.length ? (
