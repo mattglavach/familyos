@@ -39,7 +39,10 @@ Prepare Release 0.7 runtime integration on top of the completed Release 0.6C Sup
 - [x] Release 0.6C production household foundation migration
 - [x] Release 0.6C production validation and app-path smoke tests
 - [x] Release 0.6C closeout documentation
-- [ ] Release 0.7 kickoff plan
+- [x] Release 0.7 kickoff plan
+- [x] Release 0.7 active household context
+- [x] Release 0.7 Supabase-backed family members, settings, and task metadata
+- [x] Release 0.7 Google Calendar server-side storage assessment
 
 ## Blockers
 
@@ -79,4 +82,4 @@ Prepare Release 0.7 runtime integration on top of the completed Release 0.6C Sup
 - Release 0.6C production attempt 1 verified the linked production target and captured local backup artifacts, but the migration failed safely during preflight because production is still on the older public/open module-table policy baseline without `user_id` ownership columns. No Release 0.6C foundation tables were left behind.
 - Release 0.6C production baseline alignment planning documents the required owner/backfill decision, recommended temporary owner approach, validation scope, and stop conditions before another production attempt.
 - Release 0.6C production execution added the auth ownership baseline, backfilled 67 existing module rows to the approved owner, applied the household foundation migration, passed production validation SQL, passed authenticated-role app-path smoke tests, and left browser localStorage behavior unchanged.
-- Release 0.7 should start runtime integration: active household context, Supabase-backed family members/settings/task metadata, and eventual server-side calendar connection storage.
+- Release 0.7 runtime integration adds active household context, household-aware Supabase table access, Supabase-backed family members/settings/task metadata, and a documented future server-side calendar connection model.

@@ -22,6 +22,8 @@ Compatibility note: the migration keeps `people.member_type = 'child_profile'` v
 
 Production validation note: Release 0.6C production validation confirmed 67 existing module rows with non-null `user_id`, non-null `household_id` where applicable, no remaining public/open module policies, no duplicate bootstrap records, and passing app-path smoke tests for owner reads, task CRUD, new-user bootstrap, and non-member denial.
 
+Release 0.7 runtime note: the app now resolves the active household after login and uses the household foundation for people/family members, household settings, user preferences, and structured task metadata. Module tables still preserve the existing user-owned compatibility policies while the frontend writes `household_id` where available.
+
 ## Core Tables
 
 ### profiles

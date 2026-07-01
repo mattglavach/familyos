@@ -36,16 +36,18 @@ Release 0.6C data foundation is complete in production. Release 0.7 is the activ
 - Release 0.6C production auth ownership baseline migration with approved owner backfill
 - Release 0.6C production household foundation migration
 - Release 0.6C production validation SQL, grants validation, RLS checks, and app-path smoke tests
+- Release 0.7 active household runtime context
+- Release 0.7 household-aware Supabase table access
+- Release 0.7 Supabase-backed family members, settings/profile defaults, and task metadata
+- Release 0.7 Google Calendar server-side storage assessment
 
 ## In Progress
-- Release 0.7 kickoff planning
+- Release 0.7 validation and release closeout
 
 ## Next
-- Plan app active-household context and data-service changes before replacing user-owned RLS.
-- Migrate family members from browser localStorage to the `people` / `household_members` foundation.
-- Migrate settings/profile defaults to `household_settings` and `user_preferences`.
-- Migrate task metadata writes to the structured task columns.
-- Plan server-side Google Calendar connection storage.
+- Validate Release 0.7 against production-like Supabase data.
+- Plan server-side Google Calendar connection storage implementation.
+- Plan household switcher and invitation workflow only after the current household path is stable.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
 
 ## Known Bugs
@@ -53,16 +55,15 @@ Release 0.6C data foundation is complete in production. Release 0.7 is the activ
 - No active deploy-blocking build errors after the CI lint cleanup.
 - Production magic-link redirects depend on Supabase Auth Site URL and allowed redirect URLs being set to the deployed FamilyOS origin.
 - Google Calendar sync requires the active browser origin to be listed in Google Cloud Console Authorized JavaScript origins for the configured OAuth client.
-- Dashboard family member edits are stored in browser localStorage for Release 0.6B because the current applied Supabase schema does not include a family member table.
-- Task assignee, status, created date, and completed date are stored in browser localStorage for Release 0.6B because the current applied Supabase tasks table does not include those columns.
-- Google Calendar token storage remains browser-local in Release 0.6B and should move server-side in a later calendar connection milestone.
+- Google Calendar token storage remains browser-local in Release 0.7 and should move server-side in a later calendar connection milestone.
+- Legacy browser metadata keys for Release 0.6B settings, family members, and task metadata may remain on devices until local browser data is reset, but they are no longer the normal persistence path.
 - Six-item bottom navigation should be checked on physical mobile devices before broad family use.
 - The legacy household foundation migration is marked local-only and must not be applied to production.
 - Release 0.6C introduced household foundation tables and nullable household compatibility fields, but the runtime app still uses browser-local metadata until Release 0.7 integration work.
 
 ## Technical Debt
 - Existing feature screens still contain substantial inline styles and should be migrated gradually to shadcn/ui and Origin UI components during feature work.
-- Release 0.6B relies on temporary localStorage metadata for settings, family members, task metadata, and calendar tokens until the household/profile/task/calendar schema work is completed.
+- Release 0.7 removes normal browser-local persistence for settings, family members, and task metadata. Calendar tokens and selected UI-only module preferences remain browser-local.
 - Current Supabase module tables still use direct `user_id = auth.uid()` RLS; household-scoped RLS must be introduced only after backfill and active-household app context are validated.
 - The household foundation draft intentionally keeps module-table `user_id` RLS in place while adding nullable `household_id` fields for staged migration.
 - Release 0.6C production baseline alignment backfilled existing module rows to the approved owner UUID. Future household-scoped sharing should move access through `household_id` once active-household runtime context is implemented.

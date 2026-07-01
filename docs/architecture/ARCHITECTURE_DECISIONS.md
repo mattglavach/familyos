@@ -23,6 +23,28 @@ Record decisions that shape the product.
 ### July 1, 2026
 
 ### Decision
+Use a React household context as the Release 0.7 runtime boundary for active household, profile, membership, people, household settings, and user preferences.
+
+### Context
+Release 0.6C added the production household foundation without changing runtime app behavior. Release 0.7 needs visible app integration without replacing all module RLS policies or expanding product scope.
+
+### Options Considered
+- Keep each screen querying household data independently.
+- Replace all module-table access and RLS with household-only behavior in one release.
+- Add a shared household context and make table access household-aware while preserving user-owned compatibility.
+
+### Decision Rationale
+A shared household context gives every screen one active household source and reduces duplicated query logic. Household-aware table access starts writing `household_id` and `user_id` consistently while preserving existing production compatibility and avoiding a risky RLS replacement in the same release.
+
+### Tradeoffs
+The app still resolves only one active/default household and does not yet expose household switching or invitations. Existing module RLS remains staged through user ownership until a later validated migration.
+
+### Follow-up
+Add household switching and invitation flows after the single-household path is validated. Move Google Calendar tokens and sync reads server-side in a dedicated calendar security milestone.
+
+### July 1, 2026
+
+### Decision
 Use `owner`, `adult`, `teen`, `child`, and `viewer` as the standard household role vocabulary for Release 0.6C.
 
 ### Context

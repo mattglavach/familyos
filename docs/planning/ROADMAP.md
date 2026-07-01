@@ -50,7 +50,7 @@
 - [x] Build and validate production auth ownership baseline migration after owner UUID approval.
 - [x] Reconcile production auth ownership baseline before re-attempting Release 0.6C.
 - [x] Re-attempt Release 0.6C after production baseline alignment passes validation.
-- [ ] Household and people/family member persistence.
-- [ ] Shared task schema fields for assignee, status, created/completed timestamps, module ownership, and recurrence clarity.
-- [ ] Settings/profile persistence beyond browser localStorage.
+- [x] Household and people/family member persistence.
+- [x] Shared task schema fields for assignee, status, created/completed timestamps, module ownership, and recurrence clarity.
+- [x] Settings/profile persistence beyond browser localStorage.
 - [ ] Server-side Google Calendar connection model and token storage.
