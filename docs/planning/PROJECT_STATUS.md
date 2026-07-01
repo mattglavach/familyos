@@ -4,7 +4,7 @@
 0.6C
 
 ## Current State
-Release 0.6C data foundation work is in progress. A production household foundation migration draft and validation guide exist, but no Release 0.6C database migration has been applied.
+Release 0.6C data foundation work is in progress. A production household foundation migration draft and validation guide exist, but no Release 0.6C database migration has been applied. The dry run remains pending because this workspace does not expose `psql` or the Supabase CLI.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -26,12 +26,13 @@ Release 0.6C data foundation work is in progress. A production household foundat
 - Release 0.6C Milestone 1 data model audit and migration plan
 - Release 0.6C Milestone 2 production household foundation migration draft
 - Release 0.6C Milestone 3 migration dry-run preparation and validation plan
+- Release 0.6C Milestone 4 dry-run execution-pending update with exact local/staging commands
 
 ## In Progress
-- Release 0.6C household foundation dry-run execution planning
+- Release 0.6C household foundation dry-run execution
 
 ## Next
-- Dry-run the production household foundation migration draft against a local or staging Supabase copy
+- Run the documented pending commands in an environment with `psql` or the Supabase CLI
 - Run RLS smoke tests for owner, adult, teen, child, viewer, and non-member users
 - Plan app active-household context and data-service changes before replacing user-owned RLS
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested

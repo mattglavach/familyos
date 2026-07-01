@@ -262,9 +262,20 @@ Milestone 3 does not apply the migration. It adds a dedicated validation guide c
 
 Execution remains pending until the migration can be run with `psql` or the Supabase CLI against a disposable local or staging database.
 
-## Recommended Milestone 4
+## Milestone 4 Dry-Run Attempt
 
-Validate the production migration draft against a local or staging Supabase copy:
+Milestone 4 rechecked this workspace for SQL tooling. Neither `psql` nor the Supabase CLI is available here, so the dry run was not executed and no migration revisions were made from runtime findings.
+
+The validation guide now includes:
+
+- exact pending commands for local/staging execution;
+- an explicit execution-pending status;
+- a dry-run results template;
+- manual checks still required before production readiness.
+
+## Recommended Milestone 5
+
+Execute the production migration draft against a local or staging Supabase copy:
 
 1. Run the migration on a disposable database seeded from `supabase/schema.sql`.
 2. Confirm the bootstrap creates one household, owner membership, settings row, and user preference row per auth user.

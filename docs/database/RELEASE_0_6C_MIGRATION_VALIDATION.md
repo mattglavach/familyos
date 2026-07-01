@@ -25,6 +25,20 @@ Do not apply this migration to production until every production readiness gate 
 
 This repository workspace does not currently expose `psql` or the Supabase CLI, so execution validation remains pending until run in an environment with SQL tooling.
 
+## Release 0.6C Milestone 4 Status
+
+Milestone 4 checked local SQL tooling again. Neither `psql` nor the Supabase CLI is available in this Codex workspace, so the migration dry run was not executed here.
+
+Status:
+
+- SQL dry run: pending.
+- Idempotency re-run: pending.
+- Verification SQL: pending.
+- RLS smoke tests: pending.
+- Migration revisions from actual execution: none.
+
+Do not treat the migration as production-ready until the commands in this guide have been run against a disposable local or staging Supabase database and the results template below has been completed.
+
 ## Validation Checklist
 
 ### Syntax Review
@@ -129,6 +143,49 @@ psql "$env:SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20260701_r
 ```
 
 Run the same command a second time to test idempotency. The second run should complete without duplicate household, membership, settings, or preference rows.
+
+### Exact Pending Commands
+
+Use these commands from the repository root after installing the required SQL tooling and setting `SUPABASE_DB_URL` to a disposable local or staging database.
+
+Check tooling:
+
+```powershell
+Get-Command psql
+Get-Command supabase
+```
+
+Optional local Supabase startup:
+
+```powershell
+supabase start
+```
+
+Apply the baseline schema if using an empty disposable database:
+
+```powershell
+psql "$env:SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/schema.sql
+```
+
+Apply the Release 0.6C migration draft:
+
+```powershell
+psql "$env:SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20260701_release_0_6c_household_foundation.sql
+```
+
+Re-run the migration to test idempotency:
+
+```powershell
+psql "$env:SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20260701_release_0_6c_household_foundation.sql
+```
+
+Run verification queries:
+
+```powershell
+psql "$env:SUPABASE_DB_URL" -v ON_ERROR_STOP=1
+```
+
+Paste the verification and RLS smoke-test SQL from the sections below.
 
 ## Verification Queries
 
@@ -343,6 +400,77 @@ Expected result: current user-owned task access still works through existing `us
 - Do not patch production directly.
 - Update this guide and the migration draft after root-cause analysis.
 - Re-run the full checklist on a fresh disposable database after any migration change.
+
+## Dry-Run Results Template
+
+Complete this template after running the migration in a disposable local or staging Supabase database.
+
+```text
+Environment:
+- Local or staging:
+- Supabase project/ref:
+- Database source: schema-only / sanitized backup / other:
+- Migration file:
+- Date/time:
+- Operator:
+
+Tooling:
+- psql version:
+- Supabase CLI version:
+
+Execution:
+- Baseline schema applied: pass/fail/not needed
+- First migration run: pass/fail
+- Idempotency re-run: pass/fail
+- Runtime app behavior changed: no
+- Production database touched: no
+
+Foundation counts:
+- auth.users:
+- profiles:
+- households:
+- bootstrap mappings:
+- active owner memberships:
+- household_settings:
+- user_preferences:
+
+Backfill:
+- module tables checked:
+- rows with user_id but missing household_id:
+- nullable compatibility rows reviewed:
+
+Task metadata:
+- missing status:
+- missing module_key:
+- completed status mismatch:
+- missing creator:
+
+RLS smoke tests:
+- owner membership management: pass/fail
+- adult people management: pass/fail
+- adult membership denial: pass/fail
+- teen read/manage behavior: pass/fail
+- child read/manage behavior: pass/fail
+- viewer read/manage behavior: pass/fail
+- non-member denial: pass/fail
+- existing user-owned tasks compatibility: pass/fail
+
+Findings:
+- Migration revisions required:
+- RLS revisions required:
+- Documentation revisions required:
+- Production readiness recommendation:
+```
+
+## Manual Checks Still Required
+
+- Confirm the migration runs against a database that matches the real production baseline.
+- Confirm bootstrap behavior with users who have no module rows.
+- Confirm backfill behavior with users who have records in multiple modules.
+- Confirm the RLS smoke-test JWT setup matches the active Supabase environment.
+- Confirm existing app reads/writes still work in staging after migration because module-table `user_id` RLS remains in place.
+- Confirm backup and rollback procedures before production execution.
+- Confirm whether task/settings additions should remain in this migration or be split before production.
 
 ## Release 0.6C Milestone 3 Status
 
