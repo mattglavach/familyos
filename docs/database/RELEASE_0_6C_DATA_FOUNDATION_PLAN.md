@@ -395,4 +395,19 @@ Result:
 - Follow-up read-only checks confirmed production still has public/open module-table policies rather than the current repo baseline's user-owned `familyos_user_all` policies.
 - No Release 0.6C foundation tables were left behind.
 
-The recommendation to apply the combined Release 0.6C migration as-is is withdrawn until production baseline alignment is complete. The next milestone should reconcile the earlier auth ownership baseline before re-attempting Release 0.6C.
+The recommendation to apply the combined Release 0.6C migration as-is was withdrawn until production baseline alignment completed.
+
+## Production Completion Result
+
+Release 0.6C production execution is complete.
+
+Final production migration order:
+
+1. `supabase/migrations/20260701_release_0_6c_auth_ownership_baseline.sql`
+2. `supabase/migrations/20260701_release_0_6c_household_foundation.sql`
+
+The auth ownership baseline migration reconciled production drift by adding missing `user_id` columns, backfilling existing module rows to approved owner `fc93e654-0305-4b4e-8c48-9edff3c2e800`, creating ownership indexes, replacing public/open module-table policies with `familyos_user_all`, and granting authenticated module-table DML.
+
+The household foundation migration then applied successfully. Production validation confirmed profiles, households, owner memberships, household settings, user preferences, task metadata columns, module `household_id` compatibility, grants, RLS, duplicate guards, new-user bootstrap, and app-path task CRUD behavior.
+
+Release 0.7 should build runtime integration on this foundation without removing the Release 0.6B browser-local metadata until each migration path is implemented and validated.

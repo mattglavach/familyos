@@ -36,6 +36,8 @@ Before production database changes:
 
 If production validation fails, stop. Document root cause, impact, rollback recommendation, and repair recommendation before continuing.
 
+For staged database releases where production is behind the repository baseline, add a dedicated baseline-alignment migration and validate it against a disposable production-drift clone before applying the target release migration. Apply migrations explicitly by file in the approved order; do not rely on broad migration push commands when old local-only migrations exist in the repository.
+
 ## Release Notes
 Each release should include:
 - New features

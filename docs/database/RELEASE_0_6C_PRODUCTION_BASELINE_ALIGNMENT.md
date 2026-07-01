@@ -2,20 +2,24 @@
 
 ## Purpose
 
-Release 0.6C cannot be re-attempted in production until production matches the current repository baseline for authenticated, user-owned module rows.
+Release 0.6C production baseline alignment has been completed.
 
-The first production attempt against `dsowansazqleudupnjug` failed safely during the Release 0.6C migration preflight because production module tables do not have `user_id` ownership columns. Follow-up catalog checks confirmed the affected tables still use older public/open policies.
+The first production attempt against `dsowansazqleudupnjug` failed safely during the Release 0.6C migration preflight because production module tables did not have `user_id` ownership columns. Follow-up catalog checks confirmed the affected tables still used older public/open policies.
+
+The approved production owner UUID for the alignment backfill was `fc93e654-0305-4b4e-8c48-9edff3c2e800`. The baseline alignment migration now lives at:
+
+- `supabase/migrations/20260701_release_0_6c_auth_ownership_baseline.sql`
 
 ## Current Production Drift
 
-Production currently differs from `supabase/schema.sql` in the auth ownership layer:
+Production previously differed from `supabase/schema.sql` in the auth ownership layer:
 
 - module tables are missing `user_id uuid references auth.users(id) default auth.uid()`;
 - module tables have RLS enabled but still use public/open policies such as `Allow all for anon` or `open`;
 - the current repository baseline expects `familyos_user_all` policies scoped to `user_id = auth.uid()`;
 - Release 0.6C household foundation migration intentionally refuses to run without that baseline.
 
-The failed Release 0.6C attempt rolled back before creating foundation tables.
+The failed Release 0.6C attempt rolled back before creating foundation tables. The subsequent production baseline alignment added the missing ownership layer, replaced public/open module-table policies, and allowed the Release 0.6C household foundation migration to apply successfully.
 
 ## Affected Tables
 
@@ -43,29 +47,21 @@ The production preflight reported these module tables missing `user_id`:
 - `net_worth_snapshots`
 - `finance_action_items`
 
-## Required Owner Decision
+## Owner Decision
 
 Existing production rows need an explicit owner assignment before the open/public policies can be replaced with user-owned RLS.
 
-Owner decision required:
+Decision recorded:
 
-- choose one existing Supabase auth user UUID to own all current production module rows; or
-- provide a table-by-table or row-by-row ownership map; or
-- choose to leave existing rows unowned temporarily and accept that they will be hidden once user-owned RLS is enabled.
+- Existing production module rows are assigned to auth user `fc93e654-0305-4b4e-8c48-9edff3c2e800`.
+- This is a compatibility bridge. After household-aware app context ships, shared household access should move through `household_id` and household RLS rather than direct per-user ownership.
 
-Recommendation:
+## Alignment Execution
 
-- Use one existing adult/owner auth user UUID as the temporary owner for all existing production rows.
-- After Release 0.6C household foundation is applied, later household-aware app work can share records through household context rather than direct user ownership.
-
-Do not guess this UUID in code or documentation. It must be supplied and approved by the owner before production execution.
-
-## Alignment Plan
-
-1. Capture fresh production backup artifacts.
-2. Confirm the production project ref is `dsowansazqleudupnjug`.
-3. Confirm the chosen owner auth user UUID.
-4. Apply an idempotent auth ownership baseline migration that:
+1. Captured fresh production backup artifacts.
+2. Confirmed the production project ref is `dsowansazqleudupnjug`.
+3. Confirmed approved owner auth user UUID `fc93e654-0305-4b4e-8c48-9edff3c2e800`.
+4. Applied an idempotent auth ownership baseline migration that:
    - adds nullable `user_id` columns with `auth.uid()` defaults;
    - backfills existing null `user_id` values to the approved owner UUID;
    - creates `user_id` indexes;
@@ -73,20 +69,19 @@ Do not guess this UUID in code or documentation. It must be supplied and approve
    - drops older public/open policies;
    - creates `familyos_user_all` policies scoped to `user_id = auth.uid()`;
    - keeps existing table data intact.
-5. Run validation SQL for row counts, `user_id` backfill, policy names, and app reads/writes.
-6. Re-run the Release 0.6C household foundation migration after baseline alignment passes.
+5. Ran validation SQL for row counts, `user_id` backfill, policy names, grants, and app-path reads/writes.
+6. Applied the Release 0.6C household foundation migration after baseline alignment passed.
 
 ## Migration Requirements
 
-The production baseline alignment migration must:
+The production baseline alignment migration:
 
-- be idempotent and rerunnable;
-- fail before changing policies if an approved owner UUID is not supplied and existing rows need ownership;
-- preserve existing rows;
-- avoid hardcoding a personal UUID in committed source;
-- avoid changing Release 0.6C household tables;
-- leave `household_id` work to the existing Release 0.6C migration;
-- document the exact owner UUID used in private operational notes, not committed docs.
+- is idempotent and rerunnable;
+- fails fast if the approved owner UUID is absent from `auth.users`;
+- preserves existing rows;
+- uses the approved owner UUID for production backfill;
+- avoids changing Release 0.6C household tables;
+- leaves `household_id` work to the Release 0.6C household foundation migration.
 
 ## Validation SQL Scope
 
@@ -99,12 +94,24 @@ Before migration:
 
 After migration:
 
-- confirm every affected table has `user_id`;
-- confirm every existing row with data has non-null `user_id`;
-- confirm every affected table has `familyos_user_all`;
-- confirm older public/open policies are removed;
-- confirm authenticated app reads/writes work for the owner user;
-- confirm anon access is denied where expected.
+- every affected table has `user_id`;
+- every existing row with data has non-null `user_id`;
+- every affected table has `familyos_user_all`;
+- older public/open policies are removed;
+- authenticated grants are present;
+- authenticated app reads/writes work for the owner user;
+- non-member access is denied where expected.
+
+Production validation results:
+
+- module tables missing `user_id`: 0.
+- module rows with null `user_id`: 0.
+- module tables missing `household_id` after the household migration: 0.
+- module rows with `user_id` but missing `household_id`: 0.
+- module tables with public/open policies remaining: 0.
+- module tables with RLS disabled: 0.
+- module tables missing `authenticated` DML grants: 0.
+- production module rows validated: 67.
 
 ## Stop Conditions
 
@@ -117,6 +124,6 @@ Stop before production execution if:
 - policy validation differs from the expected older public/open state;
 - app smoke tests fail after baseline alignment.
 
-## Recommended Next Work Package
+## Release 0.6C Closeout Status
 
-Create and validate the production auth ownership baseline migration against a disposable local database that mirrors the observed production drift, then request explicit owner approval for the production owner UUID before applying it to production.
+Baseline alignment is complete and validated. The Release 0.6C household foundation migration was applied immediately after baseline alignment and passed production validation.

@@ -1,10 +1,10 @@
 # Project Status
 
 ## Current Version
-0.6C
+0.7
 
 ## Current State
-Release 0.6C data foundation production execution is blocked by production baseline drift. The household foundation migration passed disposable local, fresh schema-only, staging-like local, and app smoke validation after three compatibility revisions, but the first production attempt failed safely during preflight because production module tables do not yet have the expected `user_id` ownership baseline.
+Release 0.6C data foundation is complete in production. Release 0.7 is the active development target for runtime integration on top of the household foundation schema.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -33,15 +33,19 @@ Release 0.6C data foundation production execution is blocked by production basel
 - Release 0.6C Milestone 8 production readiness signoff review and recommendation to apply the combined migration as-is after backup capture and owner approval
 - Release 0.6C production attempt 1 target verification, backup artifact capture, failed preflight, and baseline drift diagnosis
 - Release 0.6C production baseline alignment plan for missing `user_id` ownership and public/open policy drift
+- Release 0.6C production auth ownership baseline migration with approved owner backfill
+- Release 0.6C production household foundation migration
+- Release 0.6C production validation SQL, grants validation, RLS checks, and app-path smoke tests
 
 ## In Progress
-- Release 0.6C production baseline alignment planning
+- Release 0.7 kickoff planning
 
 ## Next
-- Create and validate the production auth ownership baseline alignment migration against a disposable production-drift clone
-- Decide explicit ownership/backfill behavior for existing production module rows before production execution
-- Re-run Release 0.6C validation after the production baseline is aligned
-- Plan app active-household context and data-service changes before replacing user-owned RLS
+- Plan app active-household context and data-service changes before replacing user-owned RLS.
+- Migrate family members from browser localStorage to the `people` / `household_members` foundation.
+- Migrate settings/profile defaults to `household_settings` and `user_preferences`.
+- Migrate task metadata writes to the structured task columns.
+- Plan server-side Google Calendar connection storage.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
 
 ## Known Bugs
@@ -54,14 +58,14 @@ Release 0.6C data foundation production execution is blocked by production basel
 - Google Calendar token storage remains browser-local in Release 0.6B and should move server-side in a later calendar connection milestone.
 - Six-item bottom navigation should be checked on physical mobile devices before broad family use.
 - The legacy household foundation migration is marked local-only and must not be applied to production.
-- The Release 0.6C production migration draft passed disposable local, fresh schema-only, staging-like, migrated-local app smoke validation, and production readiness signoff review, but production is missing the expected earlier `user_id` ownership baseline. The first production attempt failed during preflight and no Release 0.6C foundation tables were applied.
+- Release 0.6C introduced household foundation tables and nullable household compatibility fields, but the runtime app still uses browser-local metadata until Release 0.7 integration work.
 
 ## Technical Debt
 - Existing feature screens still contain substantial inline styles and should be migrated gradually to shadcn/ui and Origin UI components during feature work.
 - Release 0.6B relies on temporary localStorage metadata for settings, family members, task metadata, and calendar tokens until the household/profile/task/calendar schema work is completed.
 - Current Supabase module tables still use direct `user_id = auth.uid()` RLS; household-scoped RLS must be introduced only after backfill and active-household app context are validated.
 - The household foundation draft intentionally keeps module-table `user_id` RLS in place while adding nullable `household_id` fields for staged migration.
-- Production baseline alignment requires an explicit owner UUID decision for existing rows; this cannot be inferred safely by automation.
+- Release 0.6C production baseline alignment backfilled existing module rows to the approved owner UUID. Future household-scoped sharing should move access through `household_id` once active-household runtime context is implemented.
 
 ## Last Updated
 July 1, 2026

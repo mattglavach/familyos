@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Completed Release 0.6C production execution: added the production auth ownership baseline, backfilled existing module rows to the approved owner, applied the household foundation migration, validated RLS/grants/bootstrap/task metadata, and passed transaction-rolled-back app-path smoke tests without changing runtime app or localStorage behavior.
 - Added the Release 0.6C production baseline alignment plan for reconciling missing `user_id` ownership columns and public/open policy drift before re-attempting the household foundation migration.
 - Attempted the Release 0.6C production migration after target verification and local backup artifact capture; the migration failed safely during preflight because production is missing the expected `user_id` ownership baseline, and follow-up checks confirmed no Release 0.6C foundation tables were left behind.
 - Completed Release 0.6C production readiness signoff review without touching production; confirmed backup method, restore/rollback path, migration file, validation SQL scope, post-migration smoke checks, and the owner go/no-go gate, with a recommendation to apply the combined migration as-is after backup capture and explicit approval.

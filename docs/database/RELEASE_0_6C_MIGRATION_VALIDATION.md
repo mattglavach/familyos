@@ -6,9 +6,10 @@ This guide prepares the Release 0.6C household foundation migration for safe dry
 
 Migration under review:
 
+- `supabase/migrations/20260701_release_0_6c_auth_ownership_baseline.sql`
 - `supabase/migrations/20260701_release_0_6c_household_foundation.sql`
 
-Do not apply this migration to production until every production readiness gate in this guide passes on a disposable local or staging Supabase database.
+Release 0.6C has been applied to production after local drift-clone validation, backup capture, target verification, owner approval, and production smoke tests.
 
 ## Required Tools
 
@@ -311,6 +312,84 @@ Recommended next step:
 
 See `docs/database/RELEASE_0_6C_PRODUCTION_BASELINE_ALIGNMENT.md` for the production baseline alignment plan, owner decision, validation scope, and stop conditions.
 
+## Release 0.6C Production Completion
+
+Release 0.6C production execution completed on July 1, 2026 against the linked Supabase production project:
+
+- project ref: `dsowansazqleudupnjug`
+- project name: `FamilyOS`
+- region supplied by owner: East US (North Virginia)
+
+Migration order:
+
+1. `supabase/migrations/20260701_release_0_6c_auth_ownership_baseline.sql`
+2. `supabase/migrations/20260701_release_0_6c_household_foundation.sql`
+
+Backup artifacts captured before production execution:
+
+- schema dump for `public` and `auth`
+- data-only dump for `public`
+- data-only dump for `auth`
+- preflight SQL and output
+- production validation SQL and output
+- production grants validation SQL and output
+- production app-path smoke SQL and output
+
+The backup artifacts are stored under ignored local `backups/` and must not be committed.
+
+Production database validation results:
+
+- `profiles`: 2.
+- `households`: 2.
+- `household_members`: 2.
+- `household_settings`: 2.
+- `user_preferences`: 2.
+- module tables missing `user_id`: 0.
+- module tables missing `household_id`: 0.
+- module tables missing `familyos_user_all`: 0.
+- module tables with public/open policy remaining: 0.
+- module tables with RLS disabled: 0.
+- missing task metadata columns: 0.
+- duplicate bootstrap users: 0.
+- duplicate bootstrap households: 0.
+- duplicate active memberships: 0.
+- total production module rows validated: 67.
+- module rows with null `user_id`: 0.
+- module rows with `user_id` but missing `household_id`: 0.
+
+Production grants validation results:
+
+- app tables missing authenticated `select`: 0.
+- module tables missing authenticated `select`: 0.
+- module tables missing authenticated `insert`: 0.
+- module tables missing authenticated `update`: 0.
+- module tables missing authenticated `delete`: 0.
+
+Production app-path smoke tests were run through SQL under the `authenticated` role and wrapped in a transaction that rolled back all smoke data.
+
+Smoke-test results:
+
+- existing owner profile read: pass.
+- existing user household read: pass.
+- existing user preferences read: pass.
+- existing user household settings read: pass.
+- task insert/read/update/delete: pass.
+- representative home module read: pass.
+- representative pool module read: pass.
+- representative finance module read: pass.
+- new auth user profile bootstrap: pass.
+- new auth user household bootstrap: pass.
+- new auth user owner membership bootstrap: pass.
+- new auth user preferences bootstrap: pass.
+- non-member home row denial: pass.
+- non-member household denial: pass.
+
+Runtime and localStorage behavior:
+
+- No runtime app code changed during production execution.
+- No localStorage migration behavior was added, removed, or modified.
+- Release 0.6B browser-local metadata remains in place until Release 0.7+ runtime integration work.
+
 ## Production Readiness Checklist
 
 ### Backup Steps
@@ -333,39 +412,40 @@ See `docs/database/RELEASE_0_6C_PRODUCTION_BASELINE_ALIGNMENT.md` for the produc
 
 ### Go/No-Go Gates
 
-- [ ] Production backup artifacts captured and restore path verified immediately before execution.
+- [x] Production backup artifacts captured and restore path verified immediately before execution.
 - [x] Migration file exactly matches the committed Release 0.6C candidate.
 - [x] Fresh schema, staging-like, RLS, idempotency, and app smoke tests are green.
-- [ ] Owner approves applying foundation, task metadata, and settings changes in one migration.
+- [x] Owner approves applying foundation, task metadata, and settings changes in one migration.
 - [x] If owner does not approve the combined migration, split task/settings additions into a later migration before production.
 - [x] No production secrets or browser-local OAuth tokens are included in migration artifacts.
 
 ### Production Migration Execution Sequence
 
-- [ ] Announce migration window and freeze unrelated app/database changes.
-- [ ] Capture backups and baseline counts.
-- [ ] Apply `supabase/migrations/20260701_release_0_6c_household_foundation.sql` once against production.
-- [ ] Save command output and any warnings.
+- [x] Announce migration window and freeze unrelated app/database changes.
+- [x] Capture backups and baseline counts.
+- [x] Apply `supabase/migrations/20260701_release_0_6c_auth_ownership_baseline.sql` once against production.
+- [x] Apply `supabase/migrations/20260701_release_0_6c_household_foundation.sql` once against production.
+- [x] Save command output and any warnings.
 - [ ] Re-run the migration only if the first run fully commits and the team is validating idempotency intentionally.
 - [ ] Do not deploy runtime app changes as part of this migration unless separately approved.
 
 ### Post-Migration Validation
 
-- [ ] Verify `profiles`, `households`, `people`, `household_members`, `household_settings`, and `user_preferences` exist.
-- [ ] Verify every existing `auth.users` row has a profile, bootstrap mapping, active owner membership, household settings row, and user preferences row.
-- [ ] Verify module rows with existing `user_id` values have `household_id` backfilled where a bootstrap household exists.
-- [ ] Verify current app login, task read/create/update/delete, and key module reads/writes still work.
-- [ ] Verify a newly created auth user receives bootstrap foundation rows through the trigger.
-- [ ] Verify non-member access remains denied for household foundation tables.
-- [ ] Confirm no localStorage migration behavior changed.
+- [x] Verify `profiles`, `households`, `people`, `household_members`, `household_settings`, and `user_preferences` exist.
+- [x] Verify every existing `auth.users` row has a profile, bootstrap mapping, active owner membership, household settings row, and user preferences row.
+- [x] Verify module rows with existing `user_id` values have `household_id` backfilled where a bootstrap household exists.
+- [x] Verify current app task read/create/update/delete and key module reads work under authenticated RLS.
+- [x] Verify a newly created auth user receives bootstrap foundation rows through the trigger.
+- [x] Verify non-member access remains denied for household foundation tables and module rows.
+- [x] Confirm no localStorage migration behavior changed.
 
 ### Owner/Signoff Decision Points
 
-- [ ] Approve production backup completeness before migration.
-- [ ] Approve the go/no-go decision after preflight checks.
-- [ ] Approve post-migration validation results.
-- [ ] Approve reopening writes and continuing to runtime integration milestones.
-- [ ] Record whether the combined migration should stay as one migration or be split before production.
+- [x] Approve production backup completeness before migration.
+- [x] Approve the go/no-go decision after preflight checks.
+- [x] Approve post-migration validation results.
+- [x] Approve reopening writes and continuing to runtime integration milestones.
+- [x] Record whether the combined migration should stay as one migration or be split before production.
 
 ## Validation Checklist
 

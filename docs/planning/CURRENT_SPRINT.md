@@ -1,7 +1,7 @@
 # Current Sprint
 
 ## Sprint Goal
-Plan the Release 0.6C data foundation so Release 0.6B browser-local features can become reliable Supabase-backed features.
+Prepare Release 0.7 runtime integration on top of the completed Release 0.6C Supabase data foundation.
 
 ## Active Items
 - [x] Add documentation structure
@@ -35,11 +35,16 @@ Plan the Release 0.6C data foundation so Release 0.6B browser-local features can
 - [x] Release 0.6C Milestone 8 production readiness signoff review
 - [x] Release 0.6C production attempt 1 blocked by baseline schema drift
 - [x] Release 0.6C production baseline alignment plan
+- [x] Release 0.6C production auth ownership baseline migration
+- [x] Release 0.6C production household foundation migration
+- [x] Release 0.6C production validation and app-path smoke tests
+- [x] Release 0.6C closeout documentation
+- [ ] Release 0.7 kickoff plan
 
 ## Blockers
 
 - Release 0.6B has no active code blockers after local lint/build validation. Real-device family testing and Vercel deployment validation remain before broad use.
-- Release 0.6C production migration is blocked because production module tables are missing the expected `user_id` ownership baseline. The owner must approve which auth user owns existing production rows before baseline alignment can be applied.
+- Release 0.6C has no active production migration blocker after baseline alignment and household foundation validation.
 
 ## Notes
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.
@@ -73,3 +78,5 @@ Plan the Release 0.6C data foundation so Release 0.6B browser-local features can
 - Release 0.6C Milestone 8 confirms the production backup method, restore/rollback path, migration file, validation SQL scope, post-migration smoke checks, and owner go/no-go gate. Recommendation: apply the combined Release 0.6C migration as-is after backup capture and explicit owner approval.
 - Release 0.6C production attempt 1 verified the linked production target and captured local backup artifacts, but the migration failed safely during preflight because production is still on the older public/open module-table policy baseline without `user_id` ownership columns. No Release 0.6C foundation tables were left behind.
 - Release 0.6C production baseline alignment planning documents the required owner/backfill decision, recommended temporary owner approach, validation scope, and stop conditions before another production attempt.
+- Release 0.6C production execution added the auth ownership baseline, backfilled 67 existing module rows to the approved owner, applied the household foundation migration, passed production validation SQL, passed authenticated-role app-path smoke tests, and left browser localStorage behavior unchanged.
+- Release 0.7 should start runtime integration: active household context, Supabase-backed family members/settings/task metadata, and eventual server-side calendar connection storage.
