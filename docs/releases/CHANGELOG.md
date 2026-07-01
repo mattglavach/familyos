@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Improved Release 0.6B Google Calendar integration with explicit dashboard sync states for disconnected, connecting, syncing, synced, empty, expired-token, permission, and API error cases; added today/upcoming event grouping, source labels, and last-sync visibility while preserving the browser popup OAuth flow.
 - Began Release 0.6B with a dashboard layout milestone that migrates the Home command center to shared cards, badges, buttons, skeletons, empty states, Lucide icons, and clearer calendar error/loading states while preserving existing data sources and navigation.
 - Migrated PoolBrief and RetirementBrief UI to shared AI brief panel helpers while preserving AI prompts, history, refresh, copy, and follow-up behavior.
 - Migrated app header, bottom navigation, and global loading wrapper to shared UI primitives/classes while preserving routing and auth/calendar actions.

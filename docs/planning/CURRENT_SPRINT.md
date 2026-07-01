@@ -18,7 +18,8 @@ Build the first usable Family OS dashboard for Release 0.6B.
 - [x] Identify next implementation target
 - [x] Begin Release 0.6B branch
 - [x] Complete Milestone 1 dashboard layout pass
-- [ ] Milestone 2 Google Calendar integration pass
+- [x] Milestone 2 Google Calendar integration pass
+- [ ] Milestone 3 family member management pass
 
 ## Blockers
 
@@ -36,3 +37,4 @@ Build the first usable Family OS dashboard for Release 0.6B.
 - PoolBrief and RetirementBrief now use shared AI brief panel helpers while preserving AI prompts, history, refresh/regenerate, copy, and follow-up behavior.
 - App structure refactor moved the shell, hooks, and user-facing modules out of the monolithic src/App.js; pnpm run check passes after the split.
 - Release 0.6B Milestone 1 migrates the dashboard command center to shared cards, status badges, buttons, skeleton loading states, empty states, and Lucide icons while preserving the current user-scoped Supabase table hooks and Google Calendar behavior.
+- Release 0.6B Milestone 2 keeps the existing browser popup OAuth flow and improves dashboard calendar sync states, expired-token and permission handling, empty calendar handling, event grouping, source labels, and last-sync visibility.

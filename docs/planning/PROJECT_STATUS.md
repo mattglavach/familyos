@@ -17,13 +17,14 @@ Release 0.6B dashboard implementation is in progress.
 - Google Calendar OAuth origin setup documentation for local and Vercel deployments
 - Modular app structure with app shell, hooks, modules, and refactor documentation
 - Release 0.6B Milestone 1 dashboard layout pass
+- Release 0.6B Milestone 2 Google Calendar integration pass
 
 ## In Progress
-- Release 0.6B Google Calendar, family member, and task management follow-up milestones
+- Release 0.6B family member and task management follow-up milestones
 
 ## Next
-- Review Milestone 1 dashboard layout
-- Continue with Milestone 2 Google Calendar integration pass
+- Review Milestone 2 Google Calendar dashboard behavior
+- Continue with Milestone 3 family member management pass
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
 
 ## Known Bugs

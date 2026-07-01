@@ -100,6 +100,16 @@ function GlobalInteractionStyles(){
 }
 
 function AppHeader({tab, auth, gc}){
+  const calendarLabel = gc.loading || gc.status === "syncing"
+    ? "Syncing"
+    : gc.error
+      ? "Calendar issue"
+      : gc.status === "empty"
+        ? "No events"
+        : gc.userName
+          ? `${gc.userName} Synced`
+          : "Synced";
+  const calendarStatus = gc.error ? "warning" : gc.loading || gc.status === "syncing" ? "warning" : "connected";
   return <header className="sticky top-0 z-10 border-b border-border bg-card/95 px-5 pb-3.5 pt-[calc(env(safe-area-inset-top)+16px)] backdrop-blur">
     <div className="flex items-center justify-between gap-3">
       <div className="min-w-0">
@@ -109,8 +119,8 @@ function AppHeader({tab, auth, gc}){
       <div className="flex shrink-0 items-center gap-2">
         <Button type="button" variant="secondary" size="xs" onClick={auth.signOut}>Sign out</Button>
         {gc.token
-          ?<StatusBadge status="connected" className="max-w-28 truncate">{gc.userName?`${gc.userName} Synced`:"Synced"}</StatusBadge>
-          :<Button type="button" variant="outline" size="xs" onClick={gc.signIn}>Connect</Button>
+          ?<StatusBadge status={calendarStatus} className="max-w-28 truncate">{calendarLabel}</StatusBadge>
+          :<Button type="button" variant="outline" size="xs" loading={gc.status==="connecting"||gc.status==="script-loading"} onClick={gc.signIn}>Connect</Button>
         }
       </div>
     </div>

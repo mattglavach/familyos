@@ -15,7 +15,7 @@ REACT_APP_GOOGLE_CALENDAR_ID=primary
 
 ## OAuth Flow Used By Family OS
 
-The current implementation is in `src/App.js` in `useGoogleCalendar`.
+The current implementation is in `src/hooks/useGoogleCalendar.js`.
 
 - Google script: `https://accounts.google.com/gsi/client`
 - OAuth API: `window.google.accounts.oauth2.initTokenClient`
@@ -24,8 +24,12 @@ The current implementation is in `src/App.js` in `useGoogleCalendar`.
 - Calendar ID: `REACT_APP_GOOGLE_CALENDAR_ID`
 - Runtime origin: `window.location.origin`
 - Redirect URI: none configured by Family OS for the Calendar token popup flow
+- Event window: next 30 days
+- Local browser storage keys: `gc_token`, `gc_user_name`, and `gc_last_synced_at`
 
 Because the token client is initialized in browser JavaScript, Google validates the exact origin serving the app. An `Error 400: origin_mismatch` means the current origin is missing from the OAuth client's Authorized JavaScript origins.
+
+The dashboard surfaces the Calendar connection state directly. It distinguishes disconnected, connecting, syncing, synced, empty calendar, expired token, missing permission, and failed API response states. A `401` response clears the stored token and asks the user to reconnect. A `403` response keeps the visible connection state but explains that calendar read permission must be approved again.
 
 ## Required Google Cloud Console Values
 

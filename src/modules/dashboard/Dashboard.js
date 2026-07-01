@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import {
   CalendarDays,
+  CalendarCheck,
+  CalendarX,
   CheckCircle2,
   ChevronRight,
   Clock,
@@ -8,7 +10,6 @@ import {
   GraduationCap,
   ListTodo,
   NotebookText,
-  RefreshCw,
   Waves,
 } from "lucide-react";
 import { Badge, StatusBadge } from "../../components/ui/badge";
@@ -33,6 +34,23 @@ const assignableMembers = ["Aubrey", "Blake", "Brayden", "Matt", "Kalee"];
 
 function toneForColor(color) {
   return toneByColor[color] || "slate";
+}
+
+function formatSyncTime(value) {
+  if (!value) return "Not synced yet";
+  return `Synced ${new Date(value).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
+}
+
+function calendarStatus(gc) {
+  if (gc.loading || gc.status === "syncing") return { label: "Syncing", status: "warning", detail: "Refreshing Google Calendar events." };
+  if (gc.status === "permission-error") return { label: "Permission needed", status: "warning", detail: gc.error };
+  if (gc.status === "expired") return { label: "Reconnect", status: "warning", detail: gc.error };
+  if (gc.error) return { label: "Sync failed", status: "failed", detail: gc.error };
+  if (!gc.token) return { label: "Disconnected", status: "neutral", detail: "Connect Google Calendar to show your family schedule." };
+  if (gc.status === "empty") return { label: "No events", status: "info", detail: `${formatSyncTime(gc.lastSyncedAt)} from ${gc.sourceLabel}.` };
+  if (gc.status === "synced") return { label: "Synced", status: "connected", detail: `${formatSyncTime(gc.lastSyncedAt)} from ${gc.sourceLabel}.` };
+  if (gc.status === "connecting" || gc.status === "script-loading") return { label: "Connecting", status: "warning", detail: "Opening Google Calendar sign-in." };
+  return { label: "Connected", status: "connected", detail: `${formatSyncTime(gc.lastSyncedAt)} from ${gc.sourceLabel}.` };
 }
 
 function SectionSkeleton({ rows = 3 }) {
@@ -134,7 +152,7 @@ function MemberFilter({ value, active, onSelect }) {
   );
 }
 
-function ScheduleEvent({ event, reassigning, setReassigning, setOverrides }) {
+function ScheduleEvent({ event, reassigning, setReassigning, setOverrides, dateLabel }) {
   const memberColor = MEMBER_COLORS[event.member] || COLORS.slate;
   return (
     <div className="rounded-lg border border-border bg-card p-3" style={{ borderLeft: `3px solid ${memberColor}` }}>
@@ -142,7 +160,10 @@ function ScheduleEvent({ event, reassigning, setReassigning, setOverrides }) {
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold text-foreground">{event.title}</div>
           <div className="mt-1 text-xs leading-5 text-muted-foreground">
-            {event.time || "All day"}{event.location ? ` - ${event.location}` : ""}
+            {dateLabel ? `${dateLabel} - ` : ""}{event.time || "All day"}{event.location ? ` - ${event.location}` : ""}
+          </div>
+          <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+            {event.source || "Google Calendar"}
           </div>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-2">
@@ -185,16 +206,24 @@ function SchedulePanel({
   formatDateFull,
   todayString,
 }) {
+  const status = calendarStatus(gc);
+
   if (!gc.token) {
     return (
-      <Card>
+      <Card style={{ borderLeft: `3px solid ${gc.status === "expired" || gc.error ? COLORS.amber : COLORS.slate}` }}>
         <CardContent className="space-y-3 pt-5">
           <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <div className="text-sm font-semibold text-foreground">Calendar not connected</div>
-              <div className="mt-1 text-xs leading-5 text-muted-foreground">Connect Google Calendar to show this week's family schedule.</div>
+            <div className="flex min-w-0 gap-3">
+              <CalendarX className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="text-sm font-semibold text-foreground">Calendar disconnected</div>
+                  <StatusBadge status={status.status}>{status.label}</StatusBadge>
+                </div>
+                <div className="mt-1 text-xs leading-5 text-muted-foreground">{status.detail}</div>
+              </div>
             </div>
-            <Button type="button" size="sm" onClick={gc.signIn}>Connect</Button>
+            <Button type="button" size="sm" onClick={gc.signIn} loading={gc.status === "connecting" || gc.status === "script-loading"}>Connect</Button>
           </div>
           {gc.error && (
             <div className="rounded-lg border border-destructive/35 bg-destructive/10 p-3 text-xs leading-5 text-destructive">
@@ -207,18 +236,31 @@ function SchedulePanel({
   }
 
   const visibleEvents = filteredEvents.filter(event => visibleDays.includes(event.date));
+  const todayEvents = visibleEvents.filter(event => event.date === todayString);
+  const upcomingEvents = visibleEvents.filter(event => event.date !== todayString);
 
   return (
-    <Card>
+    <Card style={{ borderLeft: `3px solid ${status.status === "failed" || status.status === "warning" ? COLORS.amber : COLORS.blue}` }}>
       <CardHeader className="p-4 pb-2">
-        <div className="flex items-center justify-between gap-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <CalendarDays className="h-4 w-4 text-primary" aria-hidden="true" />
-            Schedule
-          </CardTitle>
-          <Button type="button" variant="secondary" size="xs" onClick={() => setShowFullSchedule(value => !value)}>
-            {showFullSchedule ? "7 days" : "30 days"}
-          </Button>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <CalendarDays className="h-4 w-4 text-primary" aria-hidden="true" />
+              Schedule
+            </CardTitle>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <StatusBadge status={status.status}>{status.label}</StatusBadge>
+              <span className="text-xs text-muted-foreground">{status.detail}</span>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button type="button" variant="secondary" size="icon-xs" aria-label="Refresh calendar" onClick={gc.refresh} loading={gc.loading}>
+              <CalendarCheck className="h-4 w-4" aria-hidden="true" />
+            </Button>
+            <Button type="button" variant="secondary" size="xs" onClick={() => setShowFullSchedule(value => !value)}>
+              {showFullSchedule ? "7 days" : "30 days"}
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-3 px-4 pb-4 pt-0">
@@ -245,16 +287,21 @@ function SchedulePanel({
             className="py-8"
           />
         ) : (
-          visibleDays.map(day => {
-            const eventsForDay = filteredEvents.filter(event => event.date === day);
-            if (!eventsForDay.length) return null;
-            const isToday = day === todayString;
-            return (
-              <div key={day} className="space-y-2">
-                <div className={`text-xs font-bold uppercase tracking-[0.08em] ${isToday ? "text-primary" : "text-muted-foreground"}`}>
-                  {isToday ? "Today" : formatDateFull(day)}
-                </div>
-                {eventsForDay.map(event => (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-lg border border-border bg-secondary/45 p-3">
+                <div className="text-xs font-bold uppercase tracking-[0.08em] text-primary">Today</div>
+                <div className="mt-1 text-lg font-extrabold text-foreground">{todayEvents.length}</div>
+              </div>
+              <div className="rounded-lg border border-border bg-secondary/45 p-3">
+                <div className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Upcoming</div>
+                <div className="mt-1 text-lg font-extrabold text-foreground">{upcomingEvents.length}</div>
+              </div>
+            </div>
+            {todayEvents.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-xs font-bold uppercase tracking-[0.08em] text-primary">Today's Events</div>
+                {todayEvents.map(event => (
                   <ScheduleEvent
                     key={event.id}
                     event={event}
@@ -264,8 +311,33 @@ function SchedulePanel({
                   />
                 ))}
               </div>
-            );
-          })
+            )}
+            {upcomingEvents.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Upcoming Events</div>
+                {visibleDays.map(day => {
+                  if (day === todayString) return null;
+                  const eventsForDay = filteredEvents.filter(event => event.date === day);
+                  if (!eventsForDay.length) return null;
+                  return (
+                    <div key={day} className="space-y-2">
+                      <div className="text-xs font-semibold text-muted-foreground">{formatDateFull(day)}</div>
+                      {eventsForDay.map(event => (
+                        <ScheduleEvent
+                          key={event.id}
+                          event={event}
+                          reassigning={reassigning}
+                          setReassigning={setReassigning}
+                          setOverrides={setOverrides}
+                          dateLabel={formatDateFull(day)}
+                        />
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>
@@ -601,14 +673,6 @@ export function Dashboard({ onNavigate, gc, deps }) {
         ) : null}
       </section>
 
-      {gc.token && (
-        <div className="pb-2">
-          <Button type="button" variant="secondary" size="sm" className="w-full" onClick={gc.refresh} loading={gc.loading}>
-            <RefreshCw className="h-4 w-4" aria-hidden="true" />
-            Refresh calendar
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
