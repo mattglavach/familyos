@@ -60,7 +60,7 @@ Current release readiness is low:
 - No deployment checklist appears to be enforced.
 - No changelog automation exists.
 
-Docs exist under `docs/development/RELEASE_PROCESS.md` and `docs/releases/`, but actual GitHub automation is missing.
+Historical release-process docs are archived under `docs/archive/development-baseline/RELEASE_PROCESS.md`, active release guidance lives in `docs/process/RELEASE_PLAYBOOK.md`, and actual GitHub automation is still missing.
 
 ## Secrets / Environment Handling
 
@@ -87,4 +87,3 @@ Missing:
 - CodeQL or dependency review workflow.
 
 Recommendation: add Dependabot for npm/pnpm dependencies and GitHub Actions dependency review once CI exists.
-

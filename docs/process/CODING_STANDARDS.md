@@ -1,6 +1,6 @@
 # Coding Standards
 
-This document extends `docs/development/CODING_STANDARDS.md` with practical engineering rules for future Codex work.
+This document is the active coding standard for future Codex work. The older development baseline is archived under `docs/archive/development-baseline/`.
 
 ## Naming
 - Use descriptive names tied to domain behavior, not implementation accidents.

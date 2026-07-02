@@ -13,9 +13,9 @@ Audit date: 2026-06-27
 | `docs/planning/CURRENT_SPRINT.md` | Current | Accurately tracks foundation work and pending structure validation. |
 | `docs/planning/ROADMAP.md` | Needs Update | Phase 0 items are unchecked even though docs, AGENTS, templates, and platform docs exist. |
 | `docs/planning/PROJECT_STATUS.md` | Needs Update | Needs explicit implementation status versus aspirational docs status. |
-| `docs/development/CODING_STANDARDS.md` | Needs Update | References TypeScript, Tailwind, shadcn, and centralized Supabase queries; implementation is still mostly JS and inline styles. |
-| `docs/development/TESTING_STRATEGY.md` | Needs Update | Strategy exists but no implemented test suite or test script is present. |
-| `docs/development/GIT_WORKFLOW.md` | Unclear | Needs alignment with actual GitHub Actions and branch protection once added. |
+| `docs/archive/development-baseline/CODING_STANDARDS.md` | Archived | Historical baseline references TypeScript, Tailwind, shadcn, and centralized Supabase queries; active guidance now lives in `docs/process/CODING_STANDARDS.md`. |
+| `docs/archive/development-baseline/TESTING_STRATEGY.md` | Archived | Historical baseline existed before the active validation model in `docs/process/TESTING_GUIDELINES.md`. |
+| `docs/archive/development-baseline/GIT_WORKFLOW.md` | Archived | Historical baseline existed before the active git workflow in `docs/process/GIT_WORKFLOW.md`. |
 | `docs/database/DATABASE_SCHEMA.md` | Needs Update | Lists target platform tables such as `profiles`, `households`, and `family_members`, but SQL does not implement them. |
 | `docs/database/SECURITY_RLS.md` | Needs Update | Says restrict by `household_id`; actual policies restrict by `user_id = auth.uid()`. |
 | `docs/database/NAMING_STANDARDS.md` | Current with caveats | Naming guidance is directionally correct but not fully enforced by current schema. |
@@ -58,4 +58,3 @@ Audit date: 2026-06-27
 - No contributor guide explaining local checks, PR expectations, and review process beyond templates.
 - No module implementation status matrix.
 - No explicit release/versioning policy tied to tags or deployments.
-

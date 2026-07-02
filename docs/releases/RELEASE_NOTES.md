@@ -1,5 +1,28 @@
 # Release Notes
 
+## Release 0.9.2
+
+### Version
+0.9.2
+
+### Date
+2026-07-02
+
+### Summary
+Release 0.9.2 cleans up the repository documentation structure after the Release 0.9.1 engineering foundation. It is documentation-only and prepares the repository guidance for Release 1.0.
+
+### Updates
+- Archived the superseded `docs/development` baseline under `docs/archive/development-baseline`.
+- Consolidated active engineering guidance under `docs/process`.
+- Verified README entry points and updated AGENTS, master index, planning, release, and process cross-references.
+- Updated planning state to show v0.9.0 and v0.9.1 released, v0.9.2 in progress, and Release 1.0 next.
+
+### Validation
+- Required validation: `pnpm run lint`, `pnpm run build`, and `git diff --check`.
+
+### Known Issues
+- Historical audit documents still describe the repository state as of June 27, 2026 and should remain archived as historical findings.
+
 ## Release 0.9.1
 
 ### Version
@@ -49,6 +72,9 @@ Release 0.9.1 establishes the permanent Family OS engineering framework. It is a
 ### Known Issues
 - The process framework should be refined after it is used on the next release workstream.
 
+### Release Status
+Released as v0.9.1.
+
 ## Release 0.9
 
 ### Version
@@ -86,7 +112,7 @@ Release 0.9 adds the household collaboration foundation: secure household invita
 - Deployed Google OAuth validation and legacy browser calendar fallback removal remain separate Release 0.8 follow-up work.
 
 ### Recommendation
-Ready to merge into `main` and tag as `v0.9.0` after the final validation commit is present on `release/0.9`.
+Released as v0.9.0.
 
 ## Release 0.6B
 

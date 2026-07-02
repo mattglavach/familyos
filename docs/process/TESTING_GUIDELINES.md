@@ -1,6 +1,6 @@
 # Testing Guidelines
 
-This document extends `docs/development/TESTING_STRATEGY.md` with required validation patterns.
+This document is the active testing and validation guide. The older development baseline is archived under `docs/archive/development-baseline/`.
 
 ## Standard Commands
 - Run `pnpm run lint` for code changes.

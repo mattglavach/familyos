@@ -1,6 +1,6 @@
 # Git Workflow
 
-This document extends `docs/development/GIT_WORKFLOW.md` for release-scale execution.
+This document is the active Git workflow for release-scale execution. The older development baseline is archived under `docs/archive/development-baseline/`.
 
 ## Branch Naming
 - `main`: production-ready.
