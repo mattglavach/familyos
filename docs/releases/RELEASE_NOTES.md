@@ -1,5 +1,54 @@
 # Release Notes
 
+## Release 1.0
+
+### Version
+1.0.0
+
+### Date
+2026-07-02
+
+### Summary
+Release 1.0 implements the Core Family OS MVP as the first true product release after the engineering and product foundations. It focuses on the daily household operating loop: Home, Tasks, Calendar, Quick Add, Search, Notifications, More navigation, and household/settings polish.
+
+### New Features
+- Product-ordered Home dashboard: Today's Priorities, Today's Schedule, My Tasks, Family Activity, Quick Add, and Household Insights.
+- First-class Calendar module using existing secure/legacy Google Calendar data paths.
+- Primary navigation updated to Home, Tasks, Calendar, Quick Add, and More.
+- More module groups household/settings and existing lower-frequency modules while clearly marking future modules.
+- Universal Quick Add can be launched from navigation or the floating action button and creates household-aware tasks through the existing ownership helper.
+- Universal Search searches implemented surfaces: tasks, calendar events, household members, and navigation targets.
+- In-app notification center surfaces task, calendar, and household state with local read/unread tracking.
+- Tasks now include an in-module search filter in addition to existing create, edit, complete, delete, assign, status, priority, due date, filters, sorting, and recurrence visibility.
+
+### Database Changes
+- None.
+
+### Security And RLS Notes
+- No production Supabase data was touched.
+- No schema or RLS migration was added.
+- Existing Supabase RLS remains the enforcement layer for task, household, invitation, and calendar records.
+- Owner-only household controls remain in Settings and continue to rely on existing role/RLS/RPC behavior.
+- In-app notification read state is local-only UI state; it does not store secrets, tokens, sessions, or private provider payloads.
+
+### Validation
+- `pnpm run lint` passed.
+- `pnpm run build` passed.
+- Browser smoke on `http://localhost:3000` confirmed the sign-in surface renders without the stale dev overlay after reload.
+- Mobile viewport smoke at 390px confirmed the visible auth surface has no horizontal overflow.
+- Browser console error/warning check returned no logs for the visible unauthenticated state.
+
+### Browser Smoke Notes
+- Login screen: passed visible render check.
+- Mobile/responsive sanity check: passed on unauthenticated surface.
+- Authenticated smoke for Home, Tasks create/edit/complete/delete, assignment, Calendar, Quick Add, Search, Notifications, household switching, Settings, and owner/non-owner controls still requires a disposable/local Supabase authenticated test session. No production data was used.
+
+### Deferred
+- Shopping, Life Lists, Meal Planning, Recipes, Inventory, Finance expansion, Pool expansion, College expansion, Home Assistant, Smart Home, AI Assistant, public sign-up, ownership transfer, push notifications, and broad module RLS conversion remain deferred.
+
+### Recommendation
+Not ready to merge until authenticated local/staging browser smoke tests are completed.
+
 ## Release 0.9.3 Product Handbook
 
 ### Version

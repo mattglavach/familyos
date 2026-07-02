@@ -1,6 +1,11 @@
 import { useState } from "react";
+import { Bell, Search } from "lucide-react";
 import { Dashboard } from "../modules/dashboard/Dashboard";
 import { Tasks } from "../modules/tasks/Tasks";
+import { Calendar } from "../modules/calendar/Calendar";
+import { More } from "../modules/more/More";
+import { GlobalSearch } from "../modules/search/GlobalSearch";
+import { NotificationCenter } from "../modules/notifications/NotificationCenter";
 import { I, S } from "../theme";
 import { CONFIG_STATUS } from "../config";
 import { TODAY_DATE, TODAY_STR, daysAgo, daysBetween, formatDate, formatDateFull, formatTodayShort, nextDueDate } from "../lib/dates";
@@ -186,7 +191,7 @@ function GlobalInteractionStyles(){
       `}</style>;
 }
 
-function AppHeader({tab, auth, calendar, onSettings}){
+function AppHeader({tab, auth, calendar, unreadCount, onSettings, onSearch, onNotifications}){
   const calendarLabel = calendar.loading
     ? "Syncing"
     : calendar.error
@@ -204,6 +209,13 @@ function AppHeader({tab, auth, calendar, onSettings}){
         {tab==="home"&&<div className="mt-1 truncate text-xs text-muted-foreground">{formatTodayShort()}</div>}
       </div>
       <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+        <Button type="button" variant="secondary" size="icon-xs" aria-label="Search" onClick={onSearch}>
+          <Search className="h-4 w-4" aria-hidden="true" />
+        </Button>
+        <Button type="button" variant="secondary" size="icon-xs" aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ""}`} onClick={onNotifications} className="relative">
+          <Bell className="h-4 w-4" aria-hidden="true" />
+          {unreadCount > 0 && <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-400 px-1 text-[10px] font-extrabold text-slate-950">{unreadCount}</span>}
+        </Button>
         {tab !== "settings" && <Button type="button" variant="secondary" size="xs" onClick={onSettings}>Settings</Button>}
         <Button type="button" variant="secondary" size="xs" onClick={auth.signOut}>Sign out</Button>
         {calendar.connected
@@ -215,19 +227,21 @@ function AppHeader({tab, auth, calendar, onSettings}){
   </header>;
 }
 
-function BottomNavigation({tab,onNavigate}){
+function BottomNavigation({tab,onNavigate,onQuickAdd}){
   return <nav className="fixed bottom-0 left-1/2 z-20 flex w-full max-w-[430px] -translate-x-1/2 border-t border-border bg-card pb-[env(safe-area-inset-bottom)]" aria-label="Primary navigation">
-    {TABS.map(t=>(
+    {TABS.map(t=>{
+      const active = tab===t.id || (t.id === "more" && ["settings","finance","pool","college"].includes(tab));
+      return (
       <button
         key={t.id}
         type="button"
-        className={`flex min-h-[56px] flex-1 flex-col items-center justify-center gap-1 border-t-2 px-0.5 pb-2 pt-2 text-[10px] font-semibold transition-colors ${tab===t.id?"border-primary text-primary":"border-transparent text-muted-foreground"}`}
-        aria-current={tab===t.id?"page":undefined}
-        onClick={()=>onNavigate(t.id)}
+        className={`flex min-h-[56px] flex-1 flex-col items-center justify-center gap-1 border-t-2 px-0.5 pb-2 pt-2 text-[10px] font-semibold transition-colors ${active?"border-primary text-primary":"border-transparent text-muted-foreground"}`}
+        aria-current={active?"page":undefined}
+        onClick={()=>t.id === "quick-add" ? onQuickAdd() : onNavigate(t.id)}
       >
-        {I[t.iconKey](tab===t.id)}<span>{t.label}</span>
+        {I[t.iconKey](active)}<span>{t.label}</span>
       </button>
-    ))}
+    );})}
   </nav>;
 }
 
@@ -261,11 +275,19 @@ export default function App(){
 
 function AuthenticatedApp({ auth }) {
   const [tab,setTab] = useState("home");
+  const [quickAddSignal, setQuickAddSignal] = useState(0);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const gc = useGoogleCalendar();
   const household = useHousehold();
   const secureCalendar = useCalendarConnections(household.householdId);
 
   function switchTab(t){
+    if (t === "quick-add") {
+      setQuickAddSignal(value => value + 1);
+      return;
+    }
     setTab(t);
     window.scrollTo({top:0,behavior:"auto"});
   }
@@ -282,6 +304,12 @@ function AuthenticatedApp({ auth }) {
       loading: secureCalendar.loading,
       error: secureCalendar.error,
       status: secureCalendar.status,
+      events: secureCalendar.events,
+      lastSyncedAt: secureCalendar.lastFetchedAt,
+      sourceLabel: "Secure Google Calendar",
+      detail: "Connect secure Google Calendar in Settings to show your family schedule.",
+      refresh: secureCalendar.fetchEvents,
+      connect: secureCalendar.connect,
     }
     : {
       mode: "legacy",
@@ -289,17 +317,34 @@ function AuthenticatedApp({ auth }) {
       loading: gc.loading || gc.status === "syncing" || gc.status === "connecting" || gc.status === "script-loading",
       error: gc.error,
       status: gc.status,
+      events: gc.events,
+      lastSyncedAt: gc.lastSyncedAt,
+      sourceLabel: gc.sourceLabel || "Google Calendar",
+      detail: "Secure Google Calendar is preferred. Legacy browser calendar remains available as a temporary fallback.",
+      refresh: gc.refresh,
+      connect: gc.signIn,
     };
 
   return(
     <div style={S.app}>
       <GlobalInteractionStyles/>
-      <AppHeader tab={tab} auth={auth} calendar={headerCalendar} onSettings={()=>switchTab("settings")}/>
+      <AppHeader
+        tab={tab}
+        auth={auth}
+        calendar={headerCalendar}
+        unreadCount={unreadCount}
+        onSettings={()=>switchTab("settings")}
+        onSearch={() => setSearchOpen(true)}
+        onNotifications={() => setNotificationsOpen(true)}
+      />
 
       {tab==="home"&&<Dashboard onNavigate={switchTab} gc={gc} secureCalendar={secureCalendar} deps={{
         TODAY_DATE,TODAY_STR,daysAgo,daysBetween,nextDueDate,formatDate,formatDateFull,
         formatMoneyShort,maintStatus,useTable,calcRetirementProjection,getChemRecommendations,
       }}/>} 
+      {tab==="calendar"&&<Calendar calendar={headerCalendar} onNavigate={switchTab} deps={{
+        TODAY_STR,formatDateFull,
+      }}/>}
       {tab==="college"&&<College/>}
       {tab==="tasks"&&<Tasks deps={{
         TODAY_DATE,TODAY_STR,daysBetween,nextDueDate,formatDate,
@@ -307,10 +352,21 @@ function AuthenticatedApp({ auth }) {
       }}/>} 
       {tab==="pool"&&<Pool/>}
       {tab==="finance"&&<Finance/>}
+      {tab==="more"&&<More onNavigate={switchTab}/>}
       {tab==="settings"&&<Settings auth={auth} gc={gc} secureCalendar={secureCalendar}/>}
 
-      <QuickAdd onNavigate={switchTab}/>
-      <BottomNavigation tab={tab} onNavigate={switchTab}/>
+      <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} calendarEvents={headerCalendar.events} onNavigate={switchTab}/>
+      <NotificationCenter
+        open={notificationsOpen}
+        onOpenChange={setNotificationsOpen}
+        calendarEvents={headerCalendar.events}
+        household={household}
+        calendar={headerCalendar}
+        onNavigate={switchTab}
+        onUnreadChange={setUnreadCount}
+      />
+      <QuickAdd onNavigate={switchTab} openSignal={quickAddSignal}/>
+      <BottomNavigation tab={tab} onNavigate={switchTab} onQuickAdd={() => setQuickAddSignal(value => value + 1)}/>
     </div>
   );
 }

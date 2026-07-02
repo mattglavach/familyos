@@ -1,0 +1,172 @@
+import { CalendarCheck, CalendarDays, CalendarX, ExternalLink, RefreshCw } from "lucide-react";
+import { Badge, StatusBadge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { EmptyStatePanel } from "../../components/ui/empty-state";
+import { SectionHeader } from "../../components/ui/section-header";
+import { Skeleton } from "../../components/ui/skeleton";
+import { COLORS, S } from "../../theme";
+
+function dateKey(value) {
+  if (!value) return "";
+  return String(value).split("T")[0];
+}
+
+function eventDateLabel(value, todayString, formatDateFull) {
+  const key = dateKey(value);
+  if (!key) return "Date unavailable";
+  if (key === todayString) return "Today";
+  return formatDateFull ? formatDateFull(key) : key;
+}
+
+function statusFor(calendar) {
+  if (calendar.loading) return { tone: "warning", label: "Syncing", detail: "Refreshing calendar events." };
+  if (calendar.error) return { tone: "warning", label: "Needs attention", detail: calendar.error };
+  if (!calendar.connected) return { tone: "neutral", label: "Not connected", detail: calendar.detail || "Connect Google Calendar in Settings to show household events." };
+  if (!calendar.events?.length) return { tone: "info", label: "Connected", detail: "No events found in the current calendar window." };
+  return { tone: "connected", label: "Connected", detail: `${calendar.events.length} event${calendar.events.length === 1 ? "" : "s"} available from ${calendar.sourceLabel}.` };
+}
+
+function groupEvents(events, todayString) {
+  const today = [];
+  const upcoming = [];
+  events.forEach(event => {
+    if (dateKey(event.date) === todayString) today.push(event);
+    else upcoming.push(event);
+  });
+  const byTime = (a, b) => `${dateKey(a.date)} ${a.time || ""}`.localeCompare(`${dateKey(b.date)} ${b.time || ""}`);
+  return { today: today.sort(byTime), upcoming: upcoming.sort(byTime) };
+}
+
+function EventCard({ event, todayString, formatDateFull }) {
+  return (
+    <Card style={{ borderLeft: `3px solid ${COLORS.blue}` }}>
+      <CardContent className="space-y-3 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="truncate text-base font-bold text-foreground">{event.title || "Untitled event"}</div>
+            <div className="mt-1 text-sm text-muted-foreground">
+              {eventDateLabel(event.date, todayString, formatDateFull)} - {event.time || "All day"}
+            </div>
+            {event.location && <div className="mt-1 text-xs leading-5 text-muted-foreground">{event.location}</div>}
+          </div>
+          <Badge variant="blue" className="shrink-0">{event.member || "Family"}</Badge>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="slate">{event.source || "Calendar"}</Badge>
+          {event.htmlLink && (
+            <Button type="button" variant="secondary" size="xs" asChild>
+              <a href={event.htmlLink} target="_blank" rel="noreferrer">
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                Open
+              </a>
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function EventSection({ title, events, emptyTitle, emptyDetail, todayString, formatDateFull }) {
+  return (
+    <section>
+      <SectionHeader title={title} count={events.length} tone={title === "Today" ? "blue" : "neutral"} />
+      {events.length ? (
+        <div className="space-y-3">
+          {events.map((event, index) => (
+            <EventCard key={event.id || `${title}-${index}`} event={event} todayString={todayString} formatDateFull={formatDateFull} />
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <EmptyStatePanel title={emptyTitle} detail={emptyDetail} className="py-7" />
+        </Card>
+      )}
+    </section>
+  );
+}
+
+export function Calendar({ calendar, onNavigate, deps }) {
+  const { TODAY_STR, formatDateFull } = deps;
+  const status = statusFor(calendar);
+  const events = (calendar.events || []).filter(Boolean);
+  const grouped = groupEvents(events, TODAY_STR);
+
+  return (
+    <div style={S.screen} className="space-y-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
+            <CalendarDays className="h-4 w-4" aria-hidden="true" />
+            Calendar
+          </div>
+          <div className="mt-1 text-2xl font-extrabold text-foreground">Today & Upcoming</div>
+        </div>
+        <Button type="button" variant="secondary" size="sm" onClick={calendar.refresh} loading={calendar.loading} disabled={!calendar.connected}>
+          <RefreshCw className="h-4 w-4" aria-hidden="true" />
+          Refresh
+        </Button>
+      </div>
+
+      <Card style={{ borderLeft: `3px solid ${status.tone === "connected" ? COLORS.green : status.tone === "warning" ? COLORS.amber : COLORS.slate}` }}>
+        <CardHeader className="p-4 pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            {calendar.connected ? <CalendarCheck className="h-4 w-4 text-primary" aria-hidden="true" /> : <CalendarX className="h-4 w-4 text-muted-foreground" aria-hidden="true" />}
+            Calendar Connection
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 px-4 pb-4 pt-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge status={status.tone}>{status.label}</StatusBadge>
+            <Badge variant={calendar.mode === "secure" ? "blue" : "slate"}>{calendar.mode === "secure" ? "Server-side" : "Legacy fallback"}</Badge>
+          </div>
+          <p className="text-sm leading-6 text-muted-foreground">{status.detail}</p>
+          {!calendar.connected && (
+            <Button type="button" className="w-full" onClick={() => onNavigate("settings")}>Open Calendar Settings</Button>
+          )}
+        </CardContent>
+      </Card>
+
+      {calendar.loading ? (
+        <Card>
+          <CardContent className="space-y-3 p-4">
+            <Skeleton className="h-4 w-4/5" />
+            <Skeleton className="h-3 w-3/5" />
+            <Skeleton className="h-3 w-2/5" />
+          </CardContent>
+        </Card>
+      ) : calendar.connected ? (
+        <>
+          <EventSection
+            title="Today"
+            events={grouped.today}
+            emptyTitle="Nothing scheduled today"
+            emptyDetail="Connected calendar events for today will appear here."
+            todayString={TODAY_STR}
+            formatDateFull={formatDateFull}
+          />
+          <EventSection
+            title="Upcoming"
+            events={grouped.upcoming}
+            emptyTitle="No upcoming events"
+            emptyDetail="Events in the next calendar window will appear here after sync."
+            todayString={TODAY_STR}
+            formatDateFull={formatDateFull}
+          />
+        </>
+      ) : (
+        <Card>
+          <EmptyStatePanel
+            icon={<CalendarX className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />}
+            title="Calendar is not connected"
+            detail="Connect Google Calendar in Settings to make this a first-class household schedule view."
+            action="Open Settings"
+            onAction={() => onNavigate("settings")}
+            className="py-8"
+          />
+        </Card>
+      )}
+    </div>
+  );
+}

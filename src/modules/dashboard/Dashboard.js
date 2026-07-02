@@ -11,6 +11,7 @@ import {
   GraduationCap,
   ListTodo,
   NotebookText,
+  Plus,
   Trash2,
   UserPlus,
   UserRound,
@@ -789,14 +790,14 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
     upcoming.push({ text: deadline.title, color: COLORS.slate, nav: "college", detail: `in ${daysBetween(deadline.due_date)}d` });
   });
   filteredEvents.filter(event => event.date === TODAY_STR).forEach(event => {
-    overdue.push({ text: event.title, color: COLORS.blue, nav: "home", detail: event.time || "Today" });
+    overdue.push({ text: event.title, color: COLORS.blue, nav: "calendar", detail: event.time || "Today" });
   });
   filteredEvents.filter(event => next7Days.includes(event.date) && event.date !== TODAY_STR).slice(0, 3).forEach(event => {
     const assignedMember = memberByName[String(event.member || "").toLowerCase()];
     thisWeek.push({
       text: event.title,
       color: getMemberColor(assignedMember, event.member),
-      nav: "home",
+      nav: "calendar",
       detail: `${event.time || ""} ${formatDate(event.date)}`.trim(),
     });
   });
@@ -835,6 +836,15 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
     { module: "Finance", color: finColor, label: finLabel, detail: finDetail, nav: "finance", icon: DollarSign },
     { module: "College", color: collegeColor, label: collegeLabel, detail: collegeDetail, nav: "college", icon: GraduationCap },
   ];
+  const dashboardTasks = taskData.data
+    .filter(task => !task.completed)
+    .sort((a, b) => {
+      const aDue = a.due_date ? daysBetween(a.due_date) : 9999;
+      const bDue = b.due_date ? daysBetween(b.due_date) : 9999;
+      if (!!b.is_important !== !!a.is_important) return b.is_important ? 1 : -1;
+      return aDue - bDue;
+    })
+    .slice(0, 4);
 
   const editingReferences = memberDrawer.member
     ? memberReferences(memberDrawer.member, allEvents, taskData.data, collegeGoals.data)
@@ -918,9 +928,62 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-2 gap-2.5">
-        {modules.map(item => <ModuleCard key={item.module} item={item} onNavigate={onNavigate} />)}
-      </div>
+      <SchedulePanel
+        calendar={calendar}
+        filteredEvents={filteredEvents}
+        visibleDays={visibleDays}
+        showFullSchedule={showFullSchedule}
+        setShowFullSchedule={setShowFullSchedule}
+        filter={filter}
+        setFilter={setFilter}
+        reassigning={reassigning}
+        setReassigning={setReassigning}
+        setOverrides={setOverrides}
+        memberFilters={memberFilters}
+        assignableMembers={assignableMembers}
+        memberByName={memberByName}
+        formatDateFull={formatDateFull}
+        todayString={TODAY_STR}
+      />
+
+      <section>
+        <SectionHeader title="My Tasks" count={dashboardTasks.length} tone="purple" action={<Button type="button" variant="ghost" size="xs" onClick={() => onNavigate("tasks")}>View all</Button>} />
+        {isLoading ? (
+          <SectionSkeleton rows={2} />
+        ) : dashboardTasks.length ? (
+          <Card>
+            <CardContent className="px-4 py-2">
+              {dashboardTasks.map((task, index) => {
+                const days = task.due_date ? daysBetween(task.due_date) : null;
+                return (
+                  <ActionRow
+                    key={task.id || `${task.title}-${index}`}
+                    item={{
+                      text: task.title,
+                      color: task.is_important ? COLORS.purple : days !== null && days < 0 ? COLORS.red : COLORS.blue,
+                      nav: "tasks",
+                      detail: days === null ? task.category || "Task" : days < 0 ? `${-days}d overdue` : days === 0 ? "Due today" : `Due in ${days}d`,
+                    }}
+                    showDivider={index < dashboardTasks.length - 1}
+                    onNavigate={onNavigate}
+                  />
+                );
+              })}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <EmptyStatePanel
+              icon={<ListTodo className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />}
+              title="No open tasks"
+              detail="Create a household task when something needs follow-up."
+              action="Add task"
+              onAction={() => onNavigate("quick-add")}
+              className="py-8"
+            />
+          </Card>
+        )}
+      </section>
 
       <FamilyOverview
         members={family.members}
@@ -932,6 +995,26 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
         onAdd={openAddMember}
         onEdit={openEditMember}
       />
+
+      <Card style={{ borderLeft: `3px solid ${COLORS.blue}` }}>
+        <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+              <Plus className="h-4 w-4 text-primary" aria-hidden="true" />
+              Quick Add
+            </div>
+            <div className="mt-1 text-sm leading-6 text-muted-foreground">Capture a task or note without leaving the daily briefing.</div>
+          </div>
+          <Button type="button" className="w-full sm:w-auto" onClick={() => onNavigate("quick-add")}>Open Quick Add</Button>
+        </CardContent>
+      </Card>
+
+      <section>
+        <SectionHeader title="Household Insights" count={modules.length} tone="blue" />
+        <div className="grid grid-cols-2 gap-2.5">
+          {modules.map(item => <ModuleCard key={item.module} item={item} onNavigate={onNavigate} />)}
+        </div>
+      </section>
 
       <section>
         <SectionHeader
@@ -963,24 +1046,6 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
           </div>
         )}
       </section>
-
-      <SchedulePanel
-        calendar={calendar}
-        filteredEvents={filteredEvents}
-        visibleDays={visibleDays}
-        showFullSchedule={showFullSchedule}
-        setShowFullSchedule={setShowFullSchedule}
-        filter={filter}
-        setFilter={setFilter}
-        reassigning={reassigning}
-        setReassigning={setReassigning}
-        setOverrides={setOverrides}
-        memberFilters={memberFilters}
-        assignableMembers={assignableMembers}
-        memberByName={memberByName}
-        formatDateFull={formatDateFull}
-        todayString={TODAY_STR}
-      />
 
       <section>
         <SectionHeader title="Recent Activity" tone="blue" />

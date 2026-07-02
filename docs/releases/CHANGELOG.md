@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Implemented Release 1.0 core MVP surfaces: product-ordered Home dashboard, first-class Calendar module, Home/Tasks/Calendar/Quick Add/More navigation, global search, in-app notification center, task search, and household-aware Quick Add task creation.
 - Established the permanent Product Handbook under `docs/product`, defining Family OS product vision, information architecture, navigation, design principles, UX expectations, dashboard strategy, module map, personas, workflows, feature philosophy, product roadmap, and Release 1.0 alignment.
 - Defined the Release 1.0 specification and implementation blueprint, including scope, architecture review, module maturity, UX requirements, deferred work, validation expectations, and prioritized backlog.
 - Cleaned up the repository documentation structure for Release 0.9.2 by archiving superseded development docs, consolidating active engineering guidance under `docs/process`, updating stale release status references, and preparing planning docs for Release 1.0.

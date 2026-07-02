@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, ChevronLeft, ClipboardList, Droplets, FileText, GraduationCap, Plus, Wrench } from "lucide-react";
 import { TODAY_STR } from "../../lib/dates";
 import { sb } from "../../lib/supabase";
@@ -12,8 +12,9 @@ import { FormError, FormGroup, FormHelp, FormRow, FormSection } from "../../comp
 import { ChipGroup, SegmentedControl } from "../../components/ui/segmented-control";
 import { SectionHeader } from "../../components/ui/section-header";
 // - QUICK ADD -
-export function QuickAdd({onNavigate}){
+export function QuickAdd({onNavigate, openSignal = 0}){
   const [open,setOpen] = useState(false);
+  const tasks = useTable("tasks", "due_date", true);
   const maintLog = useTable("pool_maintenance","date");
   const deadlines = useTable("college_deadlines","due_date",true);
   const [form,setForm] = useState({});
@@ -44,13 +45,16 @@ export function QuickAdd({onNavigate}){
   const MAINT_TYPES = ["Check water level","Clean skimmer basket","Brushed walls & floor","Added salt","Cleaned cartridge filter","Cleaned salt cell","Checked flow switch","Other"];
   const modeTitle = options.find(o=>o.id===mode)?.label || "Quick Add";
 
+  useEffect(() => {
+    if (openSignal) setOpen(true);
+  }, [openSignal]);
+
   async function saveTask(){
     setSaveError(null);
     if(!form.title){setSaveError("Title is required");return;}
     const row={title:form.title,category:form.category||"Home",priority:form.priority||"med",due_date:form.due_date||null,recurring_interval_days:form.recurring_interval_days?+form.recurring_interval_days:null,last_completed:null,is_important:form.is_important||false,notes:form.notes||"",completed:false};
     try{
-      const{error}=await sb.from("tasks").insert(row);
-      if(error){setSaveError(`Save failed   ${error.message||JSON.stringify(error)}`);return;}
+      await tasks.insert(row);
       close();onNavigate("tasks");
     }catch(e){setSaveError(`Error: ${e.message}`);}
   }

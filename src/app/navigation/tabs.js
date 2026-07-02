@@ -1,17 +1,19 @@
 export const TABS = [
   { id: "home", label: "Home", iconKey: "home" },
-  { id: "finance", label: "Finance", iconKey: "finance" },
-  { id: "pool", label: "Pool", iconKey: "pool" },
   { id: "tasks", label: "Tasks", iconKey: "tasks" },
-  { id: "college", label: "College", iconKey: "college" },
-  { id: "settings", label: "Settings", iconKey: "settings" },
+  { id: "calendar", label: "Calendar", iconKey: "calendar" },
+  { id: "quick-add", label: "Add", iconKey: "quickAdd" },
+  { id: "more", label: "More", iconKey: "more" },
 ];
 
 export const TITLES = {
   home: "FamilyOS",
+  calendar: "Calendar",
   college: "College Planning",
-  tasks: "Tasks",
-  pool: "Pool",
   finance: "Finance",
+  more: "More",
+  pool: "Pool",
+  "quick-add": "Quick Add",
   settings: "Settings",
+  tasks: "Tasks",
 };
