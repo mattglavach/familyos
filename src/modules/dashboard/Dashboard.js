@@ -17,6 +17,7 @@ import { EmptyStatePanel } from "../../components/ui/empty-state";
 import { SectionHeader } from "../../components/ui/section-header";
 import { Skeleton } from "../../components/ui/skeleton";
 import { COLORS, MEMBER_COLORS, S } from "../../theme";
+import { normalizeCalendarStatus } from "../../lib/calendarStatus";
 
 function formatSyncTime(value) {
   if (!value) return "Not synced yet";
@@ -26,14 +27,12 @@ function formatSyncTime(value) {
 }
 
 function calendarStatus(calendar) {
-  if (calendar.loading) return { label: "Loading", status: "warning", detail: "Refreshing calendar events." };
-  if (calendar.status === "pending" || calendar.status === "needs_reauth" || calendar.status === "expired" || calendar.status === "permission-error") {
-    return { label: "Needs reconnect", status: "warning", detail: calendar.error || "Reconnect Google Calendar to refresh access." };
+  const normalized = normalizeCalendarStatus(calendar);
+  if (normalized.key === "connected" && calendar.status !== "empty") {
+    return { label: normalized.label, status: normalized.tone, detail: formatSyncTime(calendar.lastSyncedAt) };
   }
-  if (calendar.error) return { label: "Error", status: "failed", detail: calendar.error };
-  if (!calendar.connected) return { label: "Not connected", status: "neutral", detail: calendar.detail || "Connect Google Calendar in Settings to show your family schedule." };
   if (calendar.status === "empty") return { label: "Connected", status: "info", detail: `${formatSyncTime(calendar.lastSyncedAt)}. No events found.` };
-  return { label: "Connected", status: "connected", detail: formatSyncTime(calendar.lastSyncedAt) };
+  return { label: normalized.label, status: normalized.tone, detail: normalized.detail, actionLabel: normalized.actionLabel, actionTarget: normalized.actionTarget };
 }
 
 function getMemberColor(member, fallbackName) {
@@ -103,6 +102,7 @@ function SchedulePanel({
   const status = calendarStatus(calendar);
 
   if (!calendar.connected) {
+    const canConnect = calendar.canConnect !== false && typeof calendar.connect === "function";
     return (
       <Card style={{ borderLeft: `3px solid ${calendar.status === "needs_reauth" || calendar.error ? COLORS.amber : COLORS.slate}` }}>
         <CardContent className="space-y-3 pt-5">
@@ -119,16 +119,17 @@ function SchedulePanel({
             </div>
             <div className="flex flex-wrap gap-2">
               <Button type="button" variant="secondary" size="sm" onClick={() => onNavigate("calendar")}>Calendar</Button>
-              <Button type="button" size="sm" onClick={calendar.connect} loading={calendar.loading} disabled={!calendar.canConnect}>
-                Connect Google Calendar
-              </Button>
+              {canConnect ? (
+                <Button type="button" size="sm" onClick={calendar.connect} loading={calendar.loading}>
+                  Connect Google Calendar
+                </Button>
+              ) : (
+                <Button type="button" size="sm" onClick={() => onNavigate(status.actionTarget || "settings")}>
+                  {status.actionLabel || "Open Calendar Settings"}
+                </Button>
+              )}
             </div>
           </div>
-          {calendar.error && (
-            <div className="rounded-lg border border-destructive/35 bg-destructive/10 p-3 text-xs leading-5 text-destructive">
-              {calendar.error}
-            </div>
-          )}
         </CardContent>
       </Card>
     );
@@ -243,7 +244,7 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
       detail: "Connect Google Calendar in Settings to show your family schedule.",
       refresh: gc.refresh,
       connect: gc.signIn,
-      canConnect: true,
+      canConnect: Boolean(gc.canConnect),
     };
 
   const isLoading = [
