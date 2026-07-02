@@ -3,6 +3,25 @@
 ## Purpose
 These guidelines define how Family OS should feel to users. Engineering implementation rules remain in `docs/process/UI_GUIDELINES.md`, `docs/process/TESTING_GUIDELINES.md`, and `docs/ui/DESIGN_SYSTEM.md`.
 
+## Product Owner UX Standards
+These standards are mandatory for all UI changes.
+
+- Home is the awareness layer.
+- Modules are action-oriented work surfaces.
+- The core flow is summary, drill down, then work.
+- Dashboard cards summarize information only.
+- Modules provide the work surface.
+- Avoid dashboards inside modules.
+- Frequent forms should optimize for speed with segmented controls, chips, button groups, and smart defaults before adding dropdowns.
+- Every screen must pass the 10 Second Rule: a new user should understand what to do within 10 seconds.
+
+Every dashboard card should:
+- Show only the highest-value information.
+- Display about 3-5 items.
+- Be clickable.
+- Open the relevant module already filtered where practical.
+- Include a View All action when additional items exist.
+
 ## Loading States
 - Show stable loading states for app start, household load, dashboard data, task saves, invite actions, calendar actions, and settings saves.
 - Avoid layout jumps while data loads.

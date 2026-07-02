@@ -3,6 +3,13 @@
 ## Purpose
 This document defines the product purpose, maturity, release target, dependencies, and future expansion for each Family OS module.
 
+## Module UX Standard
+Modules are action-oriented work surfaces. They should prioritize search, filters, sorting, creation, editing, completion, and other direct actions over dashboard-style summary widgets.
+
+Avoid dashboards inside modules. A module may include compact status context only when it helps the user act faster or filters/navigates into the work surface.
+
+Frequent module forms should use speed-oriented controls such as segmented controls, chips, button groups, and smart defaults before falling back to dropdowns.
+
 ## Home
 Purpose: Daily household awareness layer and morning briefing.
 

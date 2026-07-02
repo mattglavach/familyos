@@ -2,6 +2,15 @@
 
 This document summarizes execution rules for UI work. `docs/ui/DESIGN_SYSTEM.md` remains the detailed visual source of truth.
 
+## Product UX Rules
+- Apply the Product Owner UX Standards in `docs/product/UX_GUIDELINES.md` to every UI change.
+- Home must remain an awareness layer.
+- Modules must remain action-oriented work surfaces.
+- Dashboard cards summarize and drill down; they should not become forms or module workspaces.
+- Avoid dashboard-style KPI sections inside modules unless they directly filter, navigate, or support immediate action.
+- Optimize frequent forms for speed with segmented controls, chips, button groups, and smart defaults before using dropdowns.
+- Use the 10 Second Rule during review: a new user should understand what to do on the screen within 10 seconds.
+
 ## Consistency
 - Reuse existing cards, badges, buttons, inputs, labels, selects, drawers, and empty-state components.
 - Match the existing dark, calm, mobile-first operational style.

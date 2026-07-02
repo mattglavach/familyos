@@ -3,6 +3,8 @@
 ## Purpose
 Home is the family's Morning Briefing. It should answer what needs attention today, what is happening next, who is involved, and what action should happen now.
 
+Home is an awareness layer, not a work surface. It should summarize and route users into modules for action.
+
 ## Layout
 The dashboard should use a mobile-first vertical flow. On wider screens, sections may become grids, but the priority order should remain clear.
 
@@ -21,6 +23,8 @@ Recommended widget order:
 5. Recent activity that helps explain what changed.
 
 ## Widgets
+
+Dashboard widgets and cards should show only the highest-value information, generally 3-5 items. They should be clickable, open the relevant module filtered where practical, and include a View All action when additional items exist.
 
 ### Today's Priorities
 Shows the highest-priority tasks, overdue items, due-today items, calendar conflicts, and important household reminders.
