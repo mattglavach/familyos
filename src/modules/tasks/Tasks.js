@@ -465,6 +465,7 @@ export function Tasks({ deps }) {
   const [metadataError] = useState("");
   const [view, setView] = useState("dashboard");
   const [memberFilter, setMemberFilter] = useState("All");
+  const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
@@ -515,7 +516,9 @@ export function Tasks({ deps }) {
   }, [activeMembers, daysBetween, nextDueDate, tasks]);
 
   const filteredTasks = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
     const filtered = tasks.filter(task => {
+      if (query && !`${task.title || ""} ${task.description || ""} ${task.category || ""} ${task.assignee || ""} ${task.notes || ""}`.toLowerCase().includes(query)) return false;
       if (view === "completed" && task.status !== "Completed") return false;
       if (view !== "completed" && task.status === "Completed") return false;
       if (memberFilter !== "All" && task.assignee !== memberFilter) return false;
@@ -526,7 +529,7 @@ export function Tasks({ deps }) {
       return true;
     });
     return sortTasks(filtered, sortBy);
-  }, [categoryFilter, daysBetween, dueFilter, memberFilter, nextDueDate, priorityFilter, sortBy, statusFilter, tasks, view]);
+  }, [categoryFilter, daysBetween, dueFilter, memberFilter, nextDueDate, priorityFilter, searchTerm, sortBy, statusFilter, tasks, view]);
 
   const urgentMaint = homeMaint.data
     .filter(item => item?.title && ["overdue", "due-soon"].includes(maintStatus(item)))
@@ -824,6 +827,10 @@ export function Tasks({ deps }) {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 px-4 pb-4 pt-0">
+              <FormGroup>
+                <Label htmlFor="task-search">Search</Label>
+                <Input id="task-search" value={searchTerm} placeholder="Search title, notes, category, assignee..." onChange={event => setSearchTerm(event.target.value)} />
+              </FormGroup>
               <FormRow>
                 <FormGroup>
                   <Label>Family Member</Label>

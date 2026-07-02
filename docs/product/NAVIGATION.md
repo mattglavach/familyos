@@ -22,9 +22,9 @@ Navigation should help household members move quickly between daily context, act
 - Ensure fixed navigation never covers page actions or drawer buttons.
 
 ## Global Search
-Global search is a future capability. It should eventually search tasks, calendar events, people, documents, lists, modules, and household records according to permissions.
+Global search should search tasks, calendar events, people, documents, lists, modules, and household records according to permissions as those surfaces become implemented.
 
-Release 1.0 does not need global search unless implementation discovers a simple existing path. Search should not be added as a new product surface during Release 1.0.
+Release 1.0 includes a scoped global search across implemented surfaces: tasks, calendar events, household members, and navigation targets. Future modules should register searchable results only after their data and permission behavior are validated.
 
 ## Universal Quick Add
 Universal Quick Add should become the fastest way to capture household work.
@@ -43,7 +43,7 @@ Release 1.0 should keep Quick Add focused on existing supported actions and avoi
 ## Notification Bell
 The notification bell is a future global surface for reminders, warnings, and household updates.
 
-Release 1.0 should only standardize in-app status feedback if needed. It should not add push, email, SMS, AI alerts, or background notification delivery.
+Release 1.0 includes an in-app notification center for task, calendar, and household state. It does not add push, email, SMS, AI alerts, or background notification delivery.
 
 ## Breadcrumbs
 Breadcrumbs are useful for deeper future module flows such as documents, finances, projects, home systems, or college planning.

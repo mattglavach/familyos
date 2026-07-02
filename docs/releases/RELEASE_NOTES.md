@@ -1,5 +1,73 @@
 # Release Notes
 
+## Release 1.0
+
+### Version
+1.0.0
+
+### Date
+2026-07-02
+
+### Summary
+Release 1.0 implements the Core Family OS MVP as the first true product release after the engineering and product foundations. It focuses on the daily household operating loop: Home, Tasks, Calendar, Quick Add, Search, Notifications, More navigation, and household/settings polish.
+
+### New Features
+- Product-ordered Home dashboard: Today's Priorities, Today's Schedule, My Tasks, Family Activity, Quick Add, and Household Insights.
+- First-class Calendar module using existing secure/legacy Google Calendar data paths.
+- Primary navigation updated to Home, Tasks, Calendar, Quick Add, and More.
+- More module groups household/settings and existing lower-frequency modules while clearly marking future modules.
+- Universal Quick Add can be launched from navigation or the floating action button and creates household-aware tasks through the existing ownership helper.
+- Universal Search searches implemented surfaces: tasks, calendar events, household members, and navigation targets.
+- In-app notification center surfaces task, calendar, and household state with local read/unread tracking.
+- Tasks now include an in-module search filter in addition to existing create, edit, complete, delete, assign, status, priority, due date, filters, sorting, and recurrence visibility.
+
+### Database Changes
+- None.
+
+### Security And RLS Notes
+- Authenticated smoke testing used local Supabase only: `REACT_APP_SUPABASE_URL=http://127.0.0.1:54321`, Docker container `supabase_db_familyos`, and local CRA server `http://localhost:3000`.
+- No production Supabase data was touched.
+- No schema or RLS migration was added.
+- Existing Supabase RLS remains the enforcement layer for task, household, invitation, and calendar records.
+- Owner-only household controls remain in Settings and continue to rely on existing role/RLS/RPC behavior.
+- In-app notification read state is local-only UI state; it does not store secrets, tokens, sessions, or private provider payloads.
+
+### Fixes From Authenticated Smoke
+- Fixed shared date formatting so Supabase timestamp values do not render as `Invalid Date` in task cards.
+- Fixed notification due-date math for date-only task values so local dates are not shifted by timezone parsing.
+- Refreshed task data when Universal Search opens so newly created Quick Add tasks are indexed.
+- Updated Settings to show Release 1.0 and display named active-household switcher options instead of raw household UUIDs.
+
+### Validation
+- `pnpm run lint` passed.
+- `pnpm run build` passed.
+- `git diff --check` passed.
+- Browser smoke on `http://localhost:3000` confirmed authenticated owner, adult, and viewer workflows against local Supabase.
+- Mobile viewport smoke at 390px confirmed no horizontal overflow on the authenticated Home surface.
+- Browser console error/warning check returned no logs after authenticated smoke.
+
+### Browser Smoke Notes
+- Login: passed for local owner and adult/viewer member accounts.
+- Home dashboard: passed with household data, task summaries, schedule state, Quick Add entry, and More navigation.
+- Tasks: passed create, edit, complete, delete, search/filtering, and assignment to household member.
+- Calendar: passed first-class page and disconnected local state with Settings paths.
+- Quick Add: passed global task creation and household-aware task persistence.
+- Universal Search: passed task search, including newly created Quick Add tasks after the refresh-on-open fix.
+- Notification Center: passed unread generation, corrected due labels, and mark-read state.
+- More page: passed available/deferred module grouping without adding deferred modules.
+- Household switching: passed owner switch to alternate local household and back.
+- Settings household/member/invite views: passed owner directory, pending invite create/revoke, role update, member removal, active household, and non-owner views.
+- Owner controls: passed invite creation/revoke, role update, and removal of a disposable non-login member.
+- Adult controls: passed; owner-only invite, role, and remove controls were hidden/disabled.
+- Viewer controls: passed; owner-only invite, role, and remove controls were hidden/disabled.
+- Mobile responsive sanity: passed at 390px authenticated viewport with no horizontal overflow.
+
+### Deferred
+- Shopping, Life Lists, Meal Planning, Recipes, Inventory, Finance expansion, Pool expansion, College expansion, Home Assistant, Smart Home, AI Assistant, public sign-up, ownership transfer, push notifications, and broad module RLS conversion remain deferred.
+
+### Recommendation
+Ready to merge after final repository validation remains green.
+
 ## Release 0.9.3 Product Handbook
 
 ### Version

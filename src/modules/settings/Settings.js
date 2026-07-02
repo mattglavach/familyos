@@ -295,6 +295,10 @@ export function Settings({ auth, gc, secureCalendar }) {
     return map;
   }, {}), [household.people]);
   const currentUserMemberships = household.userMemberships.filter(membership => membership.user_id === household.user?.id && membership.status === "active");
+  const userHouseholdNames = useMemo(() => household.userHouseholds.reduce((map, item) => {
+    map[item.id] = item.name;
+    return map;
+  }, {}), [household.userHouseholds]);
   const householdMembers = household.memberships.filter(membership => membership.household_id === household.householdId);
   const canManageMembers = roleCanManageMembers(household.membership?.role);
   const localBytes = snapshot.reduce((total, item) => total + item.bytes, 0);
@@ -328,7 +332,7 @@ export function Settings({ auth, gc, secureCalendar }) {
           <SettingRow label="Email" value={email} />
           <SettingRow label="User ID" value={userId} />
           <SettingRow label="Household Role" value={roleLabel(household.membership?.role) || "Unavailable"} />
-          <SettingRow label="Release" value="Release 0.9" badge={<Badge variant="blue">0.9</Badge>} />
+          <SettingRow label="Release" value="Release 1.0" badge={<Badge variant="blue">1.0</Badge>} />
         </CardContent>
       </Card>
 
@@ -352,7 +356,7 @@ export function Settings({ auth, gc, secureCalendar }) {
                 <Select id="active-household" value={household.householdId || ""} onChange={switchHousehold}>
                   {currentUserMemberships.map(membership => (
                     <option key={membership.id} value={membership.household_id}>
-                      {membership.household_id === household.householdId ? settings.householdName : membership.household_id}
+                      {userHouseholdNames[membership.household_id] || (membership.household_id === household.householdId ? settings.householdName : "Household")}
                     </option>
                   ))}
                 </Select>

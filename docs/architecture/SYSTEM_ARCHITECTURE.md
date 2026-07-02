@@ -53,3 +53,6 @@ Release 1.0 should stabilize the existing core household operating loop instead 
 Release 1.0 architecture improvements should be limited to changes required for dashboard, tasks, navigation, settings, household management, responsive UX, validation, and security readiness. Broad module expansion, full household-scoped RLS conversion, ownership transfer, public sign-up, AI assistant work, Home Assistant, smart home, and major new integrations are deferred.
 
 The authoritative Release 1.0 blueprint is `docs/planning/RELEASE_1_0_SPEC.md`.
+
+## Release 1.0 Implementation Notes
+Release 1.0 adds app-shell-level `Calendar`, `More`, `GlobalSearch`, and `NotificationCenter` modules without changing the database schema. Universal Search and in-app Notifications are computed from existing task, calendar, household, and navigation data. Notification read/unread state is stored locally in the browser and is not a push/email/SMS delivery system.

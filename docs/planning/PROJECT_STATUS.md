@@ -1,10 +1,10 @@
 # Project Status
 
 ## Current Version
-0.9.3-product-handbook
+1.0
 
 ## Current State
-Release 0.9.3 product handbook is validation-complete on branch `release/0.9.3-product-handbook`. Release 1.0 implementation has not started.
+Release 1.0 core MVP implementation and authenticated local browser smoke validation are complete on branch `release/1.0`.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -57,12 +57,14 @@ Release 0.9.3 product handbook is validation-complete on branch `release/0.9.3-p
 - v0.9.2 repository documentation cleanup completed
 - Release 1.0 specification and implementation blueprint defined in `docs/planning/RELEASE_1_0_SPEC.md`
 - Release 0.9.3 permanent Product Handbook established under `docs/product`
+- Release 1.0 core MVP implementation added Home dashboard ordering, Calendar, More navigation, Universal Quick Add launch, Universal Search, in-app Notifications, and task search
+- Release 1.0 authenticated local browser smoke validation passed against local Supabase for owner, adult, viewer, Home, Tasks, Calendar, Quick Add, Universal Search, Notifications, More, household switching, Settings, invite create/revoke, owner role update, non-owner control hiding, and mobile sanity checks
 
 ## In Progress
-- Review and approval of Release 1.0 implementation using the Product Handbook and Release 1.0 specification.
+- None for Release 1.0 validation.
 
 ## Next
-- Implement Release 1.0 from `docs/planning/RELEASE_1_0_SPEC.md`, using `docs/product/PRODUCT_VISION.md` and the Product Handbook as product direction.
+- Final release review, merge, and tag decision for Release 1.0.
 - Configure Release 0.8 server OAuth environment values in Vercel before removing the legacy calendar fallback.
 - Decide whether to remove the legacy browser calendar fallback after deployed validation.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
@@ -92,6 +94,8 @@ Release 0.9.3 product handbook is validation-complete on branch `release/0.9.3-p
 - Historical audit and implementation docs are intentionally retained but should not be treated as current process guidance.
 - Release 1.0 should avoid broad module expansion and focus on dashboard, tasks, navigation, settings, household management, responsive UX, and validation.
 - Product direction should start from the Product Handbook; engineering execution should start from `docs/process/ENGINEERING_INDEX.md`.
+- Release 1.0 introduced Universal Search and an in-app notification center as scoped local/app-shell features; push/email/SMS delivery remains deferred.
+- Release 1.0 local smoke used disposable seeded records in local Supabase. Production deployment still requires normal post-merge/deploy smoke validation.
 
 ## Last Updated
 July 2, 2026

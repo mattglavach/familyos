@@ -46,9 +46,9 @@ Confirmations should state what will and will not be deleted.
 - Keep dialogs and drawers understandable to keyboard and assistive technology users.
 
 ## Search
-Search is future. When introduced, it should respect household permissions and return practical grouped results.
+Search should respect household permissions and return practical grouped results.
 
-Release 1.0 should not add broad search unless the scope is explicitly approved.
+Release 1.0 search is scoped to implemented surfaces: tasks, calendar events, household members, and navigation targets.
 
 ## Quick Add
 Quick Add should be immediate, forgiving, and available from anywhere. It should capture the user's thought first and ask for details only when needed.
@@ -69,4 +69,4 @@ Shared tasks, schedules, people, and household settings should make ownership an
 ## Notification Behavior
 Notifications should be useful, sparse, and actionable.
 
-Release 1.0 should focus on in-app status feedback. Push, email, SMS, AI alerts, and background delivery are future capabilities.
+Release 1.0 includes in-app status feedback and an in-app notification center. Push, email, SMS, AI alerts, and background delivery are future capabilities.
