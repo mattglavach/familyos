@@ -15,6 +15,7 @@ This folder is the operating manual for Family OS.
 ### Planning
 - docs/planning/ROADMAP.md
 - docs/planning/CURRENT_SPRINT.md
+- docs/planning/RELEASE_1_0_SPEC.md
 - docs/planning/RELEASE_0_9_PLAN.md
 - docs/planning/PROJECT_STATUS.md
 - docs/planning/TECH_DEBT.md
@@ -55,6 +56,7 @@ This folder is the operating manual for Family OS.
 - docs/database/SECURITY_RLS.md
 
 ### Process
+- docs/process/ENGINEERING_INDEX.md
 - docs/process/FAMILY_OS_PRINCIPLES.md
 - docs/process/RELEASE_PLAYBOOK.md
 - docs/process/FEATURE_PLAYBOOK.md

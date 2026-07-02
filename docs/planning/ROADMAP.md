@@ -66,8 +66,17 @@
 - [x] Establish permanent release, feature, coding, architecture, UI, testing, documentation, git, review, checklist, and prompt playbooks.
 - [x] Establish governance, production readiness, environment, security, dependency, ADR, planning, and reusable specification templates.
 - [x] Clean up repository documentation structure after Release 0.9.1.
-- [ ] Use the Release 0.9.1/0.9.2 process framework for Release 1.0 planning.
+- [x] Use the Release 0.9.1/0.9.2 process framework for Release 1.0 planning.
 - [ ] Revisit process docs after two releases and refine based on actual execution gaps.
 
 ## Next Release
-- [ ] Release 1.0 planning with `docs/templates/RELEASE_SPEC.md`.
+- [x] Release 1.0 planning with `docs/templates/RELEASE_SPEC.md`.
+- [ ] Implement Release 1.0 from `docs/planning/RELEASE_1_0_SPEC.md`.
+
+## Release 1.0 Scope
+- [ ] Stabilize the dashboard daily command center.
+- [ ] Stabilize household task workflows.
+- [ ] Polish navigation and responsive layouts for active modules.
+- [ ] Harden Settings and household management workflows.
+- [ ] Revalidate household collaboration, active household switching, and permission enforcement.
+- [ ] Keep shopping, life lists, meal planning, recipes, inventory, Home Assistant, smart home, AI Assistant, ownership transfer, public sign-up, and major new integrations deferred.

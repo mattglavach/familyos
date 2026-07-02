@@ -8,6 +8,7 @@ Start with the v1 documentation workspace:
 
 - [Master Documentation Index](docs/00_MASTER_INDEX.md)
 - [Agent Instructions](AGENTS.md)
+- [Engineering Index](docs/process/ENGINEERING_INDEX.md)
 - [Release Playbook](docs/process/RELEASE_PLAYBOOK.md)
 - [Feature Playbook](docs/process/FEATURE_PLAYBOOK.md)
 - [Family OS Principles](docs/process/FAMILY_OS_PRINCIPLES.md)

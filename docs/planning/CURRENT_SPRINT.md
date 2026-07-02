@@ -1,7 +1,7 @@
 # Current Sprint
 
 ## Sprint Goal
-Complete Release 0.9.2 repository documentation cleanup so the repository is ready to guide Release 1.0.
+Complete Release 1.0 planning so implementation can start from a single authoritative blueprint.
 
 ## Active Items
 - [x] Add documentation structure
@@ -65,8 +65,10 @@ Complete Release 0.9.2 repository documentation cleanup so the repository is rea
 - [x] Add Release 0.9.1 governance docs, ADR template, planning logs, and reusable release/feature/module/bug/retro templates
 - [x] Release v0.9.0 household collaboration
 - [x] Release v0.9.1 engineering framework and governance templates
-- [ ] Complete Release 0.9.2 repository documentation cleanup
-- [ ] Prepare Release 1.0 planning entry point
+- [x] Complete Release 0.9.2 repository documentation cleanup
+- [x] Prepare Release 1.0 planning entry point
+- [x] Define Release 1.0 specification in `docs/planning/RELEASE_1_0_SPEC.md`
+- [ ] Review and approve Release 1.0 implementation branch plan
 
 ## Blockers
 
@@ -115,3 +117,4 @@ Complete Release 0.9.2 repository documentation cleanup so the repository is rea
 - Release 0.9.1 is documentation/process-only. It intentionally does not add application features.
 - Release 0.9.1 governance extends existing docs instead of replacing them; existing detailed design and database docs remain source references.
 - Release 0.9.2 archives superseded development docs and makes `docs/process` the active engineering source of truth.
+- Release 1.0 planning keeps the release focused on core household operating readiness: dashboard, tasks, navigation, settings, household management, responsive UX, and validation. Shopping, life lists, meal planning, recipes, inventory, Home Assistant, smart home, AI Assistant, ownership transfer, public sign-up, and major new integrations remain deferred.
