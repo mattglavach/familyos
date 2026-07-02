@@ -1,7 +1,7 @@
 # Current Sprint
 
 ## Sprint Goal
-Implement Release 1.0 Core Family OS MVP while keeping scope limited to the daily household operating loop.
+Implement Release 1.0.1 Core MVP Polish after v1.0.0, keeping scope limited to usability improvements for Home, Tasks, Quick Add, More, and Notifications.
 
 ## Active Items
 - [x] Add documentation structure
@@ -77,6 +77,12 @@ Implement Release 1.0 Core Family OS MVP while keeping scope limited to the dail
 - [x] Reorder Home dashboard around Release 1.0 product priorities
 - [x] Add Tasks search filter
 - [x] Complete authenticated browser smoke validation for Release 1.0
+- [x] Polish Home as the awareness layer instead of a management dashboard
+- [x] Polish Tasks as one action-oriented work surface with task filters and sorting
+- [x] Add simple supported recurrence presets for task add/edit flows
+- [x] Keep Quick Add lightweight with unsupported future capture types disabled
+- [x] Group More by platform areas
+- [x] Add Notification Center lifecycle views: Unread, Today, This Week, Archive
 
 ## Blockers
 
@@ -129,3 +135,4 @@ Implement Release 1.0 Core Family OS MVP while keeping scope limited to the dail
 - Release 0.9.3 defines the product source of truth: vision, information architecture, navigation, design principles, UX guidelines, dashboard strategy, module map, personas, workflows, feature philosophy, and product roadmap.
 - Release 1.0 implements scoped Universal Search and in-app notifications because the implementation prompt explicitly includes them. This does not add push/email/SMS notifications or broad future-module search.
 - Release 1.0 authenticated smoke validation used local Supabase only (`127.0.0.1:54321`) and local CRA on `localhost:3000`; production was not touched. Owner, adult, viewer, task lifecycle, task search, assignment, Calendar, Quick Add, Universal Search, Notifications, More, Settings, household switching, invite create/revoke, owner role update, and mobile sanity checks passed.
+- Release 1.0.1 keeps Home as awareness and modules as action workspaces. It does not add Life Lists, Shopping, Meal Planning, Finance expansion, Health, Smart Home, AI, Projects, or new major database models.

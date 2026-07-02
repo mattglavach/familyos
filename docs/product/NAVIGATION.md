@@ -35,10 +35,14 @@ Long-term capture targets:
 - Reminder.
 - Shopping item.
 - Note.
-- Maintenance record.
+- Pool reading.
+- Maintenance item.
+- Health entry.
 - Document placeholder.
 
 Release 1.0 should keep Quick Add focused on existing supported actions and avoid adding unsupported module types.
+
+Release 1.0.1 keeps Task, Note, Pool Reading, and Maintenance enabled. Event, Shopping Item, and Health Entry are shown as later/deferred targets only when useful for product direction and must not create incomplete module records.
 
 ## Notification Bell
 The notification bell is a future global surface for reminders, warnings, and household updates.
@@ -59,7 +63,7 @@ Release 1.0 should not require breadcrumbs for the current shallow app structure
 ## Future Growth Strategy
 1. Keep Home, Tasks, Calendar, Quick Add, and More as the long-term primary model.
 2. Move lower-frequency modules into More.
-3. Add module groups before adding many new top-level items.
+3. Group More by platform: Household, Home, Health, Finance, Planning, and Settings.
 4. Promote a module only when it is active, documented, validated, and used frequently.
 5. Use search and Quick Add to reduce navigation depth as the product grows.
 

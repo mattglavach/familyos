@@ -1,10 +1,10 @@
 # Project Status
 
 ## Current Version
-1.0
+1.0.1
 
 ## Current State
-Release 1.0 core MVP implementation and authenticated local browser smoke validation are complete on branch `release/1.0`.
+Release 1.0 core MVP is complete. Release 1.0.1 Core MVP Polish is in progress on branch `release/1.0.1-polish`.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -59,12 +59,13 @@ Release 1.0 core MVP implementation and authenticated local browser smoke valida
 - Release 0.9.3 permanent Product Handbook established under `docs/product`
 - Release 1.0 core MVP implementation added Home dashboard ordering, Calendar, More navigation, Universal Quick Add launch, Universal Search, in-app Notifications, and task search
 - Release 1.0 authenticated local browser smoke validation passed against local Supabase for owner, adult, viewer, Home, Tasks, Calendar, Quick Add, Universal Search, Notifications, More, household switching, Settings, invite create/revoke, owner role update, non-owner control hiding, and mobile sanity checks
+- Release 1.0.1 polished Home, Tasks, Quick Add, More grouping, notification lifecycle views, and product/planning documentation without adding deferred modules
 
 ## In Progress
-- None for Release 1.0 validation.
+- Release 1.0.1 validation and smoke testing.
 
 ## Next
-- Final release review, merge, and tag decision for Release 1.0.
+- Final release review, merge, and tag decision for Release 1.0.1.
 - Configure Release 0.8 server OAuth environment values in Vercel before removing the legacy calendar fallback.
 - Decide whether to remove the legacy browser calendar fallback after deployed validation.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
@@ -96,6 +97,7 @@ Release 1.0 core MVP implementation and authenticated local browser smoke valida
 - Product direction should start from the Product Handbook; engineering execution should start from `docs/process/ENGINEERING_INDEX.md`.
 - Release 1.0 introduced Universal Search and an in-app notification center as scoped local/app-shell features; push/email/SMS delivery remains deferred.
 - Release 1.0 local smoke used disposable seeded records in local Supabase. Production deployment still requires normal post-merge/deploy smoke validation.
+- Release 1.0.1 recurrence presets use the existing `recurring_interval_days` field. Weekday-only recurrence remains deferred until a richer recurrence model exists.
 
 ## Last Updated
 July 2, 2026
