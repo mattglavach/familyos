@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Implemented Release 1.0.3 Design System: added the shadcn-compatible local component wrapper foundation, standardized semantic design tokens, moved common Tasks and Quick Add option sets to chips, and migrated Universal Search to the local Command wrapper without changing search scope.
+- Documented the Release 1.0.3 wrapper philosophy, design tokens, future UI expectations, and remaining UI technical debt for deferred modules and native confirmation migration.
 - Implemented Release 1.0.2 Reliability: improved Calendar and household invitation configuration handling, removed raw technical errors from key user-facing paths, clarified optional integration behavior, and updated local/staging/production setup documentation.
 - Completed remaining Release 1.0.2 authenticated local smoke validation for adult permissions, viewer permissions, mobile 390px sanity, full task create/edit/complete/delete lifecycle, cleanup, and console checks.
 - Implemented Release 1.0.1 Core MVP Polish: simplified Home around awareness/drill-downs, reshaped Tasks around one action work surface, added supported recurrence presets, clarified Quick Add future types, grouped More by platform, and added Notification Center lifecycle views.

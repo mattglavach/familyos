@@ -37,6 +37,24 @@ Use this document to track durable technical debt. Do not use chat history as th
 - Impact: Current validation relies heavily on lint/build/manual SQL/browser smoke.
 - Trigger: Before high-risk finance, medical, document, or broad collaboration releases.
 
+### Legacy Deferred-Module UI Migration
+- Status: Open
+- Impact: Some deferred modules still contain inline styles, native selects, and older local component patterns that are outside the Release 1.0.3 active surfaces.
+- Trigger: When Pool, Finance, College, Health, Shopping, Life Lists, or other deferred modules become active release scope.
+- Notes: Migrate through `src/components/ui` wrappers and the UI migration backlog. Do not rewrite deferred modules only for cosmetic consistency.
+
+### Native Browser Confirmations
+- Status: Open
+- Impact: Some destructive flows still use native `window.confirm`, which is less consistent with the design-system dialog layer and can be harder to automate in smoke tests.
+- Trigger: When touching the affected task, settings, invite, calendar disconnect, or local reset flows for product work.
+- Notes: Replace with the local Dialog or Alert wrapper without changing authorization or mutation behavior.
+
+### Advanced shadcn Primitive Backing
+- Status: Open
+- Impact: Release 1.0.3 provides local JavaScript wrappers for the baseline component API, but advanced overlay behavior may eventually need Radix-backed shadcn primitives.
+- Trigger: Before building complex menus, comboboxes, nested overlays, or fully keyboard-managed command palettes.
+- Notes: Preserve the wrapper import contract so feature modules do not change when internals are upgraded.
+
 ### Historical Documentation Review
 - Status: Open
 - Impact: Audit, decision, and implementation folders intentionally preserve historical context, but some findings describe older repository states.

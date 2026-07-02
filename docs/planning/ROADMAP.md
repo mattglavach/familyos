@@ -79,6 +79,7 @@
 - [x] Complete Release 1.0 authenticated local/staging smoke validation.
 - [x] Implement Release 1.0.1 Core MVP Polish for Home, Tasks, Quick Add, More, Notifications, and documentation.
 - [x] Implement Release 1.0.2 Reliability for configuration handling, friendly errors, optional integration setup, and production-readiness documentation.
+- [x] Implement Release 1.0.3 Design System for shared UI wrappers, tokens, command search, and common form control consistency.
 
 ## Release 1.0 Scope
 - [x] Stabilize the dashboard daily command center.
@@ -100,3 +101,11 @@
 - [x] Group More by Household, Home, Health, Finance, Planning, and Settings.
 - [x] Add Notification Center lifecycle views for Unread, Today, This Week, and Archive.
 - [ ] Keep Life Lists, Shopping, Meal Planning, Finance expansion, Health, Smart Home, AI, Projects, full Maintenance, and full Pool expansion deferred.
+
+## Release 1.0.3 Scope
+- [x] Establish `src/components/ui` as the wrapper layer for future UI primitives.
+- [x] Document shadcn/ui-compatible local configuration in `components.json`.
+- [x] Standardize design tokens for semantic color, radius, elevation, focus, and motion.
+- [x] Use chip controls for frequent small option sets in Tasks and Quick Add.
+- [x] Use the local Command wrapper for Universal Search.
+- [ ] Continue migrating deferred module UI debt only when those modules become active release scope.

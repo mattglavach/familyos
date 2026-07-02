@@ -1,5 +1,44 @@
 # Release Notes
 
+## Release 1.0.3
+
+### Version
+1.0.3
+
+### Date
+2026-07-02
+
+### Summary
+Release 1.0.3 establishes the permanent Family OS design-system foundation. It adds a shadcn-compatible local wrapper layer, standardizes core design tokens, improves common task form controls, and keeps workflows unchanged.
+
+### Updates
+- Added `components.json` for the local shadcn/ui-compatible configuration.
+- Added UI wrappers under `src/components/ui` for alerts, avatars, checkboxes, command search, dialogs, drawers, dropdown menus, popovers, separators, sheets, switches, tables, tabs, toasts, tooltips, and related primitives.
+- Standardized semantic color, radius, elevation, and motion tokens in CSS and Tailwind.
+- Updated Tasks add/edit controls so priority, status, category, and recurrence use chips instead of dropdowns.
+- Updated Quick Add task recurrence to use chips while keeping unsupported future recurrence behavior disabled and honest.
+- Updated Universal Search to use the local Command wrapper without expanding its data scope.
+
+### Database Changes
+- None.
+
+### Deferred
+- Life Lists, Shopping, Finance expansion, Health, Home platform, AI, Projects, Pool, Maintenance, and other major modules remain out of scope.
+- Deferred-module inline UI migration remains tracked as technical debt.
+- Native browser confirmations remain in some existing destructive flows until those flows are touched for product work.
+- Advanced Radix-backed shadcn internals can be added later behind the same wrapper API if complex overlay behavior requires them.
+
+### Validation
+- `pnpm run lint` passed.
+- `pnpm run build` passed.
+- `git diff --check` passed.
+- Browser smoke used the local app on `http://localhost:3000` with the existing authenticated local Supabase session. Production was not touched.
+- Desktop smoke passed for Home load, Tasks page, task drawer chip controls, Quick Add supported/deferred type behavior, Quick Add recurrence chips, Universal Search Command results, Notification Center tabs, Calendar setup state, More grouping, Settings, and Household/member visibility.
+- The authenticated local smoke session was an Adult account; owner-only household invite controls remained hidden as expected.
+- Tablet smoke at 768px passed for Settings, Home, Tasks, Calendar, and More with no horizontal overflow.
+- Mobile smoke at 390px passed for Home, Tasks, Calendar, More, Quick Add, Universal Search, and Notifications with no horizontal overflow.
+- Browser console checks during completed smoke paths showed no warnings or errors.
+
 ## Release 1.0.2
 
 ### Version

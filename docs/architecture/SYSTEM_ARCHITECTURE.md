@@ -61,3 +61,10 @@ Release 1.0 adds app-shell-level `Calendar`, `More`, `GlobalSearch`, and `Notifi
 Optional integrations should not create product-wide outages. Supabase browser configuration is required for authenticated app use, but Google Calendar, AI briefs, and other integrations must fail into clear setup guidance when their environment variables, OAuth settings, migrations, or schema cache are not ready.
 
 User-facing surfaces should not expose SQL, PostgREST, Supabase internals, OAuth secret names, or server environment variable names. Detailed environment requirements live in `docs/process/ENVIRONMENTS.md` and integration-specific setup docs such as `docs/setup/google-calendar-oauth.md`.
+
+## Release 1.0.3 Design System Notes
+Release 1.0.3 establishes the permanent UI wrapper layer under `src/components/ui`. Feature modules should consume Family OS wrappers instead of importing third-party primitives directly. This keeps tokens, accessibility defaults, mobile-first behavior, and future shadcn/ui migration work centralized.
+
+The existing stack is compatible with the shadcn/ui model: Tailwind CSS variables, Lucide icons, local utility helpers, and `components.json` are present. Release 1.0.3 adopts the model through local JavaScript wrappers instead of forcing broad dependency or TypeScript conversion work.
+
+Origin UI-style drawers remain the composed interaction pattern for mobile create/edit surfaces. Command-style search, forms, badges, cards, alerts, toasts, tables, tabs, overlays, and selection controls should be added or evolved in the wrapper layer first, then consumed by modules.
