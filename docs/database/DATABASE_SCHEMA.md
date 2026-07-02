@@ -75,6 +75,22 @@ Stores chores, reminders, and general tasks.
 
 Release 0.6B implementation note: the applied Supabase `tasks` table currently persists `title`, `category`, `priority`, `due_date`, `recurring_interval_days`, `last_completed`, `is_important`, `notes`, and `completed`. The task MVP uses browser localStorage metadata keyed by task id for `assignee`, detailed `status`, `created_at`, and `completed_at` until the future shared household task schema is migrated.
 
+### life_lists
+Stores generic household, shared, and personal lightweight collections for Release 1.1 Life Lists.
+
+Rows include `household_id`, `user_id`, `owner_user_id`, `name`, `description`, `visibility`, optional `color`/`icon`, `favorite`, `archived`, `category`, `sort_order`, `created_at`, and `updated_at`.
+
+`visibility` supports `personal`, `household`, and `shared`. Personal lists are owner-visible. Household and shared lists are active-household records.
+
+Release 1.1 validation note: the Life Lists migration was applied from an empty disposable local database after the base schema and ordered migration chain, then re-run idempotently. Validation confirmed both tables, required indexes, constraints, grants, RLS enablement, and policies.
+
+### life_list_items
+Stores entries inside Life Lists.
+
+Rows include `household_id`, `user_id`, `list_id`, `title`, `description`, `priority`, `status`, `favorite`, optional `assigned_to_person_id`, `tags`, `link_url`, future-ready `image_url`, `completed_at`, `archived`, `sort_order`, `created_at`, and `updated_at`.
+
+`priority` supports `low`, `med`, and `high`. `status` supports `planned`, `in_progress`, `completed`, `someday`, `deferred`, and `archived`.
+
 ### finance_accounts
 Stores accounts for net worth and planning.
 

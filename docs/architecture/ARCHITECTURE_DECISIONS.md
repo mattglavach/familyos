@@ -23,6 +23,28 @@ Record decisions that shape the product.
 ### July 2, 2026
 
 ### Decision
+Implement Release 1.1 Life Lists as a generic list and item framework instead of category-specific apps.
+
+### Context
+Life Lists must cover things the family wants to do, watch, read, visit, buy, remember, or plan. The release explicitly excludes shopping, meal planning, ratings, reviews, recommendation engines, and external media/book/travel APIs.
+
+### Options Considered
+- Build separate list types for movies, books, gifts, places, and bucket lists.
+- Add a generic Life Lists module with category metadata and future-ready item fields.
+- Defer Life Lists until category-specific requirements are fully known.
+
+### Decision Rationale
+A generic framework supports current and future lightweight collections without hardcoding domains or introducing external integrations. It also keeps Home as an awareness layer, while Life Lists remains the action workspace.
+
+### Tradeoffs
+Release 1.1 does not include category-specific templates, ratings, reviews, image upload storage, enrichment APIs, or recommendation logic. Those can be added later on top of the generic model if they become product priorities.
+
+### Follow-up
+Validate RLS in a disposable or staging Supabase environment before production migration, then consider notification events and richer category templates in a later release.
+
+### July 2, 2026
+
+### Decision
 Use hashed invitation tokens and Supabase RPCs for Release 0.9 household invitations.
 
 ### Context

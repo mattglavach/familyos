@@ -78,4 +78,4 @@ Release 1.0 should focus only on the core operating loop:
 - Notifications/status feedback.
 - Responsive UI and UX polish.
 
-Shopping, Life Lists, AI, Smart Home, Meal Planning, Inventory, and Home integrations remain deferred because they depend on a stable core experience, clear module boundaries, and trusted household data.
+Shopping, AI, Smart Home, Meal Planning, Inventory, and Home integrations remain deferred because they depend on a stable core experience, clear module boundaries, and trusted household data. Life Lists becomes active in Release 1.1 as a generic lightweight planning module.

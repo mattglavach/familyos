@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- Completed Release 1.1 validation against disposable/local Supabase only: full schema and migration chain, Life Lists RLS behavior, authenticated browser smoke, 390px mobile sanity, console checks, and product cleanup for Quick Add and Today's Priorities.
+- Fixed Release 1.1 validation issues: clean schema ordering for Life Lists migrations, viewer household/shared management denial in RLS and UI, viewer Quick Add writable-list filtering, viewer personal-list creation options, floating Quick Add removal, unsupported Quick Add destination removal, and Today's Priorities "View All" removal.
+- Implemented Release 1.1 Life Lists: added generic lists/items with household-aware schema and RLS, More module UI, Home awareness, Universal Quick Add targets, Universal Search results, seed fallback, and release documentation.
 - Implemented Release 1.0.5 Calendar & Header Cleanup: hardened Calendar tab rendering, added a shared Calendar status model, simplified header Calendar/Settings actions to icons, improved Calendar setup/permission messaging, and validated responsive header behavior without database or product-module expansion.
 - Implemented Release 1.0.4 Consumer Cleanup: tightened Home drill-down affordances, made Tasks default to the Household view so newly created tasks are discoverable, compacted task filters behind More Filters, improved Calendar and invitation consumer messaging, removed Quick Add dead-end actions, and replaced touched destructive browser confirmations with specific app dialogs.
 - Improved Core MVP consumer language across Home, Tasks, Calendar, Quick Add, Search, Notifications, Settings, and More without adding deferred modules or changing the database.

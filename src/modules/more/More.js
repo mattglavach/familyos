@@ -37,7 +37,7 @@ const platformGroups = [
     items: [
       { id: "college", label: "College", detail: "Existing college planning workspace.", icon: NotebookTabs, badge: "Existing", enabled: true },
       { label: "Shopping", detail: "Future shopping workspace.", icon: ShoppingCart, badge: "Future", enabled: false },
-      { label: "Life Lists", detail: "Future planning list workspace.", icon: ListChecks, badge: "Future", enabled: false },
+      { id: "life-lists", label: "Life Lists", detail: "Flexible lists for ideas, media, places, gifts, and family plans.", icon: ListChecks, badge: "New", enabled: true },
       { label: "Meal Planning", detail: "Future meal planning workspace.", icon: Utensils, badge: "Future", enabled: false },
     ],
   },
@@ -98,7 +98,7 @@ export function More({ onNavigate }) {
         <EmptyStatePanel
           icon={<CalendarDays className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />}
           title="More is growing carefully"
-          detail="Shopping, Life Lists, Meal Planning, Smart Home, and other larger areas will be added after the core household tools feel solid."
+          detail="Shopping, Meal Planning, Smart Home, and other larger areas will be added after the core household tools feel solid."
           className="py-7"
         />
       </Card>

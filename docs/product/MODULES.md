@@ -127,13 +127,15 @@ Future enhancements: Recipe library, meal calendar, grocery generation, nutritio
 ## Life Lists
 Purpose: Books, movies, gifts, goals, bucket lists, travel ideas, and personal/family wish lists.
 
-Current status: Future.
+Current status: Active MVP.
 
-Release target: Deferred from Release 1.0.
+Release target: Release 1.1.
 
-Dependencies: List model, personal/shared visibility, Quick Add.
+Dependencies: Generic Life Lists schema, household context, personal/shared visibility, Quick Add, Universal Search.
 
-Future enhancements: Gift planning, holiday planning, travel ideas, recommendations.
+Future enhancements: Gift planning, holiday planning, travel ideas, recommendation engines, external enrichment APIs, ratings, reviews, and richer notifications.
+
+Release 1.1 guidance: Life Lists is a generic action workspace for lightweight collections. Do not hardcode category-specific flows such as shopping, meal planning, movie databases, book APIs, travel APIs, ratings, or reviews.
 
 ## Documents
 Purpose: Household document metadata, forms, warranties, records, and future secure storage.

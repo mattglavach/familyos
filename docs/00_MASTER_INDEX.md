@@ -127,5 +127,6 @@ This folder is the operating manual for Family OS.
 - Travel
 - Documents
 - Tasks
+- Life Lists
 - Pickleball Club
 - AI Assistant
