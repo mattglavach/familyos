@@ -44,6 +44,16 @@ export const SEED={
     {id:"7",title:"SAT registration deadline",category:"College",priority:"high",due_date:"2026-06-20",recurring_interval_days:null,last_completed:null,is_important:true,notes:"August test date",completed:false},
     {id:"8",title:"Review retirement contribution",category:"Finance",priority:"med",due_date:null,recurring_interval_days:null,last_completed:null,is_important:true,notes:"Below 15% target",completed:false},
   ],
+  life_lists:[
+    {id:"life-1",name:"Movies to Watch",description:"Family movie ideas for quiet weekends.",owner_user_id:null,visibility:"household",color:"#8B6FD4",icon:"▶",favorite:true,archived:false,category:"Movies",sort_order:1,created_at:"2026-07-01T12:00:00Z",updated_at:"2026-07-02T12:00:00Z"},
+    {id:"life-2",name:"Places to Visit",description:"Local and vacation ideas worth remembering.",owner_user_id:null,visibility:"household",color:"#4A90D9",icon:"⌂",favorite:false,archived:false,category:"Travel",sort_order:2,created_at:"2026-07-01T12:00:00Z",updated_at:"2026-07-01T12:00:00Z"},
+    {id:"life-3",name:"Gift Ideas",description:"Shared ideas for birthdays and holidays.",owner_user_id:null,visibility:"shared",color:"#3DB87A",icon:"★",favorite:true,archived:false,category:"Gifts",sort_order:3,created_at:"2026-07-01T12:00:00Z",updated_at:"2026-07-01T12:00:00Z"},
+  ],
+  life_list_items:[
+    {id:"life-item-1",list_id:"life-1",title:"The Princess Bride",description:"Good family rewatch option.",priority:"med",status:"planned",favorite:true,assigned_to_person_id:null,tags:["movie","family"],link_url:"",image_url:"",created_at:"2026-07-01T12:00:00Z",updated_at:"2026-07-02T12:00:00Z",completed_at:null,archived:false,sort_order:1},
+    {id:"life-item-2",list_id:"life-2",title:"Weekend mountain cabin",description:"Save for a cooler-weather trip.",priority:"high",status:"someday",favorite:false,assigned_to_person_id:null,tags:["travel","weekend"],link_url:"",image_url:"",created_at:"2026-07-01T12:00:00Z",updated_at:"2026-07-01T12:00:00Z",completed_at:null,archived:false,sort_order:1},
+    {id:"life-item-3",list_id:"life-3",title:"New pickleball paddle",description:"Potential birthday idea.",priority:"low",status:"planned",favorite:false,assigned_to_person_id:null,tags:["gift"],link_url:"",image_url:"",created_at:"2026-07-01T12:00:00Z",updated_at:"2026-07-01T12:00:00Z",completed_at:null,archived:false,sort_order:1},
+  ],
   college_schools:[
     {id:"1",name:"University of Virginia",status:"researching",match_level:"Reach",app_type:"ED",app_deadline:"2026-11-01",visit_notes:""},
     {id:"2",name:"Wake Forest University",status:"researching",match_level:"Reach",app_type:"EA",app_deadline:"2026-11-15",visit_notes:""},
