@@ -7,6 +7,7 @@ import {
   Clock,
   DollarSign,
   GraduationCap,
+  ListChecks,
   ListTodo,
   Waves,
 } from "lucide-react";
@@ -210,6 +211,8 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
   const accounts = useTable("retirement_accounts", "name", true);
   const taskData = useTable("tasks", "due_date", true);
   const treatments = useTable("pool_treatments", "logged_at");
+  const lifeLists = useTable("life_lists", "updated_at");
+  const lifeListItems = useTable("life_list_items", "updated_at");
 
   async function connectSecureCalendar() {
     const result = await secureCalendar.connect();
@@ -254,6 +257,8 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
     accounts,
     taskData,
     treatments,
+    lifeLists,
+    lifeListItems,
   ].some(table => table.loading);
 
   const assump = assumptions.data[0];
@@ -362,12 +367,22 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
   const collegeColor = urgentDeadlines.length > 0 ? COLORS.amber : COLORS.green;
   const collegeLabel = urgentDeadlines.length > 0 ? `${urgentDeadlines.length} deadline${urgentDeadlines.length > 1 ? "s" : ""}` : upcomingDeadlines.length > 0 ? "Coming up" : "On track";
   const collegeDetail = urgentDeadlines.length > 0 ? urgentDeadlines[0].title.slice(0, 38) : upcomingDeadlines.length > 0 ? `Next: ${upcomingDeadlines[0].title.slice(0, 32)}` : "No urgent deadlines";
+  const activeLifeLists = lifeLists.data.filter(list => !list.archived && list.visibility !== "personal");
+  const recentLifeItems = lifeListItems.data
+    .filter(item => !item.archived && item.status !== "archived")
+    .sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0))
+    .slice(0, 4);
+  const favoriteLifeLists = activeLifeLists.filter(list => list.favorite).slice(0, 3);
+  const lifeListColor = recentLifeItems.length > 0 || favoriteLifeLists.length > 0 ? COLORS.purple : COLORS.slate;
+  const lifeListLabel = recentLifeItems.length > 0 ? `${recentLifeItems.length} recent` : favoriteLifeLists.length > 0 ? `${favoriteLifeLists.length} favorite` : "Add lists";
+  const lifeListDetail = recentLifeItems[0]?.title || favoriteLifeLists[0]?.name || "Capture family ideas";
 
   const modules = [
     { module: "Pool", color: poolColor, label: poolLabel, detail: poolDetail, nav: "pool", icon: Waves },
     { module: "Tasks", color: tasksColor, label: tasksLabel, detail: tasksDetail, nav: "tasks", icon: ListTodo },
     { module: "Finance", color: finColor, label: finLabel, detail: finDetail, nav: "finance", icon: DollarSign },
     { module: "College", color: collegeColor, label: collegeLabel, detail: collegeDetail, nav: "college", icon: GraduationCap },
+    { module: "Life Lists", color: lifeListColor, label: lifeListLabel, detail: lifeListDetail, nav: "life-lists", icon: ListChecks },
   ];
   const dashboardTasks = taskData.data
     .filter(task => !task.completed)
@@ -390,7 +405,12 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
       return { date: treatment.date, text: `Treatment - ${chemicals.length > 0 ? chemicals.join(", ") : "maintenance"}`, color: COLORS.green };
     }),
     ...deadlines.data.filter(deadline => deadline.completed).slice(0, 1).map(deadline => ({ date: deadline.due_date, text: `College: ${deadline.title}`, color: COLORS.green })),
+    ...recentLifeItems.slice(0, 2).map(item => ({ date: item.updated_at || item.created_at, text: `Life Lists: ${item.title}`, color: COLORS.purple })),
   ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 4);
+  const lifeListInsight = [
+    ...favoriteLifeLists.map(list => ({ text: list.name, color: list.color || COLORS.purple, nav: "life-lists", detail: "Favorite list" })),
+    ...recentLifeItems.map(item => ({ text: item.title, color: COLORS.blue, nav: "life-lists", detail: item.status ? item.status.replace(/_/g, " ") : "Recently updated" })),
+  ].slice(0, 5);
 
   return (
     <div style={S.screen} className="space-y-5">
@@ -469,6 +489,32 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
               detail="Create a household task when something needs follow-up."
               action="Add task"
               onAction={() => onNavigate("quick-add")}
+              className="py-8"
+            />
+          </Card>
+        )}
+      </section>
+
+      <section>
+        <SectionHeader title="Life Lists" count={lifeListInsight.length} tone="purple" action={<Button type="button" variant="ghost" size="xs" onClick={() => onNavigate("life-lists")}>View all</Button>} />
+        {isLoading ? (
+          <SectionSkeleton rows={2} />
+        ) : lifeListInsight.length ? (
+          <Card>
+            <CardContent className="px-4 py-2">
+              {lifeListInsight.map((item, index) => (
+                <ActionRow key={`${item.text}-${index}`} item={item} showDivider={index < lifeListInsight.length - 1} onNavigate={onNavigate} />
+              ))}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <EmptyStatePanel
+              icon={<ListChecks className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />}
+              title="No Life Lists yet"
+              detail="Create a list for ideas, books, movies, places, gifts, or plans."
+              action="Open Life Lists"
+              onAction={() => onNavigate("life-lists")}
               className="py-8"
             />
           </Card>
