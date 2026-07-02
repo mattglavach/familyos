@@ -1,7 +1,7 @@
 # Current Sprint
 
 ## Sprint Goal
-Implement Release 1.1 Life Lists as the first major lifestyle planning platform, keeping scope limited to generic lists/items, module UI, Home awareness, Quick Add, Universal Search, permissions, schema, documentation, and validation.
+Implement Release 1.2 Shopping & Pantry as the second Planning Platform module, keeping scope limited to shared shopping lists, shopping items, simple pantry inventory, Home awareness, Quick Add, Universal Search, permissions, schema, documentation, and validation.
 
 ## Active Items
 - [x] Add documentation structure
@@ -112,6 +112,12 @@ Implement Release 1.1 Life Lists as the first major lifestyle planning platform,
 - [x] Validate Release 1.1 migration/RLS against disposable local Supabase
 - [x] Complete authenticated local browser smoke for Life Lists, Quick Add, Home drill-downs, Universal Search, permissions, console checks, and 390px mobile layout
 - [x] Complete Release 1.1 product cleanup validation for Quick Add and Today's Priorities
+- [x] Begin Release 1.2 Shopping & Pantry branch
+- [x] Add Shopping Lists, Shopping Items, Categories, and Pantry Items schema and RLS migration
+- [x] Add Shopping module under More
+- [x] Add Shopping Home awareness, Quick Add, and Universal Search integration
+- [x] Validate Release 1.2 migration/RLS against disposable local Supabase
+- [x] Complete authenticated local browser smoke for Shopping, Pantry, Quick Add, Home drill-downs, Universal Search, permissions, console checks, and 390px mobile layout
 
 ## Blockers
 
@@ -121,6 +127,7 @@ Implement Release 1.1 Life Lists as the first major lifestyle planning platform,
 - Release 1.0.3 has no active implementation or validation blocker after local lint, build, diff-check, browser smoke, and console validation.
 - Release 1.0.4 has no active validation blocker after lint, build, diff-check, authenticated local browser smoke, mobile 390px sanity checks, and console validation.
 - Release 1.1 has no active validation blocker after disposable/local migration/RLS checks, authenticated browser smoke, mobile sanity checks, lint, build, and diff-check.
+- Release 1.2 has no active validation blocker after disposable/local migration/RLS checks, authenticated browser smoke, mobile sanity checks, lint, build, and diff-check.
 
 ## Notes
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.
@@ -174,3 +181,5 @@ Implement Release 1.1 Life Lists as the first major lifestyle planning platform,
 - Release 1.0.4 authenticated browser smoke used local Supabase only and local CRA on `localhost:3000`; Home drill-downs, Calendar setup guidance, Tasks lifecycle, compact filters, Quick Add deferred types, Search, Notifications, More, Settings, mobile layout, and console checks passed.
 - Release 1.0.5 is Calendar/header cleanup only. It does not add Life Lists, Shopping, Meal Planning, Finance expansion, Health, Home platform, AI, Projects, Microsoft To Do sync, integrations, database changes, or schema changes.
 - Release 1.0.5 authenticated browser smoke used local Supabase only and local CRA on `localhost:3000`; Calendar tab rendering, Calendar disconnected/setup states, header icon actions, adult Calendar permissions, Search, Notifications, Quick Add, tablet/mobile layouts, and console checks passed.
+- Release 1.2 adds Shopping & Pantry as a scoped Planning Platform module. It does not implement recipes, meal planning, barcode scanning, OCR, AI, external grocery APIs, recommendation engines, finance, health, or Home platform work.
+- Release 1.2 validation used disposable/local Supabase only. Production was not touched. Browser smoke used local CRA on `localhost:3000` and local Supabase at `127.0.0.1:54321`.

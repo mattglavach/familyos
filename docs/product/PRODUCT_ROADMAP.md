@@ -34,7 +34,7 @@ Future morning, evening, weekend, school, travel, and seasonal routines.
 ## Pillar 3: Planning
 
 ### Shopping
-Shared grocery and household lists.
+Release 1.2 shared grocery and household lists, shopping items, and simple pantry inventory.
 
 ### Meal Planning
 Weekly meals, recipes, preferences, and grocery generation.
@@ -104,7 +104,7 @@ Future hands-free capture and query.
 - Collaboration: invitations, members, roles, active household switching.
 - Release 1.0: core household operating readiness.
 - Post-1.0: refine navigation, calendar, notifications, and Quick Add.
-- Later: shopping, meal planning, documents, home maintenance, finance depth, AI, smart home, and richer Life Lists category templates or recommendations.
+- Later: meal planning, recipes, documents, home maintenance, finance depth, AI, smart home, Shopping refinements, and richer Life Lists category templates or recommendations.
 
 ## Release 1.0 Alignment
 Release 1.0 supports the Family Hub and Productivity pillars only where they are already part of the core operating loop. It should not start broad Planning, Life, Home expansion, or AI automation.

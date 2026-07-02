@@ -24,7 +24,7 @@ Navigation should help household members move quickly between daily context, act
 ## Global Search
 Global search should search tasks, calendar events, people, documents, lists, modules, and household records according to permissions as those surfaces become implemented.
 
-Release 1.1 extends scoped global search to Life Lists and Life List items after their data and permission behavior is validated. Future modules should register searchable results only after their data and permission behavior are validated.
+Release 1.2 extends scoped global search to Shopping Lists, Shopping Items, and Pantry Items after their data and permission behavior is validated. Future modules should register searchable results only after their data and permission behavior are validated.
 
 ## Universal Quick Add
 Universal Quick Add should become the fastest way to capture household work.
@@ -42,7 +42,7 @@ Long-term capture targets:
 
 Release 1.0 should keep Quick Add focused on existing supported actions and avoid adding unsupported module types.
 
-Release 1.1 keeps Task, Pool Reading, Life List, and Life List Item enabled. Event, Shopping Item, Health Entry, Note, and Maintenance are not shown until those workflows are fully supported.
+Release 1.2 keeps Task, Pool Reading, Life List, Life List Item, Shopping List, and Shopping Item enabled. Event, Health Entry, Note, Maintenance, recipes, and meal-planning captures are not shown until those workflows are fully supported.
 
 ## Header Status Actions
 Global header actions should stay compact and trustworthy. Search, Notifications, Calendar status, and Settings may use icon-only buttons when they have accessible labels and tooltips. Calendar status should route to Calendar when healthy and to Settings when connection action or setup guidance is needed.

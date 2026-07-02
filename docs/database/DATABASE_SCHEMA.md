@@ -91,6 +91,32 @@ Rows include `household_id`, `user_id`, `list_id`, `title`, `description`, `prio
 
 `priority` supports `low`, `med`, and `high`. `status` supports `planned`, `in_progress`, `completed`, `someday`, `deferred`, and `archived`.
 
+### shopping_lists
+Stores personal, household, and shared shopping lists for Release 1.2 Shopping & Pantry.
+
+Rows include `household_id`, `user_id`, `owner_user_id`, `name`, `description`, `visibility`, `favorite`, `archived`, `category`, optional `color`/`icon`, `sort_order`, future-ready `recipe_ref` and `meal_plan_ref`, `created_at`, and `updated_at`.
+
+`visibility` supports `personal`, `household`, and `shared`. Personal lists are owner-visible. Household and shared lists are readable by active members and manageable by owners/adults.
+
+### shopping_categories
+Stores household-scoped shopping category metadata.
+
+Rows include `household_id`, `user_id`, `name`, `color`, `sort_order`, `created_at`, and `updated_at`.
+
+### shopping_items
+Stores entries inside shopping lists.
+
+Rows include `household_id`, `user_id`, `list_id`, optional `pantry_item_id`, `name`, `quantity`, `unit`, `category`, `priority`, `purchased`, `notes`, `favorite`, optional `assigned_to_person_id`, `sort_order`, `archived`, `purchased_at`, future-ready `recipe_ref` and `meal_plan_ref`, `created_at`, and `updated_at`.
+
+`priority` supports `low`, `med`, and `high`. Active item state is represented by `purchased` and `archived`.
+
+### pantry_items
+Stores simple household inventory for staples.
+
+Rows include `household_id`, `user_id`, `name`, `current_quantity`, `minimum_quantity`, `unit`, `category`, `reorder_flag`, `favorite`, `notes`, `archived`, `sort_order`, future-ready `recipe_ref` and `meal_plan_ref`, `created_at`, and `updated_at`.
+
+Release 1.2 validation note: the Shopping migration was applied after the base schema and ordered migration chain in disposable local Supabase, then catalog and RLS checks confirmed all Shopping/Pantry tables, indexes, constraints, grants, RLS enablement, and policies.
+
 ### finance_accounts
 Stores accounts for net worth and planning.
 
