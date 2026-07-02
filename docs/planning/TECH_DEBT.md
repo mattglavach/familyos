@@ -26,6 +26,12 @@ Use this document to track durable technical debt. Do not use chat history as th
 - Impact: Release 0.8 server calendar exists, but legacy browser fallback remains until deployed OAuth validation is complete.
 - Trigger: After production OAuth validation and family-device smoke tests.
 
+### Calendar Setup Prompt Persistence
+- Status: Open
+- Impact: Release 1.0.5 uses a header attention dot and compact Home/Calendar/Settings guidance instead of a persistent dismissible setup prompt.
+- Trigger: Before showing recurring Calendar setup prompts after login.
+- Notes: Add only after preference-backed dismissal is designed and validated for owner, adult, and viewer roles.
+
 ### Environment Configuration Drift Checks
 - Status: Open
 - Impact: Local, staging, and production environments can drift on optional integration variables, migration application, or Supabase schema cache state.

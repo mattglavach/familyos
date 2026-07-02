@@ -30,6 +30,7 @@ import { APP_CONFIG, CONFIG_STATUS } from "../../config";
 import { useHousehold } from "../../context/HouseholdContext";
 import { HOUSEHOLD_ROLES, INVITABLE_ROLES, roleCanManageMembers, roleLabel, useHouseholdInvitations } from "../../hooks/useHouseholdCollaboration";
 import { supabase } from "../../lib/supabase";
+import { canStartCalendarConnection, normalizeCalendarStatus } from "../../lib/calendarStatus";
 import { formatUserFacingError } from "../../lib/userFacingErrors";
 import { useFamilyMembers } from "../dashboard/useFamilyMembers";
 import {
@@ -60,26 +61,6 @@ function calendarLabel(gc) {
   if (!gc.token) return "Disconnected";
   if (gc.status === "empty") return "Connected, no events";
   return "Connected";
-}
-
-function serverCalendarTone(calendar) {
-  if (calendar.error || calendar.status === "error" || calendar.status === "needs_reauth") return "warning";
-  if (calendar.loading || calendar.status === "pending") return "warning";
-  if (calendar.connected) return "connected";
-  return "neutral";
-}
-
-function serverCalendarLabel(calendar) {
-  if (calendar.loading) return "Checking";
-  if (calendar.error) return "Setup needed";
-  if (calendar.status === "pending") return "Connecting";
-  if (calendar.status === "needs_reauth") return "Reconnect needed";
-  if (calendar.connected) return "Connected";
-  return "Disconnected";
-}
-
-function calendarCanConnect(calendar) {
-  return !calendar.error;
 }
 
 function Toast({ toast, onDismiss }) {
@@ -275,6 +256,15 @@ export function Settings({ auth, gc, secureCalendar }) {
   }
 
   async function connectSecureCalendar() {
+    const status = normalizeCalendarStatus(secureCalendar);
+    if (!roleCanManageMembers(household.membership?.role)) {
+      notify("Only household owners can manage calendar connections.");
+      return;
+    }
+    if (!canStartCalendarConnection(secureCalendar)) {
+      notify(status.detail || "Calendar is not ready to connect yet.");
+      return;
+    }
     const result = await secureCalendar.connect();
     if (result?.authorizationUrl) {
       window.location.assign(result.authorizationUrl);
@@ -329,6 +319,9 @@ export function Settings({ auth, gc, secureCalendar }) {
   }, {}), [household.userHouseholds]);
   const householdMembers = household.memberships.filter(membership => membership.household_id === household.householdId);
   const canManageMembers = roleCanManageMembers(household.membership?.role);
+  const secureCalendarStatus = normalizeCalendarStatus(secureCalendar);
+  const canManageCalendar = canManageMembers;
+  const canUseSecureConnect = canManageCalendar && canStartCalendarConnection(secureCalendar);
   const localBytes = snapshot.reduce((total, item) => total + item.bytes, 0);
   const missingConfig = CONFIG_STATUS.missing || [];
 
@@ -551,32 +544,40 @@ export function Settings({ auth, gc, secureCalendar }) {
             <CalendarCheck className="h-4 w-4 text-primary" aria-hidden="true" />
             Google Calendar
           </CardTitle>
-          <CardDescription>Connect Google Calendar to show household events on Home and Calendar.</CardDescription>
+          <CardDescription>Connect Google Calendar to see your family schedule in one place.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 px-4 pb-4 pt-0">
           <div className="rounded-lg border border-border bg-muted/20 p-3">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-primary" aria-hidden="true" />
-              <StatusBadge status={serverCalendarTone(secureCalendar)}>{serverCalendarLabel(secureCalendar)}</StatusBadge>
+              <StatusBadge status={secureCalendarStatus.tone}>{secureCalendarStatus.label}</StatusBadge>
               <Badge variant="blue">Google</Badge>
             </div>
             <SettingRow label="Provider" value="Google Calendar" />
             <SettingRow label="Account" value={secureCalendar.connection?.provider_account_email || "Not connected"} />
             <SettingRow label="Last Sync" value={formatDateTime(secureCalendar.connection?.last_sync_at)} />
-            {secureCalendar.error && <FormError>{secureCalendar.error}</FormError>}
+            {secureCalendarStatus.needsAttention && <FormError>{secureCalendarStatus.detail}</FormError>}
             {secureCalendar.note && <FormHelp>{secureCalendar.note}</FormHelp>}
             <FormHelp>
-              Google Calendar is optional. If connection is unavailable, ask the household owner to finish setup.
+              {canManageCalendar
+                ? "Google Calendar is optional. Connect it when your household wants schedule events on Home and Calendar."
+                : "Only household owners can manage calendar connections. You can still view the calendar when it is connected."}
             </FormHelp>
             <div className="mt-3 grid gap-2 sm:grid-cols-3">
-              <Button type="button" onClick={connectSecureCalendar} loading={secureCalendar.loading} disabled={!calendarCanConnect(secureCalendar)}>
-                {secureCalendar.connection ? "Reconnect Google Calendar" : "Connect Google Calendar"}
-              </Button>
+              {canUseSecureConnect ? (
+                <Button type="button" onClick={connectSecureCalendar} loading={secureCalendar.loading}>
+                  {secureCalendar.connection ? "Reconnect Google Calendar" : "Connect Google Calendar"}
+                </Button>
+              ) : (
+                <Button type="button" variant="secondary" disabled>
+                  {canManageCalendar ? "Calendar setup needed" : "Owner managed"}
+                </Button>
+              )}
               <Button type="button" variant="secondary" onClick={secureCalendar.refresh} loading={secureCalendar.loading}>
                 <RefreshCw className="h-4 w-4" aria-hidden="true" />
-                Check Connection
+                Refresh Status
               </Button>
-              <Button type="button" variant="destructive-outline" onClick={() => requestConfirmation({ type: "disconnectCalendar", title: "Disconnect Google Calendar?", description: "Household events from Google Calendar will stop appearing until someone reconnects it.", confirmLabel: "Disconnect calendar" })} disabled={!secureCalendar.connection}>
+              <Button type="button" variant="destructive-outline" onClick={() => requestConfirmation({ type: "disconnectCalendar", title: "Disconnect Google Calendar?", description: "Household events from Google Calendar will stop appearing until someone reconnects it.", confirmLabel: "Disconnect calendar" })} disabled={!secureCalendar.connection || !canManageCalendar}>
                 Disconnect
               </Button>
             </div>
@@ -598,8 +599,8 @@ export function Settings({ auth, gc, secureCalendar }) {
               <RefreshCw className="h-4 w-4" aria-hidden="true" />
               Refresh
             </Button>
-            <Button type="button" onClick={reconnectCalendar} loading={gc.status === "connecting" || gc.status === "script-loading"}>
-              Reconnect
+            <Button type="button" onClick={reconnectCalendar} loading={gc.status === "connecting" || gc.status === "script-loading"} disabled={!gc.canConnect}>
+              {gc.canConnect ? "Reconnect" : "Device setup needed"}
             </Button>
             <Button type="button" variant="destructive-outline" onClick={() => requestConfirmation({ type: "forgetDeviceCalendar", title: "Forget this device connection?", description: "This device will stop using its saved Google Calendar connection. You can reconnect later.", confirmLabel: "Forget connection" })} disabled={!gc.token}>
               Forget Connection

@@ -1,10 +1,10 @@
 # Project Status
 
 ## Current Version
-1.0.4
+1.0.5
 
 ## Current State
-Release 1.0 core MVP, Release 1.0.1 Core MVP Polish, Release 1.0.2 Reliability, and Release 1.0.3 Design System are complete. Release 1.0.4 Consumer Cleanup is validation-complete on branch `release/1.0.4-consumer-cleanup`.
+Release 1.0 core MVP through Release 1.0.4 Consumer Cleanup are complete. Release 1.0.5 Calendar & Header Cleanup is in validation on branch `release/1.0.5-calendar-header-cleanup`.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -63,12 +63,13 @@ Release 1.0 core MVP, Release 1.0.1 Core MVP Polish, Release 1.0.2 Reliability, 
 - Release 1.0.2 improved Calendar and invitation configuration handling, friendly error guidance, optional integration behavior, setup documentation, and final local authenticated reliability smoke validation
 - Release 1.0.3 established the local shadcn-compatible UI wrapper layer, design tokens, command search wrapper, and chip-based common task/Quick Add controls without adding product modules or schema changes
 - Release 1.0.4 improved Core MVP consumer clarity, task discoverability, compact task filters, Quick Add supported destinations, Calendar/invite messaging, notifications/search empty states, and touched destructive confirmations without adding product modules or schema changes
+- Release 1.0.5 hardened Calendar rendering, simplified header Calendar/Settings actions, clarified Calendar status behavior, and improved owner/adult Calendar setup messaging without schema changes
 
 ## In Progress
-- Release 1.0.4 release review, merge, and tag decision.
+- Release 1.0.5 final validation, release review, merge, and tag decision.
 
 ## Next
-- Final release review, merge, and tag decision for Release 1.0.4.
+- Final release review, merge, and tag decision for Release 1.0.5.
 - Configure Release 0.8 server OAuth environment values in Vercel before removing the legacy calendar fallback.
 - Decide whether to remove the legacy browser calendar fallback after deployed validation.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
@@ -106,6 +107,7 @@ Release 1.0 core MVP, Release 1.0.1 Core MVP Polish, Release 1.0.2 Reliability, 
 - Release 1.0.3 adds UI wrappers but does not complete migration of legacy deferred-module inline styles, native browser confirmations, or every historical component listed in the UI migration backlog.
 - Release 1.0.4 removes native confirmations from touched Core MVP destructive flows, but deferred modules may still have older inline UI and confirmation patterns until they become active scope.
 - Release 1.0.4 authenticated browser smoke used local Supabase only. Production was not touched.
+- Release 1.0.5 keeps Calendar setup prompt persistence deferred until a preference-backed dismissal design is approved.
 
 ## Last Updated
 July 2, 2026

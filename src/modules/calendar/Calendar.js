@@ -6,6 +6,7 @@ import { EmptyStatePanel } from "../../components/ui/empty-state";
 import { SectionHeader } from "../../components/ui/section-header";
 import { Skeleton } from "../../components/ui/skeleton";
 import { COLORS, S } from "../../theme";
+import { normalizeCalendarStatus } from "../../lib/calendarStatus";
 
 function dateKey(value) {
   if (!value) return "";
@@ -19,18 +20,11 @@ function eventDateLabel(value, todayString, formatDateFull) {
   return formatDateFull ? formatDateFull(key) : key;
 }
 
-function statusFor(calendar) {
-  if (calendar.loading) return { tone: "warning", label: "Syncing", detail: "Refreshing calendar events." };
-  if (calendar.error) return { tone: "warning", label: "Needs attention", detail: calendar.error };
-  if (!calendar.connected) return { tone: "neutral", label: "Not connected", detail: calendar.detail || "Connect Google Calendar in Settings to show household events." };
-  if (!calendar.events?.length) return { tone: "info", label: "Connected", detail: "No events found in the current calendar window." };
-  return { tone: "connected", label: "Connected", detail: `${calendar.events.length} event${calendar.events.length === 1 ? "" : "s"} ready.` };
-}
-
 function groupEvents(events, todayString) {
   const today = [];
   const upcoming = [];
-  events.forEach(event => {
+  (events || []).forEach(event => {
+    if (!event || typeof event !== "object") return;
     if (dateKey(event.date) === todayString) today.push(event);
     else upcoming.push(event);
   });
@@ -87,11 +81,21 @@ function EventSection({ title, events, emptyTitle, emptyDetail, todayString, for
   );
 }
 
-export function Calendar({ calendar, onNavigate, deps }) {
-  const { TODAY_STR, formatDateFull } = deps;
-  const status = statusFor(calendar);
-  const events = (calendar.events || []).filter(Boolean);
+export function Calendar({ calendar = {}, onNavigate = () => {}, deps = {} }) {
+  const { TODAY_STR = new Date().toISOString().split("T")[0], formatDateFull } = deps;
+  const safeCalendar = {
+    connected: false,
+    loading: false,
+    error: "",
+    status: "disconnected",
+    events: [],
+    refresh: () => {},
+    ...calendar,
+  };
+  const status = normalizeCalendarStatus(safeCalendar);
+  const events = Array.isArray(safeCalendar.events) ? safeCalendar.events.filter(Boolean) : [];
   const grouped = groupEvents(events, TODAY_STR);
+  const openSetup = () => onNavigate(status.actionTarget || "settings");
 
   return (
     <div style={S.screen} className="space-y-5">
@@ -103,7 +107,7 @@ export function Calendar({ calendar, onNavigate, deps }) {
           </div>
           <div className="mt-1 text-2xl font-extrabold text-foreground">Today & Upcoming</div>
         </div>
-        <Button type="button" variant="secondary" size="sm" onClick={calendar.refresh} loading={calendar.loading} disabled={!calendar.connected}>
+        <Button type="button" variant="secondary" size="sm" onClick={safeCalendar.refresh} loading={safeCalendar.loading} disabled={!status.canRefresh}>
           <RefreshCw className="h-4 w-4" aria-hidden="true" />
           Refresh
         </Button>
@@ -112,7 +116,7 @@ export function Calendar({ calendar, onNavigate, deps }) {
       <Card style={{ borderLeft: `3px solid ${status.tone === "connected" ? COLORS.green : status.tone === "warning" ? COLORS.amber : COLORS.slate}` }}>
         <CardHeader className="p-4 pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
-            {calendar.connected ? <CalendarCheck className="h-4 w-4 text-primary" aria-hidden="true" /> : <CalendarX className="h-4 w-4 text-muted-foreground" aria-hidden="true" />}
+            {safeCalendar.connected ? <CalendarCheck className="h-4 w-4 text-primary" aria-hidden="true" /> : <CalendarX className="h-4 w-4 text-muted-foreground" aria-hidden="true" />}
             Calendar Connection
           </CardTitle>
         </CardHeader>
@@ -121,13 +125,13 @@ export function Calendar({ calendar, onNavigate, deps }) {
             <StatusBadge status={status.tone}>{status.label}</StatusBadge>
           </div>
           <p className="text-sm leading-6 text-muted-foreground">{status.detail}</p>
-          {!calendar.connected && (
-            <Button type="button" className="w-full" onClick={() => onNavigate("settings")}>Open Calendar Settings</Button>
+          {!safeCalendar.connected && (
+            <Button type="button" className="w-full" onClick={openSetup}>{status.actionLabel}</Button>
           )}
         </CardContent>
       </Card>
 
-      {calendar.loading ? (
+      {safeCalendar.loading ? (
         <Card>
           <CardContent className="space-y-3 p-4">
             <Skeleton className="h-4 w-4/5" />
@@ -135,7 +139,7 @@ export function Calendar({ calendar, onNavigate, deps }) {
             <Skeleton className="h-3 w-2/5" />
           </CardContent>
         </Card>
-      ) : calendar.connected ? (
+      ) : safeCalendar.connected ? (
         <>
           <EventSection
             title="Today"
@@ -159,9 +163,9 @@ export function Calendar({ calendar, onNavigate, deps }) {
           <EmptyStatePanel
             icon={<CalendarX className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />}
             title="Calendar is not connected"
-            detail="Connect Google Calendar in Settings to see household events here. You can still use Tasks and Home without a calendar."
-            action="Open Settings"
-            onAction={() => onNavigate("settings")}
+            detail={status.detail || "Connect Google Calendar in Settings to see household events here. You can still use Tasks and Home without a calendar."}
+            action={status.actionLabel}
+            onAction={openSetup}
             className="py-8"
           />
         </Card>

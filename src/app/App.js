@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Bell, Search } from "lucide-react";
+import { Component, useState } from "react";
+import { Bell, CalendarDays, Search, Settings as SettingsIcon } from "lucide-react";
 import { Dashboard } from "../modules/dashboard/Dashboard";
 import { Tasks } from "../modules/tasks/Tasks";
 import { Calendar } from "../modules/calendar/Calendar";
@@ -7,7 +7,7 @@ import { More } from "../modules/more/More";
 import { GlobalSearch } from "../modules/search/GlobalSearch";
 import { NotificationCenter } from "../modules/notifications/NotificationCenter";
 import { I, S } from "../theme";
-import { CONFIG_STATUS } from "../config";
+import { APP_CONFIG, CONFIG_STATUS } from "../config";
 import { TODAY_DATE, TODAY_STR, daysAgo, daysBetween, formatDate, formatDateFull, formatTodayShort, nextDueDate } from "../lib/dates";
 import { useGoogleCalendar } from "../hooks/useGoogleCalendar";
 import { useCalendarConnections } from "../hooks/useCalendarConnections";
@@ -30,6 +30,8 @@ import { FormError, FormGroup, FormHelp, FormSection } from "../components/ui/fo
 import { SectionHeader } from "../components/ui/section-header";
 import { StatusBadge } from "../components/ui/badge";
 import { Skeleton } from "../components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/tooltip";
+import { normalizeCalendarStatus } from "../lib/calendarStatus";
 function SetupRequired(){
   return(
     <div style={S.app} className="px-5 py-10">
@@ -191,17 +193,21 @@ function GlobalInteractionStyles(){
       `}</style>;
 }
 
-function AppHeader({tab, auth, calendar, unreadCount, onSettings, onSearch, onNotifications}){
-  const calendarLabel = calendar.loading
-    ? "Syncing"
-    : calendar.error
-      ? "Calendar issue"
-      : calendar.status === "empty"
-        ? "No events"
-        : calendar.connected
-          ? "Calendar ready"
-          : "Not connected";
-  const calendarStatus = calendar.error ? "warning" : calendar.loading ? "warning" : calendar.connected ? "connected" : "neutral";
+function HeaderIconButton({ label, tooltip, children, className = "", ...props }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger>
+        <Button type="button" variant="secondary" size="icon-xs" aria-label={label} title={tooltip || label} className={className} {...props}>
+          {children}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">{tooltip || label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function AppHeader({tab, auth, calendar, unreadCount, onSettings, onSearch, onNotifications, onCalendarStatus}){
+  const calendarStatus = normalizeCalendarStatus(calendar);
   return <header className="sticky top-0 z-10 border-b border-border bg-card/95 px-4 pb-3.5 pt-[calc(env(safe-area-inset-top)+16px)] backdrop-blur sm:px-5">
     <div className="flex items-center justify-between gap-2 sm:gap-3">
       <div className="min-w-0 flex-1">
@@ -209,19 +215,37 @@ function AppHeader({tab, auth, calendar, unreadCount, onSettings, onSearch, onNo
         {tab==="home"&&<div className="mt-1 truncate text-[11px] text-muted-foreground sm:text-xs">{formatTodayShort()}</div>}
       </div>
       <div className="flex shrink-0 items-center justify-end gap-1.5 sm:gap-2">
-        <Button type="button" variant="secondary" size="icon-xs" aria-label="Search" onClick={onSearch}>
+        <HeaderIconButton label="Search" onClick={onSearch}>
           <Search className="h-4 w-4" aria-hidden="true" />
-        </Button>
-        <Button type="button" variant="secondary" size="icon-xs" aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ""}`} onClick={onNotifications} className="relative">
+        </HeaderIconButton>
+        <HeaderIconButton label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ""}`} tooltip="Notifications" onClick={onNotifications} className="relative">
           <Bell className="h-4 w-4" aria-hidden="true" />
           {unreadCount > 0 && <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-400 px-1 text-[10px] font-extrabold text-slate-950">{unreadCount}</span>}
-        </Button>
-        {tab !== "settings" && <Button type="button" variant="secondary" size="xs" onClick={onSettings}>Settings</Button>}
+        </HeaderIconButton>
+        {tab !== "settings" && (
+          <HeaderIconButton label="Settings" onClick={onSettings}>
+            <SettingsIcon className="h-4 w-4" aria-hidden="true" />
+          </HeaderIconButton>
+        )}
         <Button type="button" variant="secondary" size="xs" className="hidden sm:inline-flex" onClick={auth.signOut}>Sign out</Button>
-        {calendar.connected
-          ?<StatusBadge status={calendarStatus} className="max-w-28 truncate">{calendarLabel}</StatusBadge>
-          :<Button type="button" variant="outline" size="xs" loading={calendar.loading} onClick={onSettings}>Calendar</Button>
-        }
+        <Tooltip>
+          <TooltipTrigger>
+            <Button
+              type="button"
+              variant={calendarStatus.needsAttention ? "outline" : "secondary"}
+              size="icon-xs"
+              aria-label={`Calendar status: ${calendarStatus.label}`}
+              title={calendarStatus.detail}
+              loading={calendar.loading}
+              onClick={onCalendarStatus}
+              className="relative"
+            >
+              <CalendarDays className="h-4 w-4" aria-hidden="true" />
+              {calendarStatus.needsAttention && <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-card" aria-hidden="true" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">{calendarStatus.detail}</TooltipContent>
+        </Tooltip>
       </div>
     </div>
   </header>;
@@ -257,6 +281,46 @@ function GlobalLoading(){
       </Card>
     </div>
   );
+}
+
+class CalendarErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidUpdate(previousProps) {
+    if (previousProps.resetKey !== this.props.resetKey && this.state.hasError) {
+      this.setState({ hasError: false });
+    }
+  }
+
+  retry = () => {
+    this.setState({ hasError: false });
+    this.props.onRetry?.();
+  };
+
+  render() {
+    if (!this.state.hasError) return this.props.children;
+    return (
+      <div style={S.screen}>
+        <Card>
+          <CardContent className="space-y-3 p-4">
+            <CardTitle>Calendar needs a refresh</CardTitle>
+            <CardDescription>Calendar could not open cleanly. Try again, or open Settings to check the calendar connection.</CardDescription>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" onClick={this.retry}>Try again</Button>
+              <Button type="button" variant="secondary" onClick={this.props.onSettings}>Open Settings</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 }
 
 export default function App(){
@@ -310,6 +374,7 @@ function AuthenticatedApp({ auth }) {
       detail: secureCalendar.error || "Connect Google Calendar in Settings to show your family schedule.",
       refresh: secureCalendar.fetchEvents,
       connect: secureCalendar.connect,
+      canConnect: !secureCalendar.error,
     }
     : {
       mode: "legacy",
@@ -320,10 +385,14 @@ function AuthenticatedApp({ auth }) {
       events: gc.events,
       lastSyncedAt: gc.lastSyncedAt,
       sourceLabel: gc.sourceLabel || "Google Calendar",
-      detail: "Connect Google Calendar in Settings to show your family schedule.",
+      detail: APP_CONFIG.googleClientId
+        ? "Connect Google Calendar in Settings to show your family schedule."
+        : "Calendar setup is not available in this workspace yet.",
       refresh: gc.refresh,
       connect: gc.signIn,
+      canConnect: Boolean(gc.canConnect),
     };
+  const headerCalendarStatus = normalizeCalendarStatus(headerCalendar);
 
   return(
     <div style={S.app}>
@@ -336,15 +405,20 @@ function AuthenticatedApp({ auth }) {
         onSettings={()=>switchTab("settings")}
         onSearch={() => setSearchOpen(true)}
         onNotifications={() => setNotificationsOpen(true)}
+        onCalendarStatus={() => switchTab(headerCalendarStatus.actionTarget)}
       />
 
       {tab==="home"&&<Dashboard onNavigate={switchTab} gc={gc} secureCalendar={secureCalendar} deps={{
         TODAY_DATE,TODAY_STR,daysAgo,daysBetween,nextDueDate,formatDate,formatDateFull,
         formatMoneyShort,maintStatus,useTable,calcRetirementProjection,getChemRecommendations,
       }}/>} 
-      {tab==="calendar"&&<Calendar calendar={headerCalendar} onNavigate={switchTab} deps={{
-        TODAY_STR,formatDateFull,
-      }}/>}
+      {tab==="calendar"&&(
+        <CalendarErrorBoundary resetKey={`${headerCalendar.status}-${headerCalendar.connected}-${headerCalendar.loading}`} onRetry={() => switchTab("calendar")} onSettings={() => switchTab("settings")}>
+          <Calendar calendar={headerCalendar} onNavigate={switchTab} deps={{
+            TODAY_STR,formatDateFull,
+          }}/>
+        </CalendarErrorBoundary>
+      )}
       {tab==="college"&&<College/>}
       {tab==="tasks"&&<Tasks deps={{
         TODAY_DATE,TODAY_STR,daysBetween,nextDueDate,formatDate,

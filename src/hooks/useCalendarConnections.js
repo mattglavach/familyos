@@ -51,7 +51,7 @@ export function useCalendarConnections(householdId) {
 
   const refresh = useCallback(async () => {
     if (!householdId) {
-      setState(previous => ({ ...previous, loading: false, error: "Missing active household." }));
+      setState(previous => ({ ...previous, loading: false, error: "Calendar is waiting for your active household. Open Settings to choose or refresh your household." }));
       return;
     }
     setState(previous => ({ ...previous, loading: true, error: "" }));

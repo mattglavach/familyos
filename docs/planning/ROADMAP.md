@@ -81,6 +81,7 @@
 - [x] Implement Release 1.0.2 Reliability for configuration handling, friendly errors, optional integration setup, and production-readiness documentation.
 - [x] Implement Release 1.0.3 Design System for shared UI wrappers, tokens, command search, and common form control consistency.
 - [x] Implement Release 1.0.4 Consumer Cleanup for task discoverability, compact filters, consumer language, confirmation dialogs, and Core MVP usability.
+- [x] Implement Release 1.0.5 Calendar & Header Cleanup for Calendar tab resilience, icon-only header actions, and Calendar status clarity.
 
 ## Release 1.0 Scope
 - [x] Stabilize the dashboard daily command center.
@@ -119,3 +120,11 @@
 - [x] Replace technical Calendar and invitation wording with consumer-safe language.
 - [x] Improve Search, Notifications, Settings, More, and touched empty/success/destructive states.
 - [ ] Keep Life Lists, Shopping, Meal Planning, Finance expansion, Health, Home platform, AI, Projects, integrations, and schema changes deferred.
+
+## Release 1.0.5 Scope
+- [x] Harden Calendar tab rendering against blank-screen failures.
+- [x] Standardize Calendar connected, disconnected, setup required, permission restricted, error, and checking states.
+- [x] Simplify global header Calendar and Settings actions to icon controls with accessible labels.
+- [x] Clarify Calendar setup/connect behavior for owners and non-owners.
+- [x] Validate desktop, tablet, and 390px mobile header/Calendar layouts.
+- [ ] Keep Life Lists, Shopping, Meal Planning, Finance expansion, Health, Home platform, AI, Projects, Microsoft To Do sync, integrations, database redesign, and schema changes deferred.
