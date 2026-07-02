@@ -60,10 +60,10 @@ Release 1.0 core MVP and Release 1.0.1 Core MVP Polish are complete. Release 1.0
 - Release 1.0 core MVP implementation added Home dashboard ordering, Calendar, More navigation, Universal Quick Add launch, Universal Search, in-app Notifications, and task search
 - Release 1.0 authenticated local browser smoke validation passed against local Supabase for owner, adult, viewer, Home, Tasks, Calendar, Quick Add, Universal Search, Notifications, More, household switching, Settings, invite create/revoke, owner role update, non-owner control hiding, and mobile sanity checks
 - Release 1.0.1 polished Home, Tasks, Quick Add, More grouping, notification lifecycle views, and product/planning documentation without adding deferred modules
-- Release 1.0.2 improved Calendar and invitation configuration handling, friendly error guidance, optional integration behavior, and setup documentation
+- Release 1.0.2 improved Calendar and invitation configuration handling, friendly error guidance, optional integration behavior, setup documentation, and final local authenticated reliability smoke validation
 
 ## In Progress
-- Release 1.0.2 reliability validation and authenticated smoke testing.
+- Release 1.0.2 final release review, merge, and tag decision.
 
 ## Next
 - Final release review, merge, and tag decision for Release 1.0.2.

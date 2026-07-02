@@ -87,12 +87,13 @@ Implement Release 1.0.2 Reliability after v1.0.1, keeping scope limited to confi
 - [x] Improve household invitation setup errors without changing invitation security
 - [x] Replace raw technical errors in key user-facing reliability paths
 - [x] Update local, staging, and production configuration documentation
+- [x] Complete remaining Release 1.0.2 adult, viewer, mobile, and task lifecycle smoke validation against local Supabase
 
 ## Blockers
 
 - Release 0.6B has no active code blockers after local lint/build validation. Real-device family testing and Vercel deployment validation remain before broad use.
 - Release 0.6C has no active production migration blocker after baseline alignment and household foundation validation.
-- Release 1.0.2 reliability fixes pass static validation and owner smoke checks, but adult/viewer/mobile and full task edit/complete/delete smoke remain blocked by local browser confirmation/control instability and need a clean manual or alternate-browser pass before merge/tag.
+- Release 1.0.2 has no active validation blocker after completing local authenticated adult, viewer, mobile, and task lifecycle smoke checks.
 
 ## Notes
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.
