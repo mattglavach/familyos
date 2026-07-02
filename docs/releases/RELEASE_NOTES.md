@@ -14,6 +14,16 @@ Release 0.9.1 establishes the permanent Family OS engineering framework. It is a
 ### New Documentation
 - Release playbook
 - Feature playbook
+- Family OS principles
+- Project structure
+- Module template
+- Production readiness checklist
+- AI engineering guidelines
+- API guidelines
+- Security standards
+- Performance guidelines
+- Environment guidance
+- Dependency policy
 - Coding standards
 - Architecture guidelines
 - UI guidelines
@@ -23,6 +33,11 @@ Release 0.9.1 establishes the permanent Family OS engineering framework. It is a
 - Code review checklist
 - Release checklist
 - Process prompt library
+- ADR template
+- Technical debt register
+- Decision log
+- Roadmap process
+- Release, feature, module, bug report, and retrospective templates
 
 ### Updates
 - Updated `AGENTS.md`, `README.md`, master documentation index, AI instructions, architecture overview, roadmap, project status, current sprint, changelog, and release notes to point future work at `docs/process`.

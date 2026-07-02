@@ -16,6 +16,8 @@ Use this playbook for every feature, module addition, or meaningful user-facing 
 - Acceptance Criteria: observable pass/fail criteria.
 - Deferred Work: intentional non-goals and future follow-up.
 
+Use `docs/templates/FEATURE_SPEC.md` for feature specifications and `docs/templates/MODULE_SPEC.md` for module-level work.
+
 ## Execution Rules
 - Read existing docs before implementation.
 - Reuse existing module patterns, UI primitives, hooks, and Supabase helpers.

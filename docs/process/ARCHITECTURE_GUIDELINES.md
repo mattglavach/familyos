@@ -52,9 +52,14 @@ This document defines the durable architecture guardrails for Family OS. It comp
 
 ## Folder Organization
 - Follow `docs/architecture/FOLDER_STRUCTURE.md`.
+- Follow `docs/process/PROJECT_STRUCTURE.md` for current repository responsibilities.
 - Add new folders only when the existing structure cannot express the feature cleanly.
 
 ## Integration Philosophy
 - Prefer small, validated integration steps.
 - Keep Google, Supabase, AI, and future Home Assistant integrations behind clear boundaries.
 - Do not expose third-party token material to frontend code.
+
+## Decisions
+- Use `docs/architecture/decisions/ADR_TEMPLATE.md` for material architecture decisions.
+- Use `docs/planning/DECISION_LOG.md` for lightweight durable decisions.

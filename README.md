@@ -10,7 +10,10 @@ Start with the v1 documentation workspace:
 - [Agent Instructions](AGENTS.md)
 - [Release Playbook](docs/process/RELEASE_PLAYBOOK.md)
 - [Feature Playbook](docs/process/FEATURE_PLAYBOOK.md)
+- [Family OS Principles](docs/process/FAMILY_OS_PRINCIPLES.md)
+- [Production Readiness](docs/process/PRODUCTION_READINESS.md)
 - [Engineering Process Docs](docs/process/)
+- [Reusable Templates](docs/templates/)
 
 ## Phase 1 Setup
 

@@ -64,5 +64,6 @@
 
 ## Engineering Process Track
 - [x] Establish permanent release, feature, coding, architecture, UI, testing, documentation, git, review, checklist, and prompt playbooks.
+- [x] Establish governance, production readiness, environment, security, dependency, ADR, planning, and reusable specification templates.
 - [ ] Use the Release 0.9.1 process framework for the next feature or release prompt.
 - [ ] Revisit process docs after two releases and refine based on actual execution gaps.
