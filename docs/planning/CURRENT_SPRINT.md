@@ -47,6 +47,9 @@ Build Release 0.8 secure Google Calendar connection foundation on top of the Rel
 - [x] Add `calendar_connections` migration draft with household/user ownership
 - [x] Add server-side calendar API foundation
 - [x] Add Settings UI for server-side Google Calendar connection status
+- [x] Implement signed Google OAuth callback exchange
+- [x] Encrypt and persist server-side Google token material
+- [x] Add server-side token refresh, revoke, and normalized event fetch
 
 ## Blockers
 
@@ -87,4 +90,4 @@ Build Release 0.8 secure Google Calendar connection foundation on top of the Rel
 - Release 0.6C production baseline alignment planning documents the required owner/backfill decision, recommended temporary owner approach, validation scope, and stop conditions before another production attempt.
 - Release 0.6C production execution added the auth ownership baseline, backfilled 67 existing module rows to the approved owner, applied the household foundation migration, passed production validation SQL, passed authenticated-role app-path smoke tests, and left browser localStorage behavior unchanged.
 - Release 0.7 runtime integration adds active household context, household-aware Supabase table access, Supabase-backed family members/settings/task metadata, and a documented future server-side calendar connection model.
-- Release 0.8 adds server-side Google Calendar connection metadata and API placeholders. The legacy browser token path remains only as a fallback until OAuth callback exchange, token encryption, refresh, and event sync are completed.
+- Release 0.8 adds server-side Google Calendar connection metadata, signed OAuth callback exchange, encrypted token persistence, token refresh, revoke, and normalized event fetch. The legacy browser token path remains only as a fallback until deployed OAuth validation and dashboard event-source replacement are complete.

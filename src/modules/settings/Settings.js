@@ -180,7 +180,7 @@ export function Settings({ auth, gc }) {
   async function connectSecureCalendar() {
     const result = await secureCalendar.connect();
     if (result?.authorizationUrl) {
-      notify("Secure OAuth start URL prepared. Callback exchange is a server-side follow-up.");
+      window.location.assign(result.authorizationUrl);
       return;
     }
     notify("Secure calendar connection placeholder created.");
@@ -242,7 +242,7 @@ export function Settings({ auth, gc }) {
           <SettingRow label="Email" value={email} />
           <SettingRow label="User ID" value={userId} />
           <SettingRow label="Household Role" value={household.membership?.role || "Unavailable"} />
-          <SettingRow label="Release" value="Release 0.7" badge={<Badge variant="blue">0.7</Badge>} />
+          <SettingRow label="Release" value="Release 0.8" badge={<Badge variant="blue">0.8</Badge>} />
         </CardContent>
       </Card>
 

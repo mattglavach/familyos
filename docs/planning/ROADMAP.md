@@ -54,4 +54,5 @@
 - [x] Shared task schema fields for assignee, status, created/completed timestamps, module ownership, and recurrence clarity.
 - [x] Settings/profile persistence beyond browser localStorage.
 - [x] Server-side Google Calendar connection model and token storage foundation.
-- [ ] Complete Google OAuth callback exchange, token encryption, refresh, and server-side event sync.
+- [x] Complete Google OAuth callback exchange, token encryption, refresh, and server-side event sync API.
+- [ ] Validate deployed Google OAuth flow and replace dashboard calendar reads with server events.

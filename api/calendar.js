@@ -1,3 +1,5 @@
+import crypto from "crypto";
+
 const DEFAULT_ALLOWED_ORIGINS = [
   "http://localhost:3000",
   "http://127.0.0.1:3000",
@@ -6,6 +8,9 @@ const DEFAULT_ALLOWED_ORIGINS = [
 const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/calendar.readonly",
 ];
+
+const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+const TOKEN_REFRESH_SKEW_MS = 5 * 60 * 1000;
 
 function getSupabaseUrl() {
   return process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL || "";
@@ -17,6 +22,26 @@ function getAnonKey() {
 
 function getServiceRoleKey() {
   return process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+}
+
+function getGoogleClientId() {
+  return process.env.GOOGLE_OAUTH_CLIENT_ID || process.env.REACT_APP_GOOGLE_CLIENT_ID || "";
+}
+
+function getGoogleCalendarId() {
+  return process.env.GOOGLE_CALENDAR_ID || process.env.REACT_APP_GOOGLE_CALENDAR_ID || "primary";
+}
+
+function getBaseUrl(req) {
+  const configured = process.env.APP_BASE_URL || process.env.REACT_APP_APP_BASE_URL || "";
+  if (configured) return configured.replace(/\/$/, "");
+  const host = req.headers["x-forwarded-host"] || req.headers.host || "";
+  const proto = req.headers["x-forwarded-proto"] || (host.startsWith("localhost") ? "http" : "https");
+  return host ? `${proto}://${host}` : "";
+}
+
+function getRedirectUri(req) {
+  return process.env.GOOGLE_OAUTH_REDIRECT_URI || `${getBaseUrl(req)}/api/calendar?action=callback`;
 }
 
 function getAllowedOrigins() {
@@ -52,6 +77,88 @@ function parseBody(req) {
   return req.body;
 }
 
+function base64UrlEncode(value) {
+  return Buffer.from(value).toString("base64url");
+}
+
+function base64UrlDecode(value) {
+  return Buffer.from(value, "base64url").toString("utf8");
+}
+
+function getStateSecret() {
+  return process.env.GOOGLE_OAUTH_STATE_SECRET || process.env.GOOGLE_TOKEN_ENCRYPTION_KEY || "";
+}
+
+function signValue(value) {
+  const secret = getStateSecret();
+  if (!secret) throw new Error("GOOGLE_OAUTH_STATE_SECRET or GOOGLE_TOKEN_ENCRYPTION_KEY is required");
+  return crypto.createHmac("sha256", secret).update(value).digest("base64url");
+}
+
+function timingSafeEqual(left, right) {
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+  return leftBuffer.length === rightBuffer.length && crypto.timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function createSignedState(payload) {
+  const body = base64UrlEncode(JSON.stringify({
+    ...payload,
+    nonce: crypto.randomBytes(16).toString("base64url"),
+    issued_at: Date.now(),
+  }));
+  return `${body}.${signValue(body)}`;
+}
+
+function validateSignedState(state) {
+  if (!state || typeof state !== "string" || !state.includes(".")) {
+    throw new Error("Missing OAuth state");
+  }
+  const [body, signature] = state.split(".");
+  if (!body || !signature || !timingSafeEqual(signature, signValue(body))) {
+    throw new Error("Invalid OAuth state signature");
+  }
+  const payload = JSON.parse(base64UrlDecode(body));
+  if (!payload.issued_at || Date.now() - Number(payload.issued_at) > OAUTH_STATE_TTL_MS) {
+    throw new Error("OAuth state expired");
+  }
+  if (payload.provider !== "google" || !payload.household_id || !payload.user_id || !payload.connection_id) {
+    throw new Error("OAuth state is missing required fields");
+  }
+  return payload;
+}
+
+function getEncryptionKey() {
+  const raw = process.env.GOOGLE_TOKEN_ENCRYPTION_KEY || "";
+  if (!raw) throw new Error("GOOGLE_TOKEN_ENCRYPTION_KEY is not configured");
+  const key = Buffer.from(raw, "base64");
+  if (key.length === 32) return key;
+  const utf8 = Buffer.from(raw, "utf8");
+  if (utf8.length === 32) return utf8;
+  throw new Error("GOOGLE_TOKEN_ENCRYPTION_KEY must be 32 bytes or base64-encoded 32 bytes");
+}
+
+function encryptToken(token) {
+  if (!token) return null;
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", getEncryptionKey(), iv);
+  const ciphertext = Buffer.concat([cipher.update(token, "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return `v1.${iv.toString("base64url")}.${tag.toString("base64url")}.${ciphertext.toString("base64url")}`;
+}
+
+function decryptToken(value) {
+  if (!value) return null;
+  const [version, iv, tag, ciphertext] = value.split(".");
+  if (version !== "v1" || !iv || !tag || !ciphertext) throw new Error("Unsupported encrypted token format");
+  const decipher = crypto.createDecipheriv("aes-256-gcm", getEncryptionKey(), Buffer.from(iv, "base64url"));
+  decipher.setAuthTag(Buffer.from(tag, "base64url"));
+  return Buffer.concat([
+    decipher.update(Buffer.from(ciphertext, "base64url")),
+    decipher.final(),
+  ]).toString("utf8");
+}
+
 function safeConnection(row) {
   return {
     id: row.id,
@@ -78,6 +185,28 @@ function normalizedStatus(rows) {
   };
 }
 
+function normalizeGoogleEvent(event, index, source) {
+  const start = event.start?.dateTime || event.start?.date || "";
+  if (!start) return null;
+  const allDay = !event.start?.dateTime;
+  const date = start.split("T")[0];
+  const startDate = new Date(start);
+  const time = allDay || Number.isNaN(startDate.getTime())
+    ? "All day"
+    : startDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  return {
+    id: event.id || String(index),
+    title: event.summary || "(No title)",
+    date,
+    time,
+    allDay,
+    location: event.location || "",
+    source,
+    htmlLink: event.htmlLink || "",
+    status: event.status || "confirmed",
+  };
+}
+
 async function verifyUser(req) {
   const token = getBearerToken(req);
   const supabaseUrl = getSupabaseUrl();
@@ -96,7 +225,7 @@ async function verifyUser(req) {
   return { user, token };
 }
 
-async function rest(path, { method = "GET", body, token, prefer } = {}) {
+async function rest(path, { method = "GET", body, prefer } = {}) {
   const supabaseUrl = getSupabaseUrl();
   const serviceRoleKey = getServiceRoleKey();
   if (!serviceRoleKey) {
@@ -107,7 +236,6 @@ async function rest(path, { method = "GET", body, token, prefer } = {}) {
     apikey: serviceRoleKey,
     Authorization: `Bearer ${serviceRoleKey}`,
   };
-  if (token) headers.Authorization = `Bearer ${token}`;
   if (body !== undefined) headers["Content-Type"] = "application/json";
   if (prefer) headers.Prefer = prefer;
 
@@ -150,32 +278,41 @@ async function listConnections(userId, householdId) {
   return { rows: result.data || [] };
 }
 
-function buildGoogleAuthorizationUrl({ householdId, userId, origin }) {
-  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID || process.env.REACT_APP_GOOGLE_CLIENT_ID || "";
-  const redirectUri = process.env.GOOGLE_OAUTH_REDIRECT_URI || `${origin || ""}/api/calendar?action=callback`;
-  if (!clientId) return { error: "GOOGLE_OAUTH_CLIENT_ID is not configured" };
-
-  const state = Buffer.from(JSON.stringify({
-    provider: "google",
-    household_id: householdId,
-    user_id: userId,
-    created_at: new Date().toISOString(),
-  })).toString("base64url");
-
-  const params = new URLSearchParams({
-    client_id: clientId,
-    redirect_uri: redirectUri,
-    response_type: "code",
-    access_type: "offline",
-    prompt: "consent",
-    scope: GOOGLE_SCOPES.join(" "),
-    state,
+async function getConnection(connectionId, userId, householdId) {
+  const query = new URLSearchParams({
+    select: "*",
+    id: `eq.${connectionId}`,
+    user_id: `eq.${userId}`,
+    household_id: `eq.${householdId}`,
+    provider: "eq.google",
+    limit: "1",
   });
-
-  return { authorizationUrl: `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}` };
+  const result = await rest(`calendar_connections?${query.toString()}`);
+  if (result.error) return { error: result.error.message || "Could not load calendar connection", status: result.status };
+  if (!result.data?.length) return { error: "Calendar connection not found", status: 404 };
+  return { connection: result.data[0] };
 }
 
-async function ensurePendingConnection(userId, householdId) {
+async function updateConnection(connectionId, payload) {
+  const result = await rest(`calendar_connections?id=eq.${connectionId}&select=*`, {
+    method: "PATCH",
+    body: payload,
+    prefer: "return=representation",
+  });
+  if (result.error) return { error: result.error.message || "Could not update calendar connection", status: result.status };
+  return { connection: Array.isArray(result.data) ? result.data[0] : result.data };
+}
+
+async function createPendingConnection(userId, householdId) {
+  const existing = await listConnections(userId, householdId);
+  if (existing.error) return existing;
+  const pending = existing.rows.find((row) => (
+    row.connection_status === "pending"
+    && !row.revoked_at
+    && !row.provider_account_email
+  ));
+  if (pending) return { connection: pending };
+
   const payload = {
     user_id: userId,
     household_id: householdId,
@@ -192,7 +329,192 @@ async function ensurePendingConnection(userId, householdId) {
   return { connection: Array.isArray(result.data) ? result.data[0] : result.data };
 }
 
+function buildGoogleAuthorizationUrl({ req, householdId, userId, connectionId }) {
+  const clientId = getGoogleClientId();
+  if (!clientId) return { error: "GOOGLE_OAUTH_CLIENT_ID is not configured" };
+
+  const state = createSignedState({
+    provider: "google",
+    household_id: householdId,
+    user_id: userId,
+    connection_id: connectionId,
+    return_to: getBaseUrl(req) || "/",
+  });
+
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: getRedirectUri(req),
+    response_type: "code",
+    access_type: "offline",
+    prompt: "consent",
+    include_granted_scopes: "true",
+    scope: GOOGLE_SCOPES.join(" "),
+    state,
+  });
+
+  return { authorizationUrl: `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}` };
+}
+
+async function exchangeCodeForTokens(req, code) {
+  const clientId = getGoogleClientId();
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET || "";
+  if (!clientId || !clientSecret) throw new Error("Google OAuth client environment is not configured");
+
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      code,
+      client_id: clientId,
+      client_secret: clientSecret,
+      redirect_uri: getRedirectUri(req),
+      grant_type: "authorization_code",
+    }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error_description || data.error || "Google OAuth token exchange failed");
+  return data;
+}
+
+async function refreshAccessToken(connection) {
+  const refreshToken = decryptToken(connection.refresh_token_ciphertext);
+  if (!refreshToken) throw new Error("Calendar refresh token is unavailable");
+
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: getGoogleClientId(),
+      client_secret: process.env.GOOGLE_OAUTH_CLIENT_SECRET || "",
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
+    }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error_description || data.error || "Google Calendar token refresh failed");
+
+  const tokenExpiry = new Date(Date.now() + Number(data.expires_in || 3600) * 1000).toISOString();
+  const updated = await updateConnection(connection.id, {
+    access_token_ciphertext: encryptToken(data.access_token),
+    token_expiry: tokenExpiry,
+    scopes: data.scope ? data.scope.split(" ") : connection.scopes || GOOGLE_SCOPES,
+    connection_status: "connected",
+  });
+  if (updated.error) throw new Error(updated.error);
+  return { accessToken: data.access_token, connection: updated.connection };
+}
+
+async function getUsableAccessToken(connection) {
+  if (connection.connection_status !== "connected" || connection.revoked_at) {
+    throw new Error("Google Calendar is not connected");
+  }
+  const expiry = connection.token_expiry ? new Date(connection.token_expiry).getTime() : 0;
+  if (!connection.access_token_ciphertext || !expiry || expiry - Date.now() < TOKEN_REFRESH_SKEW_MS) {
+    return refreshAccessToken(connection);
+  }
+  return { accessToken: decryptToken(connection.access_token_ciphertext), connection };
+}
+
+async function fetchGoogleUserInfo(accessToken) {
+  const response = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!response.ok) return {};
+  return response.json().catch(() => ({}));
+}
+
+async function fetchGoogleEvents(accessToken) {
+  const now = new Date();
+  const future = new Date();
+  future.setDate(future.getDate() + 30);
+  const calendarId = getGoogleCalendarId();
+  const params = new URLSearchParams({
+    timeMin: now.toISOString(),
+    timeMax: future.toISOString(),
+    singleEvents: "true",
+    orderBy: "startTime",
+    maxResults: "50",
+  });
+  const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error?.message || "Google Calendar event fetch failed");
+  const source = !calendarId || calendarId === "primary" ? "Google Calendar" : calendarId;
+  return (data.items || []).map((event, index) => normalizeGoogleEvent(event, index, source)).filter(Boolean);
+}
+
+async function revokeGoogleToken(connection) {
+  const token = decryptToken(connection.refresh_token_ciphertext) || decryptToken(connection.access_token_ciphertext);
+  if (!token) return;
+  await fetch(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(token)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+  }).catch(() => null);
+}
+
+function sendCallbackPage(res, { ok, message, returnTo }) {
+  const title = ok ? "Google Calendar connected" : "Google Calendar connection failed";
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.status(ok ? 200 : 400).send(`<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title></head>
+<body style="font-family:system-ui,sans-serif;background:#0f172a;color:#f8fafc;padding:24px">
+<h1>${title}</h1>
+<p>${message}</p>
+<p><a style="color:#93c5fd" href="${returnTo || "/"}">Return to Family OS</a></p>
+</body></html>`);
+}
+
+async function handleCallback(req, res) {
+  try {
+    const { code, state, error } = req.query || {};
+    if (error) throw new Error(String(error));
+    if (!code) throw new Error("Missing Google authorization code");
+    const payload = validateSignedState(state);
+    const membership = await requireMembership(payload.user_id, payload.household_id);
+    if (membership.error) throw new Error(membership.error);
+
+    const connectionResult = await getConnection(payload.connection_id, payload.user_id, payload.household_id);
+    if (connectionResult.error) throw new Error(connectionResult.error);
+
+    const tokenData = await exchangeCodeForTokens(req, code);
+    const userInfo = await fetchGoogleUserInfo(tokenData.access_token);
+    const existingRefreshToken = connectionResult.connection.refresh_token_ciphertext;
+    const tokenExpiry = new Date(Date.now() + Number(tokenData.expires_in || 3600) * 1000).toISOString();
+    const updated = await updateConnection(payload.connection_id, {
+      provider_account_email: userInfo.email || connectionResult.connection.provider_account_email || null,
+      access_token_ciphertext: encryptToken(tokenData.access_token),
+      refresh_token_ciphertext: tokenData.refresh_token ? encryptToken(tokenData.refresh_token) : existingRefreshToken,
+      token_expiry: tokenExpiry,
+      scopes: tokenData.scope ? tokenData.scope.split(" ") : GOOGLE_SCOPES,
+      connection_status: tokenData.refresh_token || existingRefreshToken ? "connected" : "needs_reauth",
+      revoked_at: null,
+    });
+    if (updated.error) throw new Error(updated.error);
+
+    sendCallbackPage(res, {
+      ok: true,
+      message: "Your Google Calendar connection is now stored server-side.",
+      returnTo: payload.return_to,
+    });
+  } catch (error) {
+    sendCallbackPage(res, {
+      ok: false,
+      message: error.message || "Google Calendar OAuth callback failed.",
+      returnTo: "/",
+    });
+  }
+}
+
 async function disconnectConnection(userId, householdId, connectionId) {
+  const connections = connectionId
+    ? await getConnection(connectionId, userId, householdId)
+    : await listConnections(userId, householdId);
+  if (connections.error) return connections;
+
+  const rows = connections.connection ? [connections.connection] : connections.rows;
+  await Promise.allSettled(rows.map(revokeGoogleToken));
+
   const filters = new URLSearchParams({
     user_id: `eq.${userId}`,
     household_id: `eq.${householdId}`,
@@ -215,19 +537,41 @@ async function disconnectConnection(userId, householdId, connectionId) {
   return { connections: (result.data || []).map(safeConnection) };
 }
 
+async function handleEvents(res, userId, householdId) {
+  const connections = await listConnections(userId, householdId);
+  if (connections.error) {
+    res.status(connections.status).json({ error: connections.error });
+    return;
+  }
+  const active = connections.rows.find((row) => row.connection_status === "connected" && !row.revoked_at);
+  if (!active) {
+    res.status(200).json({ ...normalizedStatus(connections.rows), events: [] });
+    return;
+  }
+  try {
+    const token = await getUsableAccessToken(active);
+    const events = await fetchGoogleEvents(token.accessToken);
+    const synced = await updateConnection(token.connection.id, {
+      last_sync_at: new Date().toISOString(),
+      connection_status: "connected",
+    });
+    const nextRows = connections.rows.map((row) => row.id === token.connection.id ? (synced.connection || token.connection) : row);
+    res.status(200).json({ ...normalizedStatus(nextRows), events });
+  } catch (error) {
+    await updateConnection(active.id, { connection_status: "needs_reauth" }).catch(() => null);
+    res.status(200).json({
+      ...normalizedStatus(connections.rows.map((row) => row.id === active.id ? { ...row, connection_status: "needs_reauth" } : row)),
+      events: [],
+      error: error.message || "Google Calendar events could not be loaded",
+    });
+  }
+}
+
 async function handleAction(req, res, auth) {
   const body = parseBody(req);
   const action = req.query.action || body.action || "status";
   const householdId = req.query.household_id || body.household_id;
   const userId = auth.user.id;
-
-  if (action === "callback") {
-    res.status(501).json({
-      error: "Google OAuth callback token exchange is intentionally a server-side placeholder in Release 0.8.",
-      required_env: ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REDIRECT_URI", "SUPABASE_SERVICE_ROLE_KEY"],
-    });
-    return;
-  }
 
   const membership = await requireMembership(userId, householdId);
   if (membership.error) {
@@ -236,15 +580,16 @@ async function handleAction(req, res, auth) {
   }
 
   if (action === "connect") {
-    const pending = await ensurePendingConnection(userId, householdId);
+    const pending = await createPendingConnection(userId, householdId);
     if (pending.error) {
       res.status(pending.status).json({ error: pending.error });
       return;
     }
     const authorization = buildGoogleAuthorizationUrl({
+      req,
       householdId,
       userId,
-      origin: req.headers.origin,
+      connectionId: pending.connection.id,
     });
     if (authorization.error) {
       res.status(501).json({ error: authorization.error, connection: safeConnection(pending.connection) });
@@ -264,6 +609,11 @@ async function handleAction(req, res, auth) {
     return;
   }
 
+  if (action === "events") {
+    await handleEvents(res, userId, householdId);
+    return;
+  }
+
   const connections = await listConnections(userId, householdId);
   if (connections.error) {
     res.status(connections.status).json({ error: connections.error });
@@ -272,15 +622,6 @@ async function handleAction(req, res, auth) {
 
   if (action === "connections" || action === "status") {
     res.status(200).json(normalizedStatus(connections.rows));
-    return;
-  }
-
-  if (action === "events") {
-    res.status(200).json({
-      ...normalizedStatus(connections.rows),
-      events: [],
-      note: "Server-side Google Calendar event fetch is a Release 0.8 placeholder until OAuth callback token exchange is configured.",
-    });
     return;
   }
 
@@ -301,10 +642,7 @@ export default async function handler(req, res) {
 
   const action = req.query.action || parseBody(req).action || "status";
   if (action === "callback") {
-    res.status(501).json({
-      error: "Google OAuth callback token exchange is intentionally a server-side placeholder in Release 0.8.",
-      required_env: ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REDIRECT_URI", "SUPABASE_SERVICE_ROLE_KEY"],
-    });
+    await handleCallback(req, res);
     return;
   }
 
