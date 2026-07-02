@@ -1,7 +1,7 @@
 # Current Sprint
 
 ## Sprint Goal
-Build Release 0.9 household collaboration on top of the Release 0.8 secure calendar foundation.
+Complete Release 0.9 household collaboration and establish the Release 0.9.1 permanent engineering framework for future Family OS workstreams.
 
 ## Active Items
 - [x] Add documentation structure
@@ -60,6 +60,8 @@ Build Release 0.9 household collaboration on top of the Release 0.8 secure calen
 - [x] Add Settings household directory, invites, revoke, role, and remove controls
 - [x] Validate Release 0.9 migration and RLS smoke tests against disposable local Supabase database
 - [x] Complete Release 0.9 browser smoke tests, security review, documentation closeout, and merge/tag readiness validation
+- [x] Create Release 0.9.1 engineering process playbooks in `docs/process`
+- [x] Update agent, README, master index, roadmap, status, architecture, and AI docs to point future work at the process framework
 
 ## Blockers
 
@@ -105,3 +107,4 @@ Build Release 0.9 household collaboration on top of the Release 0.8 secure calen
 - Release 0.9 adds household collaboration foundations: hashed-token invitations, invitation accept/decline RPCs, active-household switching, Settings member directory, pending invite management, and owner-only role/removal controls. Public sign-up, ownership transfer, and broad module RLS conversion remain deferred.
 - Release 0.9 validation used disposable local database `familyos_r09_validation` in the local Supabase Docker container. Production was not touched. Validation fixed owner-only invitation enforcement and SQL ambiguity in invitation RPCs.
 - Release 0.9 final readiness validation used only local Supabase (`supabase_db_familyos`, local API on `127.0.0.1:54321`) and a smoke-test CRA server on `localhost:3002`. Browser smoke tests passed for owner invite creation/revoke, invite preview, adult accept, viewer decline/accept, active household switching, owner role update/removal, and hidden non-owner management controls.
+- Release 0.9.1 is documentation/process-only. It intentionally does not add application features.

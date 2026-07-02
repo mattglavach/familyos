@@ -1,5 +1,7 @@
 # Git Workflow
 
+For release branches, merge/tag strategy, and closeout expectations, use `docs/process/GIT_WORKFLOW.md`. This document remains the concise git baseline.
+
 ## Branches
 - main: production-ready
 - feature/name: new features

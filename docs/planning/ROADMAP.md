@@ -6,6 +6,7 @@
 - [x] GitHub templates
 - [x] Confirm current architecture
 - [x] Confirm deployment flow
+- [x] Permanent engineering process framework
 
 ## Phase 1 - Core App
 - [x] Authentication
@@ -60,3 +61,8 @@
 - [x] Validate Release 0.9 household invitation migration and smoke-test multi-member flows.
 - [ ] Validate deployed Google OAuth flow and remove legacy browser fallback when safe.
 - [ ] Design ownership transfer and owner recovery.
+
+## Engineering Process Track
+- [x] Establish permanent release, feature, coding, architecture, UI, testing, documentation, git, review, checklist, and prompt playbooks.
+- [ ] Use the Release 0.9.1 process framework for the next feature or release prompt.
+- [ ] Revisit process docs after two releases and refine based on actual execution gaps.

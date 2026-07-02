@@ -1,0 +1,50 @@
+# Testing Guidelines
+
+This document extends `docs/development/TESTING_STRATEGY.md` with required validation patterns.
+
+## Standard Commands
+- Run `pnpm run lint` for code changes.
+- Run `pnpm run build` for frontend/shared changes.
+- Run `git diff --check` before commit.
+- Run `pnpm run check` when a release needs the combined local gate.
+
+## Migration Validation
+- Use disposable/local/staging Supabase, never production unless explicitly approved.
+- Apply migrations from an empty or representative baseline.
+- Verify migration ordering.
+- Re-run migrations when idempotency is expected.
+- Document non-idempotent behavior clearly.
+
+## RLS Validation
+- Validate owner, adult, viewer/non-owner, invited user, and non-member behavior when affected.
+- Test both allowed and denied paths.
+- Confirm UI permissions do not replace backend enforcement.
+
+## Role Testing
+- Owner: management actions, household settings, invite/member operations.
+- Adult: operating data access without owner-only membership controls unless explicitly allowed.
+- Viewer: read-oriented access and hidden management controls.
+- Non-member: denied cross-household access.
+
+## Integration Testing
+- Validate API routes, RPCs, Supabase queries, and third-party integrations at the smallest reliable boundary.
+- Use local or staging credentials only.
+- Do not log or commit secrets, tokens, or private data.
+
+## Browser Smoke Testing
+- Launch the app locally when UI flows change.
+- Test sign-in, navigation, affected forms, loading/error/empty states, permission-aware controls, and responsive behavior.
+- For household features, test at least owner plus one non-owner role.
+
+## Regression Testing
+- Check nearby workflows that share data, hooks, context, or UI primitives.
+- Preserve single-user compatibility unless the release intentionally changes it.
+
+## Validation Reporting
+Every release summary should include:
+- Environment used.
+- Commands run.
+- SQL or browser smoke coverage.
+- Pass/fail notes.
+- Fixes made during validation.
+- Remaining risks.

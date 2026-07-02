@@ -1,5 +1,7 @@
 # Release Process
 
+For the complete release lifecycle, readiness levels, deliverables, and release summary format, use `docs/process/RELEASE_PLAYBOOK.md`. This document remains the historical baseline.
+
 ## Operating Model
 
 Work in larger release work packages rather than small milestones.

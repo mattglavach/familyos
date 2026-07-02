@@ -8,11 +8,13 @@ FamilyOS is a mobile-first household operations app. It is currently a Create Re
 
 Key paths:
 
-- `src/App.js` contains the main React app, data hooks, domain helpers, auth gate, and tab UI flows.
-- `src/features/dashboard/Dashboard.js` contains the Home dashboard tab.
-- `src/features/tasks/Tasks.js` contains the Tasks tab.
+- `src/App.js` is the compatibility entry point.
+- `src/app/App.js` contains the app shell and tab composition.
+- `src/modules/dashboard/` contains the Home dashboard tab.
+- `src/modules/tasks/` contains the Tasks tab.
+- `src/modules/settings/` contains Settings, profile, household, and integration controls.
+- `src/components/ui/` contains shared UI primitives.
 - `src/theme.js` contains shared colors, style objects, and icons.
-- `src/components/common.js` contains shared UI components such as modals, loading states, swipe cards, and sparklines.
 - `src/data/seed.js` contains fallback seed data used when Supabase data is unavailable.
 - `src/styles.css` contains the app styling.
 - `api/brief.js` is a Vercel serverless function that proxies Anthropic API requests.
@@ -81,6 +83,13 @@ Before making code, database, UI, or architecture changes, read:
 
 - `docs/00_MASTER_INDEX.md`
 - `docs/ai/AI_CONTEXT.md`
+- `docs/process/RELEASE_PLAYBOOK.md`
+- `docs/process/FEATURE_PLAYBOOK.md`
+- `docs/process/CODING_STANDARDS.md`
+- `docs/process/ARCHITECTURE_GUIDELINES.md`
+- `docs/process/UI_GUIDELINES.md`
+- `docs/process/TESTING_GUIDELINES.md`
+- `docs/process/DOCUMENTATION_GUIDELINES.md`
 - `docs/planning/CURRENT_SPRINT.md`
 - `docs/planning/ROADMAP.md`
 - `docs/development/CODING_STANDARDS.md`
@@ -91,12 +100,16 @@ Before making code, database, UI, or architecture changes, read:
 
 - Do not remove existing functionality unless explicitly instructed.
 - Do not duplicate logic or components.
+- Do not duplicate guidance; extend existing documentation when possible.
 - Reuse existing patterns before creating new ones.
 - Keep the application mobile-first and responsive.
 - Keep code simple, maintainable, and production-ready.
 - Use Supabase migrations for database changes.
 - Preserve security and Row Level Security assumptions.
 - Update documentation after meaningful changes.
+- Follow the process playbooks for release, feature, validation, security, documentation, git, and review work.
+- Complete full milestones/workstreams when asked; do not stop after implementation if validation, documentation, cleanup, and commit are still required.
+- Leave the repository releasable: branch clean, validation run or blocker documented, docs current, and risks explicit.
 
 ### Required Updates After Work
 
@@ -106,6 +119,7 @@ After completing implementation, update:
 - `docs/planning/CURRENT_SPRINT.md`
 - `docs/planning/PROJECT_STATUS.md`
 - `docs/architecture/ARCHITECTURE_DECISIONS.md` when a major decision is made
+- Any relevant process, database, RLS, UI, roadmap, or release docs listed in `docs/process/DOCUMENTATION_GUIDELINES.md`
 
 ### Completion Summary
 

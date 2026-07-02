@@ -57,6 +57,19 @@ This folder is the operating manual for Family OS.
 - docs/development/DEFINITION_OF_DONE.md
 - docs/development/RELEASE_PROCESS.md
 
+### Process
+- docs/process/RELEASE_PLAYBOOK.md
+- docs/process/FEATURE_PLAYBOOK.md
+- docs/process/CODING_STANDARDS.md
+- docs/process/ARCHITECTURE_GUIDELINES.md
+- docs/process/UI_GUIDELINES.md
+- docs/process/TESTING_GUIDELINES.md
+- docs/process/DOCUMENTATION_GUIDELINES.md
+- docs/process/GIT_WORKFLOW.md
+- docs/process/CODE_REVIEW_CHECKLIST.md
+- docs/process/RELEASE_CHECKLIST.md
+- docs/process/PROMPT_LIBRARY.md
+
 ### Releases
 - docs/releases/CHANGELOG.md
 - docs/releases/RELEASE_NOTES.md
