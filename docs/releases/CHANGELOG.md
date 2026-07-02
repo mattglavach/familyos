@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- Integrated Release 0.8C secure calendar events into the dashboard schedule, preferring server-side Google Calendar events when connected, clearly labelling the legacy browser fallback, and stopping new legacy `gc_token` browser persistence.
+- Implemented Release 0.8B secure Google Calendar OAuth flow with signed state validation, Google code exchange, AES-GCM token encryption, server-side token refresh, Google revoke/disconnect, and normalized server-side event fetch without exposing token material to the frontend.
+- Began Release 0.8 secure Google Calendar foundation with a `calendar_connections` migration, server-side calendar API placeholders, frontend-safe connection hook, Settings connection status UI, and documentation for required OAuth/server env vars.
 - Began and completed Release 0.7 runtime integration with active household context, household-aware Supabase table access, Supabase-backed family member management, Settings/Profile persistence, structured task metadata writes, and a documented server-side Google Calendar connection plan.
 - Completed Release 0.6C production execution: added the production auth ownership baseline, backfilled existing module rows to the approved owner, applied the household foundation migration, validated RLS/grants/bootstrap/task metadata, and passed transaction-rolled-back app-path smoke tests without changing runtime app or localStorage behavior.
 - Added the Release 0.6C production baseline alignment plan for reconciling missing `user_id` ownership columns and public/open policy drift before re-attempting the household foundation migration.

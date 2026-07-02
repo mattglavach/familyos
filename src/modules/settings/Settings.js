@@ -5,6 +5,7 @@ import {
   Info,
   LogOut,
   RefreshCw,
+  ShieldCheck,
   Save,
   Settings as SettingsIcon,
   Trash2,
@@ -55,6 +56,22 @@ function calendarLabel(gc) {
   return "Connected";
 }
 
+function serverCalendarTone(calendar) {
+  if (calendar.error || calendar.status === "error" || calendar.status === "needs_reauth") return "warning";
+  if (calendar.loading || calendar.status === "pending") return "warning";
+  if (calendar.connected) return "connected";
+  return "neutral";
+}
+
+function serverCalendarLabel(calendar) {
+  if (calendar.loading) return "Checking";
+  if (calendar.error) return "Needs setup";
+  if (calendar.status === "pending") return "Pending OAuth";
+  if (calendar.status === "needs_reauth") return "Reconnect needed";
+  if (calendar.connected) return "Connected";
+  return "Disconnected";
+}
+
 function Toast({ toast, onDismiss }) {
   if (!toast) return null;
   return (
@@ -78,7 +95,7 @@ function SettingRow({ label, value, badge }) {
   );
 }
 
-export function Settings({ auth, gc }) {
+export function Settings({ auth, gc, secureCalendar }) {
   const household = useHousehold();
   const family = useFamilyMembers();
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
@@ -158,6 +175,21 @@ export function Settings({ auth, gc }) {
     notify("Opening Google Calendar connection.");
   }
 
+  async function connectSecureCalendar() {
+    const result = await secureCalendar.connect();
+    if (result?.authorizationUrl) {
+      window.location.assign(result.authorizationUrl);
+      return;
+    }
+    notify("Secure calendar connection placeholder created.");
+  }
+
+  async function disconnectSecureCalendar() {
+    if (!window.confirm("Disconnect the server-side Google Calendar connection for this household?")) return;
+    await secureCalendar.disconnect(secureCalendar.connection?.id);
+    notify("Server-side calendar connection disconnected.");
+  }
+
   function clearCalendarToken() {
     if (!window.confirm("Clear the local Google Calendar token on this device? You can reconnect afterward.")) return;
     gc.clearLocalConnection?.();
@@ -208,7 +240,7 @@ export function Settings({ auth, gc }) {
           <SettingRow label="Email" value={email} />
           <SettingRow label="User ID" value={userId} />
           <SettingRow label="Household Role" value={household.membership?.role || "Unavailable"} />
-          <SettingRow label="Release" value="Release 0.7" badge={<Badge variant="blue">0.7</Badge>} />
+          <SettingRow label="Release" value="Release 0.8" badge={<Badge variant="blue">0.8</Badge>} />
         </CardContent>
       </Card>
 
@@ -262,9 +294,41 @@ export function Settings({ auth, gc }) {
             <CalendarCheck className="h-4 w-4 text-primary" aria-hidden="true" />
             Google Calendar
           </CardTitle>
-          <CardDescription>Uses the existing browser popup OAuth connection.</CardDescription>
+          <CardDescription>Secure server-side calendar is preferred. Tokens stay on the server and events are returned as safe app data.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 px-4 pb-4 pt-0">
+          <div className="rounded-lg border border-border bg-muted/20 p-3">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-primary" aria-hidden="true" />
+              <StatusBadge status={serverCalendarTone(secureCalendar)}>{serverCalendarLabel(secureCalendar)}</StatusBadge>
+              <Badge variant="blue">Server-side</Badge>
+            </div>
+            <SettingRow label="Provider" value="Google Calendar" />
+            <SettingRow label="Account" value={secureCalendar.connection?.provider_account_email || "Not connected"} />
+            <SettingRow label="Last Sync" value={formatDateTime(secureCalendar.connection?.last_sync_at)} />
+            {secureCalendar.error && <FormError>{secureCalendar.error}</FormError>}
+            {secureCalendar.note && <FormHelp>{secureCalendar.note}</FormHelp>}
+            <FormHelp>
+              Connect starts Google OAuth. Disconnect revokes Google access when available and clears stored server tokens.
+            </FormHelp>
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              <Button type="button" onClick={connectSecureCalendar} loading={secureCalendar.loading}>
+                {secureCalendar.connection ? "Reconnect" : "Connect"}
+              </Button>
+              <Button type="button" variant="secondary" onClick={secureCalendar.refresh} loading={secureCalendar.loading}>
+                <RefreshCw className="h-4 w-4" aria-hidden="true" />
+                Check
+              </Button>
+              <Button type="button" variant="destructive-outline" onClick={disconnectSecureCalendar} disabled={!secureCalendar.connection}>
+                Disconnect
+              </Button>
+            </div>
+          </div>
+
+          <div className="pt-1 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Legacy browser fallback</div>
+          <FormHelp>
+            Temporary fallback for devices that have not moved to the secure server connection. New fallback sessions are no longer saved as browser tokens.
+          </FormHelp>
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={calendarTone(gc)}>{calendarLabel(gc)}</StatusBadge>
             <Badge variant="slate" className="max-w-full truncate">{gc.sourceLabel || "Google Calendar"}</Badge>

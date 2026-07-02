@@ -1,6 +1,9 @@
 # Google Calendar OAuth Setup
 
-Family OS uses Google Identity Services in the browser to request a short-lived Google Calendar access token. The Calendar integration uses the current browser origin for OAuth authorization and does not hardcode a localhost or production URL in application code.
+Family OS has two Google Calendar paths during Release 0.8:
+
+- The secure server-side path is preferred and powers the dashboard schedule whenever a server connection exists.
+- The legacy browser fallback is temporary for devices that have not completed the secure connection.
 
 ## Environment Variables
 
@@ -9,11 +12,36 @@ Set these values locally in `.env.local` and in Vercel:
 ```env
 REACT_APP_GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
 REACT_APP_GOOGLE_CALENDAR_ID=primary
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+GOOGLE_OAUTH_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
+GOOGLE_OAUTH_CLIENT_SECRET=your-google-oauth-client-secret
+GOOGLE_OAUTH_REDIRECT_URI=https://your-familyos-domain.vercel.app/api/calendar?action=callback
+GOOGLE_TOKEN_ENCRYPTION_KEY=base64-encoded-32-byte-key-for-token-encryption
+GOOGLE_OAUTH_STATE_SECRET=your-random-state-signing-secret
+GOOGLE_CALENDAR_ID=primary
+APP_BASE_URL=https://your-familyos-domain.vercel.app
 ```
 
 `REACT_APP_GOOGLE_CLIENT_ID` must be an OAuth 2.0 Web application client ID from Google Cloud Console. `REACT_APP_GOOGLE_CALENDAR_ID` is usually `primary`, or a specific Google Calendar ID when syncing a shared calendar.
 
-## OAuth Flow Used By Family OS
+`SUPABASE_SERVICE_ROLE_KEY`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_TOKEN_ENCRYPTION_KEY`, and `GOOGLE_OAUTH_STATE_SECRET` are server-only values. Do not prefix them with `REACT_APP_` and do not use them in frontend code.
+
+## Release 0.8 Server-Side Foundation
+
+The server-side foundation is implemented in `api/calendar.js` and stores metadata in `public.calendar_connections`.
+
+- `action=status`: returns frontend-safe connection metadata.
+- `action=connections`: lists frontend-safe connection metadata.
+- `action=connect`: creates a pending server-side connection record and returns a Google OAuth authorization URL with signed state.
+- `action=callback`: validates signed state, exchanges the authorization code, encrypts token material, and stores connection metadata.
+- `action=disconnect`: revokes the Google token when available, marks the connection revoked, and clears token columns.
+- `action=events`: refreshes access tokens when needed and returns normalized frontend-safe event objects for the next 30 days.
+
+The API requires a Supabase session bearer token and validates active membership in the requested `household_id`. Responses never include `access_token_ciphertext` or `refresh_token_ciphertext`.
+
+Release 0.8C wires dashboard schedule reads to this server-side event API when a server connection exists. The legacy browser fallback remains visible but is labelled temporary, and new fallback sessions no longer write `gc_token` to browser localStorage.
+
+## Legacy Browser OAuth Flow
 
 The current implementation is in `src/hooks/useGoogleCalendar.js`.
 
@@ -26,6 +54,7 @@ The current implementation is in `src/hooks/useGoogleCalendar.js`.
 - Redirect URI: none configured by Family OS for the Calendar token popup flow
 - Event window: next 30 days
 - Local browser storage keys: `gc_token`, `gc_user_name`, and `gc_last_synced_at`
+- Release 0.8C no longer writes new `gc_token` values. Existing browser tokens may continue to work until cleared or expired.
 
 Because the token client is initialized in browser JavaScript, Google validates the exact origin serving the app. An `Error 400: origin_mismatch` means the current origin is missing from the OAuth client's Authorized JavaScript origins.
 
@@ -47,6 +76,12 @@ Use the exact Vercel production URL shown by Vercel, including `https://` and no
 
 For the current Google Identity Services token popup flow, **Authorized redirect URIs** are not used by Family OS Calendar sync. Leave them empty for this client unless another app uses the same OAuth client with a redirect-based flow.
 
+For the Release 0.8 server-side flow, add this exact redirect URI to **Authorized redirect URIs**:
+
+```text
+https://YOUR_VERCEL_PRODUCTION_DOMAIN.vercel.app/api/calendar?action=callback
+```
+
 If Google Cloud Console requires a redirect URI for the Web client, add only exact app URLs that you intentionally support:
 
 ```text
@@ -60,9 +95,11 @@ https://YOUR_CUSTOM_DOMAIN
 1. Copy `.env.example` to `.env.local`.
 2. Set `REACT_APP_GOOGLE_CLIENT_ID` to the Google OAuth Web client ID.
 3. Set `REACT_APP_GOOGLE_CALENDAR_ID` to `primary` or the target calendar ID.
-4. Add `http://localhost:3000` to Authorized JavaScript origins.
-5. Run `pnpm start`.
-6. Open `http://localhost:3000` and click **Connect**.
+4. Set the server-only OAuth and Supabase service-role values.
+5. Add `http://localhost:3000` to Authorized JavaScript origins.
+6. Add `http://localhost:3000/api/calendar?action=callback` to Authorized redirect URIs if testing the server route locally.
+7. Run `pnpm start`.
+8. Open `http://localhost:3000` and click **Connect** in the Server-side Google Calendar section.
 
 ## Vercel Production
 
@@ -70,8 +107,9 @@ https://YOUR_CUSTOM_DOMAIN
 2. In Vercel, set `REACT_APP_GOOGLE_CALENDAR_ID`.
 3. In Google Cloud Console, add the deployed Vercel production origin to Authorized JavaScript origins.
 4. If using a custom domain, add the custom domain origin too.
-5. Redeploy after changing Vercel environment variables.
-6. Open the deployed production URL and click **Connect**.
+5. Add the configured `GOOGLE_OAUTH_REDIRECT_URI` to Authorized redirect URIs.
+6. Redeploy after changing Vercel environment variables.
+7. Open the deployed production URL and click **Connect** in the Server-side Google Calendar section.
 
 ## Troubleshooting `origin_mismatch`
 

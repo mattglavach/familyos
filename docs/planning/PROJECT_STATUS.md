@@ -1,10 +1,10 @@
 # Project Status
 
 ## Current Version
-0.7
+0.8
 
 ## Current State
-Release 0.6C data foundation is complete in production. Release 0.7 is the active development target for runtime integration on top of the household foundation schema.
+Release 0.7 runtime integration is complete. Release 0.8 is the active development target for secure server-side Google Calendar connection storage and API foundations.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -40,13 +40,20 @@ Release 0.6C data foundation is complete in production. Release 0.7 is the activ
 - Release 0.7 household-aware Supabase table access
 - Release 0.7 Supabase-backed family members, settings/profile defaults, and task metadata
 - Release 0.7 Google Calendar server-side storage assessment
+- Release 0.8 `calendar_connections` migration and API foundation
+- Release 0.8 Settings UI for server-side Google Calendar connection status
+- Release 0.8 signed Google OAuth callback exchange
+- Release 0.8 encrypted server-side Google token persistence, refresh, revoke, and normalized event fetch
+- Release 0.8 dashboard integration for server-side Google Calendar events
+- Release 0.8 legacy browser calendar fallback labelling and no new `gc_token` persistence
 
 ## In Progress
-- Release 0.7 validation and release closeout
+- Release 0.8 deployed OAuth validation and release closeout
 
 ## Next
-- Validate Release 0.7 against production-like Supabase data.
-- Plan server-side Google Calendar connection storage implementation.
+- Configure Release 0.8 server OAuth environment values in Vercel.
+- Validate Google OAuth connect, callback, refresh, event fetch, and disconnect in a deployed environment.
+- Decide whether to remove the legacy browser fallback after deployed validation.
 - Plan household switcher and invitation workflow only after the current household path is stable.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
 
@@ -55,7 +62,7 @@ Release 0.6C data foundation is complete in production. Release 0.7 is the activ
 - No active deploy-blocking build errors after the CI lint cleanup.
 - Production magic-link redirects depend on Supabase Auth Site URL and allowed redirect URLs being set to the deployed FamilyOS origin.
 - Google Calendar sync requires the active browser origin to be listed in Google Cloud Console Authorized JavaScript origins for the configured OAuth client.
-- Google Calendar token storage remains browser-local in Release 0.7 and should move server-side in a later calendar connection milestone.
+- Google Calendar token storage remains browser-local only for older legacy fallback sessions. Release 0.8C no longer writes new `gc_token` values, and the server route does not expose tokens to the frontend. Deployed validation still requires server env configuration and Google Cloud redirect URI setup.
 - Legacy browser metadata keys for Release 0.6B settings, family members, and task metadata may remain on devices until local browser data is reset, but they are no longer the normal persistence path.
 - Six-item bottom navigation should be checked on physical mobile devices before broad family use.
 - The legacy household foundation migration is marked local-only and must not be applied to production.
@@ -63,7 +70,7 @@ Release 0.6C data foundation is complete in production. Release 0.7 is the activ
 
 ## Technical Debt
 - Existing feature screens still contain substantial inline styles and should be migrated gradually to shadcn/ui and Origin UI components during feature work.
-- Release 0.7 removes normal browser-local persistence for settings, family members, and task metadata. Calendar tokens and selected UI-only module preferences remain browser-local.
+- Release 0.7 removes normal browser-local persistence for settings, family members, and task metadata. Release 0.8 moves secure calendar connection state server-side while selected UI-only module preferences remain browser-local.
 - Current Supabase module tables still use direct `user_id = auth.uid()` RLS; household-scoped RLS must be introduced only after backfill and active-household app context are validated.
 - The household foundation draft intentionally keeps module-table `user_id` RLS in place while adding nullable `household_id` fields for staged migration.
 - Release 0.6C production baseline alignment backfilled existing module rows to the approved owner UUID. Future household-scoped sharing should move access through `household_id` once active-household runtime context is implemented.

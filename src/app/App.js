@@ -5,6 +5,7 @@ import { I, S } from "../theme";
 import { CONFIG_STATUS } from "../config";
 import { TODAY_DATE, TODAY_STR, daysAgo, daysBetween, formatDate, formatDateFull, formatTodayShort, nextDueDate } from "../lib/dates";
 import { useGoogleCalendar } from "../hooks/useGoogleCalendar";
+import { useCalendarConnections } from "../hooks/useCalendarConnections";
 import { useSupabaseAuth } from "../hooks/useSupabaseAuth";
 import { useTable } from "../hooks/useTable";
 import { HouseholdProvider, useHousehold } from "../context/HouseholdContext";
@@ -102,17 +103,17 @@ function GlobalInteractionStyles(){
       `}</style>;
 }
 
-function AppHeader({tab, auth, gc, onSettings}){
-  const calendarLabel = gc.loading || gc.status === "syncing"
+function AppHeader({tab, auth, calendar, onSettings}){
+  const calendarLabel = calendar.loading
     ? "Syncing"
-    : gc.error
+    : calendar.error
       ? "Calendar issue"
-      : gc.status === "empty"
+      : calendar.status === "empty"
         ? "No events"
-        : gc.userName
-          ? `${gc.userName} Synced`
-          : "Synced";
-  const calendarStatus = gc.error ? "warning" : gc.loading || gc.status === "syncing" ? "warning" : "connected";
+        : calendar.connected
+          ? calendar.mode === "secure" ? "Server synced" : "Legacy synced"
+          : "Not connected";
+  const calendarStatus = calendar.error ? "warning" : calendar.loading ? "warning" : calendar.connected ? "connected" : "neutral";
   return <header className="sticky top-0 z-10 border-b border-border bg-card/95 px-5 pb-3.5 pt-[calc(env(safe-area-inset-top)+16px)] backdrop-blur">
     <div className="flex items-center justify-between gap-3">
       <div className="min-w-0">
@@ -122,9 +123,9 @@ function AppHeader({tab, auth, gc, onSettings}){
       <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
         {tab !== "settings" && <Button type="button" variant="secondary" size="xs" onClick={onSettings}>Settings</Button>}
         <Button type="button" variant="secondary" size="xs" onClick={auth.signOut}>Sign out</Button>
-        {gc.token
+        {calendar.connected
           ?<StatusBadge status={calendarStatus} className="max-w-28 truncate">{calendarLabel}</StatusBadge>
-          :<Button type="button" variant="outline" size="xs" loading={gc.status==="connecting"||gc.status==="script-loading"} onClick={gc.signIn}>Connect</Button>
+          :<Button type="button" variant="outline" size="xs" loading={calendar.loading} onClick={onSettings}>Calendar</Button>
         }
       </div>
     </div>
@@ -179,6 +180,7 @@ function AuthenticatedApp({ auth }) {
   const [tab,setTab] = useState("home");
   const gc = useGoogleCalendar();
   const household = useHousehold();
+  const secureCalendar = useCalendarConnections(household.householdId);
 
   function switchTab(t){
     setTab(t);
@@ -187,12 +189,28 @@ function AuthenticatedApp({ auth }) {
 
   if (household.loading) return <GlobalLoading/>;
 
+  const headerCalendar = secureCalendar.connection
+    ? {
+      mode: "secure",
+      connected: secureCalendar.connected,
+      loading: secureCalendar.loading,
+      error: secureCalendar.error,
+      status: secureCalendar.status,
+    }
+    : {
+      mode: "legacy",
+      connected: Boolean(gc.token),
+      loading: gc.loading || gc.status === "syncing" || gc.status === "connecting" || gc.status === "script-loading",
+      error: gc.error,
+      status: gc.status,
+    };
+
   return(
     <div style={S.app}>
       <GlobalInteractionStyles/>
-      <AppHeader tab={tab} auth={auth} gc={gc} onSettings={()=>switchTab("settings")}/>
+      <AppHeader tab={tab} auth={auth} calendar={headerCalendar} onSettings={()=>switchTab("settings")}/>
 
-      {tab==="home"&&<Dashboard onNavigate={switchTab} gc={gc} deps={{
+      {tab==="home"&&<Dashboard onNavigate={switchTab} gc={gc} secureCalendar={secureCalendar} deps={{
         TODAY_DATE,TODAY_STR,daysAgo,daysBetween,nextDueDate,formatDate,formatDateFull,
         formatMoneyShort,maintStatus,useTable,calcRetirementProjection,getChemRecommendations,
       }}/>} 
@@ -203,7 +221,7 @@ function AuthenticatedApp({ auth }) {
       }}/>} 
       {tab==="pool"&&<Pool/>}
       {tab==="finance"&&<Finance/>}
-      {tab==="settings"&&<Settings auth={auth} gc={gc}/>}
+      {tab==="settings"&&<Settings auth={auth} gc={gc} secureCalendar={secureCalendar}/>}
 
       <QuickAdd onNavigate={switchTab}/>
       <BottomNavigation tab={tab} onNavigate={switchTab}/>

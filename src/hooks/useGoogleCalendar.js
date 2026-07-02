@@ -104,7 +104,6 @@ export function useGoogleCalendar() {
       callback:(resp)=>{
         if(resp.error){setStatus("error");setError(formatGoogleOAuthError(resp.error));return;}
         if(!resp.access_token){setStatus("error");setError("Google Calendar did not return an access token. Try connecting again.");return;}
-        localStorage.setItem("gc_token",resp.access_token);
         setToken(resp.access_token);
         setStatus("connected");
         fetchUserName(resp.access_token);
