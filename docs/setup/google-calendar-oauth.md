@@ -1,6 +1,9 @@
 # Google Calendar OAuth Setup
 
-Family OS uses Google Identity Services in the browser to request a short-lived Google Calendar access token. The Calendar integration uses the current browser origin for OAuth authorization and does not hardcode a localhost or production URL in application code.
+Family OS has two Google Calendar paths during Release 0.8:
+
+- The legacy browser fallback uses Google Identity Services in the browser to request a short-lived access token.
+- The Release 0.8 foundation stores connection metadata server-side and prepares for backend-owned OAuth tokens.
 
 ## Environment Variables
 
@@ -9,11 +12,30 @@ Set these values locally in `.env.local` and in Vercel:
 ```env
 REACT_APP_GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
 REACT_APP_GOOGLE_CALENDAR_ID=primary
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+GOOGLE_OAUTH_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
+GOOGLE_OAUTH_CLIENT_SECRET=your-google-oauth-client-secret
+GOOGLE_OAUTH_REDIRECT_URI=https://your-familyos-domain.vercel.app/api/calendar?action=callback
+GOOGLE_TOKEN_ENCRYPTION_KEY=base64-encoded-32-byte-key-for-token-encryption
 ```
 
 `REACT_APP_GOOGLE_CLIENT_ID` must be an OAuth 2.0 Web application client ID from Google Cloud Console. `REACT_APP_GOOGLE_CALENDAR_ID` is usually `primary`, or a specific Google Calendar ID when syncing a shared calendar.
 
-## OAuth Flow Used By Family OS
+`SUPABASE_SERVICE_ROLE_KEY`, `GOOGLE_OAUTH_CLIENT_SECRET`, and `GOOGLE_TOKEN_ENCRYPTION_KEY` are server-only values. Do not prefix them with `REACT_APP_` and do not use them in frontend code.
+
+## Release 0.8 Server-Side Foundation
+
+The server-side foundation is implemented in `api/calendar.js` and stores metadata in `public.calendar_connections`.
+
+- `action=status`: returns frontend-safe connection metadata.
+- `action=connections`: lists frontend-safe connection metadata.
+- `action=connect`: creates a pending server-side connection record and prepares an OAuth authorization URL when server OAuth env vars are present.
+- `action=disconnect`: marks the connection revoked and clears token placeholder columns.
+- `action=events`: returns normalized frontend-safe event placeholders until token exchange and refresh are implemented.
+
+The API requires a Supabase session bearer token and validates active membership in the requested `household_id`. Responses never include `access_token_ciphertext` or `refresh_token_ciphertext`.
+
+## Legacy Browser OAuth Flow
 
 The current implementation is in `src/hooks/useGoogleCalendar.js`.
 

@@ -53,4 +53,5 @@
 - [x] Household and people/family member persistence.
 - [x] Shared task schema fields for assignee, status, created/completed timestamps, module ownership, and recurrence clarity.
 - [x] Settings/profile persistence beyond browser localStorage.
-- [ ] Server-side Google Calendar connection model and token storage.
+- [x] Server-side Google Calendar connection model and token storage foundation.
+- [ ] Complete Google OAuth callback exchange, token encryption, refresh, and server-side event sync.

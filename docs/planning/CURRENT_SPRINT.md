@@ -1,7 +1,7 @@
 # Current Sprint
 
 ## Sprint Goal
-Prepare Release 0.7 runtime integration on top of the completed Release 0.6C Supabase data foundation.
+Build Release 0.8 secure Google Calendar connection foundation on top of the Release 0.7 household runtime context.
 
 ## Active Items
 - [x] Add documentation structure
@@ -43,6 +43,10 @@ Prepare Release 0.7 runtime integration on top of the completed Release 0.6C Sup
 - [x] Release 0.7 active household context
 - [x] Release 0.7 Supabase-backed family members, settings, and task metadata
 - [x] Release 0.7 Google Calendar server-side storage assessment
+- [x] Begin Release 0.8 secure Google Calendar foundation
+- [x] Add `calendar_connections` migration draft with household/user ownership
+- [x] Add server-side calendar API foundation
+- [x] Add Settings UI for server-side Google Calendar connection status
 
 ## Blockers
 
@@ -83,3 +87,4 @@ Prepare Release 0.7 runtime integration on top of the completed Release 0.6C Sup
 - Release 0.6C production baseline alignment planning documents the required owner/backfill decision, recommended temporary owner approach, validation scope, and stop conditions before another production attempt.
 - Release 0.6C production execution added the auth ownership baseline, backfilled 67 existing module rows to the approved owner, applied the household foundation migration, passed production validation SQL, passed authenticated-role app-path smoke tests, and left browser localStorage behavior unchanged.
 - Release 0.7 runtime integration adds active household context, household-aware Supabase table access, Supabase-backed family members/settings/task metadata, and a documented future server-side calendar connection model.
+- Release 0.8 adds server-side Google Calendar connection metadata and API placeholders. The legacy browser token path remains only as a fallback until OAuth callback exchange, token encryption, refresh, and event sync are completed.

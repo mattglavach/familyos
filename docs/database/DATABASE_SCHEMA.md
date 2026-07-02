@@ -46,6 +46,13 @@ Stores household-wide defaults such as task defaults when they should be shared.
 ### user_preferences
 Stores user-specific defaults such as preferred household or default person.
 
+### calendar_connections
+Stores server-side Google Calendar connection metadata for Release 0.8.
+
+Rows are owned by both `user_id` and `household_id`. The frontend can see provider, account email, status, expiry, scopes, last sync, and timestamps, but server API responses must not expose `access_token_ciphertext` or `refresh_token_ciphertext`.
+
+Release 0.8 adds `supabase/migrations/20260701_release_0_8_calendar_connections.sql`. The migration creates the table, indexes, updated-at trigger, authenticated grants, and RLS policies requiring the signed-in user to own the connection and belong to the household. OAuth token exchange and encrypted token material are intentionally completed through server-side API work, not browser storage.
+
 ### tasks
 Stores chores, reminders, and general tasks.
 

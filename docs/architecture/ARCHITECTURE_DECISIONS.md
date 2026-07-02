@@ -23,6 +23,28 @@ Record decisions that shape the product.
 ### July 1, 2026
 
 ### Decision
+Store Google Calendar connection ownership and token material only through server-side Release 0.8 calendar APIs.
+
+### Context
+Release 0.7 preserved the browser Google Identity Services token flow as a legacy fallback. Release 0.8 starts the secure replacement and must not expose refresh tokens to React or add new Google refresh-token storage in browser `localStorage`.
+
+### Options Considered
+- Keep the browser-only GIS token flow.
+- Store OAuth refresh tokens directly from the frontend.
+- Add a household-scoped server-side connection model and API foundation first.
+
+### Decision Rationale
+Calendar data can expose household routines and child locations, so long-lived credentials need backend ownership. A `calendar_connections` table scoped by `household_id` and `user_id`, plus Vercel API routes that only return safe metadata, provides the right boundary while keeping Release 0.8 small enough to validate.
+
+### Tradeoffs
+The first Release 0.8 pass creates the secure foundation and UI status surface but leaves signed OAuth state storage, token exchange, encryption, refresh, and event sync as explicit follow-up work behind server environment configuration.
+
+### Follow-up
+Add signed OAuth state storage, implement encrypted refresh-token persistence using `GOOGLE_TOKEN_ENCRYPTION_KEY`, refresh access tokens server-side, and replace dashboard event reads with normalized server events.
+
+### July 1, 2026
+
+### Decision
 Use a React household context as the Release 0.7 runtime boundary for active household, profile, membership, people, household settings, and user preferences.
 
 ### Context
