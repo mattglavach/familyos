@@ -45,9 +45,9 @@ Use this document to track durable technical debt. Do not use chat history as th
 
 ### Native Browser Confirmations
 - Status: Open
-- Impact: Some destructive flows still use native `window.confirm`, which is less consistent with the design-system dialog layer and can be harder to automate in smoke tests.
-- Trigger: When touching the affected task, settings, invite, calendar disconnect, or local reset flows for product work.
-- Notes: Replace with the local Dialog or Alert wrapper without changing authorization or mutation behavior.
+- Impact: Release 1.0.4 replaced native confirmations in touched Core MVP task, invitation, calendar, and device-preference flows, but deferred modules may still contain older confirmation patterns.
+- Trigger: When Pool, Finance, College, or other deferred modules become active release scope.
+- Notes: Continue replacing native confirmations with the local Dialog or Alert wrapper without changing authorization or mutation behavior.
 
 ### Advanced shadcn Primitive Backing
 - Status: Open

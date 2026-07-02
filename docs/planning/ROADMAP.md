@@ -80,6 +80,7 @@
 - [x] Implement Release 1.0.1 Core MVP Polish for Home, Tasks, Quick Add, More, Notifications, and documentation.
 - [x] Implement Release 1.0.2 Reliability for configuration handling, friendly errors, optional integration setup, and production-readiness documentation.
 - [x] Implement Release 1.0.3 Design System for shared UI wrappers, tokens, command search, and common form control consistency.
+- [x] Implement Release 1.0.4 Consumer Cleanup for task discoverability, compact filters, consumer language, confirmation dialogs, and Core MVP usability.
 
 ## Release 1.0 Scope
 - [x] Stabilize the dashboard daily command center.
@@ -109,3 +110,12 @@
 - [x] Use chip controls for frequent small option sets in Tasks and Quick Add.
 - [x] Use the local Command wrapper for Universal Search.
 - [ ] Continue migrating deferred module UI debt only when those modules become active release scope.
+
+## Release 1.0.4 Scope
+- [x] Keep Home as awareness while improving View All and drill-down clarity.
+- [x] Make tasks created from Quick Add immediately discoverable in Tasks.
+- [x] Compact default Tasks filters and move secondary filters behind More Filters.
+- [x] Limit Quick Add enabled destinations to supported workflows.
+- [x] Replace technical Calendar and invitation wording with consumer-safe language.
+- [x] Improve Search, Notifications, Settings, More, and touched empty/success/destructive states.
+- [ ] Keep Life Lists, Shopping, Meal Planning, Finance expansion, Health, Home platform, AI, Projects, integrations, and schema changes deferred.
