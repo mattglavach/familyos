@@ -21,6 +21,7 @@ Each module should have:
 - Future AI hooks where useful
 
 ## Core Layers
+- Product handbook layer
 - Process and documentation layer
 - UI layer
 - Feature/module layer
@@ -40,6 +41,11 @@ Each module should have:
 `docs/process/` is the permanent engineering framework for releases, features, coding standards, architecture guidance, UI guidance, testing, documentation, git workflow, review, release checklists, and reusable prompts. Future architecture work should start from the process playbooks and then update this architecture documentation when durable decisions change.
 
 Material architecture decisions should use `docs/architecture/decisions/ADR_TEMPLATE.md`. Lightweight decisions can be recorded in `docs/planning/DECISION_LOG.md`.
+
+## Product Handbook Layer
+`docs/product/` is the permanent product handbook for Family OS. It defines what Family OS is, why it exists, how it should feel, the product information architecture, navigation model, dashboard strategy, module intent, personas, workflows, feature philosophy, and product roadmap.
+
+Architecture and implementation work should align with the product handbook and then use `docs/process/` for how the work is built and validated.
 
 ## Release 1.0 Architecture Direction
 Release 1.0 should stabilize the existing core household operating loop instead of expanding the product surface. The implementation should build on the current modular app shell, active household context, dashboard, tasks, settings, household collaboration, and server-side calendar foundation.

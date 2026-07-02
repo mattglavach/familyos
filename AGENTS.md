@@ -83,6 +83,9 @@ Before making code, database, UI, or architecture changes, read:
 
 - `docs/00_MASTER_INDEX.md`
 - `docs/ai/AI_CONTEXT.md`
+- `docs/product/PRODUCT_VISION.md`
+- `docs/product/INFORMATION_ARCHITECTURE.md`
+- `docs/product/NAVIGATION.md`
 - `docs/process/ENGINEERING_INDEX.md`
 - `docs/process/FAMILY_OS_PRINCIPLES.md`
 - `docs/process/RELEASE_PLAYBOOK.md`

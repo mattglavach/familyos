@@ -1,7 +1,7 @@
 # Current Sprint
 
 ## Sprint Goal
-Complete Release 1.0 planning so implementation can start from a single authoritative blueprint.
+Complete Release 0.9.3 Product Handbook so Release 1.0 implementation has a single product source of truth.
 
 ## Active Items
 - [x] Add documentation structure
@@ -68,7 +68,9 @@ Complete Release 1.0 planning so implementation can start from a single authorit
 - [x] Complete Release 0.9.2 repository documentation cleanup
 - [x] Prepare Release 1.0 planning entry point
 - [x] Define Release 1.0 specification in `docs/planning/RELEASE_1_0_SPEC.md`
-- [ ] Review and approve Release 1.0 implementation branch plan
+- [x] Establish Product Handbook under `docs/product`
+- [x] Validate Product Handbook links, lint, build, and diff-check
+- [ ] Review and approve Release 1.0 implementation branch plan using the Product Handbook and Release 1.0 spec
 
 ## Blockers
 
@@ -118,3 +120,4 @@ Complete Release 1.0 planning so implementation can start from a single authorit
 - Release 0.9.1 governance extends existing docs instead of replacing them; existing detailed design and database docs remain source references.
 - Release 0.9.2 archives superseded development docs and makes `docs/process` the active engineering source of truth.
 - Release 1.0 planning keeps the release focused on core household operating readiness: dashboard, tasks, navigation, settings, household management, responsive UX, and validation. Shopping, life lists, meal planning, recipes, inventory, Home Assistant, smart home, AI Assistant, ownership transfer, public sign-up, and major new integrations remain deferred.
+- Release 0.9.3 defines the product source of truth: vision, information architecture, navigation, design principles, UX guidelines, dashboard strategy, module map, personas, workflows, feature philosophy, and product roadmap.

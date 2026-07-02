@@ -25,9 +25,19 @@ This folder is the operating manual for Family OS.
 - docs/planning/FUTURE_IDEAS.md
 
 ### Product
+- docs/product/PRODUCT_VISION.md
+- docs/product/INFORMATION_ARCHITECTURE.md
+- docs/product/NAVIGATION.md
+- docs/product/DESIGN_PRINCIPLES.md
+- docs/product/UX_GUIDELINES.md
+- docs/product/DASHBOARD.md
+- docs/product/MODULES.md
 - docs/product/PRODUCT_STRATEGY.md
 - docs/product/SUCCESS_METRICS.md
 - docs/product/PERSONAS.md
+- docs/product/WORKFLOWS.md
+- docs/product/FEATURE_PHILOSOPHY.md
+- docs/product/PRODUCT_ROADMAP.md
 - docs/product/PRD_TEMPLATE.md
 
 ### Architecture
