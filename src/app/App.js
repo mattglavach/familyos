@@ -6,6 +6,7 @@ import { CONFIG_STATUS } from "../config";
 import { TODAY_DATE, TODAY_STR, daysAgo, daysBetween, formatDate, formatDateFull, formatTodayShort, nextDueDate } from "../lib/dates";
 import { useGoogleCalendar } from "../hooks/useGoogleCalendar";
 import { useCalendarConnections } from "../hooks/useCalendarConnections";
+import { roleLabel, useInvitationAcceptance } from "../hooks/useHouseholdCollaboration";
 import { useSupabaseAuth } from "../hooks/useSupabaseAuth";
 import { useTable } from "../hooks/useTable";
 import { HouseholdProvider, useHousehold } from "../context/HouseholdContext";
@@ -49,6 +50,7 @@ function AuthGate({auth}){
   const [password,setPassword] = useState("");
   const canSend = !auth.sending && auth.resendCooldown === 0;
   const hasSentLink = Boolean(auth.message);
+  const inviteToken = typeof window === "undefined" ? "" : new URLSearchParams(window.location.search).get("invite");
   const signInButtonText = auth.sending ? "Signing in..." : "Sign in";
   const magicLinkButtonText = auth.sending ? "Sending..." : "Email me a sign-in link";
   return(
@@ -57,7 +59,11 @@ function AuthGate({auth}){
       <Card className="mt-6">
         <CardHeader>
           <CardTitle>Sign in</CardTitle>
-          <CardDescription>Use your approved family email and password. Your session stays saved on this device until you sign out.</CardDescription>
+          <CardDescription>
+            {inviteToken
+              ? "Sign in with the email address that received this household invitation."
+              : "Use your approved family email and password. Your session stays saved on this device until you sign out."}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <FormSection>
@@ -79,6 +85,83 @@ function AuthGate({auth}){
             </div>
             {auth.error&&<FormError>{auth.error}</FormError>}
           </FormSection>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function InvitationAcceptance({ inviteToken, onDone }) {
+  const household = useHousehold();
+  const invitation = useInvitationAcceptance(inviteToken, household);
+  const invite = invitation.invitation;
+  const currentEmail = household.user?.email || "";
+  const wrongEmail = invite?.invited_email && currentEmail && invite.invited_email.toLowerCase() !== currentEmail.toLowerCase();
+  const inactive = invite && invite.status !== "pending";
+
+  function clearInvite() {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("invite");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    onDone?.();
+  }
+
+  async function acceptInvite() {
+    const result = await invitation.accept();
+    if (result.ok) clearInvite();
+  }
+
+  async function declineInvite() {
+    const result = await invitation.decline();
+    if (result.ok) clearInvite();
+  }
+
+  return (
+    <div style={S.app} className="px-5 py-10">
+      <div style={S.logo}><span style={S.logoAccent}>Family</span>OS</div>
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Household Invite</CardTitle>
+          <CardDescription>Review the household invitation before joining.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {invitation.loading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-4 w-4/5" />
+              <Skeleton className="h-3 w-3/5" />
+            </div>
+          ) : invitation.error ? (
+            <FormError>{invitation.error}</FormError>
+          ) : !invite ? (
+            <FormError>Invitation could not be found.</FormError>
+          ) : invitation.accepted ? (
+            <StatusBadge status="connected">Invitation accepted</StatusBadge>
+          ) : invitation.declined ? (
+            <StatusBadge status="neutral">Invitation declined</StatusBadge>
+          ) : (
+            <>
+              <div className="rounded-lg border border-border bg-secondary/35 p-4">
+                <div className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Household</div>
+                <div className="mt-1 text-lg font-extrabold text-foreground">{invite.household_name || "Family household"}</div>
+                <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
+                  <div>Invited email: <span className="font-semibold text-foreground">{invite.invited_email}</span></div>
+                  <div>Role: <span className="font-semibold text-foreground">{roleLabel(invite.role)}</span></div>
+                  <div>Status: <span className="font-semibold text-foreground">{invite.status}</span></div>
+                </div>
+              </div>
+              {wrongEmail && <FormError>This invitation is for {invite.invited_email}. You are signed in as {currentEmail}.</FormError>}
+              {inactive && <FormError>This invitation is {invite.status} and can no longer be accepted.</FormError>}
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Button type="button" onClick={acceptInvite} loading={invitation.loading} disabled={wrongEmail || inactive}>
+                  Accept Invite
+                </Button>
+                <Button type="button" variant="secondary" onClick={declineInvite} loading={invitation.loading} disabled={wrongEmail || inactive}>
+                  Decline
+                </Button>
+              </div>
+            </>
+          )}
+          <Button type="button" variant="ghost" className="w-full" onClick={clearInvite}>Continue to app</Button>
         </CardContent>
       </Card>
     </div>
@@ -188,6 +271,9 @@ function AuthenticatedApp({ auth }) {
   }
 
   if (household.loading) return <GlobalLoading/>;
+
+  const inviteToken = typeof window === "undefined" ? "" : new URLSearchParams(window.location.search).get("invite");
+  if (inviteToken) return <InvitationAcceptance inviteToken={inviteToken} onDone={() => switchTab("settings")} />;
 
   const headerCalendar = secureCalendar.connection
     ? {

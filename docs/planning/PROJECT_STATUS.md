@@ -1,10 +1,10 @@
 # Project Status
 
 ## Current Version
-0.8
+0.9
 
 ## Current State
-Release 0.7 runtime integration is complete. Release 0.8 is the active development target for secure server-side Google Calendar connection storage and API foundations.
+Release 0.9 household collaboration is validation-complete on branch `release/0.9` and ready for merge/tag after the final validation commit.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -46,15 +46,18 @@ Release 0.7 runtime integration is complete. Release 0.8 is the active developme
 - Release 0.8 encrypted server-side Google token persistence, refresh, revoke, and normalized event fetch
 - Release 0.8 dashboard integration for server-side Google Calendar events
 - Release 0.8 legacy browser calendar fallback labelling and no new `gc_token` persistence
+- Release 0.9 secure household invitation migration with hashed invite tokens and RPC accept/decline flows
+- Release 0.9 invite acceptance UI, invite token preservation through auth redirects, active household switching, and Settings household member/invite management
+- Release 0.9 disposable local Supabase validation for migration chain, invitation lifecycle, owner-only controls, RLS denial paths, and active household preference switching
+- Release 0.9 browser smoke validation on local Supabase for owner, adult, and viewer collaboration flows, including invite create/preview/accept/decline/revoke, role update, member removal, active household switching, and hidden non-owner controls
 
 ## In Progress
-- Release 0.8 deployed OAuth validation and release closeout
+- No active Release 0.9 blockers after local validation.
 
 ## Next
-- Configure Release 0.8 server OAuth environment values in Vercel.
-- Validate Google OAuth connect, callback, refresh, event fetch, and disconnect in a deployed environment.
-- Decide whether to remove the legacy browser fallback after deployed validation.
-- Plan household switcher and invitation workflow only after the current household path is stable.
+- Merge Release 0.9 into `main` and tag `v0.9.0` after final review.
+- Configure Release 0.8 server OAuth environment values in Vercel before removing the legacy calendar fallback.
+- Decide whether to remove the legacy browser calendar fallback after deployed validation.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
 
 ## Known Bugs
@@ -67,6 +70,8 @@ Release 0.7 runtime integration is complete. Release 0.8 is the active developme
 - Six-item bottom navigation should be checked on physical mobile devices before broad family use.
 - The legacy household foundation migration is marked local-only and must not be applied to production.
 - Release 0.7 now uses the household foundation for active household context, family members, settings/profile defaults, and task metadata while preserving staged module-table compatibility.
+- Release 0.9 invite acceptance requires the invited email to already have or receive a valid Supabase auth session; public sign-up remains deferred.
+- Release 0.9 validation passed against disposable local database `familyos_r09_validation` and local browser smoke users; production was not touched.
 
 ## Technical Debt
 - Existing feature screens still contain substantial inline styles and should be migrated gradually to shadcn/ui and Origin UI components during feature work.
@@ -74,6 +79,7 @@ Release 0.7 runtime integration is complete. Release 0.8 is the active developme
 - Current Supabase module tables still use direct `user_id = auth.uid()` RLS; household-scoped RLS must be introduced only after backfill and active-household app context are validated.
 - The household foundation draft intentionally keeps module-table `user_id` RLS in place while adding nullable `household_id` fields for staged migration.
 - Release 0.6C production baseline alignment backfilled existing module rows to the approved owner UUID. Future household-scoped sharing should move access through `household_id` once active-household runtime context is implemented.
+- Ownership transfer, owner recovery, and full household-only module RLS remain Release 0.9 follow-up work.
 
 ## Last Updated
-July 1, 2026
+July 2, 2026

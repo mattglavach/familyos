@@ -1,14 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CalendarCheck,
+  Copy,
   Database,
   Info,
   LogOut,
+  MailPlus,
   RefreshCw,
   ShieldCheck,
   Save,
   Settings as SettingsIcon,
   Trash2,
+  UserMinus,
   UserRound,
   Users,
 } from "lucide-react";
@@ -24,6 +27,7 @@ import { Select } from "../../components/ui/select";
 import { S } from "../../theme";
 import { APP_CONFIG, CONFIG_STATUS } from "../../config";
 import { useHousehold } from "../../context/HouseholdContext";
+import { HOUSEHOLD_ROLES, INVITABLE_ROLES, roleCanManageMembers, roleLabel, useHouseholdInvitations } from "../../hooks/useHouseholdCollaboration";
 import { supabase } from "../../lib/supabase";
 import { useFamilyMembers } from "../dashboard/useFamilyMembers";
 import {
@@ -95,10 +99,26 @@ function SettingRow({ label, value, badge }) {
   );
 }
 
+function statusTone(status) {
+  if (status === "active" || status === "accepted") return "healthy";
+  if (status === "pending") return "warning";
+  if (status === "removed" || status === "revoked" || status === "declined") return "neutral";
+  return "neutral";
+}
+
+function formatInviteExpiry(value) {
+  if (!value) return "No expiry";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Unavailable";
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
 export function Settings({ auth, gc, secureCalendar }) {
   const household = useHousehold();
   const family = useFamilyMembers();
+  const invitations = useHouseholdInvitations(household);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [inviteForm, setInviteForm] = useState({ email: "", role: "adult" });
   const [snapshot, setSnapshot] = useState(() => localDataSnapshot());
   const [error, setError] = useState("");
   const [toast, setToast] = useState(null);
@@ -144,7 +164,6 @@ export function Settings({ auth, gc, secureCalendar }) {
 
       const operations = [
         supabase.from("profiles").update({ display_name: profileName }).eq("id", auth.session.user.id),
-        supabase.from("households").update({ name: householdName }).eq("id", household.householdId),
         supabase.from("household_settings").upsert({
           household_id: household.householdId,
           default_task_category: settings.taskDefaultCategory,
@@ -158,6 +177,9 @@ export function Settings({ auth, gc, secureCalendar }) {
           default_task_priority: taskPriority,
         }),
       ];
+      if (household.canManageHousehold) {
+        operations.push(supabase.from("households").update({ name: householdName }).eq("id", household.householdId));
+      }
       const results = await Promise.all(operations);
       const failed = results.find(result => result.error);
       if (failed) throw failed.error;
@@ -168,6 +190,65 @@ export function Settings({ auth, gc, secureCalendar }) {
     } catch {
       setError("Settings could not be saved on this device.");
     }
+  }
+
+  async function switchHousehold(event) {
+    const result = await household.switchHousehold(event.target.value);
+    if (!result.ok) {
+      setError(result.error || "Household could not be switched.");
+      return;
+    }
+    notify("Household switched.");
+  }
+
+  async function createInvite() {
+    const result = await invitations.createInvitation(inviteForm);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    setInviteForm({ email: "", role: "adult" });
+    setError("");
+    notify("Invitation created.");
+  }
+
+  async function copyInviteLink() {
+    const link = invitations.createdInvite?.inviteLink;
+    if (!link || !navigator.clipboard) return;
+    await navigator.clipboard.writeText(link);
+    notify("Invite link copied.");
+  }
+
+  async function revokeInvite(invitationId) {
+    if (!window.confirm("Revoke this household invitation?")) return;
+    const result = await invitations.revokeInvitation(invitationId);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    notify("Invitation revoked.");
+  }
+
+  async function updateMembership(membership, patch) {
+    if (!roleCanManageMembers(household.membership?.role)) {
+      setError("Only household owners can change member roles or remove members.");
+      return;
+    }
+    if (membership.user_id === household.user?.id && patch.status && patch.status !== "active") {
+      setError("Owners cannot remove themselves from the active household here.");
+      return;
+    }
+    const { error: updateError } = await supabase
+      .from("household_members")
+      .update(patch)
+      .eq("id", membership.id)
+      .eq("household_id", household.householdId);
+    if (updateError) {
+      setError(updateError.message || "Member could not be updated.");
+      return;
+    }
+    await household.refresh();
+    notify("Member updated.");
   }
 
   function reconnectCalendar() {
@@ -209,6 +290,13 @@ export function Settings({ auth, gc, secureCalendar }) {
   const email = auth.session?.user?.email || "Unknown";
   const userId = auth.session?.user?.id || "Unavailable";
   const activeMembers = family.activeMembers;
+  const peopleById = useMemo(() => household.people.reduce((map, person) => {
+    map[person.id] = person;
+    return map;
+  }, {}), [household.people]);
+  const currentUserMemberships = household.userMemberships.filter(membership => membership.user_id === household.user?.id && membership.status === "active");
+  const householdMembers = household.memberships.filter(membership => membership.household_id === household.householdId);
+  const canManageMembers = roleCanManageMembers(household.membership?.role);
   const localBytes = snapshot.reduce((total, item) => total + item.bytes, 0);
   const missingConfig = CONFIG_STATUS.missing || [];
 
@@ -239,8 +327,8 @@ export function Settings({ auth, gc, secureCalendar }) {
           </FormGroup>
           <SettingRow label="Email" value={email} />
           <SettingRow label="User ID" value={userId} />
-          <SettingRow label="Household Role" value={household.membership?.role || "Unavailable"} />
-          <SettingRow label="Release" value="Release 0.8" badge={<Badge variant="blue">0.8</Badge>} />
+          <SettingRow label="Household Role" value={roleLabel(household.membership?.role) || "Unavailable"} />
+          <SettingRow label="Release" value="Release 0.9" badge={<Badge variant="blue">0.9</Badge>} />
         </CardContent>
       </Card>
 
@@ -256,8 +344,20 @@ export function Settings({ auth, gc, secureCalendar }) {
           <FormSection>
             <FormGroup>
               <Label htmlFor="household-name">Household Name</Label>
-              <Input id="household-name" value={settings.householdName} onChange={event => setSettings(previous => ({ ...previous, householdName: event.target.value }))} />
+              <Input id="household-name" value={settings.householdName} disabled={!household.canManageHousehold} onChange={event => setSettings(previous => ({ ...previous, householdName: event.target.value }))} />
             </FormGroup>
+            {currentUserMemberships.length > 1 && (
+              <FormGroup>
+                <Label htmlFor="active-household">Active Household</Label>
+                <Select id="active-household" value={household.householdId || ""} onChange={switchHousehold}>
+                  {currentUserMemberships.map(membership => (
+                    <option key={membership.id} value={membership.household_id}>
+                      {membership.household_id === household.householdId ? settings.householdName : membership.household_id}
+                    </option>
+                  ))}
+                </Select>
+              </FormGroup>
+            )}
             <FormRow>
               <FormGroup>
                 <Label htmlFor="default-family-member">Default Family Member</Label>
@@ -285,6 +385,133 @@ export function Settings({ auth, gc, secureCalendar }) {
             </Button>
             {family.error && <FormHelp className="text-amber-300">{family.error}</FormHelp>}
           </FormSection>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="p-4 pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Users className="h-4 w-4 text-primary" aria-hidden="true" />
+            Household Members
+          </CardTitle>
+          <CardDescription>Directory, roles, pending invitations, and manager controls for this household.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 px-4 pb-4 pt-0">
+          {household.error && <FormError>{household.error}</FormError>}
+          {householdMembers.length ? (
+            <div className="space-y-2">
+              {householdMembers.map(membership => {
+                const person = membership.person_id ? peopleById[membership.person_id] : null;
+                const name = person?.display_name || person?.first_name || (membership.user_id === household.user?.id ? email : membership.user_id ? "Signed-in member" : "Family profile");
+                const isCurrentUser = membership.user_id === household.user?.id;
+                return (
+                  <div key={membership.id} className="rounded-lg border border-border bg-secondary/35 p-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="truncate text-sm font-bold text-foreground">{name}</div>
+                          {isCurrentUser && <Badge variant="blue">You</Badge>}
+                          <StatusBadge status={statusTone(membership.status)}>{membership.status}</StatusBadge>
+                        </div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {membership.user_id ? "Login member" : "Family profile"}{person?.email ? ` - ${person.email}` : ""}
+                        </div>
+                      </div>
+                      {canManageMembers ? (
+                        <div className="grid gap-2 sm:grid-cols-[120px_auto]">
+                          <Select
+                            value={membership.role}
+                            disabled={membership.role === "owner"}
+                            onChange={event => updateMembership(membership, { role: event.target.value })}
+                            aria-label={`Role for ${name}`}
+                          >
+                            {HOUSEHOLD_ROLES.map(role => <option key={role} value={role}>{roleLabel(role)}</option>)}
+                          </Select>
+                          <Button
+                            type="button"
+                            variant="destructive-outline"
+                            size="sm"
+                            disabled={membership.role === "owner" || membership.status !== "active"}
+                            onClick={() => updateMembership(membership, { status: "removed" })}
+                          >
+                            <UserMinus className="h-4 w-4" aria-hidden="true" />
+                            Remove
+                          </Button>
+                        </div>
+                      ) : (
+                        <Badge variant="slate">{roleLabel(membership.role)}</Badge>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <EmptyStatePanel title="No household members" detail="Active members will appear here after the household context loads." className="py-7" />
+          )}
+
+          {canManageMembers ? (
+            <div className="rounded-lg border border-border bg-muted/20 p-3">
+              <div className="mb-3 flex items-center gap-2 text-sm font-bold text-foreground">
+                <MailPlus className="h-4 w-4 text-primary" aria-hidden="true" />
+                Invite Member
+              </div>
+              <FormSection>
+                <FormRow>
+                  <FormGroup>
+                    <Label htmlFor="invite-email">Email</Label>
+                    <Input id="invite-email" type="email" value={inviteForm.email} placeholder="member@example.com" onChange={event => setInviteForm(previous => ({ ...previous, email: event.target.value }))} />
+                  </FormGroup>
+                  <FormGroup>
+                    <Label htmlFor="invite-role">Role</Label>
+                    <Select id="invite-role" value={inviteForm.role} onChange={event => setInviteForm(previous => ({ ...previous, role: event.target.value }))}>
+                      {INVITABLE_ROLES.map(role => <option key={role} value={role}>{roleLabel(role)}</option>)}
+                    </Select>
+                  </FormGroup>
+                </FormRow>
+                <Button type="button" className="w-full" onClick={createInvite} loading={invitations.loading}>
+                  <MailPlus className="h-4 w-4" aria-hidden="true" />
+                  Create Invite
+                </Button>
+                {invitations.error && <FormError>{invitations.error}</FormError>}
+                {invitations.createdInvite?.inviteLink && (
+                  <div className="rounded-md border border-border bg-card p-3">
+                    <div className="mb-2 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Invite Link</div>
+                    <div className="break-all text-xs text-secondary-foreground">{invitations.createdInvite.inviteLink}</div>
+                    <Button type="button" variant="secondary" size="sm" className="mt-3 w-full" onClick={copyInviteLink}>
+                      <Copy className="h-4 w-4" aria-hidden="true" />
+                      Copy Link
+                    </Button>
+                  </div>
+                )}
+              </FormSection>
+            </div>
+          ) : (
+            <FormHelp>Only household owners can invite members or edit membership.</FormHelp>
+          )}
+
+          {canManageMembers && (
+            <div>
+              <SectionHeader title="Pending Invites" count={invitations.pendingInvitations.length} tone="amber" />
+              {invitations.pendingInvitations.length ? (
+                <div className="space-y-2">
+                  {invitations.pendingInvitations.map(invitation => (
+                    <div key={invitation.id} className="flex flex-col gap-3 rounded-lg border border-border bg-secondary/35 p-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-bold text-foreground">{invitation.invited_email}</div>
+                        <div className="mt-1 text-xs text-muted-foreground">{roleLabel(invitation.role)} - expires {formatInviteExpiry(invitation.expires_at)}</div>
+                      </div>
+                      <Button type="button" variant="destructive-outline" size="sm" onClick={() => revokeInvite(invitation.id)}>
+                        Revoke
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyStatePanel title="No pending invites" detail="New invitations will appear here until accepted, declined, expired, or revoked." className="py-7" />
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 

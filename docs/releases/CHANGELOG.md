@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- Completed Release 0.9 readiness validation against disposable local Supabase only: full migration chain from empty database, Release 0.9 idempotency re-run, schema/RLS/RPC assertions, browser invite/member smoke tests on `localhost:3002`, and security review. Fixed empty-database migration ordering, local/Supabase `pgcrypto` search-path compatibility, and hidden owner-only controls for adult/viewer users.
+- Validated Release 0.9 household collaboration against disposable local Supabase database `familyos_r09_validation`; fixed PostgreSQL 17 migration ambiguity, qualified invitation RPC SQL references, and tightened invitation administration to owner-only.
+- Began Release 0.9 household collaboration with a hashed-token `household_invitations` migration, invitation create/preview/accept/decline RPCs, invite-link auth preservation, active household switching, and Settings household member/invite management.
 - Integrated Release 0.8C secure calendar events into the dashboard schedule, preferring server-side Google Calendar events when connected, clearly labelling the legacy browser fallback, and stopping new legacy `gc_token` browser persistence.
 - Implemented Release 0.8B secure Google Calendar OAuth flow with signed state validation, Google code exchange, AES-GCM token encryption, server-side token refresh, Google revoke/disconnect, and normalized server-side event fetch without exposing token material to the frontend.
 - Began Release 0.8 secure Google Calendar foundation with a `calendar_connections` migration, server-side calendar API placeholders, frontend-safe connection hook, Settings connection status UI, and documentation for required OAuth/server env vars.

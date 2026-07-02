@@ -56,4 +56,7 @@
 - [x] Server-side Google Calendar connection model and token storage foundation.
 - [x] Complete Google OAuth callback exchange, token encryption, refresh, and server-side event sync API.
 - [x] Replace dashboard calendar reads with server events when a server connection exists.
+- [x] Add household invitations, member directory, and active household switching foundations.
+- [x] Validate Release 0.9 household invitation migration and smoke-test multi-member flows.
 - [ ] Validate deployed Google OAuth flow and remove legacy browser fallback when safe.
+- [ ] Design ownership transfer and owner recovery.

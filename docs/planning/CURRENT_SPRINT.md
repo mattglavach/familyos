@@ -1,7 +1,7 @@
 # Current Sprint
 
 ## Sprint Goal
-Build Release 0.8 secure Google Calendar connection foundation on top of the Release 0.7 household runtime context.
+Build Release 0.9 household collaboration on top of the Release 0.8 secure calendar foundation.
 
 ## Active Items
 - [x] Add documentation structure
@@ -53,6 +53,13 @@ Build Release 0.8 secure Google Calendar connection foundation on top of the Rel
 - [x] Wire dashboard schedule to prefer server-side calendar events
 - [x] Label legacy browser calendar as temporary fallback
 - [x] Stop writing new legacy `gc_token` browser persistence
+- [x] Begin Release 0.9 household collaboration
+- [x] Add secure household invitation migration and RPCs
+- [x] Add invite acceptance flow and token preservation through sign-in
+- [x] Add household switcher support in runtime context
+- [x] Add Settings household directory, invites, revoke, role, and remove controls
+- [x] Validate Release 0.9 migration and RLS smoke tests against disposable local Supabase database
+- [x] Complete Release 0.9 browser smoke tests, security review, documentation closeout, and merge/tag readiness validation
 
 ## Blockers
 
@@ -95,3 +102,6 @@ Build Release 0.8 secure Google Calendar connection foundation on top of the Rel
 - Release 0.7 runtime integration adds active household context, household-aware Supabase table access, Supabase-backed family members/settings/task metadata, and a documented future server-side calendar connection model.
 - Release 0.8 adds server-side Google Calendar connection metadata, signed OAuth callback exchange, encrypted token persistence, token refresh, revoke, and normalized event fetch. The legacy browser token path remains only as a fallback until deployed OAuth validation and dashboard event-source replacement are complete.
 - Release 0.8C switches the dashboard schedule to server-side calendar events whenever a server connection exists. Legacy browser calendar remains labelled as a temporary fallback until deployed validation supports removal.
+- Release 0.9 adds household collaboration foundations: hashed-token invitations, invitation accept/decline RPCs, active-household switching, Settings member directory, pending invite management, and owner-only role/removal controls. Public sign-up, ownership transfer, and broad module RLS conversion remain deferred.
+- Release 0.9 validation used disposable local database `familyos_r09_validation` in the local Supabase Docker container. Production was not touched. Validation fixed owner-only invitation enforcement and SQL ambiguity in invitation RPCs.
+- Release 0.9 final readiness validation used only local Supabase (`supabase_db_familyos`, local API on `127.0.0.1:54321`) and a smoke-test CRA server on `localhost:3002`. Browser smoke tests passed for owner invite creation/revoke, invite preview, adult accept, viewer decline/accept, active household switching, owner role update/removal, and hidden non-owner management controls.

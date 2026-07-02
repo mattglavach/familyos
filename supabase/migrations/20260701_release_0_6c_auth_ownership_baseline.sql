@@ -43,16 +43,9 @@ declare
   null_owner_rows bigint;
   missing_user_id_columns text;
   missing_policy_tables text;
+  module_rows_needing_owner bigint := 0;
+  table_row_count bigint;
 begin
-  if not exists (
-    select 1
-    from auth.users
-    where id = approved_owner_user_id
-  ) then
-    raise exception 'Release 0.6C auth ownership baseline failed. Approved owner auth user % does not exist.',
-      approved_owner_user_id;
-  end if;
-
   select string_agg(mt.table_name, ', ' order by mt.table_name)
   into missing_tables
   from migration_module_tables mt
@@ -64,6 +57,26 @@ begin
   if missing_tables is not null then
     raise exception 'Release 0.6C auth ownership baseline failed. Missing expected module tables: %',
       missing_tables;
+  end if;
+
+  for table_name in
+    select mt.table_name
+    from migration_module_tables mt
+    order by mt.table_name
+  loop
+    execute format('select count(*) from public.%I', table_name)
+    into table_row_count;
+    module_rows_needing_owner := module_rows_needing_owner + table_row_count;
+  end loop;
+
+  if module_rows_needing_owner > 0 and not exists (
+    select 1
+    from auth.users
+    where id = approved_owner_user_id
+  ) then
+    raise exception 'Release 0.6C auth ownership baseline failed. Approved owner auth user % does not exist for % module rows requiring backfill.',
+      approved_owner_user_id,
+      module_rows_needing_owner;
   end if;
 
   for table_name in
