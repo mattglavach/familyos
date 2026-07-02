@@ -40,6 +40,15 @@ Release 0.6B implementation note: the current dashboard family member manager is
 ### household_members
 Connects authenticated users and optional people records to households with role-based access.
 
+Release 0.9 expands membership lifecycle statuses to `pending`, `active`, `inactive`, `removed`, and `declined`. Active memberships are the only memberships treated as selectable runtime households by the app.
+
+### household_invitations
+Stores household invitation metadata for Release 0.9 collaboration.
+
+Rows include `household_id`, normalized `invited_email`, `invited_by`, target `role`, lifecycle `status`, `expires_at`, accepted/declined/revoked timestamps, and a SHA-256 `token_hash`. Raw invite tokens are never stored. The app receives the raw token only from `familyos_create_household_invitation()` so it can show a one-time invite link.
+
+Invitation acceptance uses `familyos_get_household_invitation()`, `familyos_accept_household_invitation()`, and `familyos_decline_household_invitation()` RPCs. Acceptance requires a signed-in user whose auth email matches `invited_email`.
+
 ### household_settings
 Stores household-wide defaults such as task defaults when they should be shared.
 

@@ -20,6 +20,28 @@ Record decisions that shape the product.
 
 ## Decisions
 
+### July 2, 2026
+
+### Decision
+Use hashed invitation tokens and Supabase RPCs for Release 0.9 household invitations.
+
+### Context
+Release 0.9 introduces multi-member household collaboration. Invite links need to be shareable, but raw tokens must not be stored or exposed through normal table reads.
+
+### Options Considered
+- Store raw invitation tokens in `household_invitations`.
+- Let the frontend create invitation rows directly.
+- Store only token hashes and route create/accept/decline through security-definer RPCs.
+
+### Decision Rationale
+Hashed tokens reduce exposure if invitation rows are queried or logged. RPCs allow the database to enforce manager permissions, matching invite email, expiry, accepted/declined/revoked states, and membership activation without trusting frontend state.
+
+### Tradeoffs
+The first Release 0.9 implementation shows invite links once at creation time. Public sign-up and ownership transfer remain deferred, so invited users still need a valid Supabase account for the invited email.
+
+### Follow-up
+Design ownership transfer, owner recovery, and any future email-sending automation before making invitations fully self-service.
+
 ### July 1, 2026
 
 ### Decision

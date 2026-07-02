@@ -259,3 +259,40 @@ begin
     );
   end loop;
 end $$;
+
+-- Release 0.9 household collaboration overlay.
+-- The production household foundation is introduced by migrations. This
+-- conditional overlay keeps the schema reference aware of Release 0.9 without
+-- failing older clean baselines that have not yet applied the household tables.
+do $$
+begin
+  if to_regclass('public.household_members') is not null then
+    alter table public.household_members
+      drop constraint if exists household_members_status_check;
+    alter table public.household_members
+      add constraint household_members_status_check
+        check (status in ('pending', 'active', 'inactive', 'removed', 'declined'));
+  end if;
+
+  if to_regclass('public.households') is not null
+     and to_regclass('public.household_invitations') is null then
+    create table public.household_invitations (
+      id uuid primary key default gen_random_uuid(),
+      household_id uuid not null references public.households(id) on delete cascade,
+      invited_email text not null,
+      invited_by uuid references auth.users(id) on delete set null,
+      role text not null default 'adult',
+      status text not null default 'pending',
+      token_hash text not null,
+      expires_at timestamptz not null default (now() + interval '14 days'),
+      accepted_at timestamptz,
+      declined_at timestamptz,
+      revoked_at timestamptz,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now(),
+      constraint household_invitations_email_not_blank_check check (length(trim(invited_email)) > 0),
+      constraint household_invitations_role_check check (role in ('owner', 'adult', 'teen', 'child', 'viewer')),
+      constraint household_invitations_status_check check (status in ('pending', 'accepted', 'declined', 'revoked', 'expired'))
+    );
+  end if;
+end $$;
