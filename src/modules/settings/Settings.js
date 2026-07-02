@@ -446,7 +446,7 @@ export function Settings({ auth, gc, secureCalendar }) {
             <EmptyStatePanel title="No household members" detail="Active members will appear here after the household context loads." className="py-7" />
           )}
 
-          {household.canManageHousehold ? (
+          {canManageMembers ? (
             <div className="rounded-lg border border-border bg-muted/20 p-3">
               <div className="mb-3 flex items-center gap-2 text-sm font-bold text-foreground">
                 <MailPlus className="h-4 w-4 text-primary" aria-hidden="true" />
@@ -483,7 +483,7 @@ export function Settings({ auth, gc, secureCalendar }) {
               </FormSection>
             </div>
           ) : (
-            <FormHelp>Only household managers can invite members or edit household settings.</FormHelp>
+            <FormHelp>Only household owners can invite members or edit membership.</FormHelp>
           )}
 
           <div>

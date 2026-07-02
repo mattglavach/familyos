@@ -45,7 +45,7 @@ export function useHouseholdInvitations(household) {
   const [error, setError] = useState("");
   const [createdInvite, setCreatedInvite] = useState(null);
 
-  const canManage = roleCanManage(household?.membership?.role);
+  const canManage = roleCanManageMembers(household?.membership?.role);
   const householdId = household?.householdId;
 
   const load = useCallback(async () => {
@@ -82,7 +82,7 @@ export function useHouseholdInvitations(household) {
     const invitedEmail = normalizeEmail(email);
     if (!invitedEmail) return { ok: false, error: "Email is required." };
     if (!INVITABLE_ROLES.includes(role)) return { ok: false, error: "Choose a valid role." };
-    if (!householdId || !canManage) return { ok: false, error: "Only household managers can invite members." };
+    if (!householdId || !canManage) return { ok: false, error: "Only household owners can invite members." };
 
     const { data, error: inviteError } = await supabase.rpc("familyos_create_household_invitation", {
       target_household_id: householdId,
@@ -109,7 +109,7 @@ export function useHouseholdInvitations(household) {
   const revokeInvitation = useCallback(async invitationId => {
     setError("");
     if (!invitationId || !householdId || !canManage) {
-      return { ok: false, error: "Only household managers can revoke invitations." };
+      return { ok: false, error: "Only household owners can revoke invitations." };
     }
 
     const { error: revokeError } = await supabase

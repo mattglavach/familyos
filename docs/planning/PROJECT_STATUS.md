@@ -48,13 +48,13 @@ Release 0.9 household collaboration is in progress on branch `release/0.9`.
 - Release 0.8 legacy browser calendar fallback labelling and no new `gc_token` persistence
 - Release 0.9 secure household invitation migration with hashed invite tokens and RPC accept/decline flows
 - Release 0.9 invite acceptance UI, invite token preservation through auth redirects, active household switching, and Settings household member/invite management
+- Release 0.9 disposable local Supabase validation for migration chain, invitation lifecycle, owner-only controls, RLS denial paths, and active household preference switching
 
 ## In Progress
-- Release 0.9 validation and release closeout
+- Release 0.9 browser/staging UI smoke testing and release closeout
 
 ## Next
-- Validate Release 0.9 invitation migration against a disposable Supabase database.
-- Smoke-test owner invite, accept, revoke, role update, member remove, and household switch flows.
+- Run browser smoke tests for Settings invite/member controls and invite acceptance against a real local or staging Supabase API session.
 - Configure Release 0.8 server OAuth environment values in Vercel before removing the legacy calendar fallback.
 - Decide whether to remove the legacy browser calendar fallback after deployed validation.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
@@ -70,6 +70,7 @@ Release 0.9 household collaboration is in progress on branch `release/0.9`.
 - The legacy household foundation migration is marked local-only and must not be applied to production.
 - Release 0.7 now uses the household foundation for active household context, family members, settings/profile defaults, and task metadata while preserving staged module-table compatibility.
 - Release 0.9 invite acceptance requires the invited email to already have or receive a valid Supabase auth session; public sign-up remains deferred.
+- Release 0.9 database validation passed against disposable local database `familyos_r09_validation`; production was not touched.
 
 ## Technical Debt
 - Existing feature screens still contain substantial inline styles and should be migrated gradually to shadcn/ui and Origin UI components during feature work.

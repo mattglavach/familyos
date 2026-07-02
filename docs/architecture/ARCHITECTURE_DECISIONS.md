@@ -34,7 +34,7 @@ Release 0.9 introduces multi-member household collaboration. Invite links need t
 - Store only token hashes and route create/accept/decline through security-definer RPCs.
 
 ### Decision Rationale
-Hashed tokens reduce exposure if invitation rows are queried or logged. RPCs allow the database to enforce manager permissions, matching invite email, expiry, accepted/declined/revoked states, and membership activation without trusting frontend state.
+Hashed tokens reduce exposure if invitation rows are queried or logged. RPCs allow the database to enforce owner-only invitation administration, matching invite email, expiry, accepted/declined/revoked states, and membership activation without trusting frontend state.
 
 ### Tradeoffs
 The first Release 0.9 implementation shows invite links once at creation time. Public sign-up and ownership transfer remain deferred, so invited users still need a valid Supabase account for the invited email.

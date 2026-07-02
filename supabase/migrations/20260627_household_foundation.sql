@@ -97,9 +97,9 @@ begin
   execute (
     select format(
       'select count(distinct user_id) from (%s) module_users',
-      string_agg(format('select user_id from public.%I where user_id is not null', table_name), ' union all ')
+      string_agg(format('select user_id from public.%I where user_id is not null', mt.table_name), ' union all ')
     )
-    from migration_module_tables
+    from migration_module_tables mt
   ) into module_user_count;
 
   for table_name in

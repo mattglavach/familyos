@@ -49,6 +49,8 @@ Rows include `household_id`, normalized `invited_email`, `invited_by`, target `r
 
 Invitation acceptance uses `familyos_get_household_invitation()`, `familyos_accept_household_invitation()`, and `familyos_decline_household_invitation()` RPCs. Acceptance requires a signed-in user whose auth email matches `invited_email`.
 
+Invitation creation, listing, and revocation are owner-only in Release 0.9. Member role changes and removal remain owner-only through `household_members` RLS.
+
 ### household_settings
 Stores household-wide defaults such as task defaults when they should be shared.
 

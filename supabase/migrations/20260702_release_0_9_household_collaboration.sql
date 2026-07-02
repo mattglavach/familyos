@@ -86,8 +86,8 @@ declare
   raw_token text := encode(gen_random_bytes(32), 'hex');
   inserted_invitation public.household_invitations%rowtype;
 begin
-  if not public.familyos_can_manage_household(target_household_id) then
-    raise exception 'Only household managers can invite members.';
+  if not public.familyos_has_household_role(target_household_id, array['owner']) then
+    raise exception 'Only household owners can invite members.';
   end if;
 
   if normalized_email is null or normalized_email = '' then
@@ -189,9 +189,9 @@ begin
     raise exception 'Sign in before accepting this invitation.';
   end if;
 
-  select lower(email) into user_email
-  from auth.users
-  where id = auth.uid();
+  select lower(auth_user.email) into user_email
+  from auth.users auth_user
+  where auth_user.id = auth.uid();
 
   select * into invitation
   from public.household_invitations
@@ -219,10 +219,10 @@ begin
   end if;
 
   select * into existing_membership
-  from public.household_members
-  where household_id = invitation.household_id
-    and user_id = auth.uid()
-  order by created_at desc
+  from public.household_members hm
+  where hm.household_id = invitation.household_id
+    and hm.user_id = auth.uid()
+  order by hm.created_at desc
   limit 1
   for update;
 
@@ -231,18 +231,18 @@ begin
     values (invitation.household_id, auth.uid(), invitation.role, 'active')
     returning * into accepted_membership;
   else
-    update public.household_members
+    update public.household_members hm
     set role = case when existing_membership.role = 'owner' then existing_membership.role else invitation.role end,
         status = 'active',
         updated_at = now()
-    where id = existing_membership.id
+    where hm.id = existing_membership.id
     returning * into accepted_membership;
   end if;
 
-  update public.household_invitations
+  update public.household_invitations invitation_row
   set status = 'accepted',
       accepted_at = now()
-  where id = invitation.id;
+  where invitation_row.id = invitation.id;
 
   insert into public.user_preferences(user_id, default_household_id)
   values (auth.uid(), invitation.household_id)
@@ -276,9 +276,9 @@ begin
     raise exception 'Sign in before declining this invitation.';
   end if;
 
-  select lower(email) into user_email
-  from auth.users
-  where id = auth.uid();
+  select lower(auth_user.email) into user_email
+  from auth.users auth_user
+  where auth_user.id = auth.uid();
 
   select * into invitation
   from public.household_invitations
@@ -294,12 +294,12 @@ begin
     raise exception 'This invitation is for a different email address.';
   end if;
 
-  update public.household_invitations
+  update public.household_invitations invitation_row
   set status = 'declined',
       declined_at = now()
-  where id = invitation.id
-    and status = 'pending'
-  returning household_invitations.id, household_invitations.status, household_invitations.declined_at
+  where invitation_row.id = invitation.id
+    and invitation_row.status = 'pending'
+  returning invitation_row.id, invitation_row.status, invitation_row.declined_at
   into id, status, declined_at;
 
   return next;
@@ -345,14 +345,14 @@ create policy "household_invitations_select_manager"
 on public.household_invitations
 for select
 to authenticated
-using (public.familyos_can_manage_household(household_id));
+using (public.familyos_has_household_role(household_id, array['owner']));
 
 drop policy if exists "household_invitations_update_manager" on public.household_invitations;
 create policy "household_invitations_update_manager"
 on public.household_invitations
 for update
 to authenticated
-using (public.familyos_can_manage_household(household_id))
-with check (public.familyos_can_manage_household(household_id));
+using (public.familyos_has_household_role(household_id, array['owner']))
+with check (public.familyos_has_household_role(household_id, array['owner']));
 
 commit;
