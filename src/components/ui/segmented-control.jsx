@@ -37,6 +37,7 @@ function ChipGroup({ value, onValueChange, options, className, allowDeselect = f
       {options.map((option) => {
         const optionValue = typeof option === "string" ? option : option.value;
         const label = typeof option === "string" ? option : option.label;
+        const disabled = typeof option === "string" ? false : option.disabled || option.supported === false;
         const selected = values.includes(optionValue);
 
         return (
@@ -44,9 +45,11 @@ function ChipGroup({ value, onValueChange, options, className, allowDeselect = f
             key={optionValue ?? "none"}
             type="button"
             aria-pressed={selected}
+            disabled={disabled}
             className={cn(
-              "min-h-8 rounded-full border border-border px-3 text-sm font-semibold text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground",
-              selected && "border-primary bg-primary/15 text-primary"
+              "min-h-8 rounded-full border border-border px-3 text-sm font-semibold text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50",
+              selected && "border-primary bg-primary/15 text-primary",
+              disabled && "hover:border-border hover:text-muted-foreground"
             )}
             onClick={() => onValueChange?.(allowDeselect && selected ? null : optionValue)}
           >

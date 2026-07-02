@@ -148,9 +148,7 @@ export function QuickAdd({onNavigate, openSignal = 0}){
             </FormGroup>
             <FormGroup>
               <Label>Repeat</Label>
-              <select className="min-h-10 w-full rounded-lg border border-border bg-secondary px-3 text-sm text-foreground" value={form.recurrence||""} onChange={e=>setForm(p=>({...p,recurrence:e.target.value}))}>
-                {RECURRING_OPTIONS.map(option=><option key={option.value||"none"} value={option.value} disabled={!option.supported}>{option.label}</option>)}
-              </select>
+              <ChipGroup value={form.recurrence||""} options={RECURRING_OPTIONS.map(option=>({...option,label:option.supported?option.label:`${option.label}`,disabled:!option.supported}))} ariaLabel="Task recurrence" onValueChange={recurrence=>setForm(p=>({...p,recurrence}))}/>
               <FormHelp>Weekday-only recurrence needs a future recurrence model.</FormHelp>
             </FormGroup>
             <FormGroup>
