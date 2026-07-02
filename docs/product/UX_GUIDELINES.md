@@ -55,6 +55,23 @@ Quick Add should be immediate, forgiving, and available from anywhere. It should
 
 Release 1.0 should keep Quick Add tied to supported workflows.
 
+Release 1.0.1 Quick Add exposes only supported capture paths as enabled actions. Future capture types may be visible as "Later" only when disabled and clearly non-interactive.
+
+## Tasks Work Surface
+Tasks should feel like an action workspace, not a dashboard. The default surface should prioritize:
+- Quick task creation.
+- Search.
+- Filters.
+- Sorting.
+- Assignment.
+- Completion.
+- Editing.
+
+Summary widgets are acceptable only when they filter or navigate. Decorative KPI cards should be avoided.
+
+## Recurrence
+Normal users should choose recurrence from simple presets. Release 1.0.1 supports None, Daily, Weekly, Monthly, and Yearly through the existing interval-days field. Weekdays is deferred because it requires a richer recurrence model.
+
 ## Household Context
 Users should always be able to understand which household they are viewing when multiple households are available.
 
@@ -70,3 +87,5 @@ Shared tasks, schedules, people, and household settings should make ownership an
 Notifications should be useful, sparse, and actionable.
 
 Release 1.0 includes in-app status feedback and an in-app notification center. Push, email, SMS, AI alerts, and background delivery are future capabilities.
+
+Release 1.0.1 notification views should follow a simple lifecycle: Unread, Today, This Week, Archive.

@@ -77,6 +77,7 @@
 - [x] Release 1.0 planning with `docs/templates/RELEASE_SPEC.md`.
 - [x] Implement Release 1.0 from `docs/planning/RELEASE_1_0_SPEC.md`.
 - [x] Complete Release 1.0 authenticated local/staging smoke validation.
+- [x] Implement Release 1.0.1 Core MVP Polish for Home, Tasks, Quick Add, More, Notifications, and documentation.
 
 ## Release 1.0 Scope
 - [x] Stabilize the dashboard daily command center.
@@ -89,3 +90,12 @@
 - [x] Harden Settings and household management workflows through authenticated browser smoke validation.
 - [ ] Revalidate household collaboration, active household switching, and permission enforcement.
 - [ ] Keep shopping, life lists, meal planning, recipes, inventory, Home Assistant, smart home, AI Assistant, ownership transfer, public sign-up, and major new integrations deferred.
+
+## Release 1.0.1 Scope
+- [x] Keep Home focused on awareness and module drill-downs.
+- [x] Make Tasks an action-oriented work surface with quick creation, search, filters, sorting, assignment, completion, and editing.
+- [x] Add simple task recurrence presets using the existing interval-days model.
+- [x] Keep Quick Add lightweight and clearly mark unsupported future capture types as later.
+- [x] Group More by Household, Home, Health, Finance, Planning, and Settings.
+- [x] Add Notification Center lifecycle views for Unread, Today, This Week, and Archive.
+- [ ] Keep Life Lists, Shopping, Meal Planning, Finance expansion, Health, Smart Home, AI, Projects, full Maintenance, and full Pool expansion deferred.

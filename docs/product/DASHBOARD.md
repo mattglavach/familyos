@@ -10,17 +10,15 @@ Recommended widget order:
 1. Today's Priorities
 2. Today's Schedule
 3. My Tasks
-4. Family Activity
-5. Quick Add
-6. Household Insights
+4. Household Insights
+5. Recent Activity when compact and useful
 
 ## Priority Order
 1. Urgent or overdue household responsibilities.
 2. Today's schedule and time-sensitive events.
 3. Tasks assigned to the current user.
-4. Shared family activity and member context.
-5. Fast capture.
-6. Lower-frequency insights from household modules.
+4. Lower-frequency insights from household modules.
+5. Recent activity that helps explain what changed.
 
 ## Widgets
 
@@ -28,26 +26,32 @@ Recommended widget order:
 Shows the highest-priority tasks, overdue items, due-today items, calendar conflicts, and important household reminders.
 
 ### Today's Schedule
-Shows today and near-term calendar events, connected calendar status, empty state, and reconnect/error states.
+Shows today's calendar events, connected calendar status, empty state, and reconnect/error states. Full schedule browsing belongs in Calendar.
 
 ### My Tasks
 Shows assigned tasks, due dates, status, and quick complete/reopen actions.
 
-### Family Activity
-Shows household member context, recent task changes, family schedule notes, or future activity summaries.
-
-### Quick Add
-Lets the user capture a task or supported record quickly without leaving the dashboard.
-
 ### Household Insights
 Shows useful module signals, such as:
 - Pool.
-- Bills.
-- Maintenance.
+- Tasks.
+- Finance snapshot.
 - College reminders.
-- Birthdays.
-- Upcoming travel.
-- Future smart-home alerts.
+
+Household and family member management belongs in Settings/Household, not Home.
+
+### Recent Activity
+Shows a compact list of useful recent changes when data exists. It should not become an activity feed dashboard.
+
+## Drill-Down Behavior
+Home cards should drill into the module that owns the work. Examples:
+- Task rows open Tasks.
+- Calendar rows open Calendar.
+- Pool insight opens Pool.
+- Finance insight opens Finance.
+- College insight opens College.
+
+Home should summarize. Modules should provide the work surface.
 
 ## Card Philosophy
 Cards should be actionable, compact, and status-rich. A card should usually communicate one idea: a task, event, person, status, or insight.
@@ -79,3 +83,6 @@ Future customization may include:
 
 ## Release 1.0 Dashboard Scope
 Release 1.0 should stabilize and polish the existing dashboard. It should not add unrelated modules or AI summaries.
+
+## Release 1.0.1 Polish
+Release 1.0.1 narrows Home to the awareness layer: Today's Priorities, Today's Schedule, My Tasks, Household Insights, and compact Recent Activity. Calendar browsing, household management, Quick Add capture, and detailed task work stay in their own modules.

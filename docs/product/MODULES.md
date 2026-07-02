@@ -4,7 +4,7 @@
 This document defines the product purpose, maturity, release target, dependencies, and future expansion for each Family OS module.
 
 ## Home
-Purpose: Daily household command center and morning briefing.
+Purpose: Daily household awareness layer and morning briefing.
 
 Current status: Active.
 
@@ -13,6 +13,8 @@ Release target: Release 1.0 core.
 Dependencies: Tasks, calendar status, household context, family members, module summaries.
 
 Future enhancements: AI summaries, custom widgets, smart home alerts, travel, birthdays, bills, and richer household insights.
+
+Release 1.0.1 guidance: Home summarizes and drills into modules. It should not host household management, full calendar browsing, or task-dashboard controls.
 
 ## Tasks
 Purpose: Shared household responsibilities, chores, reminders, and follow-up work.
@@ -25,6 +27,8 @@ Dependencies: Household members, task schema, active household context, status f
 
 Future enhancements: Templates, recurring rule editor, routines, chores, reminders, notifications, and cross-module task creation.
 
+Release 1.0.1 guidance: Tasks is the primary action work surface for household responsibilities. Search, filters, sorting, assignment, completion, editing, and quick creation take priority over dashboard-style metrics.
+
 ## Calendar
 Purpose: Household time visibility and schedule context.
 
@@ -34,7 +38,7 @@ Release target: Release 1.0 support surface, not a broad new module unless imple
 
 Dependencies: Google Calendar connection, server-side event fetch, household context.
 
-Future enhancements: Dedicated calendar module, household events, school calendars, shared reminders, conflict detection.
+Future enhancements: household events, school calendars, shared reminders, conflict detection.
 
 ## Household
 Purpose: Members, invitations, roles, active household switching, household defaults, and collaboration context.

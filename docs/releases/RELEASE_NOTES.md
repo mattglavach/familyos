@@ -1,5 +1,50 @@
 # Release Notes
 
+## Release 1.0.1
+
+### Version
+1.0.1
+
+### Date
+2026-07-02
+
+### Summary
+Release 1.0.1 is a Core MVP Polish release after v1.0.0. It keeps Home as the awareness layer, makes modules more action-oriented, and avoids adding deferred major modules.
+
+### Updates
+- Home now emphasizes Today's Priorities, Today's Schedule, My Tasks, Household Insights, and compact Recent Activity.
+- Calendar browsing stays in Calendar, household management stays in Settings/Household, and Quick Add stays global instead of being repeated as a Home promo.
+- Tasks now centers on one primary work surface with quick creation, search, filters, sorting, assignment, completion, editing, and deletion.
+- Task add/edit recurrence uses simple presets: None, Daily, Weekly, Monthly, and Yearly. Weekdays remains deferred because it needs a richer recurrence model.
+- Quick Add keeps supported types enabled and marks future capture types as later instead of creating unsupported records.
+- More is grouped by Household, Home, Health, Finance, Planning, and Settings.
+- Notification Center now supports Unread, Today, This Week, and Archive views.
+
+### Database Changes
+- None.
+
+### Deferred
+- Life Lists, Shopping, Meal Planning, Finance expansion, Health, Smart Home, AI, Projects, full Maintenance, full Pool expansion, ownership transfer, public sign-up, push/email/SMS notifications, and major new database models remain deferred.
+
+### Validation
+- `pnpm run lint` passed.
+- `pnpm run build` passed.
+- `git diff --check` passed.
+- Authenticated local browser smoke used local Supabase only (`REACT_APP_SUPABASE_URL=http://127.0.0.1:54321`) and local CRA on `http://localhost:3000`.
+
+### Browser Smoke Notes
+- Home dashboard: passed for awareness-focused layout, compact schedule state, My Tasks, Household Insights, and Recent Activity.
+- Tasks: passed create, edit, assignment, recurrence preset display, search, filter, sorting, recurring complete/reschedule behavior, and delete.
+- Recurrence: passed for Weekly, Monthly, and Quick Add Daily persistence through the existing interval-days model; Weekdays remained disabled.
+- Quick Add: found and fixed a cross-surface refresh issue; retest confirmed Quick Add task creation refreshed the mounted Tasks data and was visible under Household.
+- More: passed platform grouping for Household, Home, Health, Finance, Planning, and Settings with deferred modules disabled.
+- Notifications: passed Unread, Today, This Week, and Archive tab switching without using destructive or state-reset actions.
+- Calendar: passed first-class page navigation and disconnected local state with Settings paths.
+- Quick Add deferred behavior: passed; Event, Shopping Item, and Health Entry were visible as disabled later items while supported types remained enabled.
+- Dashboard drill-downs: passed for My Tasks, Tasks insight, and Today's Schedule Calendar paths.
+- Mobile 390px sanity: passed for Home, More, Notifications, bottom navigation visibility, and no horizontal overflow.
+- Browser console: passed with no warning or error logs after the remaining smoke checks.
+
 ## Release 1.0
 
 ### Version
