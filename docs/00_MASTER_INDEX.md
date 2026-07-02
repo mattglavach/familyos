@@ -15,6 +15,7 @@ This folder is the operating manual for Family OS.
 ### Planning
 - docs/planning/ROADMAP.md
 - docs/planning/CURRENT_SPRINT.md
+- docs/planning/RELEASE_0_9_PLAN.md
 - docs/planning/PROJECT_STATUS.md
 - docs/planning/BACKLOG.md
 - docs/planning/FUTURE_IDEAS.md

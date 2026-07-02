@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Began Release 0.9 household collaboration with a hashed-token `household_invitations` migration, invitation create/preview/accept/decline RPCs, invite-link auth preservation, active household switching, and Settings household member/invite management.
 - Integrated Release 0.8C secure calendar events into the dashboard schedule, preferring server-side Google Calendar events when connected, clearly labelling the legacy browser fallback, and stopping new legacy `gc_token` browser persistence.
 - Implemented Release 0.8B secure Google Calendar OAuth flow with signed state validation, Google code exchange, AES-GCM token encryption, server-side token refresh, Google revoke/disconnect, and normalized server-side event fetch without exposing token material to the frontend.
 - Began Release 0.8 secure Google Calendar foundation with a `calendar_connections` migration, server-side calendar API placeholders, frontend-safe connection hook, Settings connection status UI, and documentation for required OAuth/server env vars.
