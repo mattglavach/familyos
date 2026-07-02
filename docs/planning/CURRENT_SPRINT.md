@@ -1,7 +1,7 @@
 # Current Sprint
 
 ## Sprint Goal
-Implement Release 1.0.3 Design System after v1.0.2, keeping scope limited to shared UI foundations, token consistency, accessibility polish, documentation, and validation.
+Implement Release 1.0.4 Consumer Cleanup after v1.0.3, keeping scope limited to Core MVP usability, consumer language, task discoverability, compact filters, feedback, confirmations, and validation.
 
 ## Active Items
 - [x] Add documentation structure
@@ -93,6 +93,12 @@ Implement Release 1.0.3 Design System after v1.0.2, keeping scope limited to sha
 - [x] Move common Tasks and Quick Add option sets from dropdowns to chip controls
 - [x] Move Universal Search to the local Command wrapper without expanding search scope
 - [x] Complete Release 1.0.3 desktop, tablet, and 390px mobile browser smoke validation for active app surfaces
+- [x] Improve Release 1.0.4 Home drill-down affordances and consumer copy
+- [x] Make Tasks default to Household so Quick Add tasks are immediately discoverable
+- [x] Compact Tasks filters behind More Filters
+- [x] Remove Quick Add enabled dead-end actions for unsupported destinations
+- [x] Improve Calendar, invitation, Search, Notifications, Settings, and More consumer language
+- [x] Replace touched destructive browser confirmations with specific app dialogs
 
 ## Blockers
 
@@ -100,6 +106,7 @@ Implement Release 1.0.3 Design System after v1.0.2, keeping scope limited to sha
 - Release 0.6C has no active production migration blocker after baseline alignment and household foundation validation.
 - Release 1.0.2 has no active validation blocker after completing local authenticated adult, viewer, mobile, and task lifecycle smoke checks.
 - Release 1.0.3 has no active implementation or validation blocker after local lint, build, diff-check, browser smoke, and console validation.
+- Release 1.0.4 has no active validation blocker after lint, build, diff-check, authenticated local browser smoke, mobile 390px sanity checks, and console validation.
 
 ## Notes
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.
@@ -149,3 +156,5 @@ Implement Release 1.0.3 Design System after v1.0.2, keeping scope limited to sha
 - Release 1.0 authenticated smoke validation used local Supabase only (`127.0.0.1:54321`) and local CRA on `localhost:3000`; production was not touched. Owner, adult, viewer, task lifecycle, task search, assignment, Calendar, Quick Add, Universal Search, Notifications, More, Settings, household switching, invite create/revoke, owner role update, and mobile sanity checks passed.
 - Release 1.0.1 keeps Home as awareness and modules as action workspaces. It does not add Life Lists, Shopping, Meal Planning, Finance expansion, Health, Smart Home, AI, Projects, or new major database models.
 - Release 1.0.3 establishes the UI wrapper layer and design tokens without redesigning workflows, adding product modules, or changing the database.
+- Release 1.0.4 is consumer cleanup only. It does not add Life Lists, Shopping, Meal Planning, Finance expansion, Health, Home platform, AI, Projects, integrations, database changes, or schema changes.
+- Release 1.0.4 authenticated browser smoke used local Supabase only and local CRA on `localhost:3000`; Home drill-downs, Calendar setup guidance, Tasks lifecycle, compact filters, Quick Add deferred types, Search, Notifications, More, Settings, mobile layout, and console checks passed.

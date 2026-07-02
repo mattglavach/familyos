@@ -10,7 +10,7 @@ import {
   ListTodo,
   Waves,
 } from "lucide-react";
-import { Badge, StatusBadge } from "../../components/ui/badge";
+import { StatusBadge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { EmptyStatePanel } from "../../components/ui/empty-state";
@@ -26,14 +26,14 @@ function formatSyncTime(value) {
 }
 
 function calendarStatus(calendar) {
-  if (calendar.loading) return { label: "Loading", status: "warning", detail: "Refreshing Google Calendar events." };
+  if (calendar.loading) return { label: "Loading", status: "warning", detail: "Refreshing calendar events." };
   if (calendar.status === "pending" || calendar.status === "needs_reauth" || calendar.status === "expired" || calendar.status === "permission-error") {
     return { label: "Needs reconnect", status: "warning", detail: calendar.error || "Reconnect Google Calendar to refresh access." };
   }
   if (calendar.error) return { label: "Error", status: "failed", detail: calendar.error };
-  if (!calendar.connected) return { label: "Not connected", status: "neutral", detail: calendar.detail || "Connect secure Google Calendar in Settings to show your family schedule." };
-  if (calendar.status === "empty") return { label: "Connected", status: "info", detail: `${formatSyncTime(calendar.lastSyncedAt)} from ${calendar.sourceLabel}. No events found.` };
-  return { label: "Connected", status: "connected", detail: `${formatSyncTime(calendar.lastSyncedAt)} from ${calendar.sourceLabel}.` };
+  if (!calendar.connected) return { label: "Not connected", status: "neutral", detail: calendar.detail || "Connect Google Calendar in Settings to show your family schedule." };
+  if (calendar.status === "empty") return { label: "Connected", status: "info", detail: `${formatSyncTime(calendar.lastSyncedAt)}. No events found.` };
+  return { label: "Connected", status: "connected", detail: formatSyncTime(calendar.lastSyncedAt) };
 }
 
 function getMemberColor(member, fallbackName) {
@@ -113,21 +113,17 @@ function SchedulePanel({
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="text-sm font-semibold text-foreground">Today&apos;s Schedule</div>
                   <StatusBadge status={status.status}>{status.label}</StatusBadge>
-                  <Badge variant={calendar.mode === "secure" ? "blue" : "slate"}>{calendar.mode === "secure" ? "Server-side" : "Legacy fallback"}</Badge>
                 </div>
                 <div className="mt-1 text-xs leading-5 text-muted-foreground">{status.detail}</div>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button type="button" variant="secondary" size="sm" onClick={() => onNavigate("calendar")}>Calendar</Button>
-              <Button type="button" size="sm" onClick={calendar.connect} loading={calendar.loading}>{calendar.mode === "secure" ? "Connect" : "Legacy Connect"}</Button>
+              <Button type="button" size="sm" onClick={calendar.connect} loading={calendar.loading} disabled={!calendar.canConnect}>
+                Connect Google Calendar
+              </Button>
             </div>
           </div>
-          {calendar.mode === "legacy" && (
-            <div className="rounded-lg border border-amber-400/35 bg-amber-400/10 p-3 text-xs leading-5 text-amber-200">
-              Legacy browser calendar is temporary. Use Settings for the secure server-side connection.
-            </div>
-          )}
           {calendar.error && (
             <div className="rounded-lg border border-destructive/35 bg-destructive/10 p-3 text-xs leading-5 text-destructive">
               {calendar.error}
@@ -151,7 +147,6 @@ function SchedulePanel({
             </CardTitle>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <StatusBadge status={status.status}>{status.label}</StatusBadge>
-              <Badge variant={calendar.mode === "secure" ? "blue" : "slate"}>{calendar.mode === "secure" ? "Server-side" : "Legacy fallback"}</Badge>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -230,10 +225,11 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
       status: secureCalendar.status,
       events: secureCalendar.events,
       lastSyncedAt: secureCalendar.connection?.last_sync_at || secureCalendar.lastFetchedAt,
-      sourceLabel: "Secure Google Calendar",
-      detail: "Connect secure Google Calendar in Settings to show your family schedule.",
+      sourceLabel: "Google Calendar",
+      detail: secureCalendar.error || "Connect Google Calendar in Settings to show your family schedule.",
       refresh: secureCalendar.fetchEvents,
       connect: connectSecureCalendar,
+      canConnect: !secureCalendar.error,
     }
     : {
       mode: "legacy",
@@ -244,9 +240,10 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
       events: gc.events,
       lastSyncedAt: gc.lastSyncedAt,
       sourceLabel: gc.sourceLabel || "Google Calendar",
-      detail: "Secure Google Calendar is preferred. Legacy browser calendar remains available as a temporary fallback.",
+      detail: "Connect Google Calendar in Settings to show your family schedule.",
       refresh: gc.refresh,
       connect: gc.signIn,
+      canConnect: true,
     };
 
   const isLoading = [
@@ -358,7 +355,7 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
   const tasksDetail = tasksOverdue > 0 ? `${urgentTasks[0]?.title || ""}`.slice(0, 38) : tasksDueSoon > 0 ? "Important tasks due" : "Nothing overdue";
 
   const finColor = retProj ? retProj.statusColor : COLORS.slate;
-  const finLabel = retProj ? retProj.statusLabel.split(" - ")[0].split("--")[0].trim().slice(0, 18) : "No data";
+  const finLabel = retProj ? retProj.statusLabel.split(" - ")[0].split("--")[0].trim().slice(0, 18) : "Add accounts";
   const finDetail = retProj ? `Age ${assump.retirement_age} - ${retProj.gap > 0 ? `-${formatMoneyShort(retProj.gap)} gap` : `surplus ${formatMoneyShort(-retProj.gap)}`}` : "Add accounts";
 
   const collegeColor = urgentDeadlines.length > 0 ? COLORS.amber : COLORS.green;
@@ -400,9 +397,12 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
         <CardContent className="p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Today&apos;s Priorities</div>
-            <StatusBadge status={totalIssues === 0 ? "healthy" : overdue.length > 0 ? "urgent" : "warning"}>
-              {totalIssues === 0 ? "All clear" : overdue.length > 0 ? `${overdue.length} urgent` : `${thisWeek.length} due`}
-            </StatusBadge>
+            <div className="flex items-center gap-2">
+              <StatusBadge status={totalIssues === 0 ? "healthy" : overdue.length > 0 ? "urgent" : "warning"}>
+                {totalIssues === 0 ? "All clear" : overdue.length > 0 ? `${overdue.length} urgent` : `${thisWeek.length} due`}
+              </StatusBadge>
+              {totalIssues > focusItems.length && <Button type="button" variant="ghost" size="xs" onClick={() => onNavigate("tasks")}>View All</Button>}
+            </div>
           </div>
           <div className="mb-1 text-2xl font-extrabold leading-tight tracking-normal" style={{ color: totalIssues === 0 ? COLORS.green : overdue.length > 0 ? COLORS.red : COLORS.amber }}>
             {totalIssues === 0 ? "All clear" : overdue.length > 0 ? `${overdue.length} urgent` : `${thisWeek.length} this week`}

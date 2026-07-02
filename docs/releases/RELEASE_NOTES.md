@@ -1,5 +1,51 @@
 # Release Notes
 
+## Release 1.0.4
+
+### Version
+1.0.4
+
+### Date
+2026-07-02
+
+### Summary
+Release 1.0.4 is a consumer cleanup release after v1.0.3. It focuses on clarity, trust, task discoverability, compact filters, friendly empty states, and safer destructive confirmations before Release 1.1 planning.
+
+### Fixes
+- Home keeps awareness-focused summaries and adds clearer View All behavior for priority drill-downs.
+- Tasks now defaults to Household instead of My Tasks so tasks created from Home or Quick Add are immediately discoverable.
+- Tasks filter controls now show Search, My Tasks, Household, Today, and Overdue first, with secondary filters hidden behind More Filters.
+- Task creation and update feedback now explains where a new task can be found.
+- Quick Add now enables only currently supported destinations: Task and Pool Reading. Future destinations remain disabled and marked Coming later.
+- Calendar and invitation setup errors now use household-friendly language and avoid implementation details.
+- Calendar settings keep the real connection path when available, disable setup-blocked connection attempts, and rename status checks to Check Connection.
+- Search and Notifications empty states now use friendlier, action-oriented language.
+- Touched destructive flows now use specific app dialogs such as Delete task, Revoke invite, Disconnect calendar, Forget connection, and Reset device preferences.
+- Header spacing and mobile behavior were tightened for the title, date, and high-priority actions.
+
+### Root Cause
+Tasks created from Quick Add could appear missing because Quick Add created household tasks, then navigated to Tasks where the default view was My Tasks. If the task was assigned to Family or no person, the default filter hid it. Release 1.0.4 changes the default Tasks view to Household and adds copy that explains new tasks are visible there.
+
+### Calendar Decision
+Google Calendar connection remains functional when the app has the required local/staging server route and Google settings. When setup is incomplete, Family OS now disables or routes connection controls into friendly setup guidance instead of exposing technical details.
+
+### Database Changes
+- None.
+
+### Deferred
+- Life Lists, Shopping, Meal Planning, Finance expansion, Health, Home platform, AI, Projects, and new integrations remain out of scope.
+- Full deployed Google Calendar validation and legacy device-calendar fallback removal remain deferred.
+- Deferred module UI cleanup remains tracked as technical debt.
+
+### Validation
+- `pnpm run lint` passed.
+- `pnpm run build` passed.
+- `git diff --check` passed.
+- Authenticated browser smoke used local Supabase only and local CRA on `http://localhost:3000`; production was not touched.
+- Browser smoke passed for Home drill-downs, Calendar setup guidance, Tasks create/edit/complete/delete, compact filters, task search, Quick Add supported/deferred destinations, Universal Search, Notifications, More, Settings, mobile 390px layout, and touched destructive confirmation dialogs.
+- No browser console warnings or errors were observed during the final smoke path.
+- Disposable local smoke tasks were deleted after validation.
+
 ## Release 1.0.3
 
 ### Version

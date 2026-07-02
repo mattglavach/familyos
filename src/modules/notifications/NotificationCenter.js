@@ -58,12 +58,12 @@ function buildNotifications(tasks, calendarEvents, household, calendar) {
     notifications.push({ id: `event-today-${event.id || event.title}`, kind: "calendar", tone: "info", title: event.title || "Calendar event", detail: `${event.time || "All day"} today`, nav: "calendar" });
   });
   if (calendar.error) {
-    notifications.push({ id: "calendar-error", kind: "calendar", tone: "warning", title: "Calendar needs attention", detail: "Open Calendar settings to reconnect or finish setup.", nav: "calendar" });
+    notifications.push({ id: "calendar-error", kind: "calendar", tone: "warning", title: "Calendar needs attention", detail: "Open Calendar settings to reconnect or finish setup.", nav: "settings" });
   } else if (!calendar.connected) {
     notifications.push({ id: "calendar-disconnected", kind: "calendar", tone: "neutral", title: "Calendar is disconnected", detail: "Connect Google Calendar in Settings.", nav: "settings" });
   }
   if (household.error) {
-    notifications.push({ id: "household-error", kind: "security", tone: "warning", title: "Household context issue", detail: "Open Settings to refresh household context or choose an active household.", nav: "settings" });
+    notifications.push({ id: "household-error", kind: "security", tone: "warning", title: "Household needs attention", detail: "Open Settings to choose or refresh your household.", nav: "settings" });
   }
   if (!notifications.length) {
     notifications.push({ id: "all-clear", kind: "success", tone: "success", title: "All clear", detail: "No urgent household notifications right now.", nav: "home" });
@@ -109,14 +109,14 @@ export function NotificationCenter({ open, onOpenChange, calendarEvents, househo
   }
 
   return (
-    <OriginDrawer open={open} onOpenChange={onOpenChange} title="Notifications" description="In-app household alerts from tasks, calendar, and account state. Push notifications are deferred.">
+    <OriginDrawer open={open} onOpenChange={onOpenChange} title="Notifications" description="Household reminders from tasks, calendar, and account status.">
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Bell className="h-4 w-4 text-primary" aria-hidden="true" />
             <StatusBadge status={unreadCount ? "warning" : "healthy"}>{unreadCount ? `${unreadCount} unread` : "Caught up"}</StatusBadge>
           </div>
-          <Button type="button" variant="secondary" size="xs" onClick={markAllRead}>Mark read</Button>
+          <Button type="button" variant="secondary" size="xs" onClick={markAllRead}>Mark all read</Button>
         </div>
         <ChipGroup value={view} options={NOTIFICATION_VIEWS} ariaLabel="Notification view" onValueChange={setView} />
         {visibleNotifications.length ? (
@@ -136,7 +136,7 @@ export function NotificationCenter({ open, onOpenChange, calendarEvents, househo
             })}
           </div>
         ) : (
-          <EmptyStatePanel title="No notifications" detail="Task, calendar, and household alerts will appear here." className="py-7" />
+          <EmptyStatePanel title="You're all caught up" detail="New household reminders will appear here." className="py-7" />
         )}
         <Button type="button" variant="secondary" className="w-full" onClick={() => onOpenChange(false)}>Close</Button>
       </div>

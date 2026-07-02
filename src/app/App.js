@@ -36,13 +36,13 @@ function SetupRequired(){
       <div style={S.logo}><span style={S.logoAccent}>Family</span>OS</div>
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Setup required</CardTitle>
-          <CardDescription>Add these missing environment variables in `.env.local` and Vercel before running the app.</CardDescription>
+          <CardTitle>Setup needed</CardTitle>
+          <CardDescription>Family OS needs a few setup items before this device can sign in. Ask the household owner or developer to finish setup.</CardDescription>
         </CardHeader>
         <CardContent>
-          <SectionHeader title="Missing Config" className="mt-0" tone="amber"/>
+          <SectionHeader title="Needs Attention" className="mt-0" tone="amber"/>
           <div className="flex flex-wrap gap-2">
-            {CONFIG_STATUS.missing.map(key=><StatusBadge key={key} status="warning" className="normal-case">{key}</StatusBadge>)}
+            {CONFIG_STATUS.missing.map(key=><StatusBadge key={key} status="warning" className="normal-case">Setup item</StatusBadge>)}
           </div>
         </CardContent>
       </Card>
@@ -199,16 +199,16 @@ function AppHeader({tab, auth, calendar, unreadCount, onSettings, onSearch, onNo
       : calendar.status === "empty"
         ? "No events"
         : calendar.connected
-          ? calendar.mode === "secure" ? "Server synced" : "Legacy synced"
+          ? "Calendar ready"
           : "Not connected";
   const calendarStatus = calendar.error ? "warning" : calendar.loading ? "warning" : calendar.connected ? "connected" : "neutral";
-  return <header className="sticky top-0 z-10 border-b border-border bg-card/95 px-5 pb-3.5 pt-[calc(env(safe-area-inset-top)+16px)] backdrop-blur">
-    <div className="flex items-center justify-between gap-3">
-      <div className="min-w-0">
-        <div style={S.logo} className="truncate">{tab==="home"?<><span style={S.logoAccent}>Family</span>OS</>:TITLES[tab]}</div>
-        {tab==="home"&&<div className="mt-1 truncate text-xs text-muted-foreground">{formatTodayShort()}</div>}
+  return <header className="sticky top-0 z-10 border-b border-border bg-card/95 px-4 pb-3.5 pt-[calc(env(safe-area-inset-top)+16px)] backdrop-blur sm:px-5">
+    <div className="flex items-center justify-between gap-2 sm:gap-3">
+      <div className="min-w-0 flex-1">
+        <div style={S.logo} className="truncate text-[20px] leading-tight sm:text-[22px]">{tab==="home"?<><span style={S.logoAccent}>Family</span>OS</>:TITLES[tab]}</div>
+        {tab==="home"&&<div className="mt-1 truncate text-[11px] text-muted-foreground sm:text-xs">{formatTodayShort()}</div>}
       </div>
-      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+      <div className="flex shrink-0 items-center justify-end gap-1.5 sm:gap-2">
         <Button type="button" variant="secondary" size="icon-xs" aria-label="Search" onClick={onSearch}>
           <Search className="h-4 w-4" aria-hidden="true" />
         </Button>
@@ -217,7 +217,7 @@ function AppHeader({tab, auth, calendar, unreadCount, onSettings, onSearch, onNo
           {unreadCount > 0 && <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-400 px-1 text-[10px] font-extrabold text-slate-950">{unreadCount}</span>}
         </Button>
         {tab !== "settings" && <Button type="button" variant="secondary" size="xs" onClick={onSettings}>Settings</Button>}
-        <Button type="button" variant="secondary" size="xs" onClick={auth.signOut}>Sign out</Button>
+        <Button type="button" variant="secondary" size="xs" className="hidden sm:inline-flex" onClick={auth.signOut}>Sign out</Button>
         {calendar.connected
           ?<StatusBadge status={calendarStatus} className="max-w-28 truncate">{calendarLabel}</StatusBadge>
           :<Button type="button" variant="outline" size="xs" loading={calendar.loading} onClick={onSettings}>Calendar</Button>
@@ -306,8 +306,8 @@ function AuthenticatedApp({ auth }) {
       status: secureCalendar.status,
       events: secureCalendar.events,
       lastSyncedAt: secureCalendar.lastFetchedAt,
-      sourceLabel: "Secure Google Calendar",
-      detail: "Connect secure Google Calendar in Settings to show your family schedule.",
+      sourceLabel: "Google Calendar",
+      detail: secureCalendar.error || "Connect Google Calendar in Settings to show your family schedule.",
       refresh: secureCalendar.fetchEvents,
       connect: secureCalendar.connect,
     }
@@ -320,7 +320,7 @@ function AuthenticatedApp({ auth }) {
       events: gc.events,
       lastSyncedAt: gc.lastSyncedAt,
       sourceLabel: gc.sourceLabel || "Google Calendar",
-      detail: "Secure Google Calendar is preferred. Legacy browser calendar remains available as a temporary fallback.",
+      detail: "Connect Google Calendar in Settings to show your family schedule.",
       refresh: gc.refresh,
       connect: gc.signIn,
     };

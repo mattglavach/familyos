@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Implemented Release 1.0.4 Consumer Cleanup: tightened Home drill-down affordances, made Tasks default to the Household view so newly created tasks are discoverable, compacted task filters behind More Filters, improved Calendar and invitation consumer messaging, removed Quick Add dead-end actions, and replaced touched destructive browser confirmations with specific app dialogs.
+- Improved Core MVP consumer language across Home, Tasks, Calendar, Quick Add, Search, Notifications, Settings, and More without adding deferred modules or changing the database.
 - Implemented Release 1.0.3 Design System: added the shadcn-compatible local component wrapper foundation, standardized semantic design tokens, moved common Tasks and Quick Add option sets to chips, and migrated Universal Search to the local Command wrapper without changing search scope.
 - Documented the Release 1.0.3 wrapper philosophy, design tokens, future UI expectations, and remaining UI technical debt for deferred modules and native confirmation migration.
 - Implemented Release 1.0.2 Reliability: improved Calendar and household invitation configuration handling, removed raw technical errors from key user-facing paths, clarified optional integration behavior, and updated local/staging/production setup documentation.

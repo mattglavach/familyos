@@ -64,13 +64,13 @@ export function GlobalSearch({ open, onOpenChange, calendarEvents, onNavigate })
   }
 
   return (
-    <OriginDrawer open={open} onOpenChange={onOpenChange} title="Search Family OS" description="Search tasks, calendar events, household members, and main destinations.">
+    <OriginDrawer open={open} onOpenChange={onOpenChange} title="Search Family OS" description="Find tasks, events, household members, and places in the app.">
       <div className="space-y-4">
         <Command>
           <CommandInput autoFocus value={query} placeholder="Search tasks, events, members..." onChange={event => setQuery(event.target.value)} />
           <CommandList>
-            {!normalizedQuery && <CommandEmpty>Type to search tasks, calendar events, household members, and destinations.</CommandEmpty>}
-            {normalizedQuery && !results.length && <CommandEmpty>Try a task title, family member, event name, or destination like Settings.</CommandEmpty>}
+            {!normalizedQuery && <CommandEmpty>Start typing to find a task, event, person, or app area.</CommandEmpty>}
+            {normalizedQuery && !results.length && <CommandEmpty>No matching results. Try a task title, family member, event name, or Settings.</CommandEmpty>}
             {results.length > 0 && <CommandGroup heading="Results">
             {results.map((result, index) => (
               <CommandItem key={`${result.type}-${result.label}-${index}`} onClick={() => choose(result.nav)}>

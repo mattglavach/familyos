@@ -18,6 +18,7 @@ import {
 import { Badge, StatusBadge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { EmptyStatePanel } from "../../components/ui/empty-state";
 import { FormError, FormGroup, FormHelp, FormRow, FormSection } from "../../components/ui/form";
 import { Input } from "../../components/ui/input";
@@ -70,11 +71,15 @@ function serverCalendarTone(calendar) {
 
 function serverCalendarLabel(calendar) {
   if (calendar.loading) return "Checking";
-  if (calendar.error) return "Needs setup";
-  if (calendar.status === "pending") return "Pending OAuth";
+  if (calendar.error) return "Setup needed";
+  if (calendar.status === "pending") return "Connecting";
   if (calendar.status === "needs_reauth") return "Reconnect needed";
   if (calendar.connected) return "Connected";
   return "Disconnected";
+}
+
+function calendarCanConnect(calendar) {
+  return !calendar.error;
 }
 
 function Toast({ toast, onDismiss }) {
@@ -114,6 +119,18 @@ function formatInviteExpiry(value) {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+function devicePreferenceLabel(key) {
+  const labels = {
+    gc_token: "Calendar connection",
+    gc_user_name: "Calendar account",
+    gc_last_synced_at: "Last calendar refresh",
+    familyos_settings_v1: "App preferences",
+    familyos_family_members_v1: "Family member backup",
+    familyos_task_metadata_v1: "Task backup",
+  };
+  return labels[key] || "Saved preference";
+}
+
 export function Settings({ auth, gc, secureCalendar }) {
   const household = useHousehold();
   const family = useFamilyMembers();
@@ -123,6 +140,7 @@ export function Settings({ auth, gc, secureCalendar }) {
   const [snapshot, setSnapshot] = useState(() => localDataSnapshot());
   const [error, setError] = useState("");
   const [toast, setToast] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null);
 
   useEffect(() => {
     const defaultPerson = household.userPreferences?.default_person_id;
@@ -221,7 +239,6 @@ export function Settings({ auth, gc, secureCalendar }) {
   }
 
   async function revokeInvite(invitationId) {
-    if (!window.confirm("Revoke this household invitation?")) return;
     const result = await invitations.revokeInvitation(invitationId);
     if (!result.ok) {
       setError(result.error);
@@ -263,33 +280,43 @@ export function Settings({ auth, gc, secureCalendar }) {
       window.location.assign(result.authorizationUrl);
       return;
     }
-    notify("Secure calendar connection placeholder created.");
+    notify("Calendar is not ready to connect yet.");
   }
 
   async function disconnectSecureCalendar() {
-    if (!window.confirm("Disconnect the server-side Google Calendar connection for this household?")) return;
     await secureCalendar.disconnect(secureCalendar.connection?.id);
-    notify("Server-side calendar connection disconnected.");
+    notify("Google Calendar disconnected.");
   }
 
   function clearCalendarToken() {
-    if (!window.confirm("Clear the local Google Calendar token on this device? You can reconnect afterward.")) return;
     gc.clearLocalConnection?.();
     refreshSnapshot();
-    notify("Local calendar token cleared.");
+    notify("Calendar connection forgotten on this device.");
   }
 
   function resetLocalData() {
-    if (!window.confirm("Reset local FamilyOS browser data on this device? Supabase household, profile, family member, and task data will not be deleted.")) return;
     LOCAL_DATA_KEYS.forEach(key => window.localStorage.removeItem(key));
     gc.clearLocalConnection?.();
     setSettings(DEFAULT_SETTINGS);
     refreshSnapshot();
-    notify("Local app data reset. Refresh to reload default family and task metadata.");
+    notify("Device preferences reset. Refresh to reload defaults.");
+  }
+
+  function requestConfirmation(action) {
+    setConfirmAction(action);
+  }
+
+  async function confirmRequestedAction() {
+    const action = confirmAction;
+    setConfirmAction(null);
+    if (!action) return;
+    if (action.type === "revokeInvite") await revokeInvite(action.invitationId);
+    if (action.type === "disconnectCalendar") await disconnectSecureCalendar();
+    if (action.type === "forgetDeviceCalendar") clearCalendarToken();
+    if (action.type === "resetDeviceData") resetLocalData();
   }
 
   const email = auth.session?.user?.email || "Unknown";
-  const userId = auth.session?.user?.id || "Unavailable";
   const activeMembers = family.activeMembers;
   const peopleById = useMemo(() => household.people.reduce((map, person) => {
     map[person.id] = person;
@@ -323,7 +350,7 @@ export function Settings({ auth, gc, secureCalendar }) {
             <UserRound className="h-4 w-4 text-primary" aria-hidden="true" />
             Profile
           </CardTitle>
-          <CardDescription>Signed-in Supabase profile and session details.</CardDescription>
+          <CardDescription>Your profile and household role.</CardDescription>
         </CardHeader>
         <CardContent className="px-4 pb-4 pt-0">
           <FormGroup className="mb-3">
@@ -331,9 +358,7 @@ export function Settings({ auth, gc, secureCalendar }) {
             <Input id="profile-name" value={settings.profileName || ""} onChange={event => setSettings(previous => ({ ...previous, profileName: event.target.value }))} />
           </FormGroup>
           <SettingRow label="Email" value={email} />
-          <SettingRow label="User ID" value={userId} />
           <SettingRow label="Household Role" value={roleLabel(household.membership?.role) || "Unavailable"} />
-          <SettingRow label="Release" value="Release 1.0" badge={<Badge variant="blue">1.0</Badge>} />
         </CardContent>
       </Card>
 
@@ -343,7 +368,7 @@ export function Settings({ auth, gc, secureCalendar }) {
             <Users className="h-4 w-4 text-primary" aria-hidden="true" />
             Household Defaults
           </CardTitle>
-          <CardDescription>Stored in Supabase household settings and user preferences.</CardDescription>
+          <CardDescription>Choose the household and task defaults this device should use.</CardDescription>
         </CardHeader>
         <CardContent className="px-4 pb-4 pt-0">
           <FormSection>
@@ -399,7 +424,7 @@ export function Settings({ auth, gc, secureCalendar }) {
             <Users className="h-4 w-4 text-primary" aria-hidden="true" />
             Household Members
           </CardTitle>
-          <CardDescription>Directory, roles, pending invitations, and manager controls for this household.</CardDescription>
+          <CardDescription>See who belongs to this household and manage invitations.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 px-4 pb-4 pt-0">
           {household.error && <FormError>{household.error}</FormError>}
@@ -506,7 +531,7 @@ export function Settings({ auth, gc, secureCalendar }) {
                         <div className="truncate text-sm font-bold text-foreground">{invitation.invited_email}</div>
                         <div className="mt-1 text-xs text-muted-foreground">{roleLabel(invitation.role)} - expires {formatInviteExpiry(invitation.expires_at)}</div>
                       </div>
-                      <Button type="button" variant="destructive-outline" size="sm" onClick={() => revokeInvite(invitation.id)}>
+                      <Button type="button" variant="destructive-outline" size="sm" onClick={() => requestConfirmation({ type: "revokeInvite", invitationId: invitation.id, title: "Revoke invite?", description: `The invitation for ${invitation.invited_email} will stop working.`, confirmLabel: "Revoke invite" })}>
                         Revoke
                       </Button>
                     </div>
@@ -526,14 +551,14 @@ export function Settings({ auth, gc, secureCalendar }) {
             <CalendarCheck className="h-4 w-4 text-primary" aria-hidden="true" />
             Google Calendar
           </CardTitle>
-          <CardDescription>Secure server-side calendar is preferred. Tokens stay on the server and events are returned as safe app data.</CardDescription>
+          <CardDescription>Connect Google Calendar to show household events on Home and Calendar.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 px-4 pb-4 pt-0">
           <div className="rounded-lg border border-border bg-muted/20 p-3">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-primary" aria-hidden="true" />
               <StatusBadge status={serverCalendarTone(secureCalendar)}>{serverCalendarLabel(secureCalendar)}</StatusBadge>
-              <Badge variant="blue">Server-side</Badge>
+              <Badge variant="blue">Google</Badge>
             </div>
             <SettingRow label="Provider" value="Google Calendar" />
             <SettingRow label="Account" value={secureCalendar.connection?.provider_account_email || "Not connected"} />
@@ -541,25 +566,25 @@ export function Settings({ auth, gc, secureCalendar }) {
             {secureCalendar.error && <FormError>{secureCalendar.error}</FormError>}
             {secureCalendar.note && <FormHelp>{secureCalendar.note}</FormHelp>}
             <FormHelp>
-              Google Calendar is optional. Connect starts Google OAuth when server settings are ready; Disconnect revokes Google access when available and clears stored server tokens.
+              Google Calendar is optional. If connection is unavailable, ask the household owner to finish setup.
             </FormHelp>
             <div className="mt-3 grid gap-2 sm:grid-cols-3">
-              <Button type="button" onClick={connectSecureCalendar} loading={secureCalendar.loading}>
-                {secureCalendar.connection ? "Reconnect" : "Connect"}
+              <Button type="button" onClick={connectSecureCalendar} loading={secureCalendar.loading} disabled={!calendarCanConnect(secureCalendar)}>
+                {secureCalendar.connection ? "Reconnect Google Calendar" : "Connect Google Calendar"}
               </Button>
               <Button type="button" variant="secondary" onClick={secureCalendar.refresh} loading={secureCalendar.loading}>
                 <RefreshCw className="h-4 w-4" aria-hidden="true" />
-                Check
+                Check Connection
               </Button>
-              <Button type="button" variant="destructive-outline" onClick={disconnectSecureCalendar} disabled={!secureCalendar.connection}>
+              <Button type="button" variant="destructive-outline" onClick={() => requestConfirmation({ type: "disconnectCalendar", title: "Disconnect Google Calendar?", description: "Household events from Google Calendar will stop appearing until someone reconnects it.", confirmLabel: "Disconnect calendar" })} disabled={!secureCalendar.connection}>
                 Disconnect
               </Button>
             </div>
           </div>
 
-          <div className="pt-1 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Legacy browser fallback</div>
+          <div className="pt-1 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Device calendar connection</div>
           <FormHelp>
-            Temporary fallback for devices that have not moved to the secure server connection. New fallback sessions are no longer saved as browser tokens.
+            This older connection only works on this device. Use the Google Calendar connection above when it is available.
           </FormHelp>
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={calendarTone(gc)}>{calendarLabel(gc)}</StatusBadge>
@@ -576,8 +601,8 @@ export function Settings({ auth, gc, secureCalendar }) {
             <Button type="button" onClick={reconnectCalendar} loading={gc.status === "connecting" || gc.status === "script-loading"}>
               Reconnect
             </Button>
-            <Button type="button" variant="destructive-outline" onClick={clearCalendarToken} disabled={!gc.token}>
-              Clear Token
+            <Button type="button" variant="destructive-outline" onClick={() => requestConfirmation({ type: "forgetDeviceCalendar", title: "Forget this device connection?", description: "This device will stop using its saved Google Calendar connection. You can reconnect later.", confirmLabel: "Forget connection" })} disabled={!gc.token}>
+              Forget Connection
             </Button>
           </div>
         </CardContent>
@@ -587,9 +612,9 @@ export function Settings({ auth, gc, secureCalendar }) {
         <CardHeader className="p-4 pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <Database className="h-4 w-4 text-primary" aria-hidden="true" />
-            Local Data
+            Device Preferences
           </CardTitle>
-          <CardDescription>Remaining browser-only tokens and legacy metadata on this device.</CardDescription>
+          <CardDescription>Preferences saved only on this device.</CardDescription>
         </CardHeader>
         <CardContent className="px-4 pb-4 pt-0">
           {snapshot.length ? (
@@ -597,15 +622,15 @@ export function Settings({ auth, gc, secureCalendar }) {
               {snapshot.map(item => (
                 <SettingRow
                   key={item.key}
-                  label={item.key}
+                  label={devicePreferenceLabel(item.key)}
                   value={`${item.bytes} bytes`}
                   badge={<Badge variant={item.present ? "blue" : "slate"}>{item.present ? `${item.bytes} bytes` : "empty"}</Badge>}
                 />
               ))}
-              <div className="pt-3 text-xs leading-5 text-muted-foreground">Total local metadata: {localBytes} bytes</div>
+              <div className="pt-3 text-xs leading-5 text-muted-foreground">Saved on this device: {localBytes} bytes</div>
             </div>
           ) : (
-            <EmptyStatePanel title="Local storage unavailable" detail="Device-level preferences cannot be inspected in this browser context." className="py-7" />
+            <EmptyStatePanel title="Device preferences unavailable" detail="This browser is not sharing saved device preferences right now." className="py-7" />
           )}
         </CardContent>
       </Card>
@@ -614,13 +639,13 @@ export function Settings({ auth, gc, secureCalendar }) {
         <CardHeader className="p-4 pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <Info className="h-4 w-4 text-primary" aria-hidden="true" />
-            App Status
+            App Readiness
           </CardTitle>
         </CardHeader>
         <CardContent className="px-4 pb-4 pt-0">
-          <SettingRow label="Environment" value={APP_CONFIG.supabaseUrl ? "Configured" : "Missing Supabase URL"} />
-          <SettingRow label="Google Client" value={APP_CONFIG.googleClientId ? "Configured" : "Missing Google Client ID"} />
-          <SettingRow label="Missing Config" value={missingConfig.length ? missingConfig.join(", ") : "None"} />
+          <SettingRow label="Account access" value={APP_CONFIG.supabaseUrl ? "Ready" : "Needs setup"} />
+          <SettingRow label="Calendar sign-in" value={APP_CONFIG.googleClientId ? "Ready" : "Needs setup"} />
+          <SettingRow label="Needs attention" value={missingConfig.length ? `${missingConfig.length} setup item${missingConfig.length === 1 ? "" : "s"}` : "None"} />
         </CardContent>
       </Card>
 
@@ -631,14 +656,26 @@ export function Settings({ auth, gc, secureCalendar }) {
             <LogOut className="h-4 w-4" aria-hidden="true" />
             Sign Out
           </Button>
-          <Button type="button" variant="destructive-outline" className="w-full" onClick={resetLocalData}>
+          <Button type="button" variant="destructive-outline" className="w-full" onClick={() => requestConfirmation({ type: "resetDeviceData", title: "Reset device preferences?", description: "This clears saved preferences on this device only. Household members, tasks, and calendar records are not deleted.", confirmLabel: "Reset device preferences" })}>
             <Trash2 className="h-4 w-4" aria-hidden="true" />
-            Reset Local App Data
+            Reset Device Preferences
           </Button>
         </div>
       </section>
 
       <Toast toast={toast} onDismiss={() => setToast(null)} />
+      <Dialog open={Boolean(confirmAction)} onOpenChange={nextOpen => !nextOpen && setConfirmAction(null)}>
+        <DialogContent titleId="settings-confirm-title" onClose={() => setConfirmAction(null)}>
+          <DialogHeader>
+            <DialogTitle id="settings-confirm-title">{confirmAction?.title || "Confirm action"}</DialogTitle>
+            <DialogDescription>{confirmAction?.description || "Confirm this household change."}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={() => setConfirmAction(null)}>Cancel</Button>
+            <Button type="button" variant="destructive" onClick={confirmRequestedAction}>{confirmAction?.confirmLabel || "Confirm"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
