@@ -1,5 +1,33 @@
 # Release Notes
 
+## Release 1.0 Planning
+
+### Version
+1.0.0 planning
+
+### Date
+2026-07-02
+
+### Summary
+Release 1.0 planning defines the implementation blueprint for the first production-quality private household operating release. It is documentation-only and does not implement application code.
+
+### Scope Defined
+- Dashboard daily command center readiness.
+- Household task workflow readiness.
+- Navigation and responsive UI polish.
+- Settings and household management readiness.
+- Household collaboration, active household switching, and permission validation.
+- Minimal notification/status-feedback consistency only where needed for core workflows.
+
+### Explicitly Deferred
+- Shopping, Life Lists, Meal Planning, Recipes, Inventory, Home Maintenance, Home Assistant, Smart Home, AI Assistant, ownership transfer, public sign-up, and major new integrations.
+
+### Planning Artifact
+- `docs/planning/RELEASE_1_0_SPEC.md`
+
+### Recommendation
+Ready for Release 1.0 implementation planning review.
+
 ## Release 0.9.2
 
 ### Version

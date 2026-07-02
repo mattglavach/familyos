@@ -1,10 +1,10 @@
 # Project Status
 
 ## Current Version
-0.9.2
+1.0-planning
 
 ## Current State
-Release 0.9.2 repository documentation cleanup is in progress on branch `release/0.9.2-repository-cleanup`.
+Release 1.0 planning is complete on branch `release/1.0-planning`. Implementation has not started.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -54,12 +54,14 @@ Release 0.9.2 repository documentation cleanup is in progress on branch `release
 - Release 0.9.1 governance framework covering Family OS principles, project structure, module template, production readiness, AI engineering, API, security, performance, environments, dependencies, ADRs, planning logs, and reusable templates
 - v0.9.0 released with household collaboration validation complete
 - v0.9.1 released with permanent engineering framework and governance templates
+- v0.9.2 repository documentation cleanup completed
+- Release 1.0 specification and implementation blueprint defined in `docs/planning/RELEASE_1_0_SPEC.md`
 
 ## In Progress
-- Release 0.9.2 repository documentation cleanup and cross-reference validation.
+- Review and approval of the Release 1.0 implementation blueprint.
 
 ## Next
-- Release 1.0 planning using `docs/templates/RELEASE_SPEC.md`.
+- Implement Release 1.0 from `docs/planning/RELEASE_1_0_SPEC.md`.
 - Configure Release 0.8 server OAuth environment values in Vercel before removing the legacy calendar fallback.
 - Decide whether to remove the legacy browser calendar fallback after deployed validation.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
@@ -87,6 +89,7 @@ Release 0.9.2 repository documentation cleanup is in progress on branch `release
 - The new process framework should be tested against the next release and refined if any required step is unclear or redundant.
 - Governance templates should remain lightweight; expand them only when real releases expose gaps.
 - Historical audit and implementation docs are intentionally retained but should not be treated as current process guidance.
+- Release 1.0 should avoid broad module expansion and focus on dashboard, tasks, navigation, settings, household management, responsive UX, and validation.
 
 ## Last Updated
 July 2, 2026
