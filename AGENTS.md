@@ -83,13 +83,17 @@ Before making code, database, UI, or architecture changes, read:
 
 - `docs/00_MASTER_INDEX.md`
 - `docs/ai/AI_CONTEXT.md`
+- `docs/process/FAMILY_OS_PRINCIPLES.md`
 - `docs/process/RELEASE_PLAYBOOK.md`
 - `docs/process/FEATURE_PLAYBOOK.md`
+- `docs/process/PRODUCTION_READINESS.md`
 - `docs/process/CODING_STANDARDS.md`
 - `docs/process/ARCHITECTURE_GUIDELINES.md`
 - `docs/process/UI_GUIDELINES.md`
 - `docs/process/TESTING_GUIDELINES.md`
 - `docs/process/DOCUMENTATION_GUIDELINES.md`
+- `docs/process/SECURITY_STANDARDS.md`
+- `docs/process/ENVIRONMENTS.md`
 - `docs/planning/CURRENT_SPRINT.md`
 - `docs/planning/ROADMAP.md`
 - `docs/development/CODING_STANDARDS.md`

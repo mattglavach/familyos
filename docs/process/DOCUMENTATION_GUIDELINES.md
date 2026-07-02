@@ -42,3 +42,10 @@ Update docs when work changes:
 ## Master Index
 - Add new durable docs to `docs/00_MASTER_INDEX.md`.
 - Avoid indexing one-off validation notes unless they are expected to be reused.
+
+## Templates
+- Use `docs/templates/RELEASE_SPEC.md` for release planning.
+- Use `docs/templates/FEATURE_SPEC.md` for feature planning.
+- Use `docs/templates/MODULE_SPEC.md` for new modules.
+- Use `docs/templates/BUG_REPORT.md` for reproducible defects.
+- Use `docs/templates/RETROSPECTIVE.md` after significant releases.
