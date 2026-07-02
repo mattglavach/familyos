@@ -24,7 +24,6 @@ import { Select } from "../../components/ui/select";
 import { S } from "../../theme";
 import { APP_CONFIG, CONFIG_STATUS } from "../../config";
 import { useHousehold } from "../../context/HouseholdContext";
-import { useCalendarConnections } from "../../hooks/useCalendarConnections";
 import { supabase } from "../../lib/supabase";
 import { useFamilyMembers } from "../dashboard/useFamilyMembers";
 import {
@@ -96,9 +95,8 @@ function SettingRow({ label, value, badge }) {
   );
 }
 
-export function Settings({ auth, gc }) {
+export function Settings({ auth, gc, secureCalendar }) {
   const household = useHousehold();
-  const secureCalendar = useCalendarConnections(household.householdId);
   const family = useFamilyMembers();
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [snapshot, setSnapshot] = useState(() => localDataSnapshot());
@@ -296,7 +294,7 @@ export function Settings({ auth, gc }) {
             <CalendarCheck className="h-4 w-4 text-primary" aria-hidden="true" />
             Google Calendar
           </CardTitle>
-          <CardDescription>Secure server-side connection foundation for household calendars.</CardDescription>
+          <CardDescription>Secure server-side calendar is preferred. Tokens stay on the server and events are returned as safe app data.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 px-4 pb-4 pt-0">
           <div className="rounded-lg border border-border bg-muted/20 p-3">
@@ -310,9 +308,12 @@ export function Settings({ auth, gc }) {
             <SettingRow label="Last Sync" value={formatDateTime(secureCalendar.connection?.last_sync_at)} />
             {secureCalendar.error && <FormError>{secureCalendar.error}</FormError>}
             {secureCalendar.note && <FormHelp>{secureCalendar.note}</FormHelp>}
+            <FormHelp>
+              Connect starts Google OAuth. Disconnect revokes Google access when available and clears stored server tokens.
+            </FormHelp>
             <div className="mt-3 grid gap-2 sm:grid-cols-3">
               <Button type="button" onClick={connectSecureCalendar} loading={secureCalendar.loading}>
-                Connect
+                {secureCalendar.connection ? "Reconnect" : "Connect"}
               </Button>
               <Button type="button" variant="secondary" onClick={secureCalendar.refresh} loading={secureCalendar.loading}>
                 <RefreshCw className="h-4 w-4" aria-hidden="true" />
@@ -325,6 +326,9 @@ export function Settings({ auth, gc }) {
           </div>
 
           <div className="pt-1 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Legacy browser fallback</div>
+          <FormHelp>
+            Temporary fallback for devices that have not moved to the secure server connection. New fallback sessions are no longer saved as browser tokens.
+          </FormHelp>
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={calendarTone(gc)}>{calendarLabel(gc)}</StatusBadge>
             <Badge variant="slate" className="max-w-full truncate">{gc.sourceLabel || "Google Calendar"}</Badge>

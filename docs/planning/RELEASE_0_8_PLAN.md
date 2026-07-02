@@ -36,7 +36,13 @@ Build the server-side foundation for Google Calendar connections so OAuth tokens
 - Google revoke on disconnect.
 - Normalized server-side event fetch for the next 30 days.
 
+## Completed In 0.8C
+- Dashboard schedule now prefers server-side Google Calendar events when a server connection exists.
+- Legacy browser Google Calendar is explicitly labelled as a temporary fallback.
+- New legacy browser fallback sessions no longer persist `gc_token` to localStorage.
+- Settings explains secure connection, reconnect, disconnect, and fallback behavior.
+
 ## Deferred
-- Dashboard replacement of the legacy browser calendar event source.
 - Dedicated callback success/error screen inside the React app.
 - Manual end-to-end OAuth smoke test in Vercel after environment values are configured.
+- Removal of the legacy browser fallback after deployed server OAuth is validated.

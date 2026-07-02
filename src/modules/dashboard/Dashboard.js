@@ -55,16 +55,15 @@ function formatSyncTime(value) {
   return `Synced ${syncedAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
 }
 
-function calendarStatus(gc) {
-  if (gc.loading || gc.status === "syncing") return { label: "Syncing", status: "warning", detail: "Refreshing Google Calendar events." };
-  if (gc.status === "permission-error") return { label: "Permission needed", status: "warning", detail: gc.error };
-  if (gc.status === "expired") return { label: "Reconnect", status: "warning", detail: gc.error };
-  if (gc.error) return { label: "Sync failed", status: "failed", detail: gc.error };
-  if (!gc.token) return { label: "Disconnected", status: "neutral", detail: "Connect Google Calendar to show your family schedule." };
-  if (gc.status === "empty") return { label: "No events", status: "info", detail: `${formatSyncTime(gc.lastSyncedAt)} from ${gc.sourceLabel}.` };
-  if (gc.status === "synced") return { label: "Synced", status: "connected", detail: `${formatSyncTime(gc.lastSyncedAt)} from ${gc.sourceLabel}.` };
-  if (gc.status === "connecting" || gc.status === "script-loading") return { label: "Connecting", status: "warning", detail: "Opening Google Calendar sign-in." };
-  return { label: "Connected", status: "connected", detail: `${formatSyncTime(gc.lastSyncedAt)} from ${gc.sourceLabel}.` };
+function calendarStatus(calendar) {
+  if (calendar.loading) return { label: "Loading", status: "warning", detail: "Refreshing Google Calendar events." };
+  if (calendar.status === "pending" || calendar.status === "needs_reauth" || calendar.status === "expired" || calendar.status === "permission-error") {
+    return { label: "Needs reconnect", status: "warning", detail: calendar.error || "Reconnect Google Calendar to refresh access." };
+  }
+  if (calendar.error) return { label: "Error", status: "failed", detail: calendar.error };
+  if (!calendar.connected) return { label: "Not connected", status: "neutral", detail: calendar.detail || "Connect secure Google Calendar in Settings to show your family schedule." };
+  if (calendar.status === "empty") return { label: "Connected", status: "info", detail: `${formatSyncTime(calendar.lastSyncedAt)} from ${calendar.sourceLabel}. No events found.` };
+  return { label: "Connected", status: "connected", detail: `${formatSyncTime(calendar.lastSyncedAt)} from ${calendar.sourceLabel}.` };
 }
 
 function initialsFor(name) {
@@ -453,7 +452,7 @@ function ScheduleEvent({ event, reassigning, setReassigning, setOverrides, dateL
 }
 
 function SchedulePanel({
-  gc,
+  calendar,
   filteredEvents,
   visibleDays,
   memberFilters,
@@ -469,28 +468,34 @@ function SchedulePanel({
   formatDateFull,
   todayString,
 }) {
-  const status = calendarStatus(gc);
+  const status = calendarStatus(calendar);
 
-  if (!gc.token) {
+  if (!calendar.connected) {
     return (
-      <Card style={{ borderLeft: `3px solid ${gc.status === "expired" || gc.error ? COLORS.amber : COLORS.slate}` }}>
+      <Card style={{ borderLeft: `3px solid ${calendar.status === "needs_reauth" || calendar.error ? COLORS.amber : COLORS.slate}` }}>
         <CardContent className="space-y-3 pt-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 gap-3">
               <CalendarX className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <div className="text-sm font-semibold text-foreground">Calendar disconnected</div>
+                  <div className="text-sm font-semibold text-foreground">{status.label}</div>
                   <StatusBadge status={status.status}>{status.label}</StatusBadge>
+                  <Badge variant={calendar.mode === "secure" ? "blue" : "slate"}>{calendar.mode === "secure" ? "Server-side" : "Legacy fallback"}</Badge>
                 </div>
                 <div className="mt-1 text-xs leading-5 text-muted-foreground">{status.detail}</div>
               </div>
             </div>
-            <Button type="button" size="sm" onClick={gc.signIn} loading={gc.status === "connecting" || gc.status === "script-loading"}>Connect</Button>
+            <Button type="button" size="sm" onClick={calendar.connect} loading={calendar.loading}>{calendar.mode === "secure" ? "Connect" : "Legacy Connect"}</Button>
           </div>
-          {gc.error && (
+          {calendar.mode === "legacy" && (
+            <div className="rounded-lg border border-amber-400/35 bg-amber-400/10 p-3 text-xs leading-5 text-amber-200">
+              Legacy browser calendar is temporary. Use Settings for the secure server-side connection.
+            </div>
+          )}
+          {calendar.error && (
             <div className="rounded-lg border border-destructive/35 bg-destructive/10 p-3 text-xs leading-5 text-destructive">
-              {gc.error}
+              {calendar.error}
             </div>
           )}
         </CardContent>
@@ -513,11 +518,12 @@ function SchedulePanel({
             </CardTitle>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <StatusBadge status={status.status}>{status.label}</StatusBadge>
+              <Badge variant={calendar.mode === "secure" ? "blue" : "slate"}>{calendar.mode === "secure" ? "Server-side" : "Legacy fallback"}</Badge>
               <span className="text-xs text-muted-foreground">{status.detail}</span>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <Button type="button" variant="secondary" size="icon-xs" aria-label="Refresh calendar" onClick={gc.refresh} loading={gc.loading}>
+            <Button type="button" variant="secondary" size="icon-xs" aria-label="Refresh calendar" onClick={calendar.refresh} loading={calendar.loading}>
               <CalendarCheck className="h-4 w-4" aria-hidden="true" />
             </Button>
             <Button type="button" variant="secondary" size="xs" onClick={() => setShowFullSchedule(value => !value)}>
@@ -532,12 +538,12 @@ function SchedulePanel({
             <MemberFilter key={member.id || member.name} value={member.name} color={member.color} active={filter === member.name} onSelect={setFilter} />
           ))}
         </div>
-        {gc.error && (
+        {calendar.error && (
           <div className="rounded-lg border border-destructive/35 bg-destructive/10 p-3 text-xs leading-5 text-destructive">
-            {gc.error}
+            {calendar.error}
           </div>
         )}
-        {gc.loading ? (
+        {calendar.loading ? (
           <div className="space-y-3 py-2">
             <Skeleton className="h-3.5 w-4/5" />
             <Skeleton className="h-3 w-2/5" />
@@ -612,7 +618,7 @@ function SchedulePanel({
 }
 
 // - DASHBOARD -
-export function Dashboard({ onNavigate, gc, deps }) {
+export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
   const {
     TODAY_DATE, TODAY_STR, daysAgo, daysBetween, nextDueDate, formatDate, formatDateFull,
     formatMoneyShort, maintStatus, useTable, calcRetirementProjection, getChemRecommendations,
@@ -636,6 +642,40 @@ export function Dashboard({ onNavigate, gc, deps }) {
   const [overrides, setOverrides] = useState({});
   const [reassigning, setReassigning] = useState(null);
   const [memberDrawer, setMemberDrawer] = useState({ open: false, mode: "add", member: null });
+
+  async function connectSecureCalendar() {
+    const result = await secureCalendar.connect();
+    if (result?.authorizationUrl) window.location.assign(result.authorizationUrl);
+  }
+
+  const hasServerConnection = Boolean(secureCalendar.connection);
+  const calendar = hasServerConnection
+    ? {
+      mode: "secure",
+      connected: secureCalendar.connected,
+      loading: secureCalendar.loading,
+      error: secureCalendar.error,
+      status: secureCalendar.status,
+      events: secureCalendar.events,
+      lastSyncedAt: secureCalendar.connection?.last_sync_at || secureCalendar.lastFetchedAt,
+      sourceLabel: "Secure Google Calendar",
+      detail: "Connect secure Google Calendar in Settings to show your family schedule.",
+      refresh: secureCalendar.fetchEvents,
+      connect: connectSecureCalendar,
+    }
+    : {
+      mode: "legacy",
+      connected: Boolean(gc.token),
+      loading: gc.loading || gc.status === "syncing" || gc.status === "connecting" || gc.status === "script-loading",
+      error: gc.error,
+      status: gc.status === "synced" ? "connected" : gc.status,
+      events: gc.events,
+      lastSyncedAt: gc.lastSyncedAt,
+      sourceLabel: gc.sourceLabel || "Google Calendar",
+      detail: "Secure Google Calendar is preferred. Legacy browser calendar remains available as a temporary fallback.",
+      refresh: gc.refresh,
+      connect: gc.signIn,
+    };
 
   const isLoading = [
     homeMaint,
@@ -670,7 +710,7 @@ export function Dashboard({ onNavigate, gc, deps }) {
   });
 
   const allEvents = useMemo(
-    () => (gc.token ? gc.events : [])
+    () => (calendar.connected ? calendar.events : [])
       .filter(event => event && typeof event === "object")
       .map((event, index) => {
         const eventId = event.id || `${event.date || "event"}-${index}`;
@@ -679,10 +719,10 @@ export function Dashboard({ onNavigate, gc, deps }) {
           id: eventId,
           title: event.title || "Untitled event",
           member: overrides[eventId] || event.member || "Family",
-          source: event.source || "Google Calendar",
+          source: event.source || calendar.sourceLabel,
         };
       }),
-    [gc.events, gc.token, overrides]
+    [calendar.connected, calendar.events, calendar.sourceLabel, overrides]
   );
   const activeMembers = family.activeMembers;
   const memberFilters = useMemo(() => [{ id: "all", name: "All", color: COLORS.blue }, ...activeMembers], [activeMembers]);
@@ -925,7 +965,7 @@ export function Dashboard({ onNavigate, gc, deps }) {
       </section>
 
       <SchedulePanel
-        gc={gc}
+        calendar={calendar}
         filteredEvents={filteredEvents}
         visibleDays={visibleDays}
         showFullSchedule={showFullSchedule}

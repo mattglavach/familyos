@@ -2,8 +2,8 @@
 
 Family OS has two Google Calendar paths during Release 0.8:
 
-- The legacy browser fallback uses Google Identity Services in the browser to request a short-lived access token.
-- The Release 0.8 foundation stores connection metadata server-side and prepares for backend-owned OAuth tokens.
+- The secure server-side path is preferred and powers the dashboard schedule whenever a server connection exists.
+- The legacy browser fallback is temporary for devices that have not completed the secure connection.
 
 ## Environment Variables
 
@@ -39,6 +39,8 @@ The server-side foundation is implemented in `api/calendar.js` and stores metada
 
 The API requires a Supabase session bearer token and validates active membership in the requested `household_id`. Responses never include `access_token_ciphertext` or `refresh_token_ciphertext`.
 
+Release 0.8C wires dashboard schedule reads to this server-side event API when a server connection exists. The legacy browser fallback remains visible but is labelled temporary, and new fallback sessions no longer write `gc_token` to browser localStorage.
+
 ## Legacy Browser OAuth Flow
 
 The current implementation is in `src/hooks/useGoogleCalendar.js`.
@@ -52,6 +54,7 @@ The current implementation is in `src/hooks/useGoogleCalendar.js`.
 - Redirect URI: none configured by Family OS for the Calendar token popup flow
 - Event window: next 30 days
 - Local browser storage keys: `gc_token`, `gc_user_name`, and `gc_last_synced_at`
+- Release 0.8C no longer writes new `gc_token` values. Existing browser tokens may continue to work until cleared or expired.
 
 Because the token client is initialized in browser JavaScript, Google validates the exact origin serving the app. An `Error 400: origin_mismatch` means the current origin is missing from the OAuth client's Authorized JavaScript origins.
 

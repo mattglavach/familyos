@@ -11,6 +11,7 @@ function initialState() {
     connections: [],
     events: [],
     note: "",
+    lastFetchedAt: null,
   };
 }
 
@@ -57,10 +58,6 @@ export function useCalendarConnections(householdId) {
     }
   }, [householdId]);
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
-
   const connect = useCallback(async () => {
     setState(previous => ({ ...previous, loading: true, error: "" }));
     try {
@@ -71,6 +68,7 @@ export function useCalendarConnections(householdId) {
         error: "",
         connection: data.connection || previous.connection,
         status: data.connection?.connection_status || "pending",
+        lastFetchedAt: null,
       }));
       return data;
     } catch (error) {
@@ -87,6 +85,7 @@ export function useCalendarConnections(householdId) {
         method: "POST",
         body: { connection_id: connectionId },
       });
+      setState(previous => ({ ...previous, events: [], lastFetchedAt: null }));
       await refresh();
     } catch (error) {
       setState(previous => ({ ...previous, loading: false, error: error.message }));
@@ -97,10 +96,22 @@ export function useCalendarConnections(householdId) {
     setState(previous => ({ ...previous, loading: true, error: "" }));
     try {
       const data = await callCalendarApi("events", { householdId });
+      if (data.error) {
+        setState(previous => ({
+          ...previous,
+          ...data,
+          events: data.events || [],
+          loading: false,
+          error: data.error,
+          lastFetchedAt: new Date().toISOString(),
+        }));
+        return data.events || [];
+      }
       setState(previous => ({
         ...previous,
         ...data,
         events: data.events || [],
+        lastFetchedAt: new Date().toISOString(),
         loading: false,
         error: "",
       }));
@@ -110,6 +121,15 @@ export function useCalendarConnections(householdId) {
       return [];
     }
   }, [householdId]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    if (!state.connected || state.events.length || state.loading || state.lastFetchedAt) return;
+    fetchEvents();
+  }, [fetchEvents, state.connected, state.events.length, state.lastFetchedAt, state.loading]);
 
   return {
     ...state,

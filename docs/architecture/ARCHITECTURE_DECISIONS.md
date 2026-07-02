@@ -37,10 +37,10 @@ Release 0.7 preserved the browser Google Identity Services token flow as a legac
 Calendar data can expose household routines and child locations, so long-lived credentials need backend ownership. A `calendar_connections` table scoped by `household_id` and `user_id`, plus Vercel API routes that only return safe metadata, provides the right boundary while keeping Release 0.8 small enough to validate.
 
 ### Tradeoffs
-Release 0.8 now owns OAuth token exchange, token encryption, refresh, revoke, and normalized event reads on the server. The dashboard still uses the legacy browser event source until the server event hook is wired into the main calendar experience and validated in the deployed environment.
+Release 0.8 now owns OAuth token exchange, token encryption, refresh, revoke, and normalized event reads on the server. The dashboard prefers the server event source whenever a server-side connection exists. The legacy browser fallback remains temporarily available for transition and deployed validation.
 
 ### Follow-up
-Validate the server OAuth flow in Vercel with production environment variables, then replace dashboard event reads with normalized server events and remove browser token persistence.
+Validate the server OAuth flow in Vercel with production environment variables, then remove the legacy browser fallback and older browser token cleanup paths.
 
 ### July 1, 2026
 

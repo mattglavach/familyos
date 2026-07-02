@@ -55,4 +55,5 @@
 - [x] Settings/profile persistence beyond browser localStorage.
 - [x] Server-side Google Calendar connection model and token storage foundation.
 - [x] Complete Google OAuth callback exchange, token encryption, refresh, and server-side event sync API.
-- [ ] Validate deployed Google OAuth flow and replace dashboard calendar reads with server events.
+- [x] Replace dashboard calendar reads with server events when a server connection exists.
+- [ ] Validate deployed Google OAuth flow and remove legacy browser fallback when safe.
