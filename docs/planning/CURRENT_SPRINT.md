@@ -1,7 +1,7 @@
 # Current Sprint
 
 ## Sprint Goal
-Implement Release 1.0.4 Consumer Cleanup after v1.0.3, keeping scope limited to Core MVP usability, consumer language, task discoverability, compact filters, feedback, confirmations, and validation.
+Implement Release 1.0.5 Calendar & Header Cleanup after v1.0.4, keeping scope limited to Calendar tab resilience, Calendar connection clarity, compact header actions, consumer language, and validation.
 
 ## Active Items
 - [x] Add documentation structure
@@ -99,6 +99,11 @@ Implement Release 1.0.4 Consumer Cleanup after v1.0.3, keeping scope limited to 
 - [x] Remove Quick Add enabled dead-end actions for unsupported destinations
 - [x] Improve Calendar, invitation, Search, Notifications, Settings, and More consumer language
 - [x] Replace touched destructive browser confirmations with specific app dialogs
+- [x] Harden Calendar tab rendering so it falls back to friendly guidance instead of a blank screen
+- [x] Add shared Calendar status model for connected, disconnected, setup required, permission restricted, error, and checking states
+- [x] Simplify header Settings and Calendar status actions to icon controls with accessible labels
+- [x] Clarify Calendar setup and connection behavior for owner-managed and non-owner views
+- [x] Validate Calendar/header desktop, tablet, and 390px mobile layouts with no horizontal overflow
 
 ## Blockers
 
@@ -107,6 +112,7 @@ Implement Release 1.0.4 Consumer Cleanup after v1.0.3, keeping scope limited to 
 - Release 1.0.2 has no active validation blocker after completing local authenticated adult, viewer, mobile, and task lifecycle smoke checks.
 - Release 1.0.3 has no active implementation or validation blocker after local lint, build, diff-check, browser smoke, and console validation.
 - Release 1.0.4 has no active validation blocker after lint, build, diff-check, authenticated local browser smoke, mobile 390px sanity checks, and console validation.
+- Release 1.0.5 has no active implementation blocker after local lint, production build, and authenticated browser Calendar/header smoke checks passed. Final diff-check and commit remain.
 
 ## Notes
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.
@@ -158,3 +164,5 @@ Implement Release 1.0.4 Consumer Cleanup after v1.0.3, keeping scope limited to 
 - Release 1.0.3 establishes the UI wrapper layer and design tokens without redesigning workflows, adding product modules, or changing the database.
 - Release 1.0.4 is consumer cleanup only. It does not add Life Lists, Shopping, Meal Planning, Finance expansion, Health, Home platform, AI, Projects, integrations, database changes, or schema changes.
 - Release 1.0.4 authenticated browser smoke used local Supabase only and local CRA on `localhost:3000`; Home drill-downs, Calendar setup guidance, Tasks lifecycle, compact filters, Quick Add deferred types, Search, Notifications, More, Settings, mobile layout, and console checks passed.
+- Release 1.0.5 is Calendar/header cleanup only. It does not add Life Lists, Shopping, Meal Planning, Finance expansion, Health, Home platform, AI, Projects, Microsoft To Do sync, integrations, database changes, or schema changes.
+- Release 1.0.5 authenticated browser smoke used local Supabase only and local CRA on `localhost:3000`; Calendar tab rendering, Calendar disconnected/setup states, header icon actions, adult Calendar permissions, Search, Notifications, Quick Add, tablet/mobile layouts, and console checks passed.

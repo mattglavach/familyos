@@ -1,5 +1,57 @@
 # Release Notes
 
+## Release 1.0.5
+
+### Version
+1.0.5
+
+### Date
+2026-07-02
+
+### Summary
+Release 1.0.5 is a focused Calendar and header cleanup release. It hardens the Calendar tab so it never fails into a blank screen, simplifies global header actions, and makes Calendar connection states clearer for owners, adults, and viewers.
+
+### Fixes
+- Added defensive Calendar rendering for missing calendar props, missing dependency values, malformed event arrays, and disconnected/setup states.
+- Added a Calendar tab error boundary with a friendly fallback and Settings path if the Calendar surface cannot render cleanly.
+- Added a shared Calendar status model for connected, disconnected, setup required, permission restricted, error, and checking states.
+- Replaced header Settings text with an icon-only gear button.
+- Replaced header Calendar text/status chips with an icon-only Calendar status button and attention dot only when action is needed.
+- Routed Calendar status clicks to Calendar when connected and Settings when disconnected, setup-blocked, permission-restricted, or errored.
+- Hid unusable Calendar connect actions when setup is unavailable or the user is not allowed to manage the household connection.
+- Updated Settings Calendar copy and controls for owner-managed permissions, Refresh Status, and user-safe setup guidance.
+- Kept Home Calendar insight compact and action-oriented without adding persistent dismissal behavior.
+
+### Root Cause
+The blank Calendar screen could not be reproduced in the final local session, but the Calendar tab had no local error boundary and assumed well-shaped `calendar`, `events`, and `deps` props. Release 1.0.5 fixes that failure class by normalizing Calendar input, guarding unexpected values, and adding a Calendar-only fallback instead of allowing a render error to blank the tab.
+
+### Calendar Connection Decision
+Google Calendar connection remains real when local/staging has the required Google and server setup. When setup is unavailable, Family OS shows setup guidance and disables owner-managed connection controls instead of showing a button that cannot connect.
+
+### Calendar Status Model
+- Connected: no attention dot; Calendar icon opens Calendar.
+- Disconnected: attention dot; Calendar icon opens Settings.
+- Setup required: attention dot; Calendar icon opens Settings with setup guidance.
+- Permission restricted: attention dot; Calendar icon opens Settings with reconnect guidance.
+- Error: attention dot; Calendar icon opens Settings with friendly troubleshooting.
+- Checking: no attention dot; status refresh is in progress.
+
+### Database Changes
+- None.
+
+### Deferred
+- Persistent Calendar setup dismissal remains deferred until preference storage is explicitly designed for this prompt.
+- Full deployed Google Calendar validation and legacy device-calendar fallback removal remain deferred.
+- Life Lists, Shopping, Meal Planning, Finance expansion, Health, Home platform, AI, Projects, Microsoft To Do sync, and new integrations remain out of scope.
+
+### Validation
+- `pnpm run lint` passed.
+- `pnpm run build` passed.
+- Browser smoke used local Supabase only and local CRA on `http://localhost:3000`; production was not touched.
+- Browser smoke passed for Calendar tab rendering, disconnected Calendar state, Settings Calendar setup state, header desktop/tablet/mobile layout, Calendar icon attention state/click behavior, Search, Notifications, Quick Add, Settings gear, adult permission messaging, and no horizontal overflow.
+- Browser console checks showed no warnings or errors during the completed smoke paths.
+- Owner invite create/revoke was not rerun in this adult authenticated session; source regression confirmed invitation errors remain mapped through user-safe copy and adult owner-only controls are hidden.
+
 ## Release 1.0.4
 
 ### Version
