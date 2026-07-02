@@ -41,7 +41,7 @@ Inside More:
 - Finance
 - Pool
 - College
-- Shopping (future)
+- Shopping
 - Life Lists
 - Meal Planning (future)
 - Documents (future)
@@ -72,10 +72,10 @@ College covers education planning, deadlines, savings, scholarships, and school 
 
 It belongs inside More because it is planning-oriented and relevant during specific life phases.
 
-## Shopping (Future)
-Shopping will cover shared grocery and household purchase lists.
+## Shopping
+Shopping covers shared grocery and household purchase lists plus simple pantry inventory.
 
-It is future because Release 1.0 must stabilize tasks, dashboard, household, and navigation before adding another frequent-capture workflow.
+Release 1.2 promotes Shopping into More as the second Planning Platform module. Home should show only compact Shopping awareness and drill-downs; the module remains the action workspace.
 
 ## Life Lists
 Life Lists cover books, movies, gifts, goals, bucket lists, ideas, places, activities, and custom lightweight collections.
@@ -85,7 +85,7 @@ Release 1.1 promotes Life Lists into More as a generic lifestyle planning module
 ## Meal Planning (Future)
 Meal Planning will cover meal plans, recipes, pantry, grocery generation, and family preferences.
 
-It is future because it depends on shopping, recipe, and inventory design.
+It is future because it depends on shopping, recipe, and richer inventory design.
 
 ## Documents (Future)
 Documents will cover document metadata, household records, warranties, school forms, medical documents, and future secure storage decisions.

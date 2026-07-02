@@ -1,10 +1,10 @@
 # Project Status
 
 ## Current Version
-1.1.0
+1.2.0
 
 ## Current State
-Release 1.0 core MVP through Release 1.0.5 Calendar & Header Cleanup are complete. Release 1.1 Life Lists validation is complete on branch `release/1.1-life-lists`.
+Release 1.0 core MVP through Release 1.1 Life Lists are complete. Release 1.2 Shopping & Pantry implementation and validation are complete on branch `release/1.2-shopping`.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -66,12 +66,14 @@ Release 1.0 core MVP through Release 1.0.5 Calendar & Header Cleanup are complet
 - Release 1.0.5 hardened Calendar rendering, simplified header Calendar/Settings actions, clarified Calendar status behavior, and improved owner/adult Calendar setup messaging without schema changes
 - Release 1.1 adds generic Life Lists and Life List Items, More navigation, Home awareness, Quick Add targets, Universal Search integration, seed fallback, and a Supabase migration with household-aware RLS
 - Release 1.1 disposable/local validation passed for the full schema and migration chain, RLS owner/adult/viewer/cross-household behavior, authenticated browser smoke, 390px mobile sanity checks, no console warnings/errors, and product cleanup for Quick Add and Today's Priorities
+- Release 1.2 adds Shopping Lists, Shopping Items, Categories, Pantry Items, More navigation, Home awareness, Quick Add targets, Universal Search integration, seed fallback, future recipe/meal-plan reference fields, and a Supabase migration with household-aware RLS
+- Release 1.2 disposable/local validation passed for schema bootstrap, ordered migration chain, Shopping table/index/constraint/RLS checks, owner/adult/viewer/cross-household behavior, authenticated browser smoke, 390px mobile sanity checks, no console warnings/errors, and adult/viewer UI permission behavior
 
 ## In Progress
-- Release 1.1 merge and tag decision.
+- Release 1.2 merge and tag decision.
 
 ## Next
-- Complete Release 1.1 merge and release tagging after owner review.
+- Complete Release 1.2 merge and release tagging after owner review.
 - Configure Release 0.8 server OAuth environment values in Vercel before removing the legacy calendar fallback.
 - Decide whether to remove the legacy browser calendar fallback after deployed validation.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
@@ -84,6 +86,7 @@ Release 1.0 core MVP through Release 1.0.5 Calendar & Header Cleanup are complet
 - Server-side Google Calendar sync also requires `calendar_connections`, Supabase service-role API access, Google OAuth client/secret/redirect settings, and token encryption/state secrets in each environment where Calendar is enabled.
 - Household invitations require the Release 0.9 household collaboration migration and a refreshed Supabase/PostgREST schema cache in each environment.
 - Life Lists requires the Release 1.1 migration and refreshed Supabase/PostgREST schema cache in each environment before durable persistence is available.
+- Shopping & Pantry requires the Release 1.2 migration and refreshed Supabase/PostgREST schema cache in each environment before durable persistence is available.
 - Google Calendar token storage remains browser-local only for older legacy fallback sessions. Release 0.8C no longer writes new `gc_token` values, and the server route does not expose tokens to the frontend. Deployed validation still requires server env configuration and Google Cloud redirect URI setup.
 - Legacy browser metadata keys for Release 0.6B settings, family members, and task metadata may remain on devices until local browser data is reset, but they are no longer the normal persistence path.
 - Six-item bottom navigation should be checked on physical mobile devices before broad family use.
@@ -113,6 +116,8 @@ Release 1.0 core MVP through Release 1.0.5 Calendar & Header Cleanup are complet
 - Release 1.0.5 keeps Calendar setup prompt persistence deferred until a preference-backed dismissal design is approved.
 - Release 1.1 keeps recommendation engines, ratings, reviews, category-specific templates, external enrichment APIs, image upload storage, and notification delivery deferred.
 - Release 1.1 validation used disposable/local Supabase only. Production was not touched.
+- Release 1.2 keeps recipes, meal planning, barcode scanning, OCR, AI, external grocery APIs, recommendation engines, and unrelated platform work deferred.
+- Release 1.2 validation used disposable/local Supabase only. Production was not touched.
 
 ## Last Updated
 July 2, 2026

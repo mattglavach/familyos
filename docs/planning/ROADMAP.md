@@ -30,6 +30,7 @@
 - [ ] Documents
 - [ ] Medical
 - [x] Life Lists
+- [x] Shopping & Pantry
 
 ## Phase 4 - Intelligence
 - [ ] AI assistant
@@ -84,6 +85,18 @@
 - [x] Implement Release 1.0.4 Consumer Cleanup for task discoverability, compact filters, consumer language, confirmation dialogs, and Core MVP usability.
 - [x] Implement Release 1.0.5 Calendar & Header Cleanup for Calendar tab resilience, icon-only header actions, and Calendar status clarity.
 - [x] Implement Release 1.1 Life Lists with generic lists/items, Home insight, Quick Add, Search, and RLS-backed schema.
+- [x] Implement Release 1.2 Shopping & Pantry with shared shopping lists/items, simple pantry inventory, Home insight, Quick Add, Search, and RLS-backed schema.
+
+## Release 1.2 Scope
+- [x] Add Shopping Lists, Shopping Items, Shopping Categories, and Pantry Items data model.
+- [x] Add Shopping module under More.
+- [x] Add quick create/edit, purchased status, priority, favorites, archive, assignment, pantry link, and sorting/filtering workflows.
+- [x] Add simple pantry inventory with current/minimum quantity and reorder flag.
+- [x] Add Shopping List and Shopping Item targets to Universal Quick Add.
+- [x] Add Shopping Lists, Shopping Items, and Pantry Items to Universal Search.
+- [x] Add compact Home Shopping awareness with drill-down.
+- [x] Validate migration/RLS against disposable or local Supabase before production.
+- [x] Keep recipes, meal planning, barcode scanning, OCR, AI, external grocery APIs, recommendation engines, finance, health, Home platform, and unrelated modules deferred.
 
 ## Release 1.1 Scope
 - [x] Add generic Life Lists and Life List Items data model.

@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Implemented Release 1.2 Shopping & Pantry: added household/shared/personal shopping lists, shopping items, pantry inventory, category/status/filter/sort/favorite/archive workflows, Quick Add targets, Home awareness, Universal Search, seed fallback, and household-aware Supabase RLS.
+- Completed Release 1.2 validation against local/disposable Supabase only: base schema bootstrap, ordered migration chain through Shopping, table/index/constraint/RLS catalog checks, owner/adult/viewer/cross-household RLS matrix, authenticated browser smoke, 390px mobile sanity, console checks, and local adult/viewer UI permission checks.
 - Completed Release 1.1 validation against disposable/local Supabase only: full schema and migration chain, Life Lists RLS behavior, authenticated browser smoke, 390px mobile sanity, console checks, and product cleanup for Quick Add and Today's Priorities.
 - Fixed Release 1.1 validation issues: clean schema ordering for Life Lists migrations, viewer household/shared management denial in RLS and UI, viewer Quick Add writable-list filtering, viewer personal-list creation options, floating Quick Add removal, unsupported Quick Add destination removal, and Today's Priorities "View All" removal.
 - Implemented Release 1.1 Life Lists: added generic lists/items with household-aware schema and RLS, More module UI, Home awareness, Universal Quick Add targets, Universal Search results, seed fallback, and release documentation.

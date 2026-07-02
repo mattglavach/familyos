@@ -1,5 +1,43 @@
 # Release Notes
 
+## Release 1.2.0
+
+### Version
+1.2.0
+
+### Date
+2026-07-02
+
+### Summary
+Release 1.2 adds Shopping & Pantry as the second Planning Platform module. It gives the household shared shopping lists, fast item capture, simple pantry inventory, Home awareness, Quick Add, and Universal Search without adding meal planning, recipes, barcode/OCR, AI, or external grocery integrations.
+
+### Features
+- Added a Shopping module under More with list and pantry views.
+- Added personal, household, shared, favorite, and archived shopping lists.
+- Added shopping items with quantity, unit, category, priority, purchased state, notes, favorite, assignment, pantry link, archive state, sorting, and filtering.
+- Added simple pantry inventory with current/minimum quantity, reorder flag, favorite, category, notes, archive state, and filters.
+- Added Shopping List and Shopping Item targets to Universal Quick Add.
+- Added Shopping Lists, Shopping Items, and Pantry Items to Universal Search.
+- Added a compact Home Shopping insight card and recent activity entries that drill into Shopping.
+- Prepared database fields for future recipe and meal-plan references without implementing recipes or meal planning.
+
+### Database Changes
+- Added `supabase/migrations/20260702_release_1_2_shopping.sql`.
+- Added `shopping_lists`, `shopping_categories`, `shopping_items`, and `pantry_items`.
+- Added household-aware RLS for personal, household, and shared shopping visibility and pantry management.
+
+### Deferred
+- Recipes, meal planning, barcode scanning, OCR, AI, external grocery APIs, recommendation engines, finance, health, Home platform, and unrelated modules remain deferred.
+- Pantry remains simple inventory only; it does not generate meal plans or recommendations.
+
+### Validation
+- `pnpm run lint` passed.
+- `pnpm run build` passed.
+- Disposable local Supabase validation passed on July 2, 2026: base schema bootstrap from empty with local auth prelude, ordered migration chain through Release 1.2, Shopping migration apply, table/index/constraint catalog checks, grants, RLS enablement, and policies.
+- RLS smoke passed for owner, adult, viewer, personal-list owner-only behavior, household/shared member reads, viewer denial paths, pantry read-only viewer behavior, cross-household denial, and archived item visibility.
+- Authenticated local browser smoke passed for More to Shopping, list create/edit/favorite/archive/restore, item create/edit/purchase/favorite/archive/assignment/notes, pantry create/edit/favorite/reorder/archive/restore, module search/filter/sort, Quick Add list/item, Home drill-downs, Universal Search list/item/pantry results, adult permissions, viewer read-only controls, 390px mobile layout, no horizontal overflow, and no console warnings/errors.
+- Product cleanup validation confirmed no floating Quick Add FAB, no Today's Priorities "View All", clickable priority rows remain supported, Quick Add exposes only supported destinations, and consumer-facing copy avoids technical terms.
+
 ## Release 1.1.0
 
 ### Version

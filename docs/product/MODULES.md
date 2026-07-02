@@ -103,15 +103,17 @@ Dependencies: Planning data model, document links, task reminders.
 Future enhancements: Deadline tracker, scholarship tracker, college comparison, financial planning.
 
 ## Shopping
-Purpose: Shared grocery and household shopping lists.
+Purpose: Shared grocery and household shopping lists, simple pantry inventory, staple tracking, and fast shopping capture.
 
-Current status: Future.
+Current status: Active MVP.
 
-Release target: Deferred from Release 1.0.
+Release target: Release 1.2.
 
-Dependencies: Quick Add, list model, assignments, store/category design.
+Dependencies: Household context, Shopping Lists schema, Shopping Items schema, Pantry Items schema, Quick Add, Universal Search, Home awareness, permissions.
 
-Future enhancements: Pantry links, meal plan generation, recurring staples.
+Future enhancements: Recipe links, meal plan links, recurring staples, store grouping, and meal-planning integration after those modules are explicitly scoped.
+
+Release 1.2 guidance: Shopping is an action workspace for shopping lists and simple pantry inventory. Do not implement recipes, meal planning, barcode scanning, OCR, AI, external grocery APIs, or recommendations inside Shopping.
 
 ## Meal Planning
 Purpose: Meals, recipes, family preferences, grocery planning, and weekly food decisions.
@@ -120,7 +122,7 @@ Current status: Future.
 
 Release target: Deferred from Release 1.0.
 
-Dependencies: Shopping, recipes, inventory, family preferences.
+Dependencies: Shopping, pantry, recipes, inventory, family preferences.
 
 Future enhancements: Recipe library, meal calendar, grocery generation, nutrition preferences.
 

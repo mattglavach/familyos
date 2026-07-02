@@ -36,6 +36,18 @@ Users can access records where their profile belongs to the same household.
 - Release 1.1 validation used disposable/local Supabase only and confirmed owner, adult, viewer, personal owner-only, household/shared read, archived item read, and cross-household denial paths.
 - Release 1.1 does not add push/email/SMS notifications, external enrichment APIs, public sharing, ratings, or reviews.
 
+## Release 1.2 Shopping & Pantry
+- `shopping_lists`, `shopping_categories`, `shopping_items`, and `pantry_items` have RLS enabled.
+- Active household members can read household/shared shopping lists and their items.
+- Personal shopping lists are visible only to `owner_user_id`; items inherit access from the parent list.
+- Owners and adults can create, update, and delete household/shared shopping lists and items.
+- Any active signed-in member can create personal shopping lists and manage items in those personal lists.
+- Viewers cannot manage household/shared shopping lists or items, but can create and manage their own personal shopping lists.
+- Pantry items are readable by active household members and manageable by owners/adults only.
+- Cross-household list, item, category, and pantry access is denied.
+- Release 1.2 validation used disposable/local Supabase only and confirmed owner, adult, viewer, personal owner-only, household/shared read, pantry read-only viewer behavior, archived item behavior, and cross-household denial paths.
+- Release 1.2 does not add recipes, meal planning, barcode scanning, OCR, AI, external grocery APIs, recommendation engines, or public sharing.
+
 ## Future
 - Adult-only permissions
 - Child-safe views
