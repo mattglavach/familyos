@@ -22,6 +22,8 @@ Users can access records where their profile belongs to the same household.
 - Accepting an invite requires an authenticated user whose Supabase auth email matches the invited email.
 - Anonymous users are prompted to sign in first; invite links preserve `?invite=...` through magic-link redirects.
 - Raw invite tokens are returned only once from invitation creation so a manager can share the invite link.
+- Release 0.9 final validation confirmed hash comparisons only, invalid/expired/non-pending invite rejection paths, duplicate pending invite prevention, owner-only invite/revoke/role/remove controls, and hidden non-owner Settings controls for adult/viewer users.
+- Production Supabase was not touched during Release 0.9 validation; all smoke tests used disposable local users and the local Supabase Docker stack.
 
 ## Future
 - Adult-only permissions

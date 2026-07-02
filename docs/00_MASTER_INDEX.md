@@ -57,6 +57,10 @@ This folder is the operating manual for Family OS.
 - docs/development/DEFINITION_OF_DONE.md
 - docs/development/RELEASE_PROCESS.md
 
+### Releases
+- docs/releases/CHANGELOG.md
+- docs/releases/RELEASE_NOTES.md
+
 ### UI
 - docs/ui/DESIGN_SYSTEM.md
 - docs/ui/UI_MIGRATION_BACKLOG.md

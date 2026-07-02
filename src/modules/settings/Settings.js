@@ -417,26 +417,30 @@ export function Settings({ auth, gc, secureCalendar }) {
                           {membership.user_id ? "Login member" : "Family profile"}{person?.email ? ` - ${person.email}` : ""}
                         </div>
                       </div>
-                      <div className="grid gap-2 sm:grid-cols-[120px_auto]">
-                        <Select
-                          value={membership.role}
-                          disabled={!canManageMembers || membership.role === "owner"}
-                          onChange={event => updateMembership(membership, { role: event.target.value })}
-                          aria-label={`Role for ${name}`}
-                        >
-                          {HOUSEHOLD_ROLES.map(role => <option key={role} value={role}>{roleLabel(role)}</option>)}
-                        </Select>
-                        <Button
-                          type="button"
-                          variant="destructive-outline"
-                          size="sm"
-                          disabled={!canManageMembers || membership.role === "owner" || membership.status !== "active"}
-                          onClick={() => updateMembership(membership, { status: "removed" })}
-                        >
-                          <UserMinus className="h-4 w-4" aria-hidden="true" />
-                          Remove
-                        </Button>
-                      </div>
+                      {canManageMembers ? (
+                        <div className="grid gap-2 sm:grid-cols-[120px_auto]">
+                          <Select
+                            value={membership.role}
+                            disabled={membership.role === "owner"}
+                            onChange={event => updateMembership(membership, { role: event.target.value })}
+                            aria-label={`Role for ${name}`}
+                          >
+                            {HOUSEHOLD_ROLES.map(role => <option key={role} value={role}>{roleLabel(role)}</option>)}
+                          </Select>
+                          <Button
+                            type="button"
+                            variant="destructive-outline"
+                            size="sm"
+                            disabled={membership.role === "owner" || membership.status !== "active"}
+                            onClick={() => updateMembership(membership, { status: "removed" })}
+                          >
+                            <UserMinus className="h-4 w-4" aria-hidden="true" />
+                            Remove
+                          </Button>
+                        </div>
+                      ) : (
+                        <Badge variant="slate">{roleLabel(membership.role)}</Badge>
+                      )}
                     </div>
                   </div>
                 );
@@ -486,26 +490,28 @@ export function Settings({ auth, gc, secureCalendar }) {
             <FormHelp>Only household owners can invite members or edit membership.</FormHelp>
           )}
 
-          <div>
-            <SectionHeader title="Pending Invites" count={invitations.pendingInvitations.length} tone="amber" />
-            {invitations.pendingInvitations.length ? (
-              <div className="space-y-2">
-                {invitations.pendingInvitations.map(invitation => (
-                  <div key={invitation.id} className="flex flex-col gap-3 rounded-lg border border-border bg-secondary/35 p-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-bold text-foreground">{invitation.invited_email}</div>
-                      <div className="mt-1 text-xs text-muted-foreground">{roleLabel(invitation.role)} - expires {formatInviteExpiry(invitation.expires_at)}</div>
+          {canManageMembers && (
+            <div>
+              <SectionHeader title="Pending Invites" count={invitations.pendingInvitations.length} tone="amber" />
+              {invitations.pendingInvitations.length ? (
+                <div className="space-y-2">
+                  {invitations.pendingInvitations.map(invitation => (
+                    <div key={invitation.id} className="flex flex-col gap-3 rounded-lg border border-border bg-secondary/35 p-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-bold text-foreground">{invitation.invited_email}</div>
+                        <div className="mt-1 text-xs text-muted-foreground">{roleLabel(invitation.role)} - expires {formatInviteExpiry(invitation.expires_at)}</div>
+                      </div>
+                      <Button type="button" variant="destructive-outline" size="sm" onClick={() => revokeInvite(invitation.id)}>
+                        Revoke
+                      </Button>
                     </div>
-                    <Button type="button" variant="destructive-outline" size="sm" onClick={() => revokeInvite(invitation.id)}>
-                      Revoke
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <EmptyStatePanel title="No pending invites" detail="New invitations will appear here until accepted, declined, expired, or revoked." className="py-7" />
-            )}
-          </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyStatePanel title="No pending invites" detail="New invitations will appear here until accepted, declined, expired, or revoked." className="py-7" />
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 

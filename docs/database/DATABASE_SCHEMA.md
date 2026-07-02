@@ -16,6 +16,8 @@ Milestone 7 ran app smoke tests against the migrated local Supabase API. The smo
 
 Production note: the first Release 0.6C production attempt failed safely because production was missing the earlier `user_id` ownership baseline expected by `supabase/schema.sql`. The follow-up migration `supabase/migrations/20260701_release_0_6c_auth_ownership_baseline.sql` added missing `user_id` ownership columns, backfilled existing module rows to the approved owner, added indexes and grants, and replaced public/open policies with `familyos_user_all` policies. The Release 0.6C household foundation migration was then applied successfully.
 
+Release 0.9 readiness note: the 0.6C auth ownership baseline migration now skips the approved-owner preflight only when a disposable/fresh database has zero module rows to backfill. Databases with existing module rows still require the approved owner UUID before backfill proceeds.
+
 The selected household role vocabulary is `owner`, `adult`, `teen`, `child`, and `viewer`. `owner` can manage household membership, `adult` can manage household operating data, and `teen`/`child`/`viewer` are conservative read-oriented roles until child-safe product flows are implemented.
 
 Compatibility note: the migration keeps `people.member_type = 'child_profile'` valid alongside the Release 0.6C member-type values so local/staging databases that already ran the 20260627 household foundation draft remain upgradeable.
@@ -50,6 +52,8 @@ Rows include `household_id`, normalized `invited_email`, `invited_by`, target `r
 Invitation acceptance uses `familyos_get_household_invitation()`, `familyos_accept_household_invitation()`, and `familyos_decline_household_invitation()` RPCs. Acceptance requires a signed-in user whose auth email matches `invited_email`.
 
 Invitation creation, listing, and revocation are owner-only in Release 0.9. Member role changes and removal remain owner-only through `household_members` RLS.
+
+Release 0.9 validation note: on July 2, 2026, the schema, ordered migrations, and Release 0.9 migration re-run passed against disposable local database `familyos_r09_validation`. Validation confirmed table existence, status/role constraints, token hash uniqueness, no plaintext token columns, owner-only policies, and RPC signatures. Browser smoke tests confirmed invite create, preview, accept, decline, revoke, member role update, member removal, and active-household switching against local Supabase only.
 
 ### household_settings
 Stores household-wide defaults such as task defaults when they should be shared.

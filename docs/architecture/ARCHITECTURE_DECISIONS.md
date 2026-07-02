@@ -42,6 +42,9 @@ The first Release 0.9 implementation shows invite links once at creation time. P
 ### Follow-up
 Design ownership transfer, owner recovery, and any future email-sending automation before making invitations fully self-service.
 
+### Validation Update
+Final Release 0.9 validation on July 2, 2026 confirmed the token-hash/RPC boundary against disposable local Supabase only. Owner-only controls are enforced by RPC/RLS and hidden in non-owner Settings views; public sign-up, ownership transfer, and broad module RLS conversion remain deferred.
+
 ### July 1, 2026
 
 ### Decision

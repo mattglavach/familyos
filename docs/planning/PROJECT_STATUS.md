@@ -4,7 +4,7 @@
 0.9
 
 ## Current State
-Release 0.9 household collaboration is in progress on branch `release/0.9`.
+Release 0.9 household collaboration is validation-complete on branch `release/0.9` and ready for merge/tag after the final validation commit.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -49,12 +49,13 @@ Release 0.9 household collaboration is in progress on branch `release/0.9`.
 - Release 0.9 secure household invitation migration with hashed invite tokens and RPC accept/decline flows
 - Release 0.9 invite acceptance UI, invite token preservation through auth redirects, active household switching, and Settings household member/invite management
 - Release 0.9 disposable local Supabase validation for migration chain, invitation lifecycle, owner-only controls, RLS denial paths, and active household preference switching
+- Release 0.9 browser smoke validation on local Supabase for owner, adult, and viewer collaboration flows, including invite create/preview/accept/decline/revoke, role update, member removal, active household switching, and hidden non-owner controls
 
 ## In Progress
-- Release 0.9 browser/staging UI smoke testing and release closeout
+- No active Release 0.9 blockers after local validation.
 
 ## Next
-- Run browser smoke tests for Settings invite/member controls and invite acceptance against a real local or staging Supabase API session.
+- Merge Release 0.9 into `main` and tag `v0.9.0` after final review.
 - Configure Release 0.8 server OAuth environment values in Vercel before removing the legacy calendar fallback.
 - Decide whether to remove the legacy browser calendar fallback after deployed validation.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
@@ -70,7 +71,7 @@ Release 0.9 household collaboration is in progress on branch `release/0.9`.
 - The legacy household foundation migration is marked local-only and must not be applied to production.
 - Release 0.7 now uses the household foundation for active household context, family members, settings/profile defaults, and task metadata while preserving staged module-table compatibility.
 - Release 0.9 invite acceptance requires the invited email to already have or receive a valid Supabase auth session; public sign-up remains deferred.
-- Release 0.9 database validation passed against disposable local database `familyos_r09_validation`; production was not touched.
+- Release 0.9 validation passed against disposable local database `familyos_r09_validation` and local browser smoke users; production was not touched.
 
 ## Technical Debt
 - Existing feature screens still contain substantial inline styles and should be migrated gradually to shadcn/ui and Origin UI components during feature work.

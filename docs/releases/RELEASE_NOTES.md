@@ -1,5 +1,44 @@
 # Release Notes
 
+## Release 0.9
+
+### Version
+0.9
+
+### Date
+2026-07-02
+
+### Summary
+Release 0.9 adds the household collaboration foundation: secure household invitations, authenticated accept/decline flows, active household switching, and Settings-based member management.
+
+### New Features
+- Hashed-token household invitations with create, preview, accept, decline, and revoke lifecycle flows.
+- Invite token preservation through auth redirects via `?invite=...`.
+- Active household switching backed by `user_preferences.default_household_id`.
+- Settings household directory, pending invites, invite creation, revoke controls, and owner-only role/remove management.
+
+### Validation
+- Disposable local Supabase only; production was not touched.
+- Full schema plus ordered migration chain applied cleanly from an empty local validation database with a minimal Supabase auth harness.
+- Release 0.9 migration re-run passed with expected idempotency notices.
+- Schema/RLS/RPC assertions passed for invitation table, token-hash-only storage, constraints, indexes, RLS, owner policies, and invitation RPC signatures.
+- Browser smoke tests passed on `http://localhost:3002` with local disposable users for owner, adult, and viewer flows.
+- `pnpm run lint`, `pnpm run build`, and `git diff --check` passed during release validation.
+
+### Fixes
+- Allowed the Release 0.6C auth ownership baseline migration to run on empty local/staging databases while preserving the approved-owner guard when existing module rows require backfill.
+- Added `extensions` to Release 0.9 invitation RPC search paths so `pgcrypto.digest` resolves in local and Supabase-style schemas.
+- Hid owner-only member role/remove and pending invite controls from non-owner Settings views.
+
+### Known Issues
+- Public sign-up remains deferred; invited users still need valid Supabase auth accounts for the invited email.
+- Ownership transfer and owner recovery remain deferred.
+- Broad household-scoped RLS conversion for existing module tables remains deferred.
+- Deployed Google OAuth validation and legacy browser calendar fallback removal remain separate Release 0.8 follow-up work.
+
+### Recommendation
+Ready to merge into `main` and tag as `v0.9.0` after the final validation commit is present on `release/0.9`.
+
 ## Release 0.6B
 
 ### Version

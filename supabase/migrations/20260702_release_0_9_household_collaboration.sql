@@ -55,7 +55,7 @@ returns text
 language sql
 stable
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
   select encode(digest(coalesce(invite_token, ''), 'sha256'), 'hex');
 $$;
@@ -78,7 +78,7 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   normalized_email text := lower(trim(target_invited_email));
@@ -146,7 +146,7 @@ returns table (
 language sql
 stable
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
   select
     invitation.id,
@@ -177,7 +177,7 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   invitation public.household_invitations%rowtype;
@@ -266,7 +266,7 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   invitation public.household_invitations%rowtype;
