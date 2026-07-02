@@ -38,7 +38,12 @@ Release 1.0.1 is a Core MVP Polish release after v1.0.0. It keeps Home as the aw
 - Recurrence: passed for Weekly, Monthly, and Quick Add Daily persistence through the existing interval-days model; Weekdays remained disabled.
 - Quick Add: found and fixed a cross-surface refresh issue; retest confirmed Quick Add task creation refreshed the mounted Tasks data and was visible under Household.
 - More: passed platform grouping for Household, Home, Health, Finance, Planning, and Settings with deferred modules disabled.
-- Notifications, Calendar navigation, and mobile sanity: partially smoke-checked during the local session; no application blocker was found in the touched code paths.
+- Notifications: passed Unread, Today, This Week, and Archive tab switching without using destructive or state-reset actions.
+- Calendar: passed first-class page navigation and disconnected local state with Settings paths.
+- Quick Add deferred behavior: passed; Event, Shopping Item, and Health Entry were visible as disabled later items while supported types remained enabled.
+- Dashboard drill-downs: passed for My Tasks, Tasks insight, and Today's Schedule Calendar paths.
+- Mobile 390px sanity: passed for Home, More, Notifications, bottom navigation visibility, and no horizontal overflow.
+- Browser console: passed with no warning or error logs after the remaining smoke checks.
 
 ## Release 1.0
 

@@ -3,6 +3,7 @@
 ## Unreleased
 - Implemented Release 1.0.1 Core MVP Polish: simplified Home around awareness/drill-downs, reshaped Tasks around one action work surface, added supported recurrence presets, clarified Quick Add future types, grouped More by platform, and added Notification Center lifecycle views.
 - Fixed cross-surface table refresh after mutations so Quick Add task creation is reflected in the mounted Tasks surface without requiring a page reload.
+- Completed remaining Release 1.0.1 authenticated local browser smoke checks for More, Notifications, Calendar, Quick Add deferred types, Home drill-downs, mobile 390px layout, and console errors.
 - Completed Release 1.0 authenticated browser smoke testing against local Supabase only; fixed timestamp/date rendering, Universal Search refresh, notification due-date math, and Settings release/household labels.
 - Implemented Release 1.0 core MVP surfaces: product-ordered Home dashboard, first-class Calendar module, Home/Tasks/Calendar/Quick Add/More navigation, global search, in-app notification center, task search, and household-aware Quick Add task creation.
 - Established the permanent Product Handbook under `docs/product`, defining Family OS product vision, information architecture, navigation, design principles, UX expectations, dashboard strategy, module map, personas, workflows, feature philosophy, product roadmap, and Release 1.0 alignment.
