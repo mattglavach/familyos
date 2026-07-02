@@ -128,7 +128,7 @@ on public.life_lists
 for update
 to authenticated
 using (
-  owner_user_id = auth.uid()
+  (owner_user_id = auth.uid() and visibility = 'personal')
   or exists (
     select 1
     from public.household_members hm
@@ -140,7 +140,7 @@ using (
   )
 )
 with check (
-  owner_user_id = auth.uid()
+  (owner_user_id = auth.uid() and visibility = 'personal')
   or exists (
     select 1
     from public.household_members hm
@@ -158,7 +158,7 @@ on public.life_lists
 for delete
 to authenticated
 using (
-  owner_user_id = auth.uid()
+  (owner_user_id = auth.uid() and visibility = 'personal')
   or exists (
     select 1
     from public.household_members hm
@@ -206,7 +206,7 @@ with check (
       and hm.user_id = auth.uid()
       and hm.status = 'active'
       and (
-        ll.owner_user_id = auth.uid()
+        (ll.owner_user_id = auth.uid() and ll.visibility = 'personal')
         or (ll.visibility in ('household', 'shared') and hm.role in ('owner', 'adult'))
       )
   )
@@ -226,7 +226,7 @@ using (
       and hm.user_id = auth.uid()
       and hm.status = 'active'
       and (
-        ll.owner_user_id = auth.uid()
+        (ll.owner_user_id = auth.uid() and ll.visibility = 'personal')
         or (ll.visibility in ('household', 'shared') and hm.role in ('owner', 'adult'))
       )
   )
@@ -241,7 +241,7 @@ with check (
       and hm.user_id = auth.uid()
       and hm.status = 'active'
       and (
-        ll.owner_user_id = auth.uid()
+        (ll.owner_user_id = auth.uid() and ll.visibility = 'personal')
         or (ll.visibility in ('household', 'shared') and hm.role in ('owner', 'adult'))
       )
   )
@@ -261,7 +261,7 @@ using (
       and hm.user_id = auth.uid()
       and hm.status = 'active'
       and (
-        ll.owner_user_id = auth.uid()
+        (ll.owner_user_id = auth.uid() and ll.visibility = 'personal')
         or (ll.visibility in ('household', 'shared') and hm.role in ('owner', 'adult'))
       )
   )

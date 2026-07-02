@@ -422,7 +422,6 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
               <StatusBadge status={totalIssues === 0 ? "healthy" : overdue.length > 0 ? "urgent" : "warning"}>
                 {totalIssues === 0 ? "All clear" : overdue.length > 0 ? `${overdue.length} urgent` : `${thisWeek.length} due`}
               </StatusBadge>
-              {totalIssues > focusItems.length && <Button type="button" variant="ghost" size="xs" onClick={() => onNavigate("tasks")}>View All</Button>}
             </div>
           </div>
           <div className="mb-1 text-2xl font-extrabold leading-tight tracking-normal" style={{ color: totalIssues === 0 ? COLORS.green : overdue.length > 0 ? COLORS.red : COLORS.amber }}>

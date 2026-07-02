@@ -57,8 +57,9 @@ function memberName(personId, people) {
 
 function canEditList(list, household) {
   if (!list) return false;
-  if (list.owner_user_id === household.user?.id) return true;
-  return roleCanManage(household.membership?.role) && ["household", "shared"].includes(list.visibility || "household");
+  const visibility = list.visibility || "household";
+  if (visibility === "personal") return list.owner_user_id === household.user?.id;
+  return roleCanManage(household.membership?.role) && ["household", "shared"].includes(visibility);
 }
 
 function canViewList(list, household) {
@@ -348,7 +349,7 @@ export function LifeLists() {
             <EmptyStatePanel title="No Life Lists yet" detail="Create a flexible list for movies, books, trip ideas, gifts, memories, or any future category." action={canCreate ? "Create list" : undefined} onAction={canCreate ? () => openListForm() : undefined} className="py-9" />
           </Card>
         )}
-        <ListDrawer open={listDrawer} onOpenChange={setListDrawer} form={listForm} setForm={setListForm} onSave={saveList} error={error} />
+        <ListDrawer open={listDrawer} onOpenChange={setListDrawer} form={listForm} setForm={setListForm} onSave={saveList} error={error} canManageSharedLists={canManageSharedLists} />
       </div>
     );
   }
@@ -400,7 +401,7 @@ export function LifeLists() {
           </CardContent>
         </Card>
       )}
-      <ListDrawer open={listDrawer} onOpenChange={setListDrawer} form={listForm} setForm={setListForm} onSave={saveList} error={error} />
+      <ListDrawer open={listDrawer} onOpenChange={setListDrawer} form={listForm} setForm={setListForm} onSave={saveList} error={error} canManageSharedLists={canManageSharedLists} />
       <ItemDrawer open={itemDrawer} onOpenChange={setItemDrawer} form={itemForm} setForm={setItemForm} people={household.people} onSave={saveItem} error={error} />
       <Dialog open={confirm === "delete-list"} onOpenChange={() => setConfirm(null)}>
         <DialogContent onClose={() => setConfirm(null)}>
@@ -412,14 +413,14 @@ export function LifeLists() {
   );
 }
 
-function ListDrawer({ open, onOpenChange, form, setForm, onSave, error }) {
+function ListDrawer({ open, onOpenChange, form, setForm, onSave, error, canManageSharedLists }) {
   return (
     <OriginDrawer open={open} onOpenChange={onOpenChange} title={form.id ? "Edit List" : "Create List"} description="Keep lists generic so future categories can fit without new code.">
       <FormSection>
         <FormGroup><Label>Name</Label><Input value={form.name || ""} onChange={event => setForm(previous => ({ ...previous, name: event.target.value }))} placeholder="Movies to watch" /></FormGroup>
         <FormGroup><Label>Description</Label><Textarea value={form.description || ""} onChange={event => setForm(previous => ({ ...previous, description: event.target.value }))} placeholder="Optional notes about this collection" /></FormGroup>
         <FormGroup><Label>Category</Label><Input value={form.category || ""} onChange={event => setForm(previous => ({ ...previous, category: event.target.value }))} placeholder="Movies, Books, Travel, Gifts..." /></FormGroup>
-        <FormGroup><Label>Visibility</Label><SegmentedControl value={form.visibility || "household"} options={LIST_VISIBILITY} ariaLabel="List visibility" onValueChange={visibility => setForm(previous => ({ ...previous, visibility }))} /></FormGroup>
+        <FormGroup><Label>Visibility</Label><SegmentedControl value={form.visibility || (canManageSharedLists ? "household" : "personal")} options={canManageSharedLists ? LIST_VISIBILITY : [{ value: "personal", label: "Personal" }]} ariaLabel="List visibility" onValueChange={visibility => setForm(previous => ({ ...previous, visibility }))} /></FormGroup>
         <FormRow><FormGroup><Label>Icon</Label><Input value={form.icon || ""} onChange={event => setForm(previous => ({ ...previous, icon: event.target.value }))} maxLength={2} /></FormGroup><FormGroup><Label>Color</Label><Input type="color" value={form.color || COLORS.blue} onChange={event => setForm(previous => ({ ...previous, color: event.target.value }))} /></FormGroup></FormRow>
         <button type="button" className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-border bg-secondary px-3 py-3 text-left text-sm font-semibold text-secondary-foreground" onClick={() => setForm(previous => ({ ...previous, favorite: !previous.favorite }))}><span className={`flex h-5 w-5 items-center justify-center rounded-md border ${form.favorite ? "border-violet-400 bg-violet-500 text-white" : "border-muted-foreground"}`}>{form.favorite && <Check size={14} aria-hidden="true" />}</span>Favorite</button>
         <Button type="button" className="w-full" onClick={onSave}>{form.id ? "Save List" : "Create List"}</Button>

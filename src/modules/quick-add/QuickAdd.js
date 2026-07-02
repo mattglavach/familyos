@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, Check, ChevronLeft, ClipboardList, Droplets, HeartPulse, ListChecks, Plus, ShoppingCart } from "lucide-react";
+import { Check, ChevronLeft, ClipboardList, Droplets, ListChecks } from "lucide-react";
 import { TODAY_STR } from "../../lib/dates";
 import { sb } from "../../lib/supabase";
 import { formatUserFacingError } from "../../lib/userFacingErrors";
@@ -32,9 +32,6 @@ export function QuickAdd({onNavigate, openSignal = 0}){
     {id:"life-item", icon:ListChecks, label:"List Item", status:"Ready", enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
     {id:"life-list", icon:ListChecks, label:"Life List", status:"Ready", enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
     {id:"pool", icon:Droplets, label:"Pool Reading", status:"Ready", enabled:true, accentClass:"border-l-primary", iconClass:"text-primary"},
-    {id:"event", icon:CalendarDays, label:"Event", status:"Coming later", enabled:false, accentClass:"border-l-muted-foreground", iconClass:"text-muted-foreground"},
-    {id:"shopping", icon:ShoppingCart, label:"Shopping Item", status:"Coming later", enabled:false, accentClass:"border-l-muted-foreground", iconClass:"text-muted-foreground"},
-    {id:"health", icon:HeartPulse, label:"Health Entry", status:"Coming later", enabled:false, accentClass:"border-l-muted-foreground", iconClass:"text-muted-foreground"},
   ];
 
   const CATS = ["Pool","Yard","Home","College","Finance","Personal","Work"];
@@ -48,6 +45,12 @@ export function QuickAdd({onNavigate, openSignal = 0}){
   ];
   const modeTitle = options.find(o=>o.id===mode)?.label || "Quick Add";
   const canManageSharedLists = roleCanManage(household.membership?.role);
+  const writableLifeLists = lifeLists.data.filter(list => {
+    if (list.archived) return false;
+    const visibility = list.visibility || "household";
+    if (visibility === "personal") return list.owner_user_id === household.user?.id;
+    return canManageSharedLists && ["household", "shared"].includes(visibility);
+  });
 
   useEffect(() => {
     if (openSignal) setOpen(true);
@@ -98,6 +101,7 @@ export function QuickAdd({onNavigate, openSignal = 0}){
     setSaveError(null);
     if(!form.title){setSaveError("Item title is required");return;}
     if(!form.list_id){setSaveError("Choose a Life List first.");return;}
+    if(!writableLifeLists.some(list=>list.id===form.list_id)){setSaveError("Choose a list you can update.");return;}
     const row={list_id:form.list_id,title:form.title,description:form.notes||"",priority:form.priority||"med",status:"planned",favorite:form.favorite||false,archived:false,tags:(form.tags||"").split(",").map(tag=>tag.trim()).filter(Boolean),link_url:form.link_url||"",image_url:"",sort_order:lifeItems.data.filter(item=>item.list_id===form.list_id).length+1,updated_at:new Date().toISOString()};
     try{
       await lifeItems.insert(row);
@@ -115,16 +119,6 @@ export function QuickAdd({onNavigate, openSignal = 0}){
         </div>
       </div>
     )}
-    <Button
-      type="button"
-      size="icon-xl"
-      aria-label="Open quick add"
-      className="fixed bottom-24 right-5 z-30 h-12 w-12 rounded-full shadow-[0_4px_16px_rgba(74,144,217,0.28)]"
-      onClick={()=>setOpen(true)}
-    >
-      <Plus aria-hidden="true"/>
-    </Button>
-
     <OriginDrawer open={open} onOpenChange={(nextOpen)=>{ if(!nextOpen) close(); }} title={modeTitle}>
         {!mode&&<>
           <SectionHeader title="Capture" className="mt-0"/>
@@ -214,8 +208,9 @@ export function QuickAdd({onNavigate, openSignal = 0}){
               <Label>List</Label>
               <select className="flex h-11 w-full rounded-md border border-input bg-secondary px-3 py-2 text-sm text-foreground" value={form.list_id||""} onChange={e=>setForm(p=>({...p,list_id:e.target.value}))}>
                 <option value="">Choose a list</option>
-                {lifeLists.data.filter(list=>!list.archived).map(list=><option key={list.id} value={list.id}>{list.name}</option>)}
+                {writableLifeLists.map(list=><option key={list.id} value={list.id}>{list.name}</option>)}
               </select>
+              {!writableLifeLists.length&&<FormHelp>Create a personal list before adding an item.</FormHelp>}
             </FormGroup>
             <FormGroup>
               <Label>Title</Label>
