@@ -96,7 +96,6 @@ Before making code, database, UI, or architecture changes, read:
 - `docs/process/ENVIRONMENTS.md`
 - `docs/planning/CURRENT_SPRINT.md`
 - `docs/planning/ROADMAP.md`
-- `docs/development/CODING_STANDARDS.md`
 - `docs/database/DATABASE_SCHEMA.md`
 - `docs/ui/DESIGN_SYSTEM.md`
 

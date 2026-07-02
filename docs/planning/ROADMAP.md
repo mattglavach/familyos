@@ -65,5 +65,9 @@
 ## Engineering Process Track
 - [x] Establish permanent release, feature, coding, architecture, UI, testing, documentation, git, review, checklist, and prompt playbooks.
 - [x] Establish governance, production readiness, environment, security, dependency, ADR, planning, and reusable specification templates.
-- [ ] Use the Release 0.9.1 process framework for the next feature or release prompt.
+- [x] Clean up repository documentation structure after Release 0.9.1.
+- [ ] Use the Release 0.9.1/0.9.2 process framework for Release 1.0 planning.
 - [ ] Revisit process docs after two releases and refine based on actual execution gaps.
+
+## Next Release
+- [ ] Release 1.0 planning with `docs/templates/RELEASE_SPEC.md`.

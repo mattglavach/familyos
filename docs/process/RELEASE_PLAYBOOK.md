@@ -1,6 +1,6 @@
 # Release Playbook
 
-This playbook governs Family OS release execution. It complements `docs/development/RELEASE_PROCESS.md` and is the primary checklist for Codex-run release workstreams.
+This playbook governs Family OS release execution and is the primary checklist for Codex-run release workstreams. The older development release-process baseline is archived under `docs/archive/development-baseline/`.
 
 ## Operating Model
 - ChatGPT owns product management, architecture direction, release planning, technical review, QA review, risk assessment, and roadmap decisions.

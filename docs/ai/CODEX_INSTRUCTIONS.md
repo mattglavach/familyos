@@ -11,7 +11,7 @@ Read:
 - docs/process/TESTING_GUIDELINES.md
 - docs/process/DOCUMENTATION_GUIDELINES.md
 - docs/planning/CURRENT_SPRINT.md
-- docs/development/CODING_STANDARDS.md
+- docs/process/CODING_STANDARDS.md
 - docs/database/DATABASE_SCHEMA.md
 - docs/ui/DESIGN_SYSTEM.md
 

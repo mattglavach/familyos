@@ -46,7 +46,7 @@ Recommendation: centralize user-visible error handling and avoid silently substi
 - `package.json` defines `lint`, `build`, and `check`.
 - ESLint extends `react-app`.
 - `docs/architecture/SYSTEM_ARCHITECTURE.md` says TypeScript is target stack, but there is no TypeScript setup.
-- `docs/development/CODING_STANDARDS.md` includes TypeScript guidance, but current source is JavaScript.
+- `docs/archive/development-baseline/CODING_STANDARDS.md` includes historical TypeScript guidance, while current active coding guidance lives in `docs/process/CODING_STANDARDS.md`.
 - Tailwind and shadcn-style config exist, but much of the existing app still relies on inline styles from `src/theme.js`.
 
 ## Test Coverage Gaps
@@ -82,4 +82,3 @@ Next candidates:
 ## Build / Lint / Test Issues
 
 Checks should be run after the audit files are created. Do not fix check failures as part of this audit-only task.
-

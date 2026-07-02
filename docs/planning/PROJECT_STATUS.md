@@ -1,10 +1,10 @@
 # Project Status
 
 ## Current Version
-0.9.1
+0.9.2
 
 ## Current State
-Release 0.9 household collaboration is validation-complete. Release 0.9.1 engineering framework is in progress on branch `release/0.9.1-engineering-framework`.
+Release 0.9.2 repository documentation cleanup is in progress on branch `release/0.9.2-repository-cleanup`.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -52,14 +52,14 @@ Release 0.9 household collaboration is validation-complete. Release 0.9.1 engine
 - Release 0.9 browser smoke validation on local Supabase for owner, adult, and viewer collaboration flows, including invite create/preview/accept/decline/revoke, role update, member removal, active household switching, and hidden non-owner controls
 - Release 0.9.1 permanent engineering process framework covering release, feature, coding, architecture, UI, testing, documentation, git, review, checklist, and prompt workflows
 - Release 0.9.1 governance framework covering Family OS principles, project structure, module template, production readiness, AI engineering, API, security, performance, environments, dependencies, ADRs, planning logs, and reusable templates
+- v0.9.0 released with household collaboration validation complete
+- v0.9.1 released with permanent engineering framework and governance templates
 
 ## In Progress
-- Release 0.9.1 validation and closeout.
+- Release 0.9.2 repository documentation cleanup and cross-reference validation.
 
 ## Next
-- Review and adopt the Release 0.9.1 process framework for future release prompts.
-- Use `docs/templates/RELEASE_SPEC.md` for the next release request.
-- Merge Release 0.9.1 into `main` and tag after validation and review.
+- Release 1.0 planning using `docs/templates/RELEASE_SPEC.md`.
 - Configure Release 0.8 server OAuth environment values in Vercel before removing the legacy calendar fallback.
 - Decide whether to remove the legacy browser calendar fallback after deployed validation.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
@@ -86,6 +86,7 @@ Release 0.9 household collaboration is validation-complete. Release 0.9.1 engine
 - Ownership transfer, owner recovery, and full household-only module RLS remain Release 0.9 follow-up work.
 - The new process framework should be tested against the next release and refined if any required step is unclear or redundant.
 - Governance templates should remain lightweight; expand them only when real releases expose gaps.
+- Historical audit and implementation docs are intentionally retained but should not be treated as current process guidance.
 
 ## Last Updated
 July 2, 2026

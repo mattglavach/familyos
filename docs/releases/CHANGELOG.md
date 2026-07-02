@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Cleaned up the repository documentation structure for Release 0.9.2 by archiving superseded development docs, consolidating active engineering guidance under `docs/process`, updating stale release status references, and preparing planning docs for Release 1.0.
 - Added Release 0.9.1 governance and engineering reference docs for principles, project structure, modules, production readiness, AI engineering, APIs, security, performance, environments, dependencies, ADRs, technical debt, decision logging, roadmap process, and reusable templates.
 - Added `eslint` as a direct dev dependency so the existing `pnpm run lint` script works in clean pnpm worktrees.
 - Established the Release 0.9.1 permanent engineering framework under `docs/process`, including release, feature, coding, architecture, UI, testing, documentation, git, review, checklist, and prompt playbooks, and updated repository entry points to make the process docs the default source of truth.

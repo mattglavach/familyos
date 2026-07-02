@@ -30,3 +30,9 @@ Use this document to track durable technical debt. Do not use chat history as th
 - Status: Open
 - Impact: Current validation relies heavily on lint/build/manual SQL/browser smoke.
 - Trigger: Before high-risk finance, medical, document, or broad collaboration releases.
+
+### Historical Documentation Review
+- Status: Open
+- Impact: Audit, decision, and implementation folders intentionally preserve historical context, but some findings describe older repository states.
+- Trigger: Before Release 1.0 documentation freeze.
+- Notes: Review historical docs for any current links that should point to `docs/process`, without rewriting historical records.

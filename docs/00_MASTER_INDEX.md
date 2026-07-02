@@ -54,13 +54,6 @@ This folder is the operating manual for Family OS.
 - docs/database/NAMING_STANDARDS.md
 - docs/database/SECURITY_RLS.md
 
-### Development
-- docs/development/CODING_STANDARDS.md
-- docs/development/GIT_WORKFLOW.md
-- docs/development/TESTING_STRATEGY.md
-- docs/development/DEFINITION_OF_DONE.md
-- docs/development/RELEASE_PROCESS.md
-
 ### Process
 - docs/process/FAMILY_OS_PRINCIPLES.md
 - docs/process/RELEASE_PLAYBOOK.md
@@ -94,6 +87,13 @@ This folder is the operating manual for Family OS.
 ### Releases
 - docs/releases/CHANGELOG.md
 - docs/releases/RELEASE_NOTES.md
+
+### Archive
+- docs/archive/development-baseline/CODING_STANDARDS.md
+- docs/archive/development-baseline/GIT_WORKFLOW.md
+- docs/archive/development-baseline/TESTING_STRATEGY.md
+- docs/archive/development-baseline/DEFINITION_OF_DONE.md
+- docs/archive/development-baseline/RELEASE_PROCESS.md
 
 ### UI
 - docs/ui/DESIGN_SYSTEM.md
