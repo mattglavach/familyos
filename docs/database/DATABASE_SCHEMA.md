@@ -82,6 +82,8 @@ Rows include `household_id`, `user_id`, `owner_user_id`, `name`, `description`, 
 
 `visibility` supports `personal`, `household`, and `shared`. Personal lists are owner-visible. Household and shared lists are active-household records.
 
+Release 1.1 validation note: the Life Lists migration was applied from an empty disposable local database after the base schema and ordered migration chain, then re-run idempotently. Validation confirmed both tables, required indexes, constraints, grants, RLS enablement, and policies.
+
 ### life_list_items
 Stores entries inside Life Lists.
 

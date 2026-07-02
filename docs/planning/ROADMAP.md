@@ -92,8 +92,8 @@
 - [x] Add Life Lists targets to Universal Quick Add.
 - [x] Add lists and list items to Universal Search.
 - [x] Add compact Home Life Lists awareness with drill-down.
-- [ ] Validate migration/RLS against disposable or staging Supabase before production.
-- [ ] Keep shopping, meal planning, finance expansion, health, Home platform, AI, recommendation engines, ratings, reviews, and external enrichment APIs deferred.
+- [x] Validate migration/RLS against disposable or staging Supabase before production.
+- [x] Keep shopping, meal planning, finance expansion, health, Home platform, AI, recommendation engines, ratings, reviews, and external enrichment APIs deferred.
 
 ## Release 1.0 Scope
 - [x] Stabilize the dashboard daily command center.

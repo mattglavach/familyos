@@ -30,8 +30,10 @@ Users can access records where their profile belongs to the same household.
 - Active household members can read household/shared Life Lists and their items.
 - Personal Life Lists are visible only to `owner_user_id`.
 - Owners and adults can create, update, and delete household/shared lists and items.
+- Viewers cannot manage household/shared lists or their items, including household/shared lists they created before a role change.
 - Any active signed-in member can create personal lists they own.
 - Item access is derived from the parent list, including personal-list owner checks and household/shared owner/adult management checks.
+- Release 1.1 validation used disposable/local Supabase only and confirmed owner, adult, viewer, personal owner-only, household/shared read, archived item read, and cross-household denial paths.
 - Release 1.1 does not add push/email/SMS notifications, external enrichment APIs, public sharing, ratings, or reviews.
 
 ## Future

@@ -42,7 +42,7 @@ Long-term capture targets:
 
 Release 1.0 should keep Quick Add focused on existing supported actions and avoid adding unsupported module types.
 
-Release 1.1 keeps Task, Pool Reading, Life List, and Life List Item enabled. Event, Shopping Item, and Health Entry are shown as later/deferred targets only when useful for product direction and must not create incomplete module records. Note and Maintenance are not enabled until those workflows are fully supported.
+Release 1.1 keeps Task, Pool Reading, Life List, and Life List Item enabled. Event, Shopping Item, Health Entry, Note, and Maintenance are not shown until those workflows are fully supported.
 
 ## Header Status Actions
 Global header actions should stay compact and trustworthy. Search, Notifications, Calendar status, and Settings may use icon-only buttons when they have accessible labels and tooltips. Calendar status should route to Calendar when healthy and to Settings when connection action or setup guidance is needed.

@@ -32,7 +32,10 @@ Release 1.1 adds Life Lists as the first major lifestyle planning module in Fami
 
 ### Validation
 - `pnpm run lint` passed.
-- `pnpm run build`, `git diff --check`, browser smoke, and disposable/staging Supabase migration/RLS validation remain required before merge readiness.
+- Disposable local Supabase validation passed on July 2, 2026: full schema from empty database, ordered migration chain, Release 1.1 migration re-run, `life_lists`/`life_list_items` tables, indexes, constraints, grants, RLS enablement, and policies.
+- RLS smoke passed for owner, adult, viewer, personal-list owner-only behavior, household/shared member reads, viewer denial paths, cross-household denial, and archived item visibility through readable parent lists.
+- Authenticated local browser smoke passed for owner/adult/viewer Life Lists workflows, Quick Add list/list-item flows, Home and Universal Search drill-downs, 390px mobile layout, no horizontal overflow, and no console warnings/errors.
+- Product cleanup validation removed the floating Quick Add button, removed Today's Priorities "View All", preserved individually clickable priority rows, kept Quick Add to supported destinations only, and avoided consumer-facing technical terms.
 
 ## Release 1.0.5
 

@@ -109,6 +109,9 @@ Implement Release 1.1 Life Lists as the first major lifestyle planning platform,
 - [x] Add Life Lists module under More
 - [x] Add Life Lists Home awareness, Quick Add, and Universal Search integration
 - [x] Update Release 1.1 architecture, database, product, planning, and release documentation
+- [x] Validate Release 1.1 migration/RLS against disposable local Supabase
+- [x] Complete authenticated local browser smoke for Life Lists, Quick Add, Home drill-downs, Universal Search, permissions, console checks, and 390px mobile layout
+- [x] Complete Release 1.1 product cleanup validation for Quick Add and Today's Priorities
 
 ## Blockers
 
@@ -117,7 +120,7 @@ Implement Release 1.1 Life Lists as the first major lifestyle planning platform,
 - Release 1.0.2 has no active validation blocker after completing local authenticated adult, viewer, mobile, and task lifecycle smoke checks.
 - Release 1.0.3 has no active implementation or validation blocker after local lint, build, diff-check, browser smoke, and console validation.
 - Release 1.0.4 has no active validation blocker after lint, build, diff-check, authenticated local browser smoke, mobile 390px sanity checks, and console validation.
-- Release 1.1 has no known implementation blocker after lint passes. Build, diff-check, browser smoke, migration/RLS validation, and commits remain.
+- Release 1.1 has no active validation blocker after disposable/local migration/RLS checks, authenticated browser smoke, mobile sanity checks, lint, build, and diff-check.
 
 ## Notes
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.
