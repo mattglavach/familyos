@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, ChevronLeft, ClipboardList, Droplets, FileText, GraduationCap, Plus, Wrench } from "lucide-react";
+import { CalendarDays, Check, ChevronLeft, ClipboardList, Droplets, FileText, HeartPulse, Plus, ShoppingCart, Wrench } from "lucide-react";
 import { TODAY_STR } from "../../lib/dates";
 import { sb } from "../../lib/supabase";
 import { useTable } from "../../hooks/useTable";
@@ -24,23 +24,24 @@ export function QuickAdd({onNavigate, openSignal = 0}){
   function close(){setOpen(false);setMode(null);setForm({});setSaveError(null);}
 
   const options=[
-    {id:"task",    icon:ClipboardList, label:"Quick Task",      accentClass:"border-l-violet-400", iconClass:"text-violet-300"},
-    {id:"pool",    icon:Droplets,      label:"Pool Reading",    accentClass:"border-l-primary", iconClass:"text-primary"},
-    {id:"maint",   icon:Wrench,        label:"Maintenance",     accentClass:"border-l-amber-400", iconClass:"text-amber-300"},
-    {id:"college", icon:GraduationCap, label:"College Deadline",accentClass:"border-l-destructive", iconClass:"text-destructive"},
-    {id:"note",    icon:FileText,      label:"Quick Note",      accentClass:"border-l-muted-foreground", iconClass:"text-muted-foreground"},
+    {id:"task", icon:ClipboardList, label:"Task", status:"Available", enabled:true, accentClass:"border-l-violet-400", iconClass:"text-violet-300"},
+    {id:"note", icon:FileText, label:"Note", status:"Available", enabled:true, accentClass:"border-l-muted-foreground", iconClass:"text-muted-foreground"},
+    {id:"pool", icon:Droplets, label:"Pool Reading", status:"Existing", enabled:true, accentClass:"border-l-primary", iconClass:"text-primary"},
+    {id:"maint", icon:Wrench, label:"Maintenance", status:"Existing", enabled:true, accentClass:"border-l-amber-400", iconClass:"text-amber-300"},
+    {id:"event", icon:CalendarDays, label:"Event", status:"Later", enabled:false, accentClass:"border-l-muted-foreground", iconClass:"text-muted-foreground"},
+    {id:"shopping", icon:ShoppingCart, label:"Shopping Item", status:"Later", enabled:false, accentClass:"border-l-muted-foreground", iconClass:"text-muted-foreground"},
+    {id:"health", icon:HeartPulse, label:"Health Entry", status:"Later", enabled:false, accentClass:"border-l-muted-foreground", iconClass:"text-muted-foreground"},
   ];
 
   const CATS = ["Pool","Yard","Home","College","Finance","Personal","Work"];
   const NOTE_TAGS = ["Pool","Home","College","Finance","General"];
   const RECURRING_OPTIONS = [
-    {value:null,label:"One-time"},
-    {value:3,label:"Every 3d"},
-    {value:7,label:"Every 7d"},
-    {value:14,label:"Every 14d"},
-    {value:30,label:"Every 30d"},
-    {value:60,label:"Every 60d"},
-    {value:90,label:"Every 90d"},
+    {value:"",label:"None",days:null,supported:true},
+    {value:"daily",label:"Daily",days:1,supported:true},
+    {value:"weekdays",label:"Weekdays - later",days:null,supported:false},
+    {value:"weekly",label:"Weekly",days:7,supported:true},
+    {value:"monthly",label:"Monthly",days:30,supported:true},
+    {value:"yearly",label:"Yearly",days:365,supported:true},
   ];
   const MAINT_TYPES = ["Check water level","Clean skimmer basket","Brushed walls & floor","Added salt","Cleaned cartridge filter","Cleaned salt cell","Checked flow switch","Other"];
   const modeTitle = options.find(o=>o.id===mode)?.label || "Quick Add";
@@ -52,7 +53,8 @@ export function QuickAdd({onNavigate, openSignal = 0}){
   async function saveTask(){
     setSaveError(null);
     if(!form.title){setSaveError("Title is required");return;}
-    const row={title:form.title,category:form.category||"Home",priority:form.priority||"med",due_date:form.due_date||null,recurring_interval_days:form.recurring_interval_days?+form.recurring_interval_days:null,last_completed:null,is_important:form.is_important||false,notes:form.notes||"",completed:false};
+    const recurrence = RECURRING_OPTIONS.find(option => option.value === (form.recurrence || ""));
+    const row={title:form.title,category:form.category||"Home",priority:form.priority||"med",due_date:form.due_date||null,recurring_interval_days:recurrence?.supported ? recurrence.days : null,last_completed:null,is_important:form.is_important||false,notes:form.notes||"",completed:false};
     try{
       await tasks.insert(row);
       close();onNavigate("tasks");
@@ -107,14 +109,15 @@ export function QuickAdd({onNavigate, openSignal = 0}){
 
     <OriginDrawer open={open} onOpenChange={(nextOpen)=>{ if(!nextOpen) close(); }} title={modeTitle}>
         {!mode&&<>
-          <SectionHeader title="Choose Type" className="mt-0"/>
+          <SectionHeader title="Capture" className="mt-0"/>
           <div className="space-y-2">
           {options.map(o=>{
             const Icon = o.icon;
             return (
-              <button key={o.id} onClick={()=>setMode(o.id)} className={`flex min-h-12 w-full items-center gap-3 rounded-lg border border-l-[3px] border-border bg-secondary px-4 py-3 text-left text-foreground transition-colors hover:border-primary/50 ${o.accentClass}`}>
+              <button key={o.id} disabled={!o.enabled} onClick={()=>o.enabled&&setMode(o.id)} className={`flex min-h-12 w-full items-center gap-3 rounded-lg border border-l-[3px] border-border bg-secondary px-4 py-3 text-left text-foreground transition-colors hover:border-primary/50 disabled:cursor-not-allowed disabled:opacity-60 ${o.accentClass}`}>
                 <Icon size={20} aria-hidden="true" className={o.iconClass}/>
-                <span className="text-sm font-semibold">{o.label}</span>
+                <span className="min-w-0 flex-1 text-sm font-semibold">{o.label}</span>
+                <span className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">{o.status}</span>
               </button>
             );
           })}
@@ -143,8 +146,11 @@ export function QuickAdd({onNavigate, openSignal = 0}){
               <Input type="date" value={form.due_date||""} onChange={e=>setForm(p=>({...p,due_date:e.target.value}))}/>
             </FormGroup>
             <FormGroup>
-              <Label>Recurring (optional)</Label>
-              <ChipGroup value={form.recurring_interval_days??null} options={RECURRING_OPTIONS} ariaLabel="Recurring interval" onValueChange={recurring_interval_days=>setForm(p=>({...p,recurring_interval_days}))}/>
+              <Label>Repeat</Label>
+              <select className="min-h-10 w-full rounded-lg border border-border bg-secondary px-3 text-sm text-foreground" value={form.recurrence||""} onChange={e=>setForm(p=>({...p,recurrence:e.target.value}))}>
+                {RECURRING_OPTIONS.map(option=><option key={option.value||"none"} value={option.value} disabled={!option.supported}>{option.label}</option>)}
+              </select>
+              <FormHelp>Weekday-only recurrence needs a future recurrence model.</FormHelp>
             </FormGroup>
             <FormGroup>
               <Label>Notes (optional)</Label>

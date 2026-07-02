@@ -1,17 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  AlertTriangle,
-  CalendarClock,
   CheckCircle2,
-  Clock,
   Edit3,
   ListFilter,
   Plus,
   RotateCcw,
   Trash2,
   UserRound,
-  Users,
-  Wrench,
 } from "lucide-react";
 import { Badge, StatusBadge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
@@ -21,7 +16,7 @@ import { FormError, FormGroup, FormHelp, FormRow, FormSection } from "../../comp
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { SectionHeader } from "../../components/ui/section-header";
-import { SegmentedControl } from "../../components/ui/segmented-control";
+import { ChipGroup } from "../../components/ui/segmented-control";
 import { Select } from "../../components/ui/select";
 import { Skeleton } from "../../components/ui/skeleton";
 import { Textarea } from "../../components/ui/textarea";
@@ -44,6 +39,22 @@ const DUE_FILTERS = [
   { value: "overdue", label: "Overdue" },
   { value: "today", label: "Today" },
   { value: "upcoming", label: "Upcoming" },
+];
+const WORKSPACE_FILTERS = [
+  { value: "mine", label: "My Tasks" },
+  { value: "household", label: "Household" },
+  { value: "today", label: "Today" },
+  { value: "upcoming", label: "Upcoming" },
+  { value: "overdue", label: "Overdue" },
+  { value: "completed", label: "Completed" },
+];
+const RECURRENCE_OPTIONS = [
+  { value: "", label: "None", days: null, supported: true },
+  { value: "daily", label: "Daily", days: 1, supported: true },
+  { value: "weekdays", label: "Weekdays", days: null, supported: false },
+  { value: "weekly", label: "Weekly", days: 7, supported: true },
+  { value: "monthly", label: "Monthly", days: 30, supported: true },
+  { value: "yearly", label: "Yearly", days: 365, supported: true },
 ];
 
 const CATEGORY_TONES = {
@@ -148,6 +159,21 @@ function normalizeTask(row, metadata, members, nextDueDate, index = 0) {
   };
 }
 
+function recurrenceValueFromDays(days) {
+  const option = RECURRENCE_OPTIONS.find(item => item.days === Number(days) && item.supported);
+  return option?.value || "";
+}
+
+function recurrenceDaysFromValue(value) {
+  const option = RECURRENCE_OPTIONS.find(item => item.value === value);
+  return option?.supported ? option.days : null;
+}
+
+function recurrenceLabel(days) {
+  if (!days) return "";
+  return RECURRENCE_OPTIONS.find(item => item.days === Number(days) && item.supported)?.label || `Every ${days}d`;
+}
+
 function emptyTaskForm(defaultAssignee = "Family", defaults = {}) {
   return {
     title: "",
@@ -157,7 +183,7 @@ function emptyTaskForm(defaultAssignee = "Family", defaults = {}) {
     priority: defaults.taskDefaultPriority || "med",
     status: "Not Started",
     category: defaults.taskDefaultCategory || "Home",
-    recurring_interval_days: "",
+    recurrence: "",
   };
 }
 
@@ -170,7 +196,7 @@ function taskToForm(task) {
     priority: task.priority || "med",
     status: task.status || (task.completed ? "Completed" : "Not Started"),
     category: task.category || "Home",
-    recurring_interval_days: task.recurring_interval_days || "",
+    recurrence: recurrenceValueFromDays(task.recurring_interval_days),
   };
 }
 
@@ -182,7 +208,7 @@ function taskRowFromForm(form, id, currentTask, todayString) {
     category: form.category || "Home",
     priority: form.priority || "med",
     due_date: form.due_date || null,
-    recurring_interval_days: form.recurring_interval_days ? Number(form.recurring_interval_days) : null,
+    recurring_interval_days: recurrenceDaysFromValue(form.recurrence),
     last_completed: completed ? todayString : currentTask?.last_completed || null,
     is_important: form.priority === "high",
     notes: form.description || "",
@@ -202,7 +228,8 @@ function taskMetadataFromForm(form, members, currentTask, todayString) {
 
 function validateTask(form) {
   if (!form.title.trim()) return "Task title is required.";
-  if (form.recurring_interval_days && Number(form.recurring_interval_days) < 1) return "Recurring interval must be at least 1 day.";
+  const recurrence = RECURRENCE_OPTIONS.find(item => item.value === form.recurrence);
+  if (recurrence && !recurrence.supported) return `${recurrence.label} recurrence is not supported yet. Choose Daily, Weekly, Monthly, Yearly, or None.`;
   return "";
 }
 
@@ -210,19 +237,10 @@ function sortTasks(items, sortBy) {
   const copy = [...items];
   return copy.sort((a, b) => {
     if (sortBy === "priority") return (PRIORITY_WEIGHT[b.priority] || 0) - (PRIORITY_WEIGHT[a.priority] || 0);
-    if (sortBy === "created") return String(b.created_at || "").localeCompare(String(a.created_at || ""));
-    if (sortBy === "assignee") return String(a.assignee || "").localeCompare(String(b.assignee || ""));
+    if (sortBy === "updated") return String(b.updated_at || b.created_at || "").localeCompare(String(a.updated_at || a.created_at || ""));
+    if (sortBy === "alpha") return String(a.title || "").localeCompare(String(b.title || ""));
     return String(a.effective_due_date || "9999-12-31").localeCompare(String(b.effective_due_date || "9999-12-31"));
   });
-}
-
-function safeMaintenanceDueDate(item, nextDueDate) {
-  try {
-    if (!item?.last_completed || !item?.interval_days) return null;
-    return nextDueDate(item.last_completed, Number(item.interval_days));
-  } catch {
-    return null;
-  }
 }
 
 function Toast({ toast, onDismiss }) {
@@ -234,21 +252,6 @@ function Toast({ toast, onDismiss }) {
         <Button type="button" variant="ghost" size="xs" onClick={onDismiss}>Dismiss</Button>
       </div>
     </div>
-  );
-}
-
-function MetricCard({ icon: Icon, label, value, tone = "blue" }) {
-  const valueColor = tone === "red" ? COLORS.red : COLORS.white;
-  return (
-    <Card className="min-h-[92px]">
-      <CardContent className="p-3">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <div className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</div>
-          <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-        </div>
-        <div className="text-2xl font-extrabold" style={{ color: valueColor }}>{value}</div>
-      </CardContent>
-    </Card>
   );
 }
 
@@ -303,7 +306,7 @@ function TaskCard({ task, members, daysBetween, formatDate, onEdit, onComplete, 
           )}
           {task.created_at && <span>Created {formatDate(task.created_at)}</span>}
           {task.completed_at && <span>Completed {formatDate(task.completed_at)}</span>}
-          {task.recurring_interval_days && <span>Every {task.recurring_interval_days}d</span>}
+          {task.recurring_interval_days && <span>{recurrenceLabel(task.recurring_interval_days)}</span>}
         </div>
 
         <div className="grid gap-2 md:grid-cols-[1fr_auto]">
@@ -411,66 +414,39 @@ function TaskDrawer({ open, mode, form, setForm, members, error, onClose, onSave
             </Select>
           </FormGroup>
           <FormGroup>
-            <Label htmlFor="task-repeat-days">Repeat Every Days</Label>
-            <Input id="task-repeat-days" type="number" min="1" placeholder="Optional" value={form.recurring_interval_days} onChange={event => setForm(previous => ({ ...previous, recurring_interval_days: event.target.value }))} />
+            <Label htmlFor="task-recurrence">Repeat</Label>
+            <Select id="task-recurrence" value={form.recurrence || ""} onChange={event => setForm(previous => ({ ...previous, recurrence: event.target.value }))}>
+              {RECURRENCE_OPTIONS.map(option => <option key={option.value || "none"} value={option.value} disabled={!option.supported}>{option.label}{option.supported ? "" : " - later"}</option>)}
+            </Select>
           </FormGroup>
         </FormRow>
-        <FormHelp>Assignee, status, created date, and completed date are stored with the household task record.</FormHelp>
+        <FormHelp>Daily, weekly, monthly, and yearly recurrence use the existing interval-days field. Weekday-only recurrence needs a future recurrence model.</FormHelp>
         {error && <FormError>{error}</FormError>}
       </FormSection>
     </OriginDrawer>
   );
 }
 
-function MaintenanceCard({ item, maintStatus, maintColor, nextDueDate, daysBetween, formatDate, onComplete }) {
-  const status = maintStatus(item);
-  const color = maintColor(status);
-  const dueDate = safeMaintenanceDueDate(item, nextDueDate);
-  const days = dueDate ? daysBetween(dueDate) : null;
-  return (
-    <Card style={{ borderLeft: `3px solid ${color}` }}>
-      <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <Badge variant={status === "overdue" ? "red" : status === "due-soon" ? "amber" : "green"}>{status.replace("-", " ")}</Badge>
-            <Badge variant="slate">Every {item.interval_days}d</Badge>
-          </div>
-          <div className="text-sm font-bold text-foreground">{item.title}</div>
-          <div className="mt-1 text-xs leading-5 text-muted-foreground">
-            {days === null || Number.isNaN(days) ? "Due date unavailable" : days < 0 ? `Overdue by ${-days}d` : days === 0 ? "Due today" : `Due ${formatDate(dueDate)}`}
-            {item.notes ? ` - ${item.notes}` : ""}
-          </div>
-        </div>
-        <Button type="button" variant="secondary" size="sm" className="w-full sm:w-auto" onClick={() => onComplete(item)}>
-          <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-          Done
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
 export function Tasks({ deps }) {
   const {
     TODAY_DATE, TODAY_STR, daysBetween, nextDueDate, formatDate,
-    maintStatus, maintColor, useTable,
+    useTable,
   } = deps;
 
   const taskTable = useTable("tasks", "due_date", true);
-  const homeMaint = useTable("home_maintenance", "title", true);
   const family = useFamilyMembers();
   const household = useHousehold();
 
   const [metadata, setMetadata] = useState({});
   const [metadataError] = useState("");
-  const [view, setView] = useState("dashboard");
+  const [activeFilter, setActiveFilter] = useState("mine");
   const [memberFilter, setMemberFilter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [dueFilter, setDueFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("due");
+  const [sortBy, setSortBy] = useState("priority");
   const [drawer, setDrawer] = useState({ open: false, mode: "create", task: null });
   const [form, setForm] = useState(emptyTaskForm());
   const [formError, setFormError] = useState("");
@@ -494,50 +470,33 @@ export function Tasks({ deps }) {
     [members, taskTable.data, metadata, nextDueDate]
   );
 
-  const taskStats = useMemo(() => {
-    const open = tasks.filter(task => task.status !== "Completed");
-    const overdue = open.filter(task => dueBucket(task, daysBetween, nextDueDate) === "overdue");
-    const today = open.filter(task => dueBucket(task, daysBetween, nextDueDate) === "today");
-    const upcoming = open.filter(task => dueBucket(task, daysBetween, nextDueDate) === "upcoming");
-    const recentlyCompleted = tasks
-      .filter(task => task.status === "Completed")
-      .sort((a, b) => String(b.completed_at || "").localeCompare(String(a.completed_at || "")))
-      .slice(0, 5);
-    const defaultMember = activeMembers.find(member => member.name === "Matt")?.name || activeMembers[0]?.name || "Family";
-    return {
-      open,
-      overdue,
-      today,
-      upcoming,
-      recentlyCompleted,
-      myTasks: open.filter(task => task.assignee === defaultMember),
-      familyTasks: open.filter(task => !task.assignee || task.assignee === "Family"),
-    };
-  }, [activeMembers, daysBetween, nextDueDate, tasks]);
+  const defaultMember = useMemo(() => {
+    const preferred = family.members.find(member => member.id === household.userPreferences?.default_person_id);
+    return preferred?.name || activeMembers[0]?.name || "Family";
+  }, [activeMembers, family.members, household.userPreferences?.default_person_id]);
+  const openTaskCount = tasks.filter(task => task.status !== "Completed").length;
+  const activeFilterLabel = WORKSPACE_FILTERS.find(option => option.value === activeFilter)?.label || "Tasks";
 
   const filteredTasks = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
     const filtered = tasks.filter(task => {
       if (query && !`${task.title || ""} ${task.description || ""} ${task.category || ""} ${task.assignee || ""} ${task.notes || ""}`.toLowerCase().includes(query)) return false;
-      if (view === "completed" && task.status !== "Completed") return false;
-      if (view !== "completed" && task.status === "Completed") return false;
+      const bucket = dueBucket(task, daysBetween, nextDueDate);
+      if (activeFilter === "completed" && task.status !== "Completed") return false;
+      if (activeFilter !== "completed" && task.status === "Completed") return false;
+      if (activeFilter === "mine" && task.assignee !== defaultMember) return false;
+      if (activeFilter === "today" && bucket !== "today") return false;
+      if (activeFilter === "upcoming" && bucket !== "upcoming") return false;
+      if (activeFilter === "overdue" && bucket !== "overdue") return false;
       if (memberFilter !== "All" && task.assignee !== memberFilter) return false;
       if (statusFilter !== "All" && task.status !== statusFilter) return false;
       if (priorityFilter !== "All" && task.priority !== priorityFilter) return false;
       if (categoryFilter !== "All" && task.category !== categoryFilter) return false;
-      if (dueFilter !== "all" && dueBucket(task, daysBetween, nextDueDate) !== dueFilter) return false;
+      if (dueFilter !== "all" && bucket !== dueFilter) return false;
       return true;
     });
     return sortTasks(filtered, sortBy);
-  }, [categoryFilter, daysBetween, dueFilter, memberFilter, nextDueDate, priorityFilter, searchTerm, sortBy, statusFilter, tasks, view]);
-
-  const urgentMaint = homeMaint.data
-    .filter(item => item?.title && ["overdue", "due-soon"].includes(maintStatus(item)))
-    .sort((a, b) => {
-      const aDue = safeMaintenanceDueDate(a, nextDueDate);
-      const bDue = safeMaintenanceDueDate(b, nextDueDate);
-      return (aDue ? daysBetween(aDue) : 9999) - (bDue ? daysBetween(bDue) : 9999);
-    });
+  }, [activeFilter, categoryFilter, daysBetween, defaultMember, dueFilter, memberFilter, nextDueDate, priorityFilter, searchTerm, sortBy, statusFilter, tasks]);
 
   function notify(message) {
     setToast({ message });
@@ -678,16 +637,6 @@ export function Tasks({ deps }) {
     notify(`Task assigned to ${assignee}.`);
   }
 
-  async function completeMaintenance(item) {
-    await homeMaint.update(item.id, {
-      title: item.title,
-      last_completed: TODAY_STR,
-      interval_days: item.interval_days,
-      notes: item.notes || "",
-    });
-    notify("Maintenance item completed.");
-  }
-
   const renderTask = task => (
     <TaskCard
       key={task.id}
@@ -703,7 +652,7 @@ export function Tasks({ deps }) {
     />
   );
 
-  const loading = taskTable.loading || homeMaint.loading || family.loading;
+  const loading = taskTable.loading || family.loading;
   const readWarning = "Task assignment, status, created date, and completed date now use Supabase task columns. Older browser metadata is read only as a legacy fallback when a row has not been updated yet.";
 
   return (
@@ -711,7 +660,7 @@ export function Tasks({ deps }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Tasks</div>
-          <div className="mt-1 text-2xl font-extrabold text-foreground">{taskStats.open.length} open</div>
+          <div className="mt-1 text-2xl font-extrabold text-foreground">{openTaskCount} open</div>
         </div>
         <Button type="button" onClick={openCreateTask}>
           <Plus className="h-4 w-4" aria-hidden="true" />
@@ -725,108 +674,19 @@ export function Tasks({ deps }) {
         </div>
       )}
 
-      <SegmentedControl
-        value={view}
-        onValueChange={setView}
-        options={[
-          { value: "dashboard", label: "Dashboard" },
-          { value: "all", label: "All Tasks" },
-          { value: "completed", label: "Completed" },
-        ]}
-        className="w-full"
-        itemClassName="flex-1"
-        ariaLabel="Task views"
-      />
-
       {loading ? (
         <TaskSkeleton />
-      ) : view === "dashboard" ? (
-        <>
-          <div className="grid grid-cols-2 gap-2.5">
-            <MetricCard icon={UserRound} label="My Tasks" value={taskStats.myTasks.length} />
-            <MetricCard icon={Users} label="Family Tasks" value={taskStats.familyTasks.length} />
-            <MetricCard icon={AlertTriangle} label="Overdue" value={taskStats.overdue.length} tone="red" />
-            <MetricCard icon={Clock} label="Due Today" value={taskStats.today.length} />
-            <MetricCard icon={CalendarClock} label="Upcoming" value={taskStats.upcoming.length} />
-            <MetricCard icon={CheckCircle2} label="Completed" value={taskStats.recentlyCompleted.length} />
-          </div>
-
-          <TaskList
-            title="Overdue Tasks"
-            count={taskStats.overdue.length}
-            tone="red"
-            tasks={sortTasks(taskStats.overdue, "due").slice(0, 4)}
-            emptyTitle="No overdue tasks"
-            emptyDetail="Anything late will be promoted here."
-            renderTask={renderTask}
-          />
-          <TaskList
-            title="Due Today"
-            count={taskStats.today.length}
-            tone="amber"
-            tasks={sortTasks(taskStats.today, "priority").slice(0, 4)}
-            emptyTitle="Nothing due today"
-            emptyDetail="Today is clear for the current filters."
-            renderTask={renderTask}
-          />
-          <TaskList
-            title="Upcoming"
-            count={taskStats.upcoming.length}
-            tone="blue"
-            tasks={sortTasks(taskStats.upcoming, "due").slice(0, 5)}
-            emptyTitle="No upcoming tasks"
-            emptyDetail="Create a task with a future due date to plan ahead."
-            renderTask={renderTask}
-          />
-          <TaskList
-            title="Recently Completed"
-            count={taskStats.recentlyCompleted.length}
-            tone="green"
-            tasks={taskStats.recentlyCompleted}
-            emptyTitle="No completed tasks yet"
-            emptyDetail="Completed work will appear here."
-            renderTask={renderTask}
-          />
-
-          <section>
-            <SectionHeader title="Home Maintenance" count={urgentMaint.length} tone="amber" />
-            {urgentMaint.length ? (
-              <div className="space-y-3">
-                {urgentMaint.map(item => (
-                  <MaintenanceCard
-                    key={item.id}
-                    item={item}
-                    maintStatus={maintStatus}
-                    maintColor={maintColor}
-                    nextDueDate={nextDueDate}
-                    daysBetween={daysBetween}
-                    formatDate={formatDate}
-                    onComplete={completeMaintenance}
-                  />
-                ))}
-              </div>
-            ) : (
-              <Card>
-                <EmptyStatePanel
-                  icon={<Wrench className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />}
-                  title="Maintenance is current"
-                  detail="Due and overdue home maintenance will show here."
-                  className="py-7"
-                />
-              </Card>
-            )}
-          </section>
-        </>
       ) : (
         <>
           <Card>
             <CardHeader className="p-4 pb-2">
               <CardTitle className="flex items-center gap-2 text-base">
                 <ListFilter className="h-4 w-4 text-primary" aria-hidden="true" />
-                Filters
+                Work Surface
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 px-4 pb-4 pt-0">
+              <ChipGroup value={activeFilter} options={WORKSPACE_FILTERS} ariaLabel="Task filters" onValueChange={setActiveFilter} />
               <FormGroup>
                 <Label htmlFor="task-search">Search</Label>
                 <Input id="task-search" value={searchTerm} placeholder="Search title, notes, category, assignee..." onChange={event => setSearchTerm(event.target.value)} />
@@ -874,10 +734,10 @@ export function Tasks({ deps }) {
                 <FormGroup>
                   <Label>Sort</Label>
                   <Select value={sortBy} onChange={event => setSortBy(event.target.value)}>
-                    <option value="due">Due date</option>
                     <option value="priority">Priority</option>
-                    <option value="created">Created date</option>
-                    <option value="assignee">Assignee</option>
+                    <option value="due">Due date</option>
+                    <option value="updated">Recently updated</option>
+                    <option value="alpha">Alphabetical</option>
                   </Select>
                 </FormGroup>
               </FormRow>
@@ -886,9 +746,9 @@ export function Tasks({ deps }) {
           </Card>
 
           <TaskList
-            title={view === "completed" ? "Completed Tasks" : "Family Tasks"}
+            title={activeFilterLabel}
             count={filteredTasks.length}
-            tone={view === "completed" ? "green" : "blue"}
+            tone={activeFilter === "completed" ? "green" : activeFilter === "overdue" ? "red" : activeFilter === "today" ? "amber" : "blue"}
             tasks={filteredTasks}
             emptyTitle="No matching tasks"
             emptyDetail="Adjust filters or create a new task."

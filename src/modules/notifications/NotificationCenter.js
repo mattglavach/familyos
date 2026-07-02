@@ -4,9 +4,16 @@ import { Badge, StatusBadge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { EmptyStatePanel } from "../../components/ui/empty-state";
 import { OriginDrawer } from "../../components/origin/drawer";
+import { ChipGroup } from "../../components/ui/segmented-control";
 import { useTable } from "../../hooks/useTable";
 
 const STORAGE_KEY = "familyos_notification_read_ids_v1";
+const NOTIFICATION_VIEWS = [
+  { value: "unread", label: "Unread" },
+  { value: "today", label: "Today" },
+  { value: "week", label: "This Week" },
+  { value: "archive", label: "Archive" },
+];
 
 function readStoredIds() {
   try {
@@ -67,11 +74,20 @@ function buildNotifications(tasks, calendarEvents, household, calendar) {
 export function NotificationCenter({ open, onOpenChange, calendarEvents, household, calendar, onNavigate, onUnreadChange }) {
   const taskTable = useTable("tasks", "due_date", true);
   const [readIds, setReadIds] = useState(() => readStoredIds());
+  const [view, setView] = useState("unread");
   const notifications = useMemo(
     () => buildNotifications(taskTable.data, calendarEvents, household, calendar),
     [calendar, calendarEvents, household, taskTable.data]
   );
   const unreadCount = notifications.filter(item => !readIds.includes(item.id) && item.id !== "all-clear").length;
+  const visibleNotifications = notifications.filter(item => {
+    const read = readIds.includes(item.id) || item.id === "all-clear";
+    const isToday = /today/i.test(`${item.title} ${item.detail}`);
+    if (view === "archive") return read;
+    if (view === "today") return !read && isToday;
+    if (view === "week") return !read && !isToday;
+    return !read;
+  });
 
   useEffect(() => {
     onUnreadChange?.(unreadCount);
@@ -102,9 +118,10 @@ export function NotificationCenter({ open, onOpenChange, calendarEvents, househo
           </div>
           <Button type="button" variant="secondary" size="xs" onClick={markAllRead}>Mark read</Button>
         </div>
-        {notifications.length ? (
+        <ChipGroup value={view} options={NOTIFICATION_VIEWS} ariaLabel="Notification view" onValueChange={setView} />
+        {visibleNotifications.length ? (
           <div className="space-y-2">
-            {notifications.map(item => {
+            {visibleNotifications.map(item => {
               const read = readIds.includes(item.id) || item.id === "all-clear";
               return (
                 <button key={item.id} type="button" onClick={() => choose(item)} className={`flex min-h-14 w-full items-start gap-3 rounded-lg border border-border p-3 text-left ${read ? "bg-secondary/25" : "bg-secondary/60"}`}>

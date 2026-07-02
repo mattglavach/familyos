@@ -1,53 +1,22 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   CalendarDays,
   CalendarCheck,
   CalendarX,
-  CheckCircle2,
   ChevronRight,
   Clock,
   DollarSign,
-  Edit3,
   GraduationCap,
   ListTodo,
-  NotebookText,
-  Plus,
-  Trash2,
-  UserPlus,
-  UserRound,
-  Users,
   Waves,
 } from "lucide-react";
 import { Badge, StatusBadge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { EmptyStatePanel } from "../../components/ui/empty-state";
-import { FormError, FormGroup, FormHelp, FormRow, FormSection } from "../../components/ui/form";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
 import { SectionHeader } from "../../components/ui/section-header";
-import { Select } from "../../components/ui/select";
 import { Skeleton } from "../../components/ui/skeleton";
-import { Textarea } from "../../components/ui/textarea";
-import { OriginDrawer } from "../../components/origin/drawer";
 import { COLORS, MEMBER_COLORS, S } from "../../theme";
-import { useFamilyMembers } from "./useFamilyMembers";
-
-const toneByColor = {
-  [COLORS.red]: "red",
-  [COLORS.amber]: "amber",
-  [COLORS.green]: "green",
-  [COLORS.blue]: "blue",
-  [COLORS.purple]: "purple",
-  [COLORS.slate]: "slate",
-};
-
-const memberRoles = ["Parent", "Child", "Family", "Caregiver"];
-const memberColors = [COLORS.blue, COLORS.purple, COLORS.red, COLORS.green, COLORS.amber, COLORS.slate];
-
-function toneForColor(color) {
-  return toneByColor[color] || "slate";
-}
 
 function formatSyncTime(value) {
   if (!value) return "Not synced yet";
@@ -67,246 +36,8 @@ function calendarStatus(calendar) {
   return { label: "Connected", status: "connected", detail: `${formatSyncTime(calendar.lastSyncedAt)} from ${calendar.sourceLabel}.` };
 }
 
-function initialsFor(name) {
-  const parts = String(name || "?").trim().split(/\s+/).filter(Boolean);
-  return parts.slice(0, 2).map(part => part[0]?.toUpperCase()).join("") || "?";
-}
-
 function getMemberColor(member, fallbackName) {
   return member?.color || MEMBER_COLORS[fallbackName] || COLORS.slate;
-}
-
-function memberStatusTone(status) {
-  return status === "inactive" ? "neutral" : "healthy";
-}
-
-function MemberAvatar({ member, name, size = "md" }) {
-  const color = getMemberColor(member, name);
-  const label = member?.name || name || "Unknown";
-  const sizeClass = size === "sm" ? "h-8 w-8 text-xs" : "h-11 w-11 text-sm";
-  return (
-    <span
-      className={`inline-flex shrink-0 items-center justify-center rounded-full font-extrabold text-white ${sizeClass}`}
-      style={{ background: color }}
-      aria-label={label}
-    >
-      {initialsFor(label)}
-    </span>
-  );
-}
-
-function memberReferences(member, events, tasks, collegeGoals) {
-  const name = String(member?.name || "").toLowerCase();
-  if (!name) return { eventCount: 0, taskCount: 0, collegeCount: 0, total: 0 };
-  const eventCount = (events || []).filter(event => String(event?.member || "").toLowerCase() === name).length;
-  const taskCount = (tasks || []).filter(task => {
-    const haystack = `${task.title || ""} ${task.category || ""} ${task.notes || ""}`.toLowerCase();
-    return haystack.includes(name);
-  }).length;
-  const collegeCount = (collegeGoals || []).filter(goal => String(goal?.child_name || "").toLowerCase() === name).length;
-  return { eventCount, taskCount, collegeCount, total: eventCount + taskCount + collegeCount };
-}
-
-function emptyMemberForm() {
-  return { name: "", role: "Family", status: "active", color: COLORS.blue, notes: "" };
-}
-
-function MemberFormDrawer({ open, mode, member, onClose, onSave, onDeactivate, onRemove, references }) {
-  const [form, setForm] = useState(() => member ? { ...member } : emptyMemberForm());
-  const [formError, setFormError] = useState("");
-
-  useEffect(() => {
-    if (open) {
-      setForm(member ? { ...member } : emptyMemberForm());
-      setFormError("");
-    }
-  }, [open, member]);
-
-  if (!open) return null;
-
-  async function save() {
-    const result = await onSave(form);
-    if (!result.ok) {
-      setFormError(result.error);
-      return;
-    }
-    onClose();
-  }
-
-  async function deactivate() {
-    const result = await onDeactivate?.();
-    if (!result.ok) {
-      setFormError(result.error);
-      return;
-    }
-    onClose();
-  }
-
-  async function remove() {
-    const result = await onRemove?.();
-    if (!result.ok) {
-      setFormError(result.error);
-      return;
-    }
-    onClose();
-  }
-
-  return (
-    <OriginDrawer
-      open={open}
-      onOpenChange={nextOpen => !nextOpen && onClose()}
-      title={mode === "edit" ? "Edit Family Member" : "Add Family Member"}
-      description="Member details personalize dashboard assignment and schedule views on this device."
-      footer={
-        <>
-          {mode === "edit" && form.status !== "inactive" && (
-            <Button type="button" variant="secondary" onClick={deactivate}>Deactivate</Button>
-          )}
-          {mode === "edit" && references?.total === 0 && (
-            <Button type="button" variant="destructive-outline" onClick={remove}>
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
-              Remove
-            </Button>
-          )}
-          <Button type="button" onClick={save}>{mode === "edit" ? "Save" : "Add"}</Button>
-        </>
-      }
-    >
-      <FormSection>
-        <FormGroup>
-          <Label>Name</Label>
-          <Input value={form.name || ""} placeholder="Family member name" onChange={event => setForm(previous => ({ ...previous, name: event.target.value }))} />
-        </FormGroup>
-        <FormRow>
-          <FormGroup>
-            <Label>Role</Label>
-            <Select value={form.role || "Family"} onChange={event => setForm(previous => ({ ...previous, role: event.target.value }))}>
-              {memberRoles.map(role => <option key={role} value={role}>{role}</option>)}
-            </Select>
-          </FormGroup>
-          <FormGroup>
-            <Label>Status</Label>
-            <Select value={form.status || "active"} onChange={event => setForm(previous => ({ ...previous, status: event.target.value }))}>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </Select>
-          </FormGroup>
-        </FormRow>
-        <FormGroup>
-          <Label>Color</Label>
-          <div className="flex flex-wrap gap-2">
-            {memberColors.map(color => (
-              <button
-                key={color}
-                type="button"
-                aria-label={`Use ${color}`}
-                className={`h-9 w-9 rounded-full border ${form.color === color ? "border-white" : "border-border"}`}
-                style={{ background: color }}
-                onClick={() => setForm(previous => ({ ...previous, color }))}
-              />
-            ))}
-          </div>
-        </FormGroup>
-        <FormGroup>
-          <Label>Notes</Label>
-          <Textarea value={form.notes || ""} placeholder="Optional context" onChange={event => setForm(previous => ({ ...previous, notes: event.target.value }))} />
-        </FormGroup>
-        {mode === "edit" && references?.total > 0 && (
-          <FormHelp>
-            This member has {references.total} current dashboard reference{references.total === 1 ? "" : "s"}. Deactivate keeps historical schedule and planning context intact.
-          </FormHelp>
-        )}
-        {formError && <FormError>{formError}</FormError>}
-      </FormSection>
-    </OriginDrawer>
-  );
-}
-
-function FamilyOverview({
-  members,
-  loading,
-  error,
-  events,
-  tasks,
-  collegeGoals,
-  onAdd,
-  onEdit,
-}) {
-  if (loading) return <SectionSkeleton rows={2} />;
-
-  const activeCount = members.filter(member => member.status !== "inactive").length;
-  const inactiveCount = members.length - activeCount;
-
-  return (
-    <Card>
-      <CardHeader className="p-4 pb-2">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Users className="h-4 w-4 text-primary" aria-hidden="true" />
-              Family
-            </CardTitle>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <StatusBadge status="healthy">{activeCount} active</StatusBadge>
-              {inactiveCount > 0 && <StatusBadge status="neutral">{inactiveCount} inactive</StatusBadge>}
-            </div>
-          </div>
-          <Button type="button" variant="secondary" size="xs" onClick={onAdd}>
-            <UserPlus className="h-4 w-4" aria-hidden="true" />
-            Add
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3 px-4 pb-4 pt-0">
-        {error && (
-          <div className="rounded-lg border border-amber-400/35 bg-amber-400/10 p-3 text-xs leading-5 text-amber-200">
-            {error}
-          </div>
-        )}
-        {members.length === 0 ? (
-          <EmptyStatePanel
-            icon={<UserRound className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />}
-            title="No family members yet"
-            detail="Add household members to personalize schedule filters and dashboard references."
-            action="Add member"
-            onAction={onAdd}
-            className="py-8"
-          />
-        ) : (
-          <div className="space-y-2">
-            {members.map(member => {
-              const references = memberReferences(member, events, tasks, collegeGoals);
-              return (
-                <div key={member.id} className="rounded-lg border border-border bg-secondary/35 p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex min-w-0 gap-3">
-                      <MemberAvatar member={member} />
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <div className="truncate text-sm font-bold text-foreground">{member.name || "Unnamed"}</div>
-                          <StatusBadge status={memberStatusTone(member.status)}>{member.status || "active"}</StatusBadge>
-                        </div>
-                        <div className="mt-1 text-xs text-muted-foreground">{member.role || "Family"}</div>
-                        <div className="mt-2 flex flex-wrap gap-1.5">
-                          <Badge variant="blue">{references.eventCount} events</Badge>
-                          <Badge variant="purple">{references.taskCount} task refs</Badge>
-                          <Badge variant="green">{references.collegeCount} college</Badge>
-                        </div>
-                      </div>
-                    </div>
-                    <Button type="button" variant="secondary" size="icon-xs" aria-label={`Edit ${member.name}`} onClick={() => onEdit(member)}>
-                      <Edit3 className="h-4 w-4" aria-hidden="true" />
-                    </Button>
-                  </div>
-                  {member.notes && <div className="mt-3 text-xs leading-5 text-muted-foreground">{member.notes}</div>}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
 }
 
 function SectionSkeleton({ rows = 3 }) {
@@ -363,110 +94,10 @@ function ModuleCard({ item, onNavigate }) {
   );
 }
 
-function ActionGroup({ title, count, color, items, showAll, defaultLimit, onNavigate }) {
-  const visibleItems = items.slice(0, showAll ? 99 : defaultLimit);
-  if (!items.length) return null;
-  return (
-    <Card className="overflow-hidden" style={{ borderLeft: `3px solid ${color}` }}>
-      <CardHeader className="p-4 pb-1">
-        <div className="text-xs font-bold uppercase tracking-[0.08em]" style={{ color }}>
-          {title} <span className="text-muted-foreground">{count}</span>
-        </div>
-      </CardHeader>
-      <CardContent className="px-4 pb-3 pt-0">
-        {visibleItems.map((item, index) => (
-          <ActionRow
-            key={`${title}-${item.text}-${index}`}
-            item={item}
-            showDivider={index < visibleItems.length - 1}
-            onNavigate={onNavigate}
-          />
-        ))}
-        {!showAll && items.length > defaultLimit && (
-          <div className="pt-2 text-xs font-medium text-muted-foreground">+{items.length - defaultLimit} more</div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function MemberFilter({ value, active, onSelect, color }) {
-  const chipColor = color || MEMBER_COLORS[value] || COLORS.blue;
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(value)}
-      className="min-h-8 rounded-full border px-3 text-xs font-semibold"
-      style={{
-        borderColor: active ? chipColor : COLORS.navyLight,
-        background: active ? `${chipColor}26` : "transparent",
-        color: active ? chipColor : COLORS.slateLight,
-      }}
-    >
-      {value}
-    </button>
-  );
-}
-
-function ScheduleEvent({ event, reassigning, setReassigning, setOverrides, dateLabel, memberByName, assignableMembers }) {
-  const assignedMember = memberByName[String(event?.member || "").toLowerCase()];
-  const eventMemberColor = getMemberColor(assignedMember, event?.member);
-  const title = event?.title || "Untitled event";
-  const eventId = event?.id || `${event?.date || "event"}-${title}`;
-  return (
-    <div className="rounded-lg border border-border bg-card p-3" style={{ borderLeft: `3px solid ${eventMemberColor}` }}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-semibold text-foreground">{title}</div>
-          <div className="mt-1 text-xs leading-5 text-muted-foreground">
-            {dateLabel ? `${dateLabel} - ` : ""}{event?.time || "All day"}{event?.location ? ` - ${event.location}` : ""}
-          </div>
-          <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-            {event?.source || "Google Calendar"}
-          </div>
-        </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2 sm:flex-col sm:items-end">
-          <Badge variant={toneForColor(eventMemberColor)} className="max-w-32 truncate">{event?.member || "Unassigned"}</Badge>
-          <Button type="button" variant="secondary" size="xs" disabled={!assignableMembers.length} onClick={() => setReassigning(reassigning === eventId ? null : eventId)}>
-            Reassign
-          </Button>
-        </div>
-      </div>
-      {reassigning === eventId && (
-        <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
-          {assignableMembers.map(member => (
-            <MemberFilter
-              key={member.id}
-              value={member.name}
-              color={member.color}
-              active={event?.member === member.name}
-              onSelect={() => {
-                setOverrides(previous => ({ ...previous, [eventId]: member.name }));
-                setReassigning(null);
-              }}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function SchedulePanel({
   calendar,
-  filteredEvents,
-  visibleDays,
-  memberFilters,
-  assignableMembers,
-  memberByName,
-  showFullSchedule,
-  setShowFullSchedule,
-  filter,
-  setFilter,
-  reassigning,
-  setReassigning,
-  setOverrides,
-  formatDateFull,
+  events,
+  onNavigate,
   todayString,
 }) {
   const status = calendarStatus(calendar);
@@ -480,14 +111,17 @@ function SchedulePanel({
               <CalendarX className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <div className="text-sm font-semibold text-foreground">{status.label}</div>
+                  <div className="text-sm font-semibold text-foreground">Today&apos;s Schedule</div>
                   <StatusBadge status={status.status}>{status.label}</StatusBadge>
                   <Badge variant={calendar.mode === "secure" ? "blue" : "slate"}>{calendar.mode === "secure" ? "Server-side" : "Legacy fallback"}</Badge>
                 </div>
                 <div className="mt-1 text-xs leading-5 text-muted-foreground">{status.detail}</div>
               </div>
             </div>
-            <Button type="button" size="sm" onClick={calendar.connect} loading={calendar.loading}>{calendar.mode === "secure" ? "Connect" : "Legacy Connect"}</Button>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="secondary" size="sm" onClick={() => onNavigate("calendar")}>Calendar</Button>
+              <Button type="button" size="sm" onClick={calendar.connect} loading={calendar.loading}>{calendar.mode === "secure" ? "Connect" : "Legacy Connect"}</Button>
+            </div>
           </div>
           {calendar.mode === "legacy" && (
             <div className="rounded-lg border border-amber-400/35 bg-amber-400/10 p-3 text-xs leading-5 text-amber-200">
@@ -504,9 +138,7 @@ function SchedulePanel({
     );
   }
 
-  const visibleEvents = filteredEvents.filter(event => event?.date && visibleDays.includes(event.date));
-  const todayEvents = visibleEvents.filter(event => event.date === todayString);
-  const upcomingEvents = visibleEvents.filter(event => event.date !== todayString);
+  const todayEvents = events.filter(event => event?.date === todayString).slice(0, 3);
 
   return (
     <Card style={{ borderLeft: `3px solid ${status.status === "failed" || status.status === "warning" ? COLORS.amber : COLORS.blue}` }}>
@@ -515,30 +147,22 @@ function SchedulePanel({
           <div className="min-w-0">
             <CardTitle className="flex items-center gap-2 text-base">
               <CalendarDays className="h-4 w-4 text-primary" aria-hidden="true" />
-              Schedule
+              Today&apos;s Schedule
             </CardTitle>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <StatusBadge status={status.status}>{status.label}</StatusBadge>
               <Badge variant={calendar.mode === "secure" ? "blue" : "slate"}>{calendar.mode === "secure" ? "Server-side" : "Legacy fallback"}</Badge>
-              <span className="text-xs text-muted-foreground">{status.detail}</span>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <Button type="button" variant="secondary" size="icon-xs" aria-label="Refresh calendar" onClick={calendar.refresh} loading={calendar.loading}>
               <CalendarCheck className="h-4 w-4" aria-hidden="true" />
             </Button>
-            <Button type="button" variant="secondary" size="xs" onClick={() => setShowFullSchedule(value => !value)}>
-              {showFullSchedule ? "7 days" : "30 days"}
-            </Button>
+            <Button type="button" variant="secondary" size="xs" onClick={() => onNavigate("calendar")}>Calendar</Button>
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-3 px-4 pb-4 pt-0">
-        <div className="flex flex-wrap gap-2">
-          {memberFilters.map(member => (
-            <MemberFilter key={member.id || member.name} value={member.name} color={member.color} active={filter === member.name} onSelect={setFilter} />
-          ))}
-        </div>
         {calendar.error && (
           <div className="rounded-lg border border-destructive/35 bg-destructive/10 p-3 text-xs leading-5 text-destructive">
             {calendar.error}
@@ -550,68 +174,27 @@ function SchedulePanel({
             <Skeleton className="h-3 w-2/5" />
             <Skeleton className="h-3.5 w-3/5" />
           </div>
-        ) : visibleEvents.length === 0 ? (
+        ) : todayEvents.length === 0 ? (
           <EmptyStatePanel
-            title={showFullSchedule ? "No events in the next 30 days" : "No events this week"}
-            detail="Calendar events will appear here after the next sync."
-            className="py-8"
+            title="No events today"
+            detail="Open Calendar for the full schedule."
+            action="Open Calendar"
+            onAction={() => onNavigate("calendar")}
+            className="py-7"
           />
         ) : (
-          <>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-lg border border-border bg-secondary/45 p-3">
-                <div className="text-xs font-bold uppercase tracking-[0.08em] text-primary">Today</div>
-                <div className="mt-1 text-lg font-extrabold text-foreground">{todayEvents.length}</div>
-              </div>
-              <div className="rounded-lg border border-border bg-secondary/45 p-3">
-                <div className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Upcoming</div>
-                <div className="mt-1 text-lg font-extrabold text-foreground">{upcomingEvents.length}</div>
-              </div>
-            </div>
-            {todayEvents.length > 0 && (
-              <div className="space-y-2">
-                <div className="text-xs font-bold uppercase tracking-[0.08em] text-primary">Today's Events</div>
-                {todayEvents.map(event => (
-                  <ScheduleEvent
-                    key={event.id}
-                    event={event}
-                    reassigning={reassigning}
-                    setReassigning={setReassigning}
-                    setOverrides={setOverrides}
-                    memberByName={memberByName}
-                    assignableMembers={assignableMembers}
-                  />
-                ))}
-              </div>
-            )}
-            {upcomingEvents.length > 0 && (
-              <div className="space-y-2">
-                <div className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Upcoming Events</div>
-                {visibleDays.map(day => {
-                  if (day === todayString) return null;
-                  const eventsForDay = filteredEvents.filter(event => event.date === day);
-                  if (!eventsForDay.length) return null;
-                  return (
-                    <div key={day} className="space-y-2">
-                      <div className="text-xs font-semibold text-muted-foreground">{formatDateFull(day)}</div>
-                      {eventsForDay.map(event => (
-                        <ScheduleEvent
-                          key={event.id}
-                          event={event}
-                          reassigning={reassigning}
-                          setReassigning={setReassigning}
-                          setOverrides={setOverrides}
-                          memberByName={memberByName}
-                          assignableMembers={assignableMembers}
-                          dateLabel={formatDateFull(day)}
-                        />
-                      ))}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </>
+          <div className="space-y-2">
+            {todayEvents.map(event => (
+              <button key={event.id} type="button" onClick={() => onNavigate("calendar")} className="flex min-h-12 w-full items-center gap-3 rounded-lg border border-border bg-card p-3 text-left transition-colors hover:bg-accent">
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: COLORS.blue }} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-foreground">{event.title}</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">{event.time || "All day"}</span>
+                </span>
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              </button>
+            ))}
+          </div>
         )}
       </CardContent>
     </Card>
@@ -621,28 +204,16 @@ function SchedulePanel({
 // - DASHBOARD -
 export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
   const {
-    TODAY_DATE, TODAY_STR, daysAgo, daysBetween, nextDueDate, formatDate, formatDateFull,
-    formatMoneyShort, maintStatus, useTable, calcRetirementProjection, getChemRecommendations,
+    TODAY_DATE, TODAY_STR, daysAgo, daysBetween, formatDate,
+    formatMoneyShort, useTable, calcRetirementProjection, getChemRecommendations,
   } = deps;
 
-  const homeMaint = useTable("home_maintenance", "title", true);
   const deadlines = useTable("college_deadlines", "due_date", true);
   const readings = useTable("pool_readings", "logged_at");
   const assumptions = useTable("retirement_assumptions", "id", true);
   const accounts = useTable("retirement_accounts", "name", true);
-  const notes = useTable("notes", "created_at");
   const taskData = useTable("tasks", "due_date", true);
   const treatments = useTable("pool_treatments", "logged_at");
-  const collegeGoals = useTable("college_goal", "target_year", true);
-  const family = useFamilyMembers();
-
-  const [showFullSchedule, setShowFullSchedule] = useState(false);
-  const [showAllActions, setShowAllActions] = useState(false);
-  const [showNotes, setShowNotes] = useState(true);
-  const [filter, setFilter] = useState("All");
-  const [overrides, setOverrides] = useState({});
-  const [reassigning, setReassigning] = useState(null);
-  const [memberDrawer, setMemberDrawer] = useState({ open: false, mode: "add", member: null });
 
   async function connectSecureCalendar() {
     const result = await secureCalendar.connect();
@@ -679,15 +250,12 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
     };
 
   const isLoading = [
-    homeMaint,
     deadlines,
     readings,
     assumptions,
     accounts,
-    notes,
     taskData,
     treatments,
-    collegeGoals,
   ].some(table => table.loading);
 
   const assump = assumptions.data[0];
@@ -699,8 +267,6 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
   const poolDaysAgo = lastReading ? daysAgo(lastReading.date) : null;
   const poolStale = poolDaysAgo !== null && poolDaysAgo >= 3;
 
-  const overdueHomeMaint = homeMaint.data.filter(item => maintStatus(item) === "overdue");
-  const dueSoonHomeMaint = homeMaint.data.filter(item => maintStatus(item) === "due-soon");
   const urgentDeadlines = deadlines.data.filter(deadline => !deadline.completed && daysBetween(deadline.due_date) <= 14);
   const upcomingDeadlines = deadlines.data.filter(deadline => !deadline.completed && daysBetween(deadline.due_date) > 14 && daysBetween(deadline.due_date) <= 60);
   const urgentTasks = taskData.data.filter(task => {
@@ -719,50 +285,24 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
           ...event,
           id: eventId,
           title: event.title || "Untitled event",
-          member: overrides[eventId] || event.member || "Family",
+          member: event.member || "Family",
           source: event.source || calendar.sourceLabel,
         };
       }),
-    [calendar.connected, calendar.events, calendar.sourceLabel, overrides]
+    [calendar.connected, calendar.events, calendar.sourceLabel]
   );
-  const activeMembers = family.activeMembers;
-  const memberFilters = useMemo(() => [{ id: "all", name: "All", color: COLORS.blue }, ...activeMembers], [activeMembers]);
-  const assignableMembers = activeMembers;
-  const memberByName = family.memberByName;
-
-  useEffect(() => {
-    if (filter === "All") return;
-    if (!activeMembers.some(member => member.name === filter)) setFilter("All");
-  }, [activeMembers, filter]);
-
-  const filteredEvents = allEvents.filter(event => filter === "All" || event.member === filter);
   const next7Days = Array.from({ length: 7 }, (_, index) => {
     const date = new Date(TODAY_DATE);
     date.setDate(date.getDate() + index);
     return date.toISOString().split("T")[0];
   });
-  const next30Days = Array.from({ length: 30 }, (_, index) => {
-    const date = new Date(TODAY_DATE);
-    date.setDate(date.getDate() + index);
-    return date.toISOString().split("T")[0];
-  });
-  const visibleDays = showFullSchedule ? next30Days : next7Days;
 
   const overdue = [];
   const thisWeek = [];
-  const upcoming = [];
 
   if (poolStale) overdue.push({ text: `Pool not tested in ${poolDaysAgo} days`, color: COLORS.amber, nav: "pool", detail: "Log a reading" });
   highChemRecs.forEach(rec => overdue.push({ text: rec.action, color: COLORS.red, nav: "pool", detail: null }));
   medChemRecs.slice(0, 2).forEach(rec => thisWeek.push({ text: rec.action, color: COLORS.amber, nav: "pool", detail: null }));
-  overdueHomeMaint.forEach(item => {
-    const days = -daysBetween(nextDueDate(item.last_completed, item.interval_days));
-    overdue.push({ text: item.title, color: COLORS.red, nav: "tasks", detail: `${days}d overdue` });
-  });
-  dueSoonHomeMaint.forEach(item => {
-    const days = daysBetween(nextDueDate(item.last_completed, item.interval_days));
-    thisWeek.push({ text: item.title, color: COLORS.amber, nav: "tasks", detail: `due in ${days}d` });
-  });
   urgentTasks.slice(0, 4).forEach(task => {
     const days = task.due_date ? daysBetween(task.due_date) : null;
     const isOverdue = days !== null && days < 0;
@@ -786,23 +326,18 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
     if (days <= 4) overdue.push(item);
     else thisWeek.push(item);
   });
-  upcomingDeadlines.forEach(deadline => {
-    upcoming.push({ text: deadline.title, color: COLORS.slate, nav: "college", detail: `in ${daysBetween(deadline.due_date)}d` });
-  });
-  filteredEvents.filter(event => event.date === TODAY_STR).forEach(event => {
+  allEvents.filter(event => event.date === TODAY_STR).forEach(event => {
     overdue.push({ text: event.title, color: COLORS.blue, nav: "calendar", detail: event.time || "Today" });
   });
-  filteredEvents.filter(event => next7Days.includes(event.date) && event.date !== TODAY_STR).slice(0, 3).forEach(event => {
-    const assignedMember = memberByName[String(event.member || "").toLowerCase()];
+  allEvents.filter(event => next7Days.includes(event.date) && event.date !== TODAY_STR).slice(0, 3).forEach(event => {
     thisWeek.push({
       text: event.title,
-      color: getMemberColor(assignedMember, event.member),
+      color: getMemberColor(null, event.member),
       nav: "calendar",
       detail: `${event.time || ""} ${formatDate(event.date)}`.trim(),
     });
   });
 
-  const totalActions = overdue.length + thisWeek.length + upcoming.length;
   const focusItems = [...overdue, ...thisWeek].slice(0, 5);
   const totalIssues = overdue.length + thisWeek.length;
   const headline = totalIssues === 0
@@ -816,11 +351,11 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
   const poolLabel = highChemRecs.length > 0 ? "Action needed" : medChemRecs.length > 0 ? "Monitor" : poolStale ? `${poolDaysAgo}d since test` : "Good";
   const poolDetail = highChemRecs.length > 0 ? `${highChemRecs[0].action.slice(0, 38)}...` : lastReading ? `pH ${lastReading.ph || "--"} FC ${lastReading.free_chlorine || "--"} Salt ${lastReading.salt || "--"}` : "No readings yet";
 
-  const tasksOverdue = overdueHomeMaint.length + urgentTasks.filter(task => task.due_date && daysBetween(task.due_date) < 0).length;
-  const tasksDueSoon = dueSoonHomeMaint.length + urgentTasks.filter(task => task.is_important && (!task.due_date || daysBetween(task.due_date) >= 0)).length;
+  const tasksOverdue = urgentTasks.filter(task => task.due_date && daysBetween(task.due_date) < 0).length;
+  const tasksDueSoon = urgentTasks.filter(task => task.is_important && (!task.due_date || daysBetween(task.due_date) >= 0)).length;
   const tasksColor = tasksOverdue > 0 ? COLORS.red : tasksDueSoon > 0 ? COLORS.amber : COLORS.green;
   const tasksLabel = tasksOverdue > 0 ? `${tasksOverdue} overdue` : tasksDueSoon > 0 ? `${tasksDueSoon} this week` : "All clear";
-  const tasksDetail = tasksOverdue > 0 ? `${overdueHomeMaint[0]?.title || urgentTasks[0]?.title || ""}`.slice(0, 38) : tasksDueSoon > 0 ? "Maintenance due" : "Nothing overdue";
+  const tasksDetail = tasksOverdue > 0 ? `${urgentTasks[0]?.title || ""}`.slice(0, 38) : tasksDueSoon > 0 ? "Important tasks due" : "Nothing overdue";
 
   const finColor = retProj ? retProj.statusColor : COLORS.slate;
   const finLabel = retProj ? retProj.statusLabel.split(" - ")[0].split("--")[0].trim().slice(0, 18) : "No data";
@@ -846,40 +381,6 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
     })
     .slice(0, 4);
 
-  const editingReferences = memberDrawer.member
-    ? memberReferences(memberDrawer.member, allEvents, taskData.data, collegeGoals.data)
-    : { eventCount: 0, taskCount: 0, collegeCount: 0, total: 0 };
-
-  function openAddMember() {
-    setMemberDrawer({ open: true, mode: "add", member: null });
-  }
-
-  function openEditMember(member) {
-    setMemberDrawer({ open: true, mode: "edit", member });
-  }
-
-  function closeMemberDrawer() {
-    setMemberDrawer({ open: false, mode: "add", member: null });
-  }
-
-  function saveMember(form) {
-    if (memberDrawer.mode === "edit" && memberDrawer.member) {
-      return family.updateMember(memberDrawer.member.id, form);
-    }
-    return family.addMember(form);
-  }
-
-  function deactivateEditingMember() {
-    if (!memberDrawer.member) return { ok: false, error: "No family member selected." };
-    return family.deactivateMember(memberDrawer.member.id);
-  }
-
-  function removeEditingMember() {
-    if (!memberDrawer.member) return { ok: false, error: "No family member selected." };
-    if (editingReferences.total > 0) return family.deactivateMember(memberDrawer.member.id);
-    return family.removeMember(memberDrawer.member.id);
-  }
-
   const recentActivity = [
     ...readings.data.slice(0, 2).map(reading => ({ date: reading.date, text: `Pool reading - pH ${reading.ph || "--"} FC ${reading.free_chlorine || "--"}`, color: COLORS.blue })),
     ...treatments.data.slice(0, 2).map(treatment => {
@@ -891,7 +392,6 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
       return { date: treatment.date, text: `Treatment - ${chemicals.length > 0 ? chemicals.join(", ") : "maintenance"}`, color: COLORS.green };
     }),
     ...deadlines.data.filter(deadline => deadline.completed).slice(0, 1).map(deadline => ({ date: deadline.due_date, text: `College: ${deadline.title}`, color: COLORS.green })),
-    ...homeMaint.data.filter(item => item.last_completed && daysAgo(item.last_completed) <= 7).slice(0, 1).map(item => ({ date: item.last_completed, text: item.title, color: COLORS.slate })),
   ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 4);
 
   return (
@@ -899,7 +399,7 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
       <Card className="overflow-hidden" style={{ borderTop: `3px solid ${totalIssues === 0 ? COLORS.green : overdue.length > 0 ? COLORS.red : COLORS.amber}` }}>
         <CardContent className="p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <div className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">This Week</div>
+            <div className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Today&apos;s Priorities</div>
             <StatusBadge status={totalIssues === 0 ? "healthy" : overdue.length > 0 ? "urgent" : "warning"}>
               {totalIssues === 0 ? "All clear" : overdue.length > 0 ? `${overdue.length} urgent` : `${thisWeek.length} due`}
             </StatusBadge>
@@ -930,19 +430,8 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
 
       <SchedulePanel
         calendar={calendar}
-        filteredEvents={filteredEvents}
-        visibleDays={visibleDays}
-        showFullSchedule={showFullSchedule}
-        setShowFullSchedule={setShowFullSchedule}
-        filter={filter}
-        setFilter={setFilter}
-        reassigning={reassigning}
-        setReassigning={setReassigning}
-        setOverrides={setOverrides}
-        memberFilters={memberFilters}
-        assignableMembers={assignableMembers}
-        memberByName={memberByName}
-        formatDateFull={formatDateFull}
+        events={allEvents}
+        onNavigate={onNavigate}
         todayString={TODAY_STR}
       />
 
@@ -985,66 +474,11 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
         )}
       </section>
 
-      <FamilyOverview
-        members={family.members}
-        loading={family.loading}
-        error={family.error}
-        events={allEvents}
-        tasks={taskData.data}
-        collegeGoals={collegeGoals.data}
-        onAdd={openAddMember}
-        onEdit={openEditMember}
-      />
-
-      <Card style={{ borderLeft: `3px solid ${COLORS.blue}` }}>
-        <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-              <Plus className="h-4 w-4 text-primary" aria-hidden="true" />
-              Quick Add
-            </div>
-            <div className="mt-1 text-sm leading-6 text-muted-foreground">Capture a task or note without leaving the daily briefing.</div>
-          </div>
-          <Button type="button" className="w-full sm:w-auto" onClick={() => onNavigate("quick-add")}>Open Quick Add</Button>
-        </CardContent>
-      </Card>
-
       <section>
         <SectionHeader title="Household Insights" count={modules.length} tone="blue" />
         <div className="grid grid-cols-2 gap-2.5">
           {modules.map(item => <ModuleCard key={item.module} item={item} onNavigate={onNavigate} />)}
         </div>
-      </section>
-
-      <section>
-        <SectionHeader
-          title="Action Center"
-          count={totalActions}
-          tone={overdue.length > 0 ? "red" : thisWeek.length > 0 ? "amber" : "green"}
-          action={totalActions > 5 ? (
-            <Button type="button" variant="ghost" size="xs" onClick={() => setShowAllActions(value => !value)}>
-              {showAllActions ? "Less" : `All ${totalActions}`}
-            </Button>
-          ) : null}
-        />
-        {isLoading ? (
-          <SectionSkeleton />
-        ) : totalActions === 0 ? (
-          <Card>
-            <EmptyStatePanel
-              icon={<CheckCircle2 className="mx-auto h-8 w-8 text-emerald-300" aria-hidden="true" />}
-              title="Nothing needs attention"
-              detail="The dashboard will surface urgent tasks, deadlines, calendar events, and module alerts here."
-              className="py-8"
-            />
-          </Card>
-        ) : (
-          <div className="space-y-2.5">
-            <ActionGroup title="Act Now" count={overdue.length} color={COLORS.red} items={overdue} showAll={showAllActions} defaultLimit={3} onNavigate={onNavigate} />
-            <ActionGroup title="This Week" count={thisWeek.length} color={COLORS.amber} items={thisWeek} showAll={showAllActions} defaultLimit={3} onNavigate={onNavigate} />
-            {showAllActions && <ActionGroup title="Coming Up" count={upcoming.length} color={COLORS.slate} items={upcoming} showAll defaultLimit={3} onNavigate={onNavigate} />}
-          </div>
-        )}
       </section>
 
       <section>
@@ -1075,60 +509,6 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
         )}
       </section>
 
-      <section>
-        <SectionHeader
-          title="Notes"
-          count={notes.data.length}
-          tone="neutral"
-          action={notes.data.length > 0 ? (
-            <Button type="button" variant="ghost" size="xs" onClick={() => setShowNotes(value => !value)}>
-              {showNotes ? "Hide" : "Show"}
-            </Button>
-          ) : null}
-        />
-        {notes.loading ? (
-          <SectionSkeleton rows={2} />
-        ) : notes.data.length === 0 ? (
-          <Card>
-            <EmptyStatePanel
-              icon={<NotebookText className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />}
-              title="No notes yet"
-              detail="Household notes added from Quick Add will show on the dashboard."
-              className="py-8"
-            />
-          </Card>
-        ) : showNotes ? (
-          <div className="space-y-2.5">
-            {notes.data.map(note => (
-              <Card key={note.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      {note.title && <div className="mb-1 truncate text-sm font-bold text-foreground">{note.title}</div>}
-                      <div className="text-sm leading-6 text-secondary-foreground">{note.body}</div>
-                      <div className="mt-2 text-xs text-muted-foreground">
-                        {new Date(note.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                      </div>
-                    </div>
-                    <Badge variant="slate" className="shrink-0">{note.tag || "General"}</Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : null}
-      </section>
-
-      <MemberFormDrawer
-        open={memberDrawer.open}
-        mode={memberDrawer.mode}
-        member={memberDrawer.member}
-        references={editingReferences}
-        onClose={closeMemberDrawer}
-        onSave={saveMember}
-        onDeactivate={deactivateEditingMember}
-        onRemove={removeEditingMember}
-      />
     </div>
   );
 }
