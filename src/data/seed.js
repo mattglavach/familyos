@@ -54,6 +54,25 @@ export const SEED={
     {id:"life-item-2",list_id:"life-2",title:"Weekend mountain cabin",description:"Save for a cooler-weather trip.",priority:"high",status:"someday",favorite:false,assigned_to_person_id:null,tags:["travel","weekend"],link_url:"",image_url:"",created_at:"2026-07-01T12:00:00Z",updated_at:"2026-07-01T12:00:00Z",completed_at:null,archived:false,sort_order:1},
     {id:"life-item-3",list_id:"life-3",title:"New pickleball paddle",description:"Potential birthday idea.",priority:"low",status:"planned",favorite:false,assigned_to_person_id:null,tags:["gift"],link_url:"",image_url:"",created_at:"2026-07-01T12:00:00Z",updated_at:"2026-07-01T12:00:00Z",completed_at:null,archived:false,sort_order:1},
   ],
+  shopping_lists:[
+    {id:"shop-list-1",name:"Weekly Groceries",description:"Default household grocery run.",owner_user_id:null,visibility:"household",favorite:true,archived:false,category:"Grocery",color:"#3DB87A",icon:"S",sort_order:1,recipe_ref:null,meal_plan_ref:null,created_at:"2026-07-02T12:00:00Z",updated_at:"2026-07-02T12:00:00Z"},
+    {id:"shop-list-2",name:"Costco Run",description:"Bulk household staples.",owner_user_id:null,visibility:"shared",favorite:false,archived:false,category:"Costco",color:"#4A90D9",icon:"S",sort_order:2,recipe_ref:null,meal_plan_ref:null,created_at:"2026-07-02T12:00:00Z",updated_at:"2026-07-02T12:00:00Z"},
+  ],
+  shopping_items:[
+    {id:"shop-item-1",list_id:"shop-list-1",pantry_item_id:"pantry-1",name:"Milk",quantity:1,unit:"gal",category:"Grocery",priority:"med",purchased:false,notes:"Any brand",favorite:true,assigned_to_person_id:null,sort_order:1,archived:false,purchased_at:null,recipe_ref:null,meal_plan_ref:null,created_at:"2026-07-02T12:00:00Z",updated_at:"2026-07-02T12:00:00Z"},
+    {id:"shop-item-2",list_id:"shop-list-1",pantry_item_id:"pantry-2",name:"Rice",quantity:1,unit:"bag",category:"Grocery",priority:"high",purchased:false,notes:"Pantry is low",favorite:false,assigned_to_person_id:null,sort_order:2,archived:false,purchased_at:null,recipe_ref:null,meal_plan_ref:null,created_at:"2026-07-02T12:00:00Z",updated_at:"2026-07-02T12:00:00Z"},
+    {id:"shop-item-3",list_id:"shop-list-2",pantry_item_id:null,name:"Paper towels",quantity:1,unit:"case",category:"Household",priority:"med",purchased:false,notes:"",favorite:false,assigned_to_person_id:null,sort_order:1,archived:false,purchased_at:null,recipe_ref:null,meal_plan_ref:null,created_at:"2026-07-02T12:00:00Z",updated_at:"2026-07-02T12:00:00Z"},
+  ],
+  pantry_items:[
+    {id:"pantry-1",name:"Milk",current_quantity:1,minimum_quantity:1,unit:"gal",category:"Grocery",reorder_flag:false,favorite:true,notes:"Usually one spare.",archived:false,sort_order:1,recipe_ref:null,meal_plan_ref:null,created_at:"2026-07-02T12:00:00Z",updated_at:"2026-07-02T12:00:00Z"},
+    {id:"pantry-2",name:"Rice",current_quantity:0.5,minimum_quantity:1,unit:"bag",category:"Grocery",reorder_flag:true,favorite:false,notes:"Keep one unopened bag.",archived:false,sort_order:2,recipe_ref:null,meal_plan_ref:null,created_at:"2026-07-02T12:00:00Z",updated_at:"2026-07-02T12:00:00Z"},
+    {id:"pantry-3",name:"Dish soap",current_quantity:1,minimum_quantity:1,unit:"bottle",category:"Household",reorder_flag:false,favorite:false,notes:"",archived:false,sort_order:3,recipe_ref:null,meal_plan_ref:null,created_at:"2026-07-02T12:00:00Z",updated_at:"2026-07-02T12:00:00Z"},
+  ],
+  shopping_categories:[
+    {id:"shop-cat-1",name:"Grocery",color:"#3DB87A",sort_order:1},
+    {id:"shop-cat-2",name:"Household",color:"#4A90D9",sort_order:2},
+    {id:"shop-cat-3",name:"Costco",color:"#8B6FD4",sort_order:3},
+  ],
   college_schools:[
     {id:"1",name:"University of Virginia",status:"researching",match_level:"Reach",app_type:"ED",app_deadline:"2026-11-01",visit_notes:""},
     {id:"2",name:"Wake Forest University",status:"researching",match_level:"Reach",app_type:"EA",app_deadline:"2026-11-15",visit_notes:""},

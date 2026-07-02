@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, ChevronLeft, ClipboardList, Droplets, ListChecks } from "lucide-react";
+import { Check, ChevronLeft, ClipboardList, Droplets, ListChecks, ShoppingCart } from "lucide-react";
 import { TODAY_STR } from "../../lib/dates";
 import { sb } from "../../lib/supabase";
 import { formatUserFacingError } from "../../lib/userFacingErrors";
@@ -19,6 +19,8 @@ export function QuickAdd({onNavigate, openSignal = 0}){
   const tasks = useTable("tasks", "due_date", true);
   const lifeLists = useTable("life_lists", "updated_at");
   const lifeItems = useTable("life_list_items", "updated_at");
+  const shoppingLists = useTable("shopping_lists", "updated_at");
+  const shoppingItems = useTable("shopping_items", "updated_at");
   const household = useHousehold();
   const [form,setForm] = useState({});
   const [mode,setMode] = useState(null);
@@ -29,6 +31,8 @@ export function QuickAdd({onNavigate, openSignal = 0}){
 
   const options=[
     {id:"task", icon:ClipboardList, label:"Task", status:"Ready", enabled:true, accentClass:"border-l-violet-400", iconClass:"text-violet-300"},
+    {id:"shopping-item", icon:ShoppingCart, label:"Shopping Item", status:"Ready", enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
+    {id:"shopping-list", icon:ShoppingCart, label:"Shopping List", status:"Ready", enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
     {id:"life-item", icon:ListChecks, label:"List Item", status:"Ready", enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
     {id:"life-list", icon:ListChecks, label:"Life List", status:"Ready", enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
     {id:"pool", icon:Droplets, label:"Pool Reading", status:"Ready", enabled:true, accentClass:"border-l-primary", iconClass:"text-primary"},
@@ -46,6 +50,12 @@ export function QuickAdd({onNavigate, openSignal = 0}){
   const modeTitle = options.find(o=>o.id===mode)?.label || "Quick Add";
   const canManageSharedLists = roleCanManage(household.membership?.role);
   const writableLifeLists = lifeLists.data.filter(list => {
+    if (list.archived) return false;
+    const visibility = list.visibility || "household";
+    if (visibility === "personal") return list.owner_user_id === household.user?.id;
+    return canManageSharedLists && ["household", "shared"].includes(visibility);
+  });
+  const writableShoppingLists = shoppingLists.data.filter(list => {
     if (list.archived) return false;
     const visibility = list.visibility || "household";
     if (visibility === "personal") return list.owner_user_id === household.user?.id;
@@ -108,6 +118,28 @@ export function QuickAdd({onNavigate, openSignal = 0}){
       await lifeLists.update(form.list_id,{updated_at:new Date().toISOString()});
       close();setToast({message:"Life List item added."});onNavigate("life-lists");
     }catch(e){setSaveError(formatUserFacingError(e, "Life List item could not be saved right now."));}
+  }
+  async function saveShoppingList(){
+    setSaveError(null);
+    if(!form.title){setSaveError("List name is required");return;}
+    if(!canManageSharedLists && (form.visibility||"personal") !== "personal"){setSaveError("Your role can create personal lists only.");return;}
+    const row={name:form.title,description:form.notes||"",category:form.category||"Grocery",visibility:form.visibility||(canManageSharedLists?"household":"personal"),favorite:form.favorite||false,archived:false,color:"#3DB87A",icon:"S",sort_order:shoppingLists.data.length+1,updated_at:new Date().toISOString()};
+    try{
+      await shoppingLists.insert(row);
+      close();setToast({message:"Shopping list created."});onNavigate("shopping");
+    }catch(e){setSaveError(formatUserFacingError(e, "Shopping list could not be saved right now."));}
+  }
+  async function saveShoppingItem(){
+    setSaveError(null);
+    if(!form.title){setSaveError("Item name is required");return;}
+    if(!form.list_id){setSaveError("Choose a shopping list first.");return;}
+    if(!writableShoppingLists.some(list=>list.id===form.list_id)){setSaveError("Choose a list you can update.");return;}
+    const row={list_id:form.list_id,name:form.title,quantity:form.quantity||1,unit:form.unit||"",category:form.category||"Grocery",priority:form.priority||"med",purchased:false,notes:form.notes||"",favorite:form.favorite||false,archived:false,sort_order:shoppingItems.data.filter(item=>item.list_id===form.list_id).length+1,updated_at:new Date().toISOString()};
+    try{
+      await shoppingItems.insert(row);
+      await shoppingLists.update(form.list_id,{updated_at:new Date().toISOString()});
+      close();setToast({message:"Shopping item added."});onNavigate("shopping");
+    }catch(e){setSaveError(formatUserFacingError(e, "Shopping item could not be saved right now."));}
   }
 
   return(<>
@@ -197,6 +229,78 @@ export function QuickAdd({onNavigate, openSignal = 0}){
               Favorite list
             </button>
             <Button type="button" className="w-full" onClick={saveLifeList}>Create Life List</Button>
+            {saveError&&<FormError>{saveError}</FormError>}
+            <Button type="button" variant="secondary" className="w-full" onClick={()=>setMode(null)}><ChevronLeft aria-hidden="true"/>Back</Button>
+          </FormSection>
+        </>}
+
+        {mode==="shopping-list"&&<>
+          <FormSection>
+            <FormGroup>
+              <Label>Name</Label>
+              <Input placeholder="e.g. Grocery list" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
+            </FormGroup>
+            <FormGroup>
+              <Label>Category</Label>
+              <Input placeholder="Grocery, Costco, Household..." value={form.category||""} onChange={e=>setForm(p=>({...p,category:e.target.value}))}/>
+            </FormGroup>
+            <FormGroup>
+              <Label>Visibility</Label>
+              <SegmentedControl value={form.visibility||(canManageSharedLists?"household":"personal")} options={(canManageSharedLists?[{value:"household",label:"Household"},{value:"personal",label:"Personal"},{value:"shared",label:"Shared"}]:[{value:"personal",label:"Personal"}])} ariaLabel="Shopping list visibility" onValueChange={visibility=>setForm(p=>({...p,visibility}))}/>
+            </FormGroup>
+            <FormGroup>
+              <Label>Description</Label>
+              <Input placeholder="Optional notes" value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
+            </FormGroup>
+            <button type="button" className="flex w-full items-center gap-3 rounded-lg border border-border bg-secondary px-3 py-3 text-left text-sm font-semibold text-secondary-foreground" onClick={()=>setForm(p=>({...p,favorite:!p.favorite}))}>
+              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${form.favorite?"border-violet-400 bg-violet-500 text-white":"border-muted-foreground"}`}>
+                {form.favorite&&<Check size={14} aria-hidden="true"/>}
+              </span>
+              Favorite list
+            </button>
+            <Button type="button" className="w-full" onClick={saveShoppingList}>Create Shopping List</Button>
+            {saveError&&<FormError>{saveError}</FormError>}
+            <Button type="button" variant="secondary" className="w-full" onClick={()=>setMode(null)}><ChevronLeft aria-hidden="true"/>Back</Button>
+          </FormSection>
+        </>}
+
+        {mode==="shopping-item"&&<>
+          <FormSection>
+            <FormGroup>
+              <Label>List</Label>
+              <select className="flex h-11 w-full rounded-md border border-input bg-secondary px-3 py-2 text-sm text-foreground" value={form.list_id||""} onChange={e=>setForm(p=>({...p,list_id:e.target.value}))}>
+                <option value="">Choose a list</option>
+                {writableShoppingLists.map(list=><option key={list.id} value={list.id}>{list.name}</option>)}
+              </select>
+              {!writableShoppingLists.length&&<FormHelp>Create a personal shopping list before adding an item.</FormHelp>}
+            </FormGroup>
+            <FormGroup>
+              <Label>Name</Label>
+              <Input placeholder="e.g. Milk" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
+            </FormGroup>
+            <FormRow>
+              <FormGroup>
+                <Label>Quantity</Label>
+                <Input type="number" min="0" step="0.5" value={form.quantity||""} onChange={e=>setForm(p=>({...p,quantity:e.target.value}))}/>
+              </FormGroup>
+              <FormGroup>
+                <Label>Unit</Label>
+                <Input placeholder="ct, lb, oz" value={form.unit||""} onChange={e=>setForm(p=>({...p,unit:e.target.value}))}/>
+              </FormGroup>
+            </FormRow>
+            <FormGroup>
+              <Label>Category</Label>
+              <Input placeholder="Grocery" value={form.category||""} onChange={e=>setForm(p=>({...p,category:e.target.value}))}/>
+            </FormGroup>
+            <FormGroup>
+              <Label>Priority</Label>
+              <SegmentedControl value={form.priority||"med"} options={[{value:"low",label:"Low"},{value:"med",label:"Med"},{value:"high",label:"High"}]} ariaLabel="Shopping item priority" onValueChange={priority=>setForm(p=>({...p,priority}))}/>
+            </FormGroup>
+            <FormGroup>
+              <Label>Notes</Label>
+              <Input placeholder="Brand, size, store note..." value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
+            </FormGroup>
+            <Button type="button" className="w-full" onClick={saveShoppingItem}>Add Shopping Item</Button>
             {saveError&&<FormError>{saveError}</FormError>}
             <Button type="button" variant="secondary" className="w-full" onClick={()=>setMode(null)}><ChevronLeft aria-hidden="true"/>Back</Button>
           </FormSection>

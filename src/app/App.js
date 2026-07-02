@@ -20,6 +20,7 @@ import { College } from "../modules/college/College";
 import { Pool, getChemRecommendations } from "../modules/pool/Pool";
 import { Finance, calcRetirementProjection, formatMoneyShort } from "../modules/finance/Finance";
 import { LifeLists } from "../modules/life-lists/LifeLists";
+import { Shopping } from "../modules/shopping/Shopping";
 import { QuickAdd } from "../modules/quick-add/QuickAdd";
 import { Settings } from "../modules/settings/Settings";
 import { TABS, TITLES } from "./navigation/tabs";
@@ -255,7 +256,7 @@ function AppHeader({tab, auth, calendar, unreadCount, onSettings, onSearch, onNo
 function BottomNavigation({tab,onNavigate,onQuickAdd}){
   return <nav className="fixed bottom-0 left-1/2 z-20 flex w-full max-w-[430px] -translate-x-1/2 border-t border-border bg-card pb-[env(safe-area-inset-bottom)]" aria-label="Primary navigation">
     {TABS.map(t=>{
-      const active = tab===t.id || (t.id === "more" && ["settings","finance","pool","college","life-lists"].includes(tab));
+      const active = tab===t.id || (t.id === "more" && ["settings","finance","pool","college","life-lists","shopping"].includes(tab));
       return (
       <button
         key={t.id}
@@ -428,6 +429,7 @@ function AuthenticatedApp({ auth }) {
       {tab==="pool"&&<Pool/>}
       {tab==="finance"&&<Finance/>}
       {tab==="life-lists"&&<LifeLists/>}
+      {tab==="shopping"&&<Shopping/>}
       {tab==="more"&&<More onNavigate={switchTab}/>}
       {tab==="settings"&&<Settings auth={auth} gc={gc} secureCalendar={secureCalendar}/>}
 
