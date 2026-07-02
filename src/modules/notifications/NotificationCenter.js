@@ -22,7 +22,8 @@ function daysUntil(date) {
   if (!date) return null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const target = new Date(date);
+  const value = String(date);
+  const target = value.includes("T") ? new Date(value) : new Date(`${value}T00:00:00`);
   target.setHours(0, 0, 0, 0);
   if (Number.isNaN(target.getTime())) return null;
   return Math.round((target - today) / 86400000);

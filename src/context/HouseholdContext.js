@@ -17,6 +17,7 @@ export function HouseholdProvider({ session, children }) {
     error: "",
     profile: null,
     household: null,
+    userHouseholds: [],
     membership: null,
     userMemberships: [],
     memberships: [],
@@ -55,6 +56,7 @@ export function HouseholdProvider({ session, children }) {
           error: "No active household was found for this account.",
           profile: profileResult.data || null,
           household: null,
+          userHouseholds: [],
           membership: null,
           userMemberships: memberships,
           memberships,
@@ -65,13 +67,18 @@ export function HouseholdProvider({ session, children }) {
         return;
       }
 
-      const [household, peopleResult, settings, allMembershipsResult] = await Promise.all([
+      const activeHouseholdIds = activeMemberships.map(item => item.household_id).filter(Boolean);
+      const [household, userHouseholdsResult, peopleResult, settings, allMembershipsResult] = await Promise.all([
         selectSingleOrNull(supabase.from("households").select("*").eq("id", householdId)),
+        activeHouseholdIds.length
+          ? supabase.from("households").select("*").in("id", activeHouseholdIds).order("created_at", { ascending: true })
+          : Promise.resolve({ data: [], error: null }),
         supabase.from("people").select("*").eq("household_id", householdId).order("display_name", { ascending: true }),
         selectSingleOrNull(supabase.from("household_settings").select("*").eq("household_id", householdId)),
         supabase.from("household_members").select("*").eq("household_id", householdId).order("created_at", { ascending: true }),
       ]);
 
+      if (userHouseholdsResult.error) throw userHouseholdsResult.error;
       if (peopleResult.error) throw peopleResult.error;
       if (allMembershipsResult.error) throw allMembershipsResult.error;
 
@@ -80,6 +87,7 @@ export function HouseholdProvider({ session, children }) {
         error: "",
         profile: profileResult.data || null,
         household,
+        userHouseholds: userHouseholdsResult.data || [],
         membership,
         userMemberships: memberships,
         memberships: allMembershipsResult.data?.length ? allMembershipsResult.data : memberships,
@@ -159,6 +167,7 @@ export function useHousehold() {
       people: [],
       householdSettings: null,
       userPreferences: null,
+      userHouseholds: [],
       canManageHousehold: false,
       switchHousehold: async () => ({ ok: false, error: "Household context is unavailable." }),
       refresh: async () => {},

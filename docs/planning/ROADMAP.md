@@ -71,12 +71,12 @@
 
 ## Product Handbook Track
 - [x] Establish permanent Product Handbook for vision, IA, navigation, design principles, UX, dashboard, modules, personas, workflows, feature philosophy, and product roadmap.
-- [ ] Use Product Handbook and Engineering Handbook together for Release 1.0 implementation planning.
+- [x] Use Product Handbook and Engineering Handbook together for Release 1.0 implementation planning.
 
 ## Next Release
 - [x] Release 1.0 planning with `docs/templates/RELEASE_SPEC.md`.
 - [x] Implement Release 1.0 from `docs/planning/RELEASE_1_0_SPEC.md`.
-- [ ] Complete Release 1.0 authenticated local/staging smoke validation.
+- [x] Complete Release 1.0 authenticated local/staging smoke validation.
 
 ## Release 1.0 Scope
 - [x] Stabilize the dashboard daily command center.
@@ -86,6 +86,6 @@
 - [x] Add Universal Search.
 - [x] Add in-app Notifications framework.
 - [x] Polish navigation and responsive layouts for active modules.
-- [ ] Harden Settings and household management workflows through authenticated browser smoke validation.
+- [x] Harden Settings and household management workflows through authenticated browser smoke validation.
 - [ ] Revalidate household collaboration, active household switching, and permission enforcement.
 - [ ] Keep shopping, life lists, meal planning, recipes, inventory, Home Assistant, smart home, AI Assistant, ownership transfer, public sign-up, and major new integrations deferred.

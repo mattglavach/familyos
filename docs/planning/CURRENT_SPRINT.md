@@ -76,7 +76,7 @@ Implement Release 1.0 Core Family OS MVP while keeping scope limited to the dail
 - [x] Add in-app notification center with local read/unread state
 - [x] Reorder Home dashboard around Release 1.0 product priorities
 - [x] Add Tasks search filter
-- [ ] Complete authenticated browser smoke validation for Release 1.0
+- [x] Complete authenticated browser smoke validation for Release 1.0
 
 ## Blockers
 
@@ -128,3 +128,4 @@ Implement Release 1.0 Core Family OS MVP while keeping scope limited to the dail
 - Release 1.0 planning keeps the release focused on core household operating readiness: dashboard, tasks, navigation, settings, household management, responsive UX, and validation. Shopping, life lists, meal planning, recipes, inventory, Home Assistant, smart home, AI Assistant, ownership transfer, public sign-up, and major new integrations remain deferred.
 - Release 0.9.3 defines the product source of truth: vision, information architecture, navigation, design principles, UX guidelines, dashboard strategy, module map, personas, workflows, feature philosophy, and product roadmap.
 - Release 1.0 implements scoped Universal Search and in-app notifications because the implementation prompt explicitly includes them. This does not add push/email/SMS notifications or broad future-module search.
+- Release 1.0 authenticated smoke validation used local Supabase only (`127.0.0.1:54321`) and local CRA on `localhost:3000`; production was not touched. Owner, adult, viewer, task lifecycle, task search, assignment, Calendar, Quick Add, Universal Search, Notifications, More, Settings, household switching, invite create/revoke, owner role update, and mobile sanity checks passed.

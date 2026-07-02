@@ -19,11 +19,17 @@ export function nextDueDate(last, interval) {
 }
 
 export function formatDate(s) {
-  return new Date(`${s}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const value = String(s || "");
+  const date = value.includes("T") ? new Date(value) : new Date(`${value}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 export function formatDateFull(s) {
-  return new Date(`${s}T12:00:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  const value = String(s || "");
+  const date = value.includes("T") ? new Date(value) : new Date(`${value}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
 export function formatToday() {

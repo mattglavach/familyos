@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, Search, Settings, UserRound, ListTodo } from "lucide-react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
@@ -31,7 +31,13 @@ export function GlobalSearch({ open, onOpenChange, calendarEvents, onNavigate })
   const [query, setQuery] = useState("");
   const taskTable = useTable("tasks", "due_date", true);
   const family = useFamilyMembers();
+  const reloadTasks = taskTable.reload;
   const normalizedQuery = query.trim().toLowerCase();
+
+  useEffect(() => {
+    if (!open) return;
+    reloadTasks();
+  }, [open, reloadTasks]);
 
   const results = useMemo(() => {
     if (!normalizedQuery) return [];

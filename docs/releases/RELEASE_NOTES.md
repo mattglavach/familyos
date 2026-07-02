@@ -25,29 +25,48 @@ Release 1.0 implements the Core Family OS MVP as the first true product release 
 - None.
 
 ### Security And RLS Notes
+- Authenticated smoke testing used local Supabase only: `REACT_APP_SUPABASE_URL=http://127.0.0.1:54321`, Docker container `supabase_db_familyos`, and local CRA server `http://localhost:3000`.
 - No production Supabase data was touched.
 - No schema or RLS migration was added.
 - Existing Supabase RLS remains the enforcement layer for task, household, invitation, and calendar records.
 - Owner-only household controls remain in Settings and continue to rely on existing role/RLS/RPC behavior.
 - In-app notification read state is local-only UI state; it does not store secrets, tokens, sessions, or private provider payloads.
 
+### Fixes From Authenticated Smoke
+- Fixed shared date formatting so Supabase timestamp values do not render as `Invalid Date` in task cards.
+- Fixed notification due-date math for date-only task values so local dates are not shifted by timezone parsing.
+- Refreshed task data when Universal Search opens so newly created Quick Add tasks are indexed.
+- Updated Settings to show Release 1.0 and display named active-household switcher options instead of raw household UUIDs.
+
 ### Validation
 - `pnpm run lint` passed.
 - `pnpm run build` passed.
-- Browser smoke on `http://localhost:3000` confirmed the sign-in surface renders without the stale dev overlay after reload.
-- Mobile viewport smoke at 390px confirmed the visible auth surface has no horizontal overflow.
-- Browser console error/warning check returned no logs for the visible unauthenticated state.
+- `git diff --check` passed.
+- Browser smoke on `http://localhost:3000` confirmed authenticated owner, adult, and viewer workflows against local Supabase.
+- Mobile viewport smoke at 390px confirmed no horizontal overflow on the authenticated Home surface.
+- Browser console error/warning check returned no logs after authenticated smoke.
 
 ### Browser Smoke Notes
-- Login screen: passed visible render check.
-- Mobile/responsive sanity check: passed on unauthenticated surface.
-- Authenticated smoke for Home, Tasks create/edit/complete/delete, assignment, Calendar, Quick Add, Search, Notifications, household switching, Settings, and owner/non-owner controls still requires a disposable/local Supabase authenticated test session. No production data was used.
+- Login: passed for local owner and adult/viewer member accounts.
+- Home dashboard: passed with household data, task summaries, schedule state, Quick Add entry, and More navigation.
+- Tasks: passed create, edit, complete, delete, search/filtering, and assignment to household member.
+- Calendar: passed first-class page and disconnected local state with Settings paths.
+- Quick Add: passed global task creation and household-aware task persistence.
+- Universal Search: passed task search, including newly created Quick Add tasks after the refresh-on-open fix.
+- Notification Center: passed unread generation, corrected due labels, and mark-read state.
+- More page: passed available/deferred module grouping without adding deferred modules.
+- Household switching: passed owner switch to alternate local household and back.
+- Settings household/member/invite views: passed owner directory, pending invite create/revoke, role update, member removal, active household, and non-owner views.
+- Owner controls: passed invite creation/revoke, role update, and removal of a disposable non-login member.
+- Adult controls: passed; owner-only invite, role, and remove controls were hidden/disabled.
+- Viewer controls: passed; owner-only invite, role, and remove controls were hidden/disabled.
+- Mobile responsive sanity: passed at 390px authenticated viewport with no horizontal overflow.
 
 ### Deferred
 - Shopping, Life Lists, Meal Planning, Recipes, Inventory, Finance expansion, Pool expansion, College expansion, Home Assistant, Smart Home, AI Assistant, public sign-up, ownership transfer, push notifications, and broad module RLS conversion remain deferred.
 
 ### Recommendation
-Not ready to merge until authenticated local/staging browser smoke tests are completed.
+Ready to merge after final repository validation remains green.
 
 ## Release 0.9.3 Product Handbook
 

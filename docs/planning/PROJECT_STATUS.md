@@ -4,7 +4,7 @@
 1.0
 
 ## Current State
-Release 1.0 core MVP implementation is in progress on branch `release/1.0`.
+Release 1.0 core MVP implementation and authenticated local browser smoke validation are complete on branch `release/1.0`.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -58,12 +58,13 @@ Release 1.0 core MVP implementation is in progress on branch `release/1.0`.
 - Release 1.0 specification and implementation blueprint defined in `docs/planning/RELEASE_1_0_SPEC.md`
 - Release 0.9.3 permanent Product Handbook established under `docs/product`
 - Release 1.0 core MVP implementation added Home dashboard ordering, Calendar, More navigation, Universal Quick Add launch, Universal Search, in-app Notifications, and task search
+- Release 1.0 authenticated local browser smoke validation passed against local Supabase for owner, adult, viewer, Home, Tasks, Calendar, Quick Add, Universal Search, Notifications, More, household switching, Settings, invite create/revoke, owner role update, non-owner control hiding, and mobile sanity checks
 
 ## In Progress
-- Authenticated local/staging browser smoke validation for Release 1.0.
+- None for Release 1.0 validation.
 
 ## Next
-- Complete authenticated browser smoke tests for Home, Tasks, Calendar, Quick Add, Search, Notifications, household switching, Settings, and owner/non-owner controls.
+- Final release review, merge, and tag decision for Release 1.0.
 - Configure Release 0.8 server OAuth environment values in Vercel before removing the legacy calendar fallback.
 - Decide whether to remove the legacy browser calendar fallback after deployed validation.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
@@ -94,6 +95,7 @@ Release 1.0 core MVP implementation is in progress on branch `release/1.0`.
 - Release 1.0 should avoid broad module expansion and focus on dashboard, tasks, navigation, settings, household management, responsive UX, and validation.
 - Product direction should start from the Product Handbook; engineering execution should start from `docs/process/ENGINEERING_INDEX.md`.
 - Release 1.0 introduced Universal Search and an in-app notification center as scoped local/app-shell features; push/email/SMS delivery remains deferred.
+- Release 1.0 local smoke used disposable seeded records in local Supabase. Production deployment still requires normal post-merge/deploy smoke validation.
 
 ## Last Updated
 July 2, 2026
