@@ -3,7 +3,10 @@ import { APP_CONFIG } from "../config";
 import { supabase } from "../lib/supabase";
 
 function getEmailRedirectTo() {
-  return window.location.origin;
+  const url = new URL(window.location.origin);
+  const inviteToken = new URLSearchParams(window.location.search).get("invite");
+  if (inviteToken) url.searchParams.set("invite", inviteToken);
+  return url.toString();
 }
 
 function isApprovedHouseholdEmail(email) {

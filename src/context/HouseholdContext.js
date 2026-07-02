@@ -1,11 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { roleCanManage } from "../hooks/useHouseholdCollaboration";
 
 const HouseholdContext = createContext(null);
-
-function roleCanManage(role) {
-  return role === "owner" || role === "adult";
-}
 
 async function selectSingleOrNull(query) {
   const { data, error } = await query.maybeSingle();
@@ -21,6 +18,7 @@ export function HouseholdProvider({ session, children }) {
     profile: null,
     household: null,
     membership: null,
+    userMemberships: [],
     memberships: [],
     people: [],
     householdSettings: null,
@@ -46,10 +44,10 @@ export function HouseholdProvider({ session, children }) {
       if (membershipsResult.error) throw membershipsResult.error;
 
       const memberships = membershipsResult.data || [];
-      const activeMemberships = memberships.filter(membership => membership.status !== "inactive");
+      const activeMemberships = memberships.filter(membership => membership.status === "active");
       const preferredHouseholdId = preferencesResult.data?.default_household_id;
-      const membership = activeMemberships.find(item => item.household_id === preferredHouseholdId) || activeMemberships[0] || memberships[0] || null;
-      const householdId = membership?.household_id || preferredHouseholdId || null;
+      const membership = activeMemberships.find(item => item.household_id === preferredHouseholdId) || activeMemberships[0] || null;
+      const householdId = membership?.household_id || null;
 
       if (!householdId) {
         setState({
@@ -58,6 +56,7 @@ export function HouseholdProvider({ session, children }) {
           profile: profileResult.data || null,
           household: null,
           membership: null,
+          userMemberships: memberships,
           memberships,
           people: [],
           householdSettings: null,
@@ -82,6 +81,7 @@ export function HouseholdProvider({ session, children }) {
         profile: profileResult.data || null,
         household,
         membership,
+        userMemberships: memberships,
         memberships: allMembershipsResult.data?.length ? allMembershipsResult.data : memberships,
         people: peopleResult.data || [],
         householdSettings: settings,
@@ -101,6 +101,34 @@ export function HouseholdProvider({ session, children }) {
     refresh();
   }, [refresh]);
 
+  const switchHousehold = useCallback(async nextHouseholdId => {
+    if (!user?.id || !nextHouseholdId) return { ok: false, error: "Missing household selection." };
+    const allowed = state.userMemberships.some(membership => (
+      membership.household_id === nextHouseholdId
+      && membership.user_id === user.id
+      && membership.status === "active"
+    ));
+    if (!allowed) return { ok: false, error: "You are not an active member of that household." };
+
+    const { error } = await supabase.from("user_preferences").upsert({
+      user_id: user.id,
+      default_household_id: nextHouseholdId,
+    });
+    if (error) return { ok: false, error: error.message || "Household could not be switched." };
+
+    setState(previous => ({
+      ...previous,
+      loading: true,
+      error: "",
+      household: null,
+      membership: null,
+      people: [],
+      householdSettings: null,
+    }));
+    await refresh();
+    return { ok: true };
+  }, [refresh, state.userMemberships, user?.id]);
+
   const householdId = state.household?.id || state.membership?.household_id || state.userPreferences?.default_household_id || null;
   const canManageHousehold = roleCanManage(state.membership?.role);
 
@@ -109,8 +137,9 @@ export function HouseholdProvider({ session, children }) {
     user,
     householdId,
     canManageHousehold,
+    switchHousehold,
     refresh,
-  }), [canManageHousehold, householdId, refresh, state, user]);
+  }), [canManageHousehold, householdId, refresh, state, switchHousehold, user]);
 
   return <HouseholdContext.Provider value={value}>{children}</HouseholdContext.Provider>;
 }
@@ -125,11 +154,13 @@ export function useHousehold() {
       household: null,
       householdId: null,
       membership: null,
+      userMemberships: [],
       memberships: [],
       people: [],
       householdSettings: null,
       userPreferences: null,
       canManageHousehold: false,
+      switchHousehold: async () => ({ ok: false, error: "Household context is unavailable." }),
       refresh: async () => {},
     };
   }
