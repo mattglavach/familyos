@@ -1,10 +1,10 @@
 # Project Status
 
 ## Current Version
-1.0.2
+1.0.3
 
 ## Current State
-Release 1.0 core MVP and Release 1.0.1 Core MVP Polish are complete. Release 1.0.2 Reliability is in progress on branch `release/1.0.2-reliability`.
+Release 1.0 core MVP, Release 1.0.1 Core MVP Polish, and Release 1.0.2 Reliability are complete. Release 1.0.3 Design System is in progress on branch `release/1.0.3-design-system`.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -61,12 +61,13 @@ Release 1.0 core MVP and Release 1.0.1 Core MVP Polish are complete. Release 1.0
 - Release 1.0 authenticated local browser smoke validation passed against local Supabase for owner, adult, viewer, Home, Tasks, Calendar, Quick Add, Universal Search, Notifications, More, household switching, Settings, invite create/revoke, owner role update, non-owner control hiding, and mobile sanity checks
 - Release 1.0.1 polished Home, Tasks, Quick Add, More grouping, notification lifecycle views, and product/planning documentation without adding deferred modules
 - Release 1.0.2 improved Calendar and invitation configuration handling, friendly error guidance, optional integration behavior, setup documentation, and final local authenticated reliability smoke validation
+- Release 1.0.3 established the local shadcn-compatible UI wrapper layer, design tokens, command search wrapper, and chip-based common task/Quick Add controls without adding product modules or schema changes
 
 ## In Progress
-- Release 1.0.2 final release review, merge, and tag decision.
+- Release 1.0.3 final browser smoke validation, release review, merge, and tag decision.
 
 ## Next
-- Final release review, merge, and tag decision for Release 1.0.2.
+- Final release review, merge, and tag decision for Release 1.0.3.
 - Configure Release 0.8 server OAuth environment values in Vercel before removing the legacy calendar fallback.
 - Decide whether to remove the legacy browser calendar fallback after deployed validation.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
@@ -101,6 +102,7 @@ Release 1.0 core MVP and Release 1.0.1 Core MVP Polish are complete. Release 1.0
 - Release 1.0 introduced Universal Search and an in-app notification center as scoped local/app-shell features; push/email/SMS delivery remains deferred.
 - Release 1.0 local smoke used disposable seeded records in local Supabase. Production deployment still requires normal post-merge/deploy smoke validation.
 - Release 1.0.1 recurrence presets use the existing `recurring_interval_days` field. Weekday-only recurrence remains deferred until a richer recurrence model exists.
+- Release 1.0.3 adds UI wrappers but does not complete migration of legacy deferred-module inline styles, native browser confirmations, or every historical component listed in the UI migration backlog.
 
 ## Last Updated
 July 2, 2026

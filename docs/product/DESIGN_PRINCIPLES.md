@@ -34,6 +34,8 @@ Readable text, visible focus, accessible labels, sufficient contrast, keyboard s
 ## Consistency
 Repeated actions should look and behave the same across modules: create, edit, complete, save, delete, invite, revoke, disconnect, and reset.
 
+Design-system primitives should come from `src/components/ui` so common actions retain the same spacing, focus, disabled, loading, and feedback behavior as new modules are added.
+
 ## Progressive Disclosure
 Show common actions first. Put rare, destructive, sensitive, or advanced actions behind clear secondary controls or confirmations.
 

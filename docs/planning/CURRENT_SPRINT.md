@@ -1,7 +1,7 @@
 # Current Sprint
 
 ## Sprint Goal
-Implement Release 1.0.2 Reliability after v1.0.1, keeping scope limited to configuration handling, friendly errors, documentation, and production-readiness validation.
+Implement Release 1.0.3 Design System after v1.0.2, keeping scope limited to shared UI foundations, token consistency, accessibility polish, documentation, and validation.
 
 ## Active Items
 - [x] Add documentation structure
@@ -88,12 +88,18 @@ Implement Release 1.0.2 Reliability after v1.0.1, keeping scope limited to confi
 - [x] Replace raw technical errors in key user-facing reliability paths
 - [x] Update local, staging, and production configuration documentation
 - [x] Complete remaining Release 1.0.2 adult, viewer, mobile, and task lifecycle smoke validation against local Supabase
+- [x] Establish Release 1.0.3 `src/components/ui` wrapper foundation for future modules
+- [x] Standardize design tokens for semantic colors, radius, elevation, focus, and motion
+- [x] Move common Tasks and Quick Add option sets from dropdowns to chip controls
+- [x] Move Universal Search to the local Command wrapper without expanding search scope
+- [x] Complete Release 1.0.3 desktop, tablet, and 390px mobile browser smoke validation for active app surfaces
 
 ## Blockers
 
 - Release 0.6B has no active code blockers after local lint/build validation. Real-device family testing and Vercel deployment validation remain before broad use.
 - Release 0.6C has no active production migration blocker after baseline alignment and household foundation validation.
 - Release 1.0.2 has no active validation blocker after completing local authenticated adult, viewer, mobile, and task lifecycle smoke checks.
+- Release 1.0.3 has no active implementation or validation blocker after local lint, build, diff-check, browser smoke, and console validation.
 
 ## Notes
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.
@@ -142,3 +148,4 @@ Implement Release 1.0.2 Reliability after v1.0.1, keeping scope limited to confi
 - Release 1.0 implements scoped Universal Search and in-app notifications because the implementation prompt explicitly includes them. This does not add push/email/SMS notifications or broad future-module search.
 - Release 1.0 authenticated smoke validation used local Supabase only (`127.0.0.1:54321`) and local CRA on `localhost:3000`; production was not touched. Owner, adult, viewer, task lifecycle, task search, assignment, Calendar, Quick Add, Universal Search, Notifications, More, Settings, household switching, invite create/revoke, owner role update, and mobile sanity checks passed.
 - Release 1.0.1 keeps Home as awareness and modules as action workspaces. It does not add Life Lists, Shopping, Meal Planning, Finance expansion, Health, Smart Home, AI, Projects, or new major database models.
+- Release 1.0.3 establishes the UI wrapper layer and design tokens without redesigning workflows, adding product modules, or changing the database.

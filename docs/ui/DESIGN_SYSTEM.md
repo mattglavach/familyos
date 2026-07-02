@@ -10,6 +10,25 @@ Family OS is a mobile-first household operations app. The interface should feel 
 - Make status, urgency, ownership, and next action visible without requiring explanation text.
 - Avoid removing existing behavior during UI migration; improve one surface at a time.
 
+## Release 1.0.3 Component Strategy
+- Family OS is compatible with the shadcn/ui model and uses `components.json`, Tailwind CSS variables, Lucide icons, and local wrappers under `src/components/ui`.
+- Future modules should import UI primitives from `src/components/ui` only. Do not import third-party UI primitives directly into feature modules.
+- The wrapper layer keeps design tokens, accessibility defaults, and Family OS interaction rules in one place while allowing the underlying implementation to change later.
+- Existing Origin UI-style drawers remain the standard for mobile create/edit flows; `src/components/ui/drawer.jsx` exposes the drawer through the wrapper layer for future modules.
+- Common fixed option sets should use `SegmentedControl` or `ChipGroup`. Use dropdowns for long, dynamic, or low-frequency option lists.
+- Universal Search uses the local `Command` wrapper for command-style input and result rows without expanding search scope.
+
+## Design Tokens
+- Typography: system UI stack, compact headings, readable body text, and no viewport-scaled font sizes.
+- Spacing: 8px rhythm with stable gaps, section spacing, and mobile padding.
+- Colors: tokenized dark operational theme with semantic `primary`, `secondary`, `muted`, `accent`, `destructive`, `success`, `warning`, and `info` colors.
+- Radius: `--radius-sm`, `--radius-md`, and `--radius-lg`; card and control radii should stay restrained.
+- Elevation: `--shadow-soft` and `--shadow-card` only when elevation clarifies layering.
+- Focus: visible `focus-visible` rings using the shared ring token.
+- States: hover, disabled, destructive, success, warning, and error states must be token-based and text-supported.
+- Motion: use `--duration-fast`, `--duration-normal`, and `--duration-slow`; avoid decorative motion.
+- Dark mode readiness: new components must use tokens instead of hard-coded light or dark colors.
+
 ## Layout Standards
 - Use a constrained app shell for mobile-first flows, with comfortable side padding and persistent bottom navigation where appropriate.
 - Keep primary content in a single-column flow on mobile.
@@ -154,6 +173,8 @@ Family OS is a mobile-first household operations app. The interface should feel 
 - Prefer extending these primitives before creating feature-specific UI.
 - Keep business logic outside primitive components.
 - Add or adapt primitives in `src/components/ui` when a reusable base component is missing.
+- Release 1.0.3 provides wrappers for Button, Card, Input, Textarea, Select, Dialog, Sheet, Drawer, Tabs, Table, Badge, Toast, Alert, Avatar, Popover, DropdownMenu, Command, Separator, Tooltip, Checkbox, Switch, Skeleton, form helpers, section headers, empty states, segmented controls, and chips.
+- The shadcn CLI is not required for every component addition. When adding or replacing a primitive, preserve the local wrapper API and document any required dependency change.
 
 ## When To Use Origin UI-Style Patterns
 - Use Origin UI-style patterns for composed interaction blocks that shadcn primitives do not cover by themselves.

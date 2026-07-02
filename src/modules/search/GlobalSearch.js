@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Search, Settings, UserRound, ListTodo } from "lucide-react";
+import { CalendarDays, Settings, UserRound, ListTodo } from "lucide-react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
-import { EmptyStatePanel } from "../../components/ui/empty-state";
-import { Input } from "../../components/ui/input";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "../../components/ui/command";
 import { OriginDrawer } from "../../components/origin/drawer";
 import { useTable } from "../../hooks/useTable";
 import { useFamilyMembers } from "../dashboard/useFamilyMembers";
@@ -67,28 +66,25 @@ export function GlobalSearch({ open, onOpenChange, calendarEvents, onNavigate })
   return (
     <OriginDrawer open={open} onOpenChange={onOpenChange} title="Search Family OS" description="Search tasks, calendar events, household members, and main destinations.">
       <div className="space-y-4">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-          <Input autoFocus className="pl-9" value={query} placeholder="Search tasks, events, members..." onChange={event => setQuery(event.target.value)} />
-        </div>
-        {!normalizedQuery ? (
-          <EmptyStatePanel title="Type to search" detail="Results are grouped by the current implemented surfaces." className="py-7" />
-        ) : results.length ? (
-          <div className="space-y-2">
+        <Command>
+          <CommandInput autoFocus value={query} placeholder="Search tasks, events, members..." onChange={event => setQuery(event.target.value)} />
+          <CommandList>
+            {!normalizedQuery && <CommandEmpty>Type to search tasks, calendar events, household members, and destinations.</CommandEmpty>}
+            {normalizedQuery && !results.length && <CommandEmpty>Try a task title, family member, event name, or destination like Settings.</CommandEmpty>}
+            {results.length > 0 && <CommandGroup heading="Results">
             {results.map((result, index) => (
-              <button key={`${result.type}-${result.label}-${index}`} type="button" onClick={() => choose(result.nav)} className="flex min-h-14 w-full items-center gap-3 rounded-lg border border-border bg-secondary/40 p-3 text-left">
+              <CommandItem key={`${result.type}-${result.label}-${index}`} onClick={() => choose(result.nav)}>
                 {resultIcon(result.type)}
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-bold text-foreground">{result.label}</span>
                   <span className="mt-1 block truncate text-xs text-muted-foreground">{result.detail}</span>
                 </span>
                 <Badge variant="blue">{result.type}</Badge>
-              </button>
+              </CommandItem>
             ))}
-          </div>
-        ) : (
-          <EmptyStatePanel title="No results" detail="Try a task title, family member, event name, or destination like Settings." className="py-7" />
-        )}
+            </CommandGroup>}
+          </CommandList>
+        </Command>
         <Button type="button" variant="secondary" className="w-full" onClick={() => onOpenChange(false)}>Close</Button>
       </div>
     </OriginDrawer>

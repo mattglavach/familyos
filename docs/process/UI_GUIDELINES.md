@@ -15,6 +15,8 @@ This document summarizes execution rules for UI work. `docs/ui/DESIGN_SYSTEM.md`
 - Reuse existing cards, badges, buttons, inputs, labels, selects, drawers, and empty-state components.
 - Match the existing dark, calm, mobile-first operational style.
 - Avoid new visual systems unless a release explicitly redesigns a surface.
+- Import reusable primitives through `src/components/ui`; feature modules should not depend directly on third-party UI libraries.
+- Use the local wrapper layer to preserve Family OS tokens, accessibility defaults, and future shadcn/ui migration flexibility.
 
 ## Accessibility
 - Use semantic controls.
@@ -42,6 +44,8 @@ This document summarizes execution rules for UI work. `docs/ui/DESIGN_SYSTEM.md`
 - Validate required fields before submit.
 - Keep forms short; group longer workflows.
 - Use confirmation for destructive actions.
+- Use segmented controls, chips, or button groups for small fixed choices such as priority, status, category, and recurrence.
+- Use dropdowns for long, dynamic, or infrequently changed values such as household members or larger data sets.
 
 ## Navigation
 - Preserve bottom navigation for primary modules.

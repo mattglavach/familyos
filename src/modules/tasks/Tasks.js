@@ -394,30 +394,22 @@ function TaskDrawer({ open, mode, form, setForm, members, error, onClose, onSave
         </FormRow>
         <FormRow>
           <FormGroup>
-            <Label htmlFor="task-priority">Priority</Label>
-            <Select id="task-priority" value={form.priority} onChange={event => setForm(previous => ({ ...previous, priority: event.target.value }))}>
-              {PRIORITY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </Select>
+            <Label>Priority</Label>
+            <ChipGroup value={form.priority} options={PRIORITY_OPTIONS} ariaLabel="Task priority" onValueChange={priority => setForm(previous => ({ ...previous, priority }))} />
           </FormGroup>
           <FormGroup>
-            <Label htmlFor="task-status">Status</Label>
-            <Select id="task-status" value={form.status} onChange={event => setForm(previous => ({ ...previous, status: event.target.value }))}>
-              {STATUS_OPTIONS.map(status => <option key={status} value={status}>{status}</option>)}
-            </Select>
+            <Label>Status</Label>
+            <ChipGroup value={form.status} options={STATUS_OPTIONS} ariaLabel="Task status" onValueChange={status => setForm(previous => ({ ...previous, status }))} />
           </FormGroup>
         </FormRow>
         <FormRow>
           <FormGroup>
-            <Label htmlFor="task-category">Category</Label>
-            <Select id="task-category" value={form.category} onChange={event => setForm(previous => ({ ...previous, category: event.target.value }))}>
-              {CATEGORY_OPTIONS.map(category => <option key={category} value={category}>{category}</option>)}
-            </Select>
+            <Label>Category</Label>
+            <ChipGroup value={form.category} options={CATEGORY_OPTIONS} ariaLabel="Task category" onValueChange={category => setForm(previous => ({ ...previous, category }))} />
           </FormGroup>
           <FormGroup>
-            <Label htmlFor="task-recurrence">Repeat</Label>
-            <Select id="task-recurrence" value={form.recurrence || ""} onChange={event => setForm(previous => ({ ...previous, recurrence: event.target.value }))}>
-              {RECURRENCE_OPTIONS.map(option => <option key={option.value || "none"} value={option.value} disabled={!option.supported}>{option.label}{option.supported ? "" : " - later"}</option>)}
-            </Select>
+            <Label>Repeat</Label>
+            <ChipGroup value={form.recurrence || ""} options={RECURRENCE_OPTIONS.map(option => ({ ...option, label: option.supported ? option.label : `${option.label} - later`, disabled: !option.supported }))} ariaLabel="Task recurrence" onValueChange={recurrence => setForm(previous => ({ ...previous, recurrence }))} />
           </FormGroup>
         </FormRow>
         <FormHelp>Daily, weekly, monthly, and yearly recurrence use the existing interval-days field. Weekday-only recurrence needs a future recurrence model.</FormHelp>
