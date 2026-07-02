@@ -1,10 +1,10 @@
 # Project Status
 
 ## Current Version
-1.0-planning
+0.9.3-product-handbook
 
 ## Current State
-Release 1.0 planning is complete on branch `release/1.0-planning`. Implementation has not started.
+Release 0.9.3 product handbook is validation-complete on branch `release/0.9.3-product-handbook`. Release 1.0 implementation has not started.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -56,12 +56,13 @@ Release 1.0 planning is complete on branch `release/1.0-planning`. Implementatio
 - v0.9.1 released with permanent engineering framework and governance templates
 - v0.9.2 repository documentation cleanup completed
 - Release 1.0 specification and implementation blueprint defined in `docs/planning/RELEASE_1_0_SPEC.md`
+- Release 0.9.3 permanent Product Handbook established under `docs/product`
 
 ## In Progress
-- Review and approval of the Release 1.0 implementation blueprint.
+- Review and approval of Release 1.0 implementation using the Product Handbook and Release 1.0 specification.
 
 ## Next
-- Implement Release 1.0 from `docs/planning/RELEASE_1_0_SPEC.md`.
+- Implement Release 1.0 from `docs/planning/RELEASE_1_0_SPEC.md`, using `docs/product/PRODUCT_VISION.md` and the Product Handbook as product direction.
 - Configure Release 0.8 server OAuth environment values in Vercel before removing the legacy calendar fallback.
 - Decide whether to remove the legacy browser calendar fallback after deployed validation.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
@@ -90,6 +91,7 @@ Release 1.0 planning is complete on branch `release/1.0-planning`. Implementatio
 - Governance templates should remain lightweight; expand them only when real releases expose gaps.
 - Historical audit and implementation docs are intentionally retained but should not be treated as current process guidance.
 - Release 1.0 should avoid broad module expansion and focus on dashboard, tasks, navigation, settings, household management, responsive UX, and validation.
+- Product direction should start from the Product Handbook; engineering execution should start from `docs/process/ENGINEERING_INDEX.md`.
 
 ## Last Updated
 July 2, 2026

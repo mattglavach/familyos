@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Established the permanent Product Handbook under `docs/product`, defining Family OS product vision, information architecture, navigation, design principles, UX expectations, dashboard strategy, module map, personas, workflows, feature philosophy, product roadmap, and Release 1.0 alignment.
 - Defined the Release 1.0 specification and implementation blueprint, including scope, architecture review, module maturity, UX requirements, deferred work, validation expectations, and prioritized backlog.
 - Cleaned up the repository documentation structure for Release 0.9.2 by archiving superseded development docs, consolidating active engineering guidance under `docs/process`, updating stale release status references, and preparing planning docs for Release 1.0.
 - Added Release 0.9.1 governance and engineering reference docs for principles, project structure, modules, production readiness, AI engineering, APIs, security, performance, environments, dependencies, ADRs, technical debt, decision logging, roadmap process, and reusable templates.

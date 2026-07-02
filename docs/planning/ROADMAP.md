@@ -69,6 +69,10 @@
 - [x] Use the Release 0.9.1/0.9.2 process framework for Release 1.0 planning.
 - [ ] Revisit process docs after two releases and refine based on actual execution gaps.
 
+## Product Handbook Track
+- [x] Establish permanent Product Handbook for vision, IA, navigation, design principles, UX, dashboard, modules, personas, workflows, feature philosophy, and product roadmap.
+- [ ] Use Product Handbook and Engineering Handbook together for Release 1.0 implementation planning.
+
 ## Next Release
 - [x] Release 1.0 planning with `docs/templates/RELEASE_SPEC.md`.
 - [ ] Implement Release 1.0 from `docs/planning/RELEASE_1_0_SPEC.md`.

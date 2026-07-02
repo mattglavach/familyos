@@ -1,5 +1,43 @@
 # Release Notes
 
+## Release 0.9.3 Product Handbook
+
+### Version
+0.9.3
+
+### Date
+2026-07-02
+
+### Summary
+Release 0.9.3 establishes the permanent Family OS Product Handbook. It is documentation-only and defines what Family OS is, why it exists, how it should feel, how navigation should evolve, which modules belong in the product, and how Release 1.0 aligns to the product direction.
+
+### New Documentation
+- Product vision.
+- Information architecture.
+- Product navigation.
+- Design principles.
+- UX guidelines.
+- Dashboard strategy.
+- Module map.
+- Expanded personas.
+- Core workflows.
+- Feature philosophy.
+- Product roadmap.
+
+### Release 1.0 Alignment
+Release 1.0 remains focused on dashboard, tasks, calendar status, household management, settings, navigation, notifications/status feedback, responsive UI, and UX polish.
+
+Shopping, Life Lists, AI, Smart Home, Meal Planning, Inventory, and Home integrations remain intentionally deferred until the core household operating loop is stable.
+
+### Validation
+- Local documentation link verification passed.
+- `pnpm run lint` passed.
+- `pnpm run build` passed.
+- `git diff --check` passed.
+
+### Recommendation
+Ready for Release 1.0 implementation planning review.
+
 ## Release 1.0 Planning
 
 ### Version
