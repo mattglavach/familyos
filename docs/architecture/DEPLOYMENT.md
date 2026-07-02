@@ -14,14 +14,22 @@ Required Vercel variables:
 - REACT_APP_SUPABASE_URL
 - REACT_APP_SUPABASE_ANON_KEY
 - REACT_APP_APPROVED_HOUSEHOLD_EMAILS, optional comma-separated approved household emails for friendlier login errors
-- REACT_APP_GOOGLE_CLIENT_ID
-- REACT_APP_GOOGLE_CALENDAR_ID
+- REACT_APP_GOOGLE_CLIENT_ID, optional browser Calendar fallback
+- REACT_APP_GOOGLE_CALENDAR_ID, optional browser Calendar fallback
+- SUPABASE_SERVICE_ROLE_KEY, required only for server-side Calendar sync
+- GOOGLE_OAUTH_CLIENT_ID, required only for server-side Calendar sync
+- GOOGLE_OAUTH_CLIENT_SECRET, required only for server-side Calendar sync
+- GOOGLE_OAUTH_REDIRECT_URI, required only for server-side Calendar sync
+- GOOGLE_TOKEN_ENCRYPTION_KEY, required only for server-side Calendar sync
+- GOOGLE_OAUTH_STATE_SECRET, required only for server-side Calendar sync
+- GOOGLE_CALENDAR_ID, optional server-side Calendar ID
+- APP_BASE_URL, required only for server-side Calendar OAuth return links
 - ANTHROPIC_API_KEY
 - ALLOWED_ORIGINS, when using a custom domain or non-Vercel production URL
 
 FamilyOS is a Create React App deployment, so browser-visible variables use the `REACT_APP_` prefix. It does not use `NEXT_PUBLIC_SITE_URL`, `VITE_SITE_URL`, or `REACT_APP_SITE_URL` for Supabase Auth redirects. Email/password sign-in is the primary auth path. Fallback email magic links use the current app origin and require matching Supabase Auth allowed redirect URLs.
 
-Google Calendar sync uses Google Identity Services in the browser with `REACT_APP_GOOGLE_CLIENT_ID` and `REACT_APP_GOOGLE_CALENDAR_ID`. The OAuth origin is the current deployed app origin, so Google Cloud Console Authorized JavaScript origins must include the Vercel production origin and any custom production domain. See `docs/setup/google-calendar-oauth.md`.
+Google Calendar sync is optional. The preferred path uses the server-side Calendar API with Supabase membership checks and encrypted token storage. The legacy browser fallback uses Google Identity Services with `REACT_APP_GOOGLE_CLIENT_ID` and `REACT_APP_GOOGLE_CALENDAR_ID`. See `docs/setup/google-calendar-oauth.md`.
 
 ## Supabase Auth URL Settings
 - Site URL should be the production FamilyOS URL.

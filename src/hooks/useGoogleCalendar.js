@@ -11,7 +11,7 @@ function getGoogleOAuthOrigin() {
 
 function formatGoogleOAuthError(error) {
   if (error === "origin_mismatch") {
-    return `Google Calendar OAuth origin mismatch. Add ${getGoogleOAuthOrigin()} to the OAuth client's Authorized JavaScript origins in Google Cloud Console.`;
+    return `Google Calendar is not connected for this address yet. Add ${getGoogleOAuthOrigin()} to the allowed local or staging calendar setup, then try again.`;
   }
   return error || "Google Calendar sign-in failed.";
 }
@@ -19,7 +19,7 @@ function formatGoogleOAuthError(error) {
 function formatGoogleApiError(status, message) {
   if (status === 401) return "Google Calendar session expired. Connect again to refresh access.";
   if (status === 403) return "Google Calendar permission is missing or was revoked. Connect again and approve calendar read access.";
-  if (status === 404) return `Google Calendar "${CALENDAR_ID}" was not found. Check REACT_APP_GOOGLE_CALENDAR_ID.`;
+  if (status === 404) return "Google Calendar could not find the configured calendar. Check the calendar setup for this environment.";
   return message || `Google Calendar sync failed with status ${status}.`;
 }
 
@@ -93,6 +93,11 @@ export function useGoogleCalendar() {
 
   function signIn(){
     setError(null);
+    if(!GOOGLE_CLIENT_ID){
+      setStatus("error");
+      setError("Google Calendar is not connected yet. Configure Google Calendar for this environment, then try again.");
+      return;
+    }
     if(!scriptReady||!window.google?.accounts?.oauth2){
       setStatus("script-loading");
       setError("Google Calendar sign-in is still loading. Try again in a moment.");

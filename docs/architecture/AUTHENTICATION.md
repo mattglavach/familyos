@@ -28,7 +28,9 @@ The fallback magic-link UI protects Supabase email delivery limits by disabling 
 - guest
 
 ## Google Calendar OAuth
-Calendar sync uses Google Identity Services token auth in the browser. The OAuth client and calendar are configured through `REACT_APP_GOOGLE_CLIENT_ID` and `REACT_APP_GOOGLE_CALENDAR_ID`; the runtime OAuth origin is `window.location.origin`. Google Cloud Console must include each local and deployed app origin under Authorized JavaScript origins. See `docs/setup/google-calendar-oauth.md`.
+Calendar sync is optional. The preferred path uses the server-side `api/calendar.js` route with signed OAuth state, encrypted token storage, Supabase session validation, and active household membership checks. The legacy browser token path remains temporary for older devices and local fallback behavior.
+
+The Calendar UI must show setup guidance when OAuth or server settings are missing rather than exposing raw environment variable names or provider errors. See `docs/setup/google-calendar-oauth.md`.
 
 ## Access Principles
 - Sensitive modules require authenticated access.

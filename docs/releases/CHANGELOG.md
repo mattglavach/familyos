@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Implemented Release 1.0.2 Reliability: improved Calendar and household invitation configuration handling, removed raw technical errors from key user-facing paths, clarified optional integration behavior, and updated local/staging/production setup documentation.
 - Implemented Release 1.0.1 Core MVP Polish: simplified Home around awareness/drill-downs, reshaped Tasks around one action work surface, added supported recurrence presets, clarified Quick Add future types, grouped More by platform, and added Notification Center lifecycle views.
 - Fixed cross-surface table refresh after mutations so Quick Add task creation is reflected in the mounted Tasks surface without requiring a page reload.
 - Completed remaining Release 1.0.1 authenticated local browser smoke checks for More, Notifications, Calendar, Quick Add deferred types, Home drill-downs, mobile 390px layout, and console errors.

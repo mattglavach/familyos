@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { CalendarDays, Check, ChevronLeft, ClipboardList, Droplets, FileText, HeartPulse, Plus, ShoppingCart, Wrench } from "lucide-react";
 import { TODAY_STR } from "../../lib/dates";
 import { sb } from "../../lib/supabase";
+import { formatUserFacingError } from "../../lib/userFacingErrors";
 import { useTable } from "../../hooks/useTable";
 import { OriginDrawer } from "../../components/origin/drawer";
 import { Button } from "../../components/ui/button";
@@ -58,7 +59,7 @@ export function QuickAdd({onNavigate, openSignal = 0}){
     try{
       await tasks.insert(row);
       close();onNavigate("tasks");
-    }catch(e){setSaveError(`Error: ${e.message}`);}
+    }catch(e){setSaveError(formatUserFacingError(e, "Task could not be saved right now."));}
   }
   async function saveNote(){
     setSaveError(null);
@@ -66,9 +67,9 @@ export function QuickAdd({onNavigate, openSignal = 0}){
     const row={title:form.title||"",body:form.body.trim(),tag:form.tag||"General",created_at:new Date().toISOString()};
     try{
       const{error}=await sb.from("notes").insert(row);
-      if(error){setSaveError(`Save failed   ${error.message||JSON.stringify(error)}`);return;}
+      if(error){setSaveError(formatUserFacingError(error, "Note could not be saved right now."));return;}
       close();
-    }catch(e){setSaveError(`Error: ${e.message}`);}
+    }catch(e){setSaveError(formatUserFacingError(e, "Note could not be saved right now."));}
   }
   async function savePool(){
     setSaveError(null);
@@ -81,9 +82,9 @@ export function QuickAdd({onNavigate, openSignal = 0}){
     const row={date:d,logged_at:loggedAt,ph:num(form.ph),free_chlorine:fc,cc:num(form.cc),salt:num(form.salt),cya:num(form.cya),alkalinity:num(form.alkalinity),calcium_hardness:num(form.calcium_hardness),water_temp:num(form.water_temp),filter_pressure:num(form.filter_pressure),swg_setting:num(form.swg_setting),pump_hours:num(form.pump_hours),notes:form.notes||""};
     try{
       const{error}=await sb.from("pool_readings").insert(row);
-      if(error){setSaveError(`Save failed   ${error.message||JSON.stringify(error)}`);return;}
+      if(error){setSaveError(formatUserFacingError(error, "Pool reading could not be saved right now."));return;}
       close();onNavigate("pool");
-    }catch(e){setSaveError(`Error: ${e.message}`);}
+    }catch(e){setSaveError(formatUserFacingError(e, "Pool reading could not be saved right now."));}
   }
   async function saveMaint(){
     if(!form.type)return;

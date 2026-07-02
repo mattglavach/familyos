@@ -1,10 +1,10 @@
 # Project Status
 
 ## Current Version
-1.0.1
+1.0.2
 
 ## Current State
-Release 1.0 core MVP is complete. Release 1.0.1 Core MVP Polish is in progress on branch `release/1.0.1-polish`.
+Release 1.0 core MVP and Release 1.0.1 Core MVP Polish are complete. Release 1.0.2 Reliability is in progress on branch `release/1.0.2-reliability`.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -60,12 +60,13 @@ Release 1.0 core MVP is complete. Release 1.0.1 Core MVP Polish is in progress o
 - Release 1.0 core MVP implementation added Home dashboard ordering, Calendar, More navigation, Universal Quick Add launch, Universal Search, in-app Notifications, and task search
 - Release 1.0 authenticated local browser smoke validation passed against local Supabase for owner, adult, viewer, Home, Tasks, Calendar, Quick Add, Universal Search, Notifications, More, household switching, Settings, invite create/revoke, owner role update, non-owner control hiding, and mobile sanity checks
 - Release 1.0.1 polished Home, Tasks, Quick Add, More grouping, notification lifecycle views, and product/planning documentation without adding deferred modules
+- Release 1.0.2 improved Calendar and invitation configuration handling, friendly error guidance, optional integration behavior, and setup documentation
 
 ## In Progress
-- Release 1.0.1 validation and smoke testing.
+- Release 1.0.2 reliability validation and authenticated smoke testing.
 
 ## Next
-- Final release review, merge, and tag decision for Release 1.0.1.
+- Final release review, merge, and tag decision for Release 1.0.2.
 - Configure Release 0.8 server OAuth environment values in Vercel before removing the legacy calendar fallback.
 - Decide whether to remove the legacy browser calendar fallback after deployed validation.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
@@ -75,6 +76,8 @@ Release 1.0 core MVP is complete. Release 1.0.1 Core MVP Polish is in progress o
 - No active deploy-blocking build errors after the CI lint cleanup.
 - Production magic-link redirects depend on Supabase Auth Site URL and allowed redirect URLs being set to the deployed FamilyOS origin.
 - Google Calendar sync requires the active browser origin to be listed in Google Cloud Console Authorized JavaScript origins for the configured OAuth client.
+- Server-side Google Calendar sync also requires `calendar_connections`, Supabase service-role API access, Google OAuth client/secret/redirect settings, and token encryption/state secrets in each environment where Calendar is enabled.
+- Household invitations require the Release 0.9 household collaboration migration and a refreshed Supabase/PostgREST schema cache in each environment.
 - Google Calendar token storage remains browser-local only for older legacy fallback sessions. Release 0.8C no longer writes new `gc_token` values, and the server route does not expose tokens to the frontend. Deployed validation still requires server env configuration and Google Cloud redirect URI setup.
 - Legacy browser metadata keys for Release 0.6B settings, family members, and task metadata may remain on devices until local browser data is reset, but they are no longer the normal persistence path.
 - Six-item bottom navigation should be checked on physical mobile devices before broad family use.

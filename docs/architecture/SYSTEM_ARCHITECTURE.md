@@ -56,3 +56,8 @@ The authoritative Release 1.0 blueprint is `docs/planning/RELEASE_1_0_SPEC.md`.
 
 ## Release 1.0 Implementation Notes
 Release 1.0 adds app-shell-level `Calendar`, `More`, `GlobalSearch`, and `NotificationCenter` modules without changing the database schema. Universal Search and in-app Notifications are computed from existing task, calendar, household, and navigation data. Notification read/unread state is stored locally in the browser and is not a push/email/SMS delivery system.
+
+## Release 1.0.2 Reliability Notes
+Optional integrations should not create product-wide outages. Supabase browser configuration is required for authenticated app use, but Google Calendar, AI briefs, and other integrations must fail into clear setup guidance when their environment variables, OAuth settings, migrations, or schema cache are not ready.
+
+User-facing surfaces should not expose SQL, PostgREST, Supabase internals, OAuth secret names, or server environment variable names. Detailed environment requirements live in `docs/process/ENVIRONMENTS.md` and integration-specific setup docs such as `docs/setup/google-calendar-oauth.md`.

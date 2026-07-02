@@ -1,5 +1,45 @@
 # Release Notes
 
+## Release 1.0.2
+
+### Version
+1.0.2
+
+### Date
+2026-07-02
+
+### Summary
+Release 1.0.2 is a reliability and production-readiness release after v1.0.1. It improves configuration handling, replaces raw technical failures with actionable user guidance, and documents local/staging/production setup expectations.
+
+### Fixes
+- Calendar configuration failures now show a setup-oriented disconnected state instead of exposing missing OAuth, Supabase service-role, or schema details.
+- Google Calendar is treated as an optional integration; missing Calendar config no longer blocks the rest of the app setup gate.
+- Household invitation table/RPC/schema-cache failures now show an environment setup message while preserving hashed-token invitation security and owner-only controls.
+- Quick Add, Settings household updates, Notifications, and household context failures avoid raw SQL, Supabase, or service configuration messages in user-facing UI.
+- Expected household context load failures no longer write raw errors to the browser console.
+
+### Configuration Notes
+- Required browser config remains `REACT_APP_SUPABASE_URL` and `REACT_APP_SUPABASE_ANON_KEY`.
+- Server-side Calendar sync requires the Release 0.8 `calendar_connections` schema plus server-only OAuth, encryption, redirect, and Supabase service-role settings.
+- Household invitations require `supabase/migrations/20260702_release_0_9_household_collaboration.sql` in each local/staging/production-like environment.
+
+### Database Changes
+- None.
+
+### Deferred
+- Legacy browser Calendar fallback removal remains deferred until deployed OAuth validation is complete.
+- Public sign-up, ownership transfer, broad module RLS conversion, and deferred product modules remain out of scope.
+
+### Validation
+- `pnpm run lint` passed.
+- `pnpm run build` passed.
+- `git diff --check` passed.
+- Authenticated owner smoke used the local app on `http://localhost:3000` and local Supabase only.
+- Owner smoke passed for Home load, Calendar disconnected/setup state, Settings Calendar setup copy, owner household/member controls visibility, invite create, invite revoke, More page grouping, Notification Center Unread/Today/This Week/Archive tabs, Universal Search, Quick Add supported/deferred type state, Tasks household filter/search, and disposable task create.
+- Browser console checks during completed smoke steps showed no warnings or errors.
+- Cleanup note: one disposable task created during smoke validation may remain in local Supabase because the browser confirmation bridge became unstable during delete recovery and local REST cleanup was blocked by RLS-limited keys.
+- Blocked smoke: adult, viewer, mobile 390px, and full task edit/complete/delete retest were not completed after the local browser-control session became blocked on native confirmation handling.
+
 ## Release 1.0.1
 
 ### Version
