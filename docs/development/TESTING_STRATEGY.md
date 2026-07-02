@@ -1,5 +1,7 @@
 # Testing Strategy
 
+For release and feature validation requirements, use `docs/process/TESTING_GUIDELINES.md`. This document remains the concise testing baseline.
+
 ## Manual Testing
 Every feature should be checked for:
 - Desktop layout

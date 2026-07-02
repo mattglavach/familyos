@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Added `eslint` as a direct dev dependency so the existing `pnpm run lint` script works in clean pnpm worktrees.
+- Established the Release 0.9.1 permanent engineering framework under `docs/process`, including release, feature, coding, architecture, UI, testing, documentation, git, review, checklist, and prompt playbooks, and updated repository entry points to make the process docs the default source of truth.
 - Completed Release 0.9 readiness validation against disposable local Supabase only: full migration chain from empty database, Release 0.9 idempotency re-run, schema/RLS/RPC assertions, browser invite/member smoke tests on `localhost:3002`, and security review. Fixed empty-database migration ordering, local/Supabase `pgcrypto` search-path compatibility, and hidden owner-only controls for adult/viewer users.
 - Validated Release 0.9 household collaboration against disposable local Supabase database `familyos_r09_validation`; fixed PostgreSQL 17 migration ambiguity, qualified invitation RPC SQL references, and tightened invitation administration to owner-only.
 - Began Release 0.9 household collaboration with a hashed-token `household_invitations` migration, invitation create/preview/accept/decline RPCs, invite-link auth preservation, active household switching, and Settings household member/invite management.

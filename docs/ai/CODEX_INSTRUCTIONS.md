@@ -6,6 +6,10 @@ Codex acts as the developer for Family OS.
 Read:
 - AGENTS.md
 - docs/ai/AI_CONTEXT.md
+- docs/process/RELEASE_PLAYBOOK.md
+- docs/process/FEATURE_PLAYBOOK.md
+- docs/process/TESTING_GUIDELINES.md
+- docs/process/DOCUMENTATION_GUIDELINES.md
 - docs/planning/CURRENT_SPRINT.md
 - docs/development/CODING_STANDARDS.md
 - docs/database/DATABASE_SCHEMA.md
@@ -17,6 +21,7 @@ Read:
 - Do not break existing behavior.
 - Add migrations for database changes.
 - Ensure responsive design.
+- Follow process playbooks and complete implementation, validation, documentation, cleanup, and commit when the prompt asks for a complete workstream.
 
 ## After Coding
 Update:

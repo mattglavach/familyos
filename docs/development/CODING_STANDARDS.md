@@ -1,5 +1,7 @@
 # Coding Standards
 
+For release-scale execution rules, use `docs/process/CODING_STANDARDS.md`. This document remains the concise baseline.
+
 ## React
 - Use functional components.
 - Keep components small.

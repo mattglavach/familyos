@@ -1,10 +1,10 @@
 # Project Status
 
 ## Current Version
-0.9
+0.9.1
 
 ## Current State
-Release 0.9 household collaboration is validation-complete on branch `release/0.9` and ready for merge/tag after the final validation commit.
+Release 0.9 household collaboration is validation-complete. Release 0.9.1 engineering framework is in progress on branch `release/0.9.1-engineering-framework`.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -50,12 +50,14 @@ Release 0.9 household collaboration is validation-complete on branch `release/0.
 - Release 0.9 invite acceptance UI, invite token preservation through auth redirects, active household switching, and Settings household member/invite management
 - Release 0.9 disposable local Supabase validation for migration chain, invitation lifecycle, owner-only controls, RLS denial paths, and active household preference switching
 - Release 0.9 browser smoke validation on local Supabase for owner, adult, and viewer collaboration flows, including invite create/preview/accept/decline/revoke, role update, member removal, active household switching, and hidden non-owner controls
+- Release 0.9.1 permanent engineering process framework covering release, feature, coding, architecture, UI, testing, documentation, git, review, checklist, and prompt workflows
 
 ## In Progress
-- No active Release 0.9 blockers after local validation.
+- Release 0.9.1 validation and closeout.
 
 ## Next
-- Merge Release 0.9 into `main` and tag `v0.9.0` after final review.
+- Review and adopt the Release 0.9.1 process framework for future release prompts.
+- Merge Release 0.9.1 into `main` and tag after validation and review.
 - Configure Release 0.8 server OAuth environment values in Vercel before removing the legacy calendar fallback.
 - Decide whether to remove the legacy browser calendar fallback after deployed validation.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
@@ -80,6 +82,7 @@ Release 0.9 household collaboration is validation-complete on branch `release/0.
 - The household foundation draft intentionally keeps module-table `user_id` RLS in place while adding nullable `household_id` fields for staged migration.
 - Release 0.6C production baseline alignment backfilled existing module rows to the approved owner UUID. Future household-scoped sharing should move access through `household_id` once active-household runtime context is implemented.
 - Ownership transfer, owner recovery, and full household-only module RLS remain Release 0.9 follow-up work.
+- The new process framework should be tested against the next release and refined if any required step is unclear or redundant.
 
 ## Last Updated
 July 2, 2026

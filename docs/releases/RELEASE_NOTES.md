@@ -1,5 +1,39 @@
 # Release Notes
 
+## Release 0.9.1
+
+### Version
+0.9.1
+
+### Date
+2026-07-02
+
+### Summary
+Release 0.9.1 establishes the permanent Family OS engineering framework. It is a documentation and process release only; it does not add application features.
+
+### New Documentation
+- Release playbook
+- Feature playbook
+- Coding standards
+- Architecture guidelines
+- UI guidelines
+- Testing guidelines
+- Documentation guidelines
+- Git workflow
+- Code review checklist
+- Release checklist
+- Process prompt library
+
+### Updates
+- Updated `AGENTS.md`, `README.md`, master documentation index, AI instructions, architecture overview, roadmap, project status, current sprint, changelog, and release notes to point future work at `docs/process`.
+- Added `eslint` as a direct dev dependency after validation found the existing lint script was not portable in a clean pnpm worktree.
+
+### Validation
+- Required validation: `pnpm run lint`, `pnpm run build`, and `git diff --check`.
+
+### Known Issues
+- The process framework should be refined after it is used on the next release workstream.
+
 ## Release 0.9
 
 ### Version

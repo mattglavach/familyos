@@ -47,6 +47,10 @@ importers:
       tailwindcss:
         specifier: 3.4.19
         version: 3.4.19
+    devDependencies:
+      eslint:
+        specifier: 8.57.1
+        version: 8.57.1
 
 packages:
 
