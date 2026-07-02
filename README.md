@@ -24,7 +24,7 @@ Start with the v1 documentation workspace:
 
 - Node.js and pnpm
 - A Supabase project
-- A Google Cloud OAuth web client for Calendar access
+- Optional: a Google Cloud OAuth web client for Calendar access
 - An Anthropic API key for the AI brief endpoint
 
 ### Local Development
@@ -47,7 +47,7 @@ Start with the v1 documentation workspace:
    Copy-Item .env.example .env.local
    ```
 
-3. Create the Supabase tables by running `supabase/schema.sql` in the Supabase SQL editor.
+3. Create the Supabase schema by running the current migration chain or `supabase/schema.sql` in a disposable/local/staging Supabase environment first. The Release 0.9 household collaboration migration must be present for household invitations.
 
 4. In Supabase Auth settings, enable Email sign-in for email/password authentication. Keep public sign-up disabled for the private household app, then manually create the two household users in Authentication > Users.
 
@@ -98,7 +98,15 @@ Create `.env.local` from `.env.example` and set:
 | `REACT_APP_SUPABASE_ANON_KEY` | Browser | Supabase anon key. Configure RLS appropriately. |
 | `REACT_APP_APPROVED_HOUSEHOLD_EMAILS` | Browser | Optional comma-separated household email allowlist for friendlier login errors. |
 | `REACT_APP_GOOGLE_CLIENT_ID` | Browser | Google OAuth web client ID. |
-| `REACT_APP_GOOGLE_CALENDAR_ID` | Browser | Calendar ID to read, often `primary` or an email address. |
+| `REACT_APP_GOOGLE_CALENDAR_ID` | Browser | Optional calendar ID to read, often `primary` or an email address. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server | Required only for server-side Google Calendar; never expose in frontend code. |
+| `GOOGLE_OAUTH_CLIENT_ID` | Server | Required only for server-side Google Calendar OAuth. |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | Server | Required only for server-side Google Calendar OAuth. |
+| `GOOGLE_OAUTH_REDIRECT_URI` | Server | Required only for server-side Google Calendar OAuth callback. |
+| `GOOGLE_TOKEN_ENCRYPTION_KEY` | Server | Required only for encrypted server-side Calendar token storage. |
+| `GOOGLE_OAUTH_STATE_SECRET` | Server | Required only for signed server-side Calendar OAuth state. |
+| `GOOGLE_CALENDAR_ID` | Server | Optional server-side calendar ID; defaults to `primary` when omitted. |
+| `APP_BASE_URL` | Server | Public app URL used by server-side OAuth redirects. |
 | `ANTHROPIC_API_KEY` | Server | Used only by `api/brief.js`; do not expose it in frontend code. |
 | `ALLOWED_ORIGINS` | Server | Optional comma-separated browser origins allowed to call `api/brief.js`. |
 
@@ -109,7 +117,7 @@ In Google Cloud Console, create an OAuth 2.0 web client and add authorized JavaS
 - `http://localhost:3000`
 - Your Vercel production URL
 
-The app requests read-only Google Calendar access and stores the returned access token in browser local storage.
+Google Calendar is optional. When it is not configured, Family OS should show a setup-oriented disconnected state instead of blocking the rest of the app. The preferred server-side Calendar path stores encrypted token material on the server and returns normalized event data. The legacy browser fallback is temporary and documented in [Google Calendar OAuth Setup](docs/setup/google-calendar-oauth.md).
 
 ### Vercel Deployment
 
@@ -120,6 +128,14 @@ For Vercel deployment, add these environment variables in the Vercel project set
 - `REACT_APP_APPROVED_HOUSEHOLD_EMAILS` if using the optional household email allowlist
 - `REACT_APP_GOOGLE_CLIENT_ID`
 - `REACT_APP_GOOGLE_CALENDAR_ID`
+- `SUPABASE_SERVICE_ROLE_KEY` if using server-side Calendar sync
+- `GOOGLE_OAUTH_CLIENT_ID` if using server-side Calendar sync
+- `GOOGLE_OAUTH_CLIENT_SECRET` if using server-side Calendar sync
+- `GOOGLE_OAUTH_REDIRECT_URI` if using server-side Calendar sync
+- `GOOGLE_TOKEN_ENCRYPTION_KEY` if using server-side Calendar sync
+- `GOOGLE_OAUTH_STATE_SECRET` if using server-side Calendar sync
+- `GOOGLE_CALENDAR_ID` if using a non-primary server-side calendar
+- `APP_BASE_URL` for server-side OAuth return links
 - `ANTHROPIC_API_KEY`
 - `ALLOWED_ORIGINS` if using a custom domain or non-Vercel production URL
 

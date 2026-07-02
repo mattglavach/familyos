@@ -95,8 +95,7 @@ export function HouseholdProvider({ session, children }) {
         householdSettings: settings,
         userPreferences: preferencesResult.data || null,
       });
-    } catch (error) {
-      console.error("Household context load failed:", error);
+    } catch {
       setState(previous => ({
         ...previous,
         loading: false,

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { formatCalendarError } from "../lib/userFacingErrors";
 
 function initialState() {
   return {
@@ -37,7 +38,11 @@ async function callCalendarApi(action, { householdId, method = "GET", body = {} 
   }
   const response = await fetch(`/api/calendar?${params.toString()}`, options);
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || "Calendar API request failed.");
+  if (!response.ok) {
+    const error = new Error(data.error || "Calendar API request failed.");
+    error.status = response.status;
+    throw error;
+  }
   return data;
 }
 
@@ -54,7 +59,7 @@ export function useCalendarConnections(householdId) {
       const data = await callCalendarApi("status", { householdId });
       setState(previous => ({ ...previous, ...data, loading: false, error: "" }));
     } catch (error) {
-      setState(previous => ({ ...previous, loading: false, error: error.message }));
+      setState(previous => ({ ...previous, loading: false, error: formatCalendarError(error) }));
     }
   }, [householdId]);
 
@@ -72,7 +77,7 @@ export function useCalendarConnections(householdId) {
       }));
       return data;
     } catch (error) {
-      setState(previous => ({ ...previous, loading: false, error: error.message }));
+      setState(previous => ({ ...previous, loading: false, error: formatCalendarError(error) }));
       return null;
     }
   }, [householdId]);
@@ -88,7 +93,7 @@ export function useCalendarConnections(householdId) {
       setState(previous => ({ ...previous, events: [], lastFetchedAt: null }));
       await refresh();
     } catch (error) {
-      setState(previous => ({ ...previous, loading: false, error: error.message }));
+      setState(previous => ({ ...previous, loading: false, error: formatCalendarError(error) }));
     }
   }, [householdId, refresh]);
 
@@ -102,7 +107,7 @@ export function useCalendarConnections(householdId) {
           ...data,
           events: data.events || [],
           loading: false,
-          error: data.error,
+          error: formatCalendarError(data.error),
           lastFetchedAt: new Date().toISOString(),
         }));
         return data.events || [];
@@ -117,7 +122,7 @@ export function useCalendarConnections(householdId) {
       }));
       return data.events || [];
     } catch (error) {
-      setState(previous => ({ ...previous, loading: false, error: error.message }));
+      setState(previous => ({ ...previous, loading: false, error: formatCalendarError(error) }));
       return [];
     }
   }, [householdId]);

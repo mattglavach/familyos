@@ -78,6 +78,7 @@
 - [x] Implement Release 1.0 from `docs/planning/RELEASE_1_0_SPEC.md`.
 - [x] Complete Release 1.0 authenticated local/staging smoke validation.
 - [x] Implement Release 1.0.1 Core MVP Polish for Home, Tasks, Quick Add, More, Notifications, and documentation.
+- [x] Implement Release 1.0.2 Reliability for configuration handling, friendly errors, optional integration setup, and production-readiness documentation.
 
 ## Release 1.0 Scope
 - [x] Stabilize the dashboard daily command center.

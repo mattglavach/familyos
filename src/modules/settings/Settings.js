@@ -29,6 +29,7 @@ import { APP_CONFIG, CONFIG_STATUS } from "../../config";
 import { useHousehold } from "../../context/HouseholdContext";
 import { HOUSEHOLD_ROLES, INVITABLE_ROLES, roleCanManageMembers, roleLabel, useHouseholdInvitations } from "../../hooks/useHouseholdCollaboration";
 import { supabase } from "../../lib/supabase";
+import { formatUserFacingError } from "../../lib/userFacingErrors";
 import { useFamilyMembers } from "../dashboard/useFamilyMembers";
 import {
   DEFAULT_SETTINGS,
@@ -195,7 +196,7 @@ export function Settings({ auth, gc, secureCalendar }) {
   async function switchHousehold(event) {
     const result = await household.switchHousehold(event.target.value);
     if (!result.ok) {
-      setError(result.error || "Household could not be switched.");
+      setError(formatUserFacingError(result.error, "Household could not be switched."));
       return;
     }
     notify("Household switched.");
@@ -244,7 +245,7 @@ export function Settings({ auth, gc, secureCalendar }) {
       .eq("id", membership.id)
       .eq("household_id", household.householdId);
     if (updateError) {
-      setError(updateError.message || "Member could not be updated.");
+      setError(formatUserFacingError(updateError, "Member could not be updated."));
       return;
     }
     await household.refresh();
@@ -540,7 +541,7 @@ export function Settings({ auth, gc, secureCalendar }) {
             {secureCalendar.error && <FormError>{secureCalendar.error}</FormError>}
             {secureCalendar.note && <FormHelp>{secureCalendar.note}</FormHelp>}
             <FormHelp>
-              Connect starts Google OAuth. Disconnect revokes Google access when available and clears stored server tokens.
+              Google Calendar is optional. Connect starts Google OAuth when server settings are ready; Disconnect revokes Google access when available and clears stored server tokens.
             </FormHelp>
             <div className="mt-3 grid gap-2 sm:grid-cols-3">
               <Button type="button" onClick={connectSecureCalendar} loading={secureCalendar.loading}>

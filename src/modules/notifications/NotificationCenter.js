@@ -58,12 +58,12 @@ function buildNotifications(tasks, calendarEvents, household, calendar) {
     notifications.push({ id: `event-today-${event.id || event.title}`, kind: "calendar", tone: "info", title: event.title || "Calendar event", detail: `${event.time || "All day"} today`, nav: "calendar" });
   });
   if (calendar.error) {
-    notifications.push({ id: "calendar-error", kind: "calendar", tone: "warning", title: "Calendar needs attention", detail: calendar.error, nav: "calendar" });
+    notifications.push({ id: "calendar-error", kind: "calendar", tone: "warning", title: "Calendar needs attention", detail: "Open Calendar settings to reconnect or finish setup.", nav: "calendar" });
   } else if (!calendar.connected) {
     notifications.push({ id: "calendar-disconnected", kind: "calendar", tone: "neutral", title: "Calendar is disconnected", detail: "Connect Google Calendar in Settings.", nav: "settings" });
   }
   if (household.error) {
-    notifications.push({ id: "household-error", kind: "security", tone: "warning", title: "Household context issue", detail: household.error, nav: "settings" });
+    notifications.push({ id: "household-error", kind: "security", tone: "warning", title: "Household context issue", detail: "Open Settings to refresh household context or choose an active household.", nav: "settings" });
   }
   if (!notifications.length) {
     notifications.push({ id: "all-clear", kind: "success", tone: "success", title: "All clear", detail: "No urgent household notifications right now.", nav: "home" });

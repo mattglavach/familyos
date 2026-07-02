@@ -11,6 +11,7 @@ const GOOGLE_SCOPES = [
 
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 const TOKEN_REFRESH_SKEW_MS = 5 * 60 * 1000;
+const CALENDAR_SETUP_ERROR = "Google Calendar is not configured for this environment.";
 
 function getSupabaseUrl() {
   return process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL || "";
@@ -91,7 +92,7 @@ function getStateSecret() {
 
 function signValue(value) {
   const secret = getStateSecret();
-  if (!secret) throw new Error("GOOGLE_OAUTH_STATE_SECRET or GOOGLE_TOKEN_ENCRYPTION_KEY is required");
+  if (!secret) throw new Error(CALENDAR_SETUP_ERROR);
   return crypto.createHmac("sha256", secret).update(value).digest("base64url");
 }
 
@@ -130,12 +131,12 @@ function validateSignedState(state) {
 
 function getEncryptionKey() {
   const raw = process.env.GOOGLE_TOKEN_ENCRYPTION_KEY || "";
-  if (!raw) throw new Error("GOOGLE_TOKEN_ENCRYPTION_KEY is not configured");
+  if (!raw) throw new Error(CALENDAR_SETUP_ERROR);
   const key = Buffer.from(raw, "base64");
   if (key.length === 32) return key;
   const utf8 = Buffer.from(raw, "utf8");
   if (utf8.length === 32) return utf8;
-  throw new Error("GOOGLE_TOKEN_ENCRYPTION_KEY must be 32 bytes or base64-encoded 32 bytes");
+  throw new Error(CALENDAR_SETUP_ERROR);
 }
 
 function encryptToken(token) {
@@ -212,7 +213,7 @@ async function verifyUser(req) {
   const supabaseUrl = getSupabaseUrl();
   const anonKey = getAnonKey();
   if (!token) return { error: "Missing Supabase session bearer token", status: 401 };
-  if (!supabaseUrl || !anonKey) return { error: "Supabase API environment is not configured", status: 500 };
+  if (!supabaseUrl || !anonKey) return { error: "Calendar service is not configured for this environment.", status: 500 };
 
   const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
     headers: {
@@ -229,7 +230,7 @@ async function rest(path, { method = "GET", body, prefer } = {}) {
   const supabaseUrl = getSupabaseUrl();
   const serviceRoleKey = getServiceRoleKey();
   if (!serviceRoleKey) {
-    return { error: { message: "SUPABASE_SERVICE_ROLE_KEY is not configured" }, status: 500 };
+    return { error: { message: "Calendar service is not configured for this environment." }, status: 500 };
   }
 
   const headers = {
@@ -331,7 +332,7 @@ async function createPendingConnection(userId, householdId) {
 
 function buildGoogleAuthorizationUrl({ req, householdId, userId, connectionId }) {
   const clientId = getGoogleClientId();
-  if (!clientId) return { error: "GOOGLE_OAUTH_CLIENT_ID is not configured" };
+  if (!clientId) return { error: CALENDAR_SETUP_ERROR };
 
   const state = createSignedState({
     provider: "google",
@@ -358,7 +359,7 @@ function buildGoogleAuthorizationUrl({ req, householdId, userId, connectionId })
 async function exchangeCodeForTokens(req, code) {
   const clientId = getGoogleClientId();
   const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET || "";
-  if (!clientId || !clientSecret) throw new Error("Google OAuth client environment is not configured");
+  if (!clientId || !clientSecret) throw new Error(CALENDAR_SETUP_ERROR);
 
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
@@ -500,7 +501,7 @@ async function handleCallback(req, res) {
   } catch (error) {
     sendCallbackPage(res, {
       ok: false,
-      message: error.message || "Google Calendar OAuth callback failed.",
+      message: "Google Calendar could not be connected. Check the environment setup and try again.",
       returnTo: "/",
     });
   }
@@ -654,6 +655,6 @@ export default async function handler(req, res) {
     }
     await handleAction(req, res, auth);
   } catch (error) {
-    res.status(500).json({ error: error.message || "Calendar API failed" });
+    res.status(500).json({ error: "Calendar service is unavailable right now." });
   }
 }

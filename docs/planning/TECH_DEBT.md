@@ -26,6 +26,12 @@ Use this document to track durable technical debt. Do not use chat history as th
 - Impact: Release 0.8 server calendar exists, but legacy browser fallback remains until deployed OAuth validation is complete.
 - Trigger: After production OAuth validation and family-device smoke tests.
 
+### Environment Configuration Drift Checks
+- Status: Open
+- Impact: Local, staging, and production environments can drift on optional integration variables, migration application, or Supabase schema cache state.
+- Trigger: Before each release candidate and before enabling Calendar or invitation flows for broader users.
+- Notes: A scripted configuration health check would reduce reliance on manual environment audits.
+
 ### Automated Test Coverage
 - Status: Open
 - Impact: Current validation relies heavily on lint/build/manual SQL/browser smoke.

@@ -1,13 +1,15 @@
 # Google Calendar OAuth Setup
 
-Family OS has two Google Calendar paths during Release 0.8:
+Family OS has two Google Calendar paths:
 
 - The secure server-side path is preferred and powers the dashboard schedule whenever a server connection exists.
 - The legacy browser fallback is temporary for devices that have not completed the secure connection.
 
 ## Environment Variables
 
-Set these values locally in `.env.local` and in Vercel:
+Google Calendar is optional. When these values are missing, the app should show a disconnected setup state and keep non-calendar workflows available.
+
+Set these values locally in `.env.local`, in staging, and in Vercel production when validating Calendar sync:
 
 ```env
 REACT_APP_GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
@@ -25,6 +27,8 @@ APP_BASE_URL=https://your-familyos-domain.vercel.app
 `REACT_APP_GOOGLE_CLIENT_ID` must be an OAuth 2.0 Web application client ID from Google Cloud Console. `REACT_APP_GOOGLE_CALENDAR_ID` is usually `primary`, or a specific Google Calendar ID when syncing a shared calendar.
 
 `SUPABASE_SERVICE_ROLE_KEY`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_TOKEN_ENCRYPTION_KEY`, and `GOOGLE_OAUTH_STATE_SECRET` are server-only values. Do not prefix them with `REACT_APP_` and do not use them in frontend code.
+
+The server-side path also requires the `calendar_connections` table from the Release 0.8 migration and a valid active household membership for the signed-in user.
 
 ## Release 0.8 Server-Side Foundation
 
@@ -101,6 +105,16 @@ https://YOUR_CUSTOM_DOMAIN
 7. Run `pnpm start`.
 8. Open `http://localhost:3000` and click **Connect** in the Server-side Google Calendar section.
 
+If local Calendar configuration is intentionally omitted, validate that Calendar, Settings, and Notifications show setup guidance rather than raw environment-variable or SQL errors.
+
+## Staging
+
+1. Apply the full Supabase migration chain to staging, including `calendar_connections`.
+2. Set all browser and server Calendar environment variables in the staging deployment.
+3. Add the staging app origin to Authorized JavaScript origins.
+4. Add the staging callback URL to Authorized redirect URIs.
+5. Sign in as a staging household member and verify status, connect, event sync, disconnect, and reconnect.
+
 ## Vercel Production
 
 1. In Vercel, set `REACT_APP_GOOGLE_CLIENT_ID`.
@@ -110,6 +124,8 @@ https://YOUR_CUSTOM_DOMAIN
 5. Add the configured `GOOGLE_OAUTH_REDIRECT_URI` to Authorized redirect URIs.
 6. Redeploy after changing Vercel environment variables.
 7. Open the deployed production URL and click **Connect** in the Server-side Google Calendar section.
+
+Do not reuse local secrets in production. Rotate `GOOGLE_TOKEN_ENCRYPTION_KEY` only with a token migration or by forcing existing Calendar connections to reconnect.
 
 ## Troubleshooting `origin_mismatch`
 

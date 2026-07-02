@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { formatInvitationError } from "../lib/userFacingErrors";
 
 export const HOUSEHOLD_ROLES = ["owner", "adult", "teen", "child", "viewer"];
 export const INVITABLE_ROLES = ["adult", "teen", "child", "viewer"];
@@ -64,7 +65,7 @@ export function useHouseholdInvitations(household) {
       .order("created_at", { ascending: false });
 
     if (loadError) {
-      setError(loadError.message || "Could not load household invitations.");
+      setError(formatInvitationError(loadError, "Could not load household invitations."));
       setInvitations([]);
     } else {
       setInvitations(data || []);
@@ -91,7 +92,7 @@ export function useHouseholdInvitations(household) {
     });
 
     if (inviteError) {
-      const message = inviteError.message || "Invitation could not be created.";
+      const message = formatInvitationError(inviteError, "Invitation could not be created.");
       setError(message);
       return { ok: false, error: message };
     }
@@ -119,7 +120,7 @@ export function useHouseholdInvitations(household) {
       .eq("household_id", householdId);
 
     if (revokeError) {
-      const message = revokeError.message || "Invitation could not be revoked.";
+      const message = formatInvitationError(revokeError, "Invitation could not be revoked.");
       setError(message);
       return { ok: false, error: message };
     }
@@ -160,7 +161,7 @@ export function useInvitationAcceptance(inviteToken, household) {
     setState(previous => ({
       ...previous,
       loading: false,
-      error: error ? error.message || "Invitation could not be loaded." : "",
+      error: error ? formatInvitationError(error, "Invitation could not be loaded.") : "",
       invitation: error ? null : invitation || null,
     }));
   }, [inviteToken]);
@@ -175,8 +176,9 @@ export function useInvitationAcceptance(inviteToken, household) {
       invite_token: inviteToken,
     });
     if (error) {
-      setState(previous => ({ ...previous, loading: false, error: error.message || "Invitation could not be accepted." }));
-      return { ok: false, error: error.message };
+      const message = formatInvitationError(error, "Invitation could not be accepted.");
+      setState(previous => ({ ...previous, loading: false, error: message }));
+      return { ok: false, error: message };
     }
     await household?.refresh?.();
     setState(previous => ({ ...previous, loading: false, accepted: true }));
@@ -189,8 +191,9 @@ export function useInvitationAcceptance(inviteToken, household) {
       invite_token: inviteToken,
     });
     if (error) {
-      setState(previous => ({ ...previous, loading: false, error: error.message || "Invitation could not be declined." }));
-      return { ok: false, error: error.message };
+      const message = formatInvitationError(error, "Invitation could not be declined.");
+      setState(previous => ({ ...previous, loading: false, error: message }));
+      return { ok: false, error: message };
     }
     setState(previous => ({ ...previous, loading: false, declined: true }));
     return { ok: true };
