@@ -11,6 +11,7 @@ export const TITLES = {
   calendar: "Calendar",
   college: "College Planning",
   finance: "Finance",
+  "life-lists": "Life Lists",
   more: "More",
   pool: "Pool",
   "quick-add": "Quick Add",

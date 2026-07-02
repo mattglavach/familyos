@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, Check, ChevronLeft, ClipboardList, Droplets, HeartPulse, Plus, ShoppingCart } from "lucide-react";
+import { CalendarDays, Check, ChevronLeft, ClipboardList, Droplets, HeartPulse, ListChecks, Plus, ShoppingCart } from "lucide-react";
 import { TODAY_STR } from "../../lib/dates";
 import { sb } from "../../lib/supabase";
 import { formatUserFacingError } from "../../lib/userFacingErrors";
+import { useHousehold } from "../../context/HouseholdContext";
+import { roleCanManage } from "../../hooks/useHouseholdCollaboration";
 import { useTable } from "../../hooks/useTable";
 import { OriginDrawer } from "../../components/origin/drawer";
 import { Button } from "../../components/ui/button";
@@ -15,6 +17,9 @@ import { SectionHeader } from "../../components/ui/section-header";
 export function QuickAdd({onNavigate, openSignal = 0}){
   const [open,setOpen] = useState(false);
   const tasks = useTable("tasks", "due_date", true);
+  const lifeLists = useTable("life_lists", "updated_at");
+  const lifeItems = useTable("life_list_items", "updated_at");
+  const household = useHousehold();
   const [form,setForm] = useState({});
   const [mode,setMode] = useState(null);
   const [saveError,setSaveError] = useState(null);
@@ -24,6 +29,8 @@ export function QuickAdd({onNavigate, openSignal = 0}){
 
   const options=[
     {id:"task", icon:ClipboardList, label:"Task", status:"Ready", enabled:true, accentClass:"border-l-violet-400", iconClass:"text-violet-300"},
+    {id:"life-item", icon:ListChecks, label:"List Item", status:"Ready", enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
+    {id:"life-list", icon:ListChecks, label:"Life List", status:"Ready", enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
     {id:"pool", icon:Droplets, label:"Pool Reading", status:"Ready", enabled:true, accentClass:"border-l-primary", iconClass:"text-primary"},
     {id:"event", icon:CalendarDays, label:"Event", status:"Coming later", enabled:false, accentClass:"border-l-muted-foreground", iconClass:"text-muted-foreground"},
     {id:"shopping", icon:ShoppingCart, label:"Shopping Item", status:"Coming later", enabled:false, accentClass:"border-l-muted-foreground", iconClass:"text-muted-foreground"},
@@ -40,6 +47,7 @@ export function QuickAdd({onNavigate, openSignal = 0}){
     {value:"yearly",label:"Yearly",days:365,supported:true},
   ];
   const modeTitle = options.find(o=>o.id===mode)?.label || "Quick Add";
+  const canManageSharedLists = roleCanManage(household.membership?.role);
 
   useEffect(() => {
     if (openSignal) setOpen(true);
@@ -75,6 +83,27 @@ export function QuickAdd({onNavigate, openSignal = 0}){
       if(error){setSaveError(formatUserFacingError(error, "Pool reading could not be saved right now."));return;}
       close();setToast({message:"Pool reading saved."});onNavigate("pool");
     }catch(e){setSaveError(formatUserFacingError(e, "Pool reading could not be saved right now."));}
+  }
+  async function saveLifeList(){
+    setSaveError(null);
+    if(!form.title){setSaveError("List name is required");return;}
+    if(!canManageSharedLists && (form.visibility||"personal") !== "personal"){setSaveError("Your role can create personal lists only.");return;}
+    const row={name:form.title,description:form.notes||"",category:form.category||"",visibility:form.visibility||(canManageSharedLists?"household":"personal"),favorite:form.favorite||false,archived:false,color:"#4A90D9",icon:"✓",sort_order:lifeLists.data.length+1,updated_at:new Date().toISOString()};
+    try{
+      await lifeLists.insert(row);
+      close();setToast({message:"Life List created."});onNavigate("life-lists");
+    }catch(e){setSaveError(formatUserFacingError(e, "Life List could not be saved right now."));}
+  }
+  async function saveLifeItem(){
+    setSaveError(null);
+    if(!form.title){setSaveError("Item title is required");return;}
+    if(!form.list_id){setSaveError("Choose a Life List first.");return;}
+    const row={list_id:form.list_id,title:form.title,description:form.notes||"",priority:form.priority||"med",status:"planned",favorite:form.favorite||false,archived:false,tags:(form.tags||"").split(",").map(tag=>tag.trim()).filter(Boolean),link_url:form.link_url||"",image_url:"",sort_order:lifeItems.data.filter(item=>item.list_id===form.list_id).length+1,updated_at:new Date().toISOString()};
+    try{
+      await lifeItems.insert(row);
+      await lifeLists.update(form.list_id,{updated_at:new Date().toISOString()});
+      close();setToast({message:"Life List item added."});onNavigate("life-lists");
+    }catch(e){setSaveError(formatUserFacingError(e, "Life List item could not be saved right now."));}
   }
 
   return(<>
@@ -144,6 +173,71 @@ export function QuickAdd({onNavigate, openSignal = 0}){
               <Input placeholder="Details" value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
             </FormGroup>
               <Button type="button" className="w-full" onClick={saveTask}>Add Task</Button>
+            {saveError&&<FormError>{saveError}</FormError>}
+            <Button type="button" variant="secondary" className="w-full" onClick={()=>setMode(null)}><ChevronLeft aria-hidden="true"/>Back</Button>
+          </FormSection>
+        </>}
+
+        {mode==="life-list"&&<>
+          <FormSection>
+            <FormGroup>
+              <Label>Name</Label>
+              <Input placeholder="e.g. Vacation ideas" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
+            </FormGroup>
+            <FormGroup>
+              <Label>Category</Label>
+              <Input placeholder="Movies, Books, Travel, Gifts..." value={form.category||""} onChange={e=>setForm(p=>({...p,category:e.target.value}))}/>
+            </FormGroup>
+            <FormGroup>
+              <Label>Visibility</Label>
+              <SegmentedControl value={form.visibility||(canManageSharedLists?"household":"personal")} options={(canManageSharedLists?[{value:"household",label:"Household"},{value:"personal",label:"Personal"},{value:"shared",label:"Shared"}]:[{value:"personal",label:"Personal"}])} ariaLabel="Life List visibility" onValueChange={visibility=>setForm(p=>({...p,visibility}))}/>
+            </FormGroup>
+            <FormGroup>
+              <Label>Description</Label>
+              <Input placeholder="Optional notes" value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
+            </FormGroup>
+            <button type="button" className="flex w-full items-center gap-3 rounded-lg border border-border bg-secondary px-3 py-3 text-left text-sm font-semibold text-secondary-foreground" onClick={()=>setForm(p=>({...p,favorite:!p.favorite}))}>
+              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${form.favorite?"border-violet-400 bg-violet-500 text-white":"border-muted-foreground"}`}>
+                {form.favorite&&<Check size={14} aria-hidden="true"/>}
+              </span>
+              Favorite list
+            </button>
+            <Button type="button" className="w-full" onClick={saveLifeList}>Create Life List</Button>
+            {saveError&&<FormError>{saveError}</FormError>}
+            <Button type="button" variant="secondary" className="w-full" onClick={()=>setMode(null)}><ChevronLeft aria-hidden="true"/>Back</Button>
+          </FormSection>
+        </>}
+
+        {mode==="life-item"&&<>
+          <FormSection>
+            <FormGroup>
+              <Label>List</Label>
+              <select className="flex h-11 w-full rounded-md border border-input bg-secondary px-3 py-2 text-sm text-foreground" value={form.list_id||""} onChange={e=>setForm(p=>({...p,list_id:e.target.value}))}>
+                <option value="">Choose a list</option>
+                {lifeLists.data.filter(list=>!list.archived).map(list=><option key={list.id} value={list.id}>{list.name}</option>)}
+              </select>
+            </FormGroup>
+            <FormGroup>
+              <Label>Title</Label>
+              <Input placeholder="e.g. Watch The Princess Bride" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
+            </FormGroup>
+            <FormGroup>
+              <Label>Priority</Label>
+              <SegmentedControl value={form.priority||"med"} options={[{value:"low",label:"Low"},{value:"med",label:"Med"},{value:"high",label:"High"}]} ariaLabel="Life List item priority" onValueChange={priority=>setForm(p=>({...p,priority}))}/>
+            </FormGroup>
+            <FormGroup>
+              <Label>Tags</Label>
+              <Input placeholder="movie, family night" value={form.tags||""} onChange={e=>setForm(p=>({...p,tags:e.target.value}))}/>
+            </FormGroup>
+            <FormGroup>
+              <Label>Link</Label>
+              <Input placeholder="https://..." value={form.link_url||""} onChange={e=>setForm(p=>({...p,link_url:e.target.value}))}/>
+            </FormGroup>
+            <FormGroup>
+              <Label>Notes</Label>
+              <Input placeholder="Optional details" value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
+            </FormGroup>
+            <Button type="button" className="w-full" onClick={saveLifeItem}>Add Item</Button>
             {saveError&&<FormError>{saveError}</FormError>}
             <Button type="button" variant="secondary" className="w-full" onClick={()=>setMode(null)}><ChevronLeft aria-hidden="true"/>Back</Button>
           </FormSection>
