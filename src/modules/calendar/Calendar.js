@@ -24,7 +24,7 @@ function statusFor(calendar) {
   if (calendar.error) return { tone: "warning", label: "Needs attention", detail: calendar.error };
   if (!calendar.connected) return { tone: "neutral", label: "Not connected", detail: calendar.detail || "Connect Google Calendar in Settings to show household events." };
   if (!calendar.events?.length) return { tone: "info", label: "Connected", detail: "No events found in the current calendar window." };
-  return { tone: "connected", label: "Connected", detail: `${calendar.events.length} event${calendar.events.length === 1 ? "" : "s"} available from ${calendar.sourceLabel}.` };
+  return { tone: "connected", label: "Connected", detail: `${calendar.events.length} event${calendar.events.length === 1 ? "" : "s"} ready.` };
 }
 
 function groupEvents(events, todayString) {
@@ -119,7 +119,6 @@ export function Calendar({ calendar, onNavigate, deps }) {
         <CardContent className="space-y-3 px-4 pb-4 pt-0">
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={status.tone}>{status.label}</StatusBadge>
-            <Badge variant={calendar.mode === "secure" ? "blue" : "slate"}>{calendar.mode === "secure" ? "Server-side" : "Legacy fallback"}</Badge>
           </div>
           <p className="text-sm leading-6 text-muted-foreground">{status.detail}</p>
           {!calendar.connected && (
@@ -160,7 +159,7 @@ export function Calendar({ calendar, onNavigate, deps }) {
           <EmptyStatePanel
             icon={<CalendarX className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />}
             title="Calendar is not connected"
-            detail="Connect Google Calendar in Settings to make this a first-class household schedule view."
+            detail="Connect Google Calendar in Settings to see household events here. You can still use Tasks and Home without a calendar."
             action="Open Settings"
             onAction={() => onNavigate("settings")}
             className="py-8"

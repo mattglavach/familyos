@@ -128,8 +128,8 @@ export function useFamilyMembers() {
       return { ok: true, error: "" };
     } catch (error) {
       console.error("Family member add failed:", error);
-      setError("Family member could not be saved to Supabase.");
-      return { ok: false, error: "Family member could not be saved to Supabase." };
+      setError("Family member could not be saved right now.");
+      return { ok: false, error: "Family member could not be saved right now." };
     }
   }, [household, members, saveMembership]);
 
@@ -155,8 +155,8 @@ export function useFamilyMembers() {
       return { ok: true, error: "" };
     } catch (error) {
       console.error("Family member update failed:", error);
-      setError("Family member could not be updated in Supabase.");
-      return { ok: false, error: "Family member could not be updated in Supabase." };
+      setError("Family member could not be updated right now.");
+      return { ok: false, error: "Family member could not be updated right now." };
     }
   }, [household, members]);
 
@@ -171,8 +171,8 @@ export function useFamilyMembers() {
       return { ok: true, error: "" };
     } catch (error) {
       console.error("Family member deactivate failed:", error);
-      setError("Family member could not be deactivated in Supabase.");
-      return { ok: false, error: "Family member could not be deactivated in Supabase." };
+      setError("Family member could not be removed right now.");
+      return { ok: false, error: "Family member could not be removed right now." };
     }
   }, [household]);
 

@@ -11,6 +11,7 @@ import {
 import { Badge, StatusBadge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { EmptyStatePanel } from "../../components/ui/empty-state";
 import { FormError, FormGroup, FormHelp, FormRow, FormSection } from "../../components/ui/form";
 import { Input } from "../../components/ui/input";
@@ -46,6 +47,16 @@ const WORKSPACE_FILTERS = [
   { value: "today", label: "Today" },
   { value: "upcoming", label: "Upcoming" },
   { value: "overdue", label: "Overdue" },
+  { value: "completed", label: "Completed" },
+];
+const PRIMARY_WORKSPACE_FILTERS = [
+  { value: "mine", label: "My Tasks" },
+  { value: "household", label: "Household" },
+  { value: "today", label: "Today" },
+  { value: "overdue", label: "Overdue" },
+];
+const SECONDARY_WORKSPACE_FILTERS = [
+  { value: "upcoming", label: "Upcoming" },
   { value: "completed", label: "Completed" },
 ];
 const RECURRENCE_OPTIONS = [
@@ -255,6 +266,23 @@ function Toast({ toast, onDismiss }) {
   );
 }
 
+function ConfirmDialog({ open, title, description, confirmLabel, onConfirm, onCancel }) {
+  return (
+    <Dialog open={open} onOpenChange={nextOpen => !nextOpen && onCancel?.()}>
+      <DialogContent titleId="task-confirm-title" onClose={onCancel}>
+        <DialogHeader>
+          <DialogTitle id="task-confirm-title">{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button>
+          <Button type="button" variant="destructive" onClick={onConfirm}>{confirmLabel}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function TaskSkeleton() {
   return (
     <div className="space-y-3">
@@ -431,7 +459,7 @@ export function Tasks({ deps }) {
 
   const [metadata, setMetadata] = useState({});
   const [metadataError] = useState("");
-  const [activeFilter, setActiveFilter] = useState("mine");
+  const [activeFilter, setActiveFilter] = useState("household");
   const [memberFilter, setMemberFilter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -439,10 +467,12 @@ export function Tasks({ deps }) {
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [dueFilter, setDueFilter] = useState("all");
   const [sortBy, setSortBy] = useState("priority");
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [drawer, setDrawer] = useState({ open: false, mode: "create", task: null });
   const [form, setForm] = useState(emptyTaskForm());
   const [formError, setFormError] = useState("");
   const [toast, setToast] = useState(null);
+  const [confirmDeleteTask, setConfirmDeleteTask] = useState(null);
 
   useEffect(() => {
     const nextMetadata = readTaskMetadata();
@@ -537,7 +567,7 @@ export function Tasks({ deps }) {
     else await taskTable.insert(row);
 
     closeDrawer();
-    notify(drawer.mode === "edit" ? "Task updated." : "Task created.");
+    notify(drawer.mode === "edit" ? "Task updated." : "Task created. You can find it in Household tasks.");
   }
 
   async function completeTask(task) {
@@ -603,8 +633,10 @@ export function Tasks({ deps }) {
     notify("Task reopened.");
   }
 
-  async function deleteTask(task) {
-    if (!window.confirm(`Delete "${task.title}"? This cannot be undone.`)) return;
+  async function confirmDelete() {
+    const task = confirmDeleteTask;
+    if (!task) return;
+    setConfirmDeleteTask(null);
     await taskTable.remove(task.id);
     notify("Task deleted.");
   }
@@ -639,13 +671,16 @@ export function Tasks({ deps }) {
       onEdit={openEditTask}
       onComplete={completeTask}
       onReopen={reopenTask}
-      onDelete={deleteTask}
+      onDelete={setConfirmDeleteTask}
       onReassign={reassignTask}
     />
   );
 
   const loading = taskTable.loading || family.loading;
-  const readWarning = "Task assignment, status, created date, and completed date now use Supabase task columns. Older browser metadata is read only as a legacy fallback when a row has not been updated yet.";
+  const hasAdvancedFilters = memberFilter !== "All" || statusFilter !== "All" || priorityFilter !== "All" || categoryFilter !== "All" || dueFilter !== "all" || sortBy !== "priority" || SECONDARY_WORKSPACE_FILTERS.some(option => option.value === activeFilter);
+  const filterHelp = activeFilter === "household"
+    ? "Showing every open household task by default so new tasks are easy to find."
+    : `Showing ${activeFilterLabel.toLowerCase()}.`;
 
   return (
     <div style={S.screen} className="space-y-5">
@@ -674,66 +709,76 @@ export function Tasks({ deps }) {
             <CardHeader className="p-4 pb-2">
               <CardTitle className="flex items-center gap-2 text-base">
                 <ListFilter className="h-4 w-4 text-primary" aria-hidden="true" />
-                Work Surface
+                Find Tasks
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 px-4 pb-4 pt-0">
-              <ChipGroup value={activeFilter} options={WORKSPACE_FILTERS} ariaLabel="Task filters" onValueChange={setActiveFilter} />
               <FormGroup>
                 <Label htmlFor="task-search">Search</Label>
                 <Input id="task-search" value={searchTerm} placeholder="Search title, notes, category, assignee..." onChange={event => setSearchTerm(event.target.value)} />
               </FormGroup>
-              <FormRow>
-                <FormGroup>
-                  <Label>Family Member</Label>
-                  <Select value={memberFilter} onChange={event => setMemberFilter(event.target.value)}>
-                    <option value="All">All</option>
-                    <option value="Family">Family</option>
-                    {activeMembers.map(member => <option key={member.id} value={member.name}>{member.name}</option>)}
-                  </Select>
-                </FormGroup>
-                <FormGroup>
-                  <Label>Status</Label>
-                  <Select value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>
-                    <option value="All">All</option>
-                    {STATUS_OPTIONS.map(status => <option key={status} value={status}>{status}</option>)}
-                  </Select>
-                </FormGroup>
-              </FormRow>
-              <FormRow>
-                <FormGroup>
-                  <Label>Priority</Label>
-                  <Select value={priorityFilter} onChange={event => setPriorityFilter(event.target.value)}>
-                    <option value="All">All</option>
-                    {PRIORITY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-                  </Select>
-                </FormGroup>
-                <FormGroup>
-                  <Label>Category</Label>
-                  <Select value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)}>
-                    <option value="All">All</option>
-                    {CATEGORY_OPTIONS.map(category => <option key={category} value={category}>{category}</option>)}
-                  </Select>
-                </FormGroup>
-              </FormRow>
-              <FormRow>
-                <FormGroup>
-                  <Label>Due</Label>
-                  <Select value={dueFilter} onChange={event => setDueFilter(event.target.value)}>
-                    {DUE_FILTERS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-                  </Select>
-                </FormGroup>
-                <FormGroup>
-                  <Label>Sort</Label>
-                  <Select value={sortBy} onChange={event => setSortBy(event.target.value)}>
-                    <option value="priority">Priority</option>
-                    <option value="due">Due date</option>
-                    <option value="updated">Recently updated</option>
-                    <option value="alpha">Alphabetical</option>
-                  </Select>
-                </FormGroup>
-              </FormRow>
-              <FormHelp>{readWarning}</FormHelp>
+              <ChipGroup value={activeFilter} options={PRIMARY_WORKSPACE_FILTERS} ariaLabel="Task filters" onValueChange={setActiveFilter} />
+              <div className="flex items-center justify-between gap-3">
+                <FormHelp>{filterHelp}</FormHelp>
+                <Button type="button" variant="secondary" size="xs" onClick={() => setShowMoreFilters(value => !value)}>
+                  {showMoreFilters ? "Hide Filters" : hasAdvancedFilters ? "More Filters On" : "More Filters"}
+                </Button>
+              </div>
+              {showMoreFilters && (
+                <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
+                  <ChipGroup value={activeFilter} options={SECONDARY_WORKSPACE_FILTERS} ariaLabel="More task filters" onValueChange={setActiveFilter} />
+                  <FormRow>
+                    <FormGroup>
+                      <Label>Family Member</Label>
+                      <Select value={memberFilter} onChange={event => setMemberFilter(event.target.value)}>
+                        <option value="All">All</option>
+                        <option value="Family">Family</option>
+                        {activeMembers.map(member => <option key={member.id} value={member.name}>{member.name}</option>)}
+                      </Select>
+                    </FormGroup>
+                    <FormGroup>
+                      <Label>Status</Label>
+                      <Select value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>
+                        <option value="All">All</option>
+                        {STATUS_OPTIONS.map(status => <option key={status} value={status}>{status}</option>)}
+                      </Select>
+                    </FormGroup>
+                  </FormRow>
+                  <FormRow>
+                    <FormGroup>
+                      <Label>Priority</Label>
+                      <Select value={priorityFilter} onChange={event => setPriorityFilter(event.target.value)}>
+                        <option value="All">All</option>
+                        {PRIORITY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                      </Select>
+                    </FormGroup>
+                    <FormGroup>
+                      <Label>Category</Label>
+                      <Select value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)}>
+                        <option value="All">All</option>
+                        {CATEGORY_OPTIONS.map(category => <option key={category} value={category}>{category}</option>)}
+                      </Select>
+                    </FormGroup>
+                  </FormRow>
+                  <FormRow>
+                    <FormGroup>
+                      <Label>Due</Label>
+                      <Select value={dueFilter} onChange={event => setDueFilter(event.target.value)}>
+                        {DUE_FILTERS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                      </Select>
+                    </FormGroup>
+                    <FormGroup>
+                      <Label>Sort</Label>
+                      <Select value={sortBy} onChange={event => setSortBy(event.target.value)}>
+                        <option value="priority">Priority</option>
+                        <option value="due">Due date</option>
+                        <option value="updated">Recently updated</option>
+                        <option value="alpha">Alphabetical</option>
+                      </Select>
+                    </FormGroup>
+                  </FormRow>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -742,8 +787,8 @@ export function Tasks({ deps }) {
             count={filteredTasks.length}
             tone={activeFilter === "completed" ? "green" : activeFilter === "overdue" ? "red" : activeFilter === "today" ? "amber" : "blue"}
             tasks={filteredTasks}
-            emptyTitle="No matching tasks"
-            emptyDetail="Adjust filters or create a new task."
+            emptyTitle={tasks.length ? "No matching tasks" : "Create your first task"}
+            emptyDetail={tasks.length ? "Try a different search or filter." : "Add a household task to get started."}
             renderTask={renderTask}
           />
         </>
@@ -760,6 +805,14 @@ export function Tasks({ deps }) {
         onSave={saveTask}
       />
       <Toast toast={toast} onDismiss={() => setToast(null)} />
+      <ConfirmDialog
+        open={Boolean(confirmDeleteTask)}
+        title="Delete task?"
+        description={confirmDeleteTask ? `"${confirmDeleteTask.title}" will be removed from the household task list. This cannot be undone.` : ""}
+        confirmLabel="Delete task"
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmDeleteTask(null)}
+      />
     </div>
   );
 }

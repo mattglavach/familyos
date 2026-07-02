@@ -97,8 +97,8 @@ export function More({ onNavigate }) {
       <Card>
         <EmptyStatePanel
           icon={<CalendarDays className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />}
-          title="Release 1.0 stays focused"
-          detail="Shopping, Life Lists, Meal Planning, Smart Home, AI, and major integrations are intentionally deferred until the core household operating loop is stable."
+          title="More is growing carefully"
+          detail="Shopping, Life Lists, Meal Planning, Smart Home, and other larger areas will be added after the core household tools feel solid."
           className="py-7"
         />
       </Card>

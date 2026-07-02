@@ -56,7 +56,7 @@ export function formatCalendarError(error, fallback = "Calendar could not be loa
     "does not exist",
     "relation",
   ])) {
-    return "Google Calendar is not connected yet. Configure Google Calendar and Supabase settings for this environment, then connect your calendar.";
+    return "Google Calendar is not ready to connect yet. Ask the household owner to finish calendar setup, then try again.";
   }
 
   return formatUserFacingError(error, fallback);
@@ -80,7 +80,7 @@ export function formatInvitationError(error, fallback = "Household invitations c
     "rpc",
     "pgrst",
   ])) {
-    return "Household invitations are not ready in this environment. Apply the Release 0.9 household collaboration migration, then try again.";
+    return "Household invitations are not available yet.";
   }
   if (matches(message, ["already has a pending invitation", "pending invitation"])) {
     return "That email already has a pending household invitation.";
