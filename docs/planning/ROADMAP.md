@@ -29,6 +29,7 @@
 - [ ] Vehicles
 - [ ] Documents
 - [ ] Medical
+- [x] Life Lists
 
 ## Phase 4 - Intelligence
 - [ ] AI assistant
@@ -82,6 +83,17 @@
 - [x] Implement Release 1.0.3 Design System for shared UI wrappers, tokens, command search, and common form control consistency.
 - [x] Implement Release 1.0.4 Consumer Cleanup for task discoverability, compact filters, consumer language, confirmation dialogs, and Core MVP usability.
 - [x] Implement Release 1.0.5 Calendar & Header Cleanup for Calendar tab resilience, icon-only header actions, and Calendar status clarity.
+- [x] Implement Release 1.1 Life Lists with generic lists/items, Home insight, Quick Add, Search, and RLS-backed schema.
+
+## Release 1.1 Scope
+- [x] Add generic Life Lists and Life List Items data model.
+- [x] Add Life Lists module under More.
+- [x] Add quick create/edit, status, priority, favorites, archive, tags, link, assignment, and sorting/filtering workflows.
+- [x] Add Life Lists targets to Universal Quick Add.
+- [x] Add lists and list items to Universal Search.
+- [x] Add compact Home Life Lists awareness with drill-down.
+- [ ] Validate migration/RLS against disposable or staging Supabase before production.
+- [ ] Keep shopping, meal planning, finance expansion, health, Home platform, AI, recommendation engines, ratings, reviews, and external enrichment APIs deferred.
 
 ## Release 1.0 Scope
 - [x] Stabilize the dashboard daily command center.

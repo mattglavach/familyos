@@ -42,7 +42,7 @@ Inside More:
 - Pool
 - College
 - Shopping (future)
-- Life Lists (future)
+- Life Lists
 - Meal Planning (future)
 - Documents (future)
 - Settings
@@ -77,10 +77,10 @@ Shopping will cover shared grocery and household purchase lists.
 
 It is future because Release 1.0 must stabilize tasks, dashboard, household, and navigation before adding another frequent-capture workflow.
 
-## Life Lists (Future)
-Life Lists will cover books, movies, gifts, goals, bucket lists, and ideas.
+## Life Lists
+Life Lists cover books, movies, gifts, goals, bucket lists, ideas, places, activities, and custom lightweight collections.
 
-It is future because it is valuable but not required for core household operating readiness.
+Release 1.1 promotes Life Lists into More as a generic lifestyle planning module. Home should show only compact Life Lists awareness and drill-downs; the module remains the action workspace.
 
 ## Meal Planning (Future)
 Meal Planning will cover meal plans, recipes, pantry, grocery generation, and family preferences.

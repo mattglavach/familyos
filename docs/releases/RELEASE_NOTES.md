@@ -1,5 +1,39 @@
 # Release Notes
 
+## Release 1.1.0
+
+### Version
+1.1.0
+
+### Date
+2026-07-02
+
+### Summary
+Release 1.1 adds Life Lists as the first major lifestyle planning module in Family OS. Life Lists are generic collections for things the family wants to do, watch, read, visit, buy, remember, or plan.
+
+### Features
+- Added a generic Life Lists module under More.
+- Added list sections for pinned/favorites, recently updated, my lists, and household lists.
+- Added item search, status filters, favorite/archive filters, tag filtering, and manual/alphabetical/priority/recent/completed sorting.
+- Added quick create/edit flows for lists and items.
+- Added item status, priority, favorite, assignment, tags, link, image reference, completion, archive, and sort order fields.
+- Added Life List and List Item targets to Universal Quick Add.
+- Added Life Lists and Life List Items to Universal Search.
+- Added a compact Home Life Lists insight that drills into the module.
+
+### Database Changes
+- Added `supabase/migrations/20260702_release_1_1_life_lists.sql`.
+- Added `life_lists` and `life_list_items`.
+- Added household-aware RLS for personal, household, and shared visibility.
+
+### Deferred
+- Shopping, meal planning, finance expansion, health, Home platform, AI, recommendation engines, ratings, reviews, external media/book/travel APIs, and image upload storage remain deferred.
+- Notification delivery for assigned item, completed item, and shared list update events remains future-ready only.
+
+### Validation
+- `pnpm run lint` passed.
+- `pnpm run build`, `git diff --check`, browser smoke, and disposable/staging Supabase migration/RLS validation remain required before merge readiness.
+
 ## Release 1.0.5
 
 ### Version

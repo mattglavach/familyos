@@ -1,7 +1,7 @@
 # Current Sprint
 
 ## Sprint Goal
-Implement Release 1.0.5 Calendar & Header Cleanup after v1.0.4, keeping scope limited to Calendar tab resilience, Calendar connection clarity, compact header actions, consumer language, and validation.
+Implement Release 1.1 Life Lists as the first major lifestyle planning platform, keeping scope limited to generic lists/items, module UI, Home awareness, Quick Add, Universal Search, permissions, schema, documentation, and validation.
 
 ## Active Items
 - [x] Add documentation structure
@@ -104,6 +104,11 @@ Implement Release 1.0.5 Calendar & Header Cleanup after v1.0.4, keeping scope li
 - [x] Simplify header Settings and Calendar status actions to icon controls with accessible labels
 - [x] Clarify Calendar setup and connection behavior for owner-managed and non-owner views
 - [x] Validate Calendar/header desktop, tablet, and 390px mobile layouts with no horizontal overflow
+- [x] Begin Release 1.1 Life Lists branch
+- [x] Add generic Life Lists schema and RLS migration
+- [x] Add Life Lists module under More
+- [x] Add Life Lists Home awareness, Quick Add, and Universal Search integration
+- [x] Update Release 1.1 architecture, database, product, planning, and release documentation
 
 ## Blockers
 
@@ -112,7 +117,7 @@ Implement Release 1.0.5 Calendar & Header Cleanup after v1.0.4, keeping scope li
 - Release 1.0.2 has no active validation blocker after completing local authenticated adult, viewer, mobile, and task lifecycle smoke checks.
 - Release 1.0.3 has no active implementation or validation blocker after local lint, build, diff-check, browser smoke, and console validation.
 - Release 1.0.4 has no active validation blocker after lint, build, diff-check, authenticated local browser smoke, mobile 390px sanity checks, and console validation.
-- Release 1.0.5 has no active implementation blocker after local lint, production build, and authenticated browser Calendar/header smoke checks passed. Final diff-check and commit remain.
+- Release 1.1 has no known implementation blocker after lint passes. Build, diff-check, browser smoke, migration/RLS validation, and commits remain.
 
 ## Notes
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.

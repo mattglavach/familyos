@@ -48,7 +48,7 @@ Pantry, household supplies, home assets, and future document links.
 ## Pillar 4: Life
 
 ### Life Lists
-Books, movies, gifts, bucket lists, ideas, and family goals.
+Release 1.1 generic collections for books, movies, gifts, bucket lists, ideas, places, activities, and family goals.
 
 ### Travel
 Trips, packing, itineraries, documents, and home-prep tasks.
@@ -104,7 +104,7 @@ Future hands-free capture and query.
 - Collaboration: invitations, members, roles, active household switching.
 - Release 1.0: core household operating readiness.
 - Post-1.0: refine navigation, calendar, notifications, and Quick Add.
-- Later: shopping, meal planning, life lists, documents, home maintenance, finance depth, AI, smart home.
+- Later: shopping, meal planning, documents, home maintenance, finance depth, AI, smart home, and richer Life Lists category templates or recommendations.
 
 ## Release 1.0 Alignment
 Release 1.0 supports the Family Hub and Productivity pillars only where they are already part of the core operating loop. It should not start broad Planning, Life, Home expansion, or AI automation.

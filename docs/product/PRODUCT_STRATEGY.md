@@ -32,4 +32,4 @@ The MVP and Release 1.0 should prove the core pattern:
 4. Tasks
 5. Household collaboration
 6. Release 1.0 readiness for dashboard, tasks, calendar status, household, settings, navigation, and responsive UX
-7. Shopping, life lists, meal planning, home, finance, pool, college, documents, AI, and smart home expansion after the core operating loop is stable
+7. Shopping, meal planning, home, finance, pool, college, documents, AI, smart home, and deeper Life Lists expansion after the core operating loop is stable

@@ -1,10 +1,10 @@
 # Project Status
 
 ## Current Version
-1.0.5
+1.1.0
 
 ## Current State
-Release 1.0 core MVP through Release 1.0.4 Consumer Cleanup are complete. Release 1.0.5 Calendar & Header Cleanup is in validation on branch `release/1.0.5-calendar-header-cleanup`.
+Release 1.0 core MVP through Release 1.0.5 Calendar & Header Cleanup are complete. Release 1.1 Life Lists is in implementation/validation on branch `release/1.1-life-lists`.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -64,12 +64,13 @@ Release 1.0 core MVP through Release 1.0.4 Consumer Cleanup are complete. Releas
 - Release 1.0.3 established the local shadcn-compatible UI wrapper layer, design tokens, command search wrapper, and chip-based common task/Quick Add controls without adding product modules or schema changes
 - Release 1.0.4 improved Core MVP consumer clarity, task discoverability, compact task filters, Quick Add supported destinations, Calendar/invite messaging, notifications/search empty states, and touched destructive confirmations without adding product modules or schema changes
 - Release 1.0.5 hardened Calendar rendering, simplified header Calendar/Settings actions, clarified Calendar status behavior, and improved owner/adult Calendar setup messaging without schema changes
+- Release 1.1 adds generic Life Lists and Life List Items, More navigation, Home awareness, Quick Add targets, Universal Search integration, seed fallback, and a Supabase migration with household-aware RLS
 
 ## In Progress
-- Release 1.0.5 final validation, release review, merge, and tag decision.
+- Release 1.1 validation, release review, migration/RLS smoke, browser smoke, commit, merge, and tag decision.
 
 ## Next
-- Final release review, merge, and tag decision for Release 1.0.5.
+- Complete Release 1.1 validation and release review.
 - Configure Release 0.8 server OAuth environment values in Vercel before removing the legacy calendar fallback.
 - Decide whether to remove the legacy browser calendar fallback after deployed validation.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
@@ -81,6 +82,7 @@ Release 1.0 core MVP through Release 1.0.4 Consumer Cleanup are complete. Releas
 - Google Calendar sync requires the active browser origin to be listed in Google Cloud Console Authorized JavaScript origins for the configured OAuth client.
 - Server-side Google Calendar sync also requires `calendar_connections`, Supabase service-role API access, Google OAuth client/secret/redirect settings, and token encryption/state secrets in each environment where Calendar is enabled.
 - Household invitations require the Release 0.9 household collaboration migration and a refreshed Supabase/PostgREST schema cache in each environment.
+- Life Lists requires the Release 1.1 migration and refreshed Supabase/PostgREST schema cache in each environment before durable persistence is available.
 - Google Calendar token storage remains browser-local only for older legacy fallback sessions. Release 0.8C no longer writes new `gc_token` values, and the server route does not expose tokens to the frontend. Deployed validation still requires server env configuration and Google Cloud redirect URI setup.
 - Legacy browser metadata keys for Release 0.6B settings, family members, and task metadata may remain on devices until local browser data is reset, but they are no longer the normal persistence path.
 - Six-item bottom navigation should be checked on physical mobile devices before broad family use.
@@ -108,6 +110,7 @@ Release 1.0 core MVP through Release 1.0.4 Consumer Cleanup are complete. Releas
 - Release 1.0.4 removes native confirmations from touched Core MVP destructive flows, but deferred modules may still have older inline UI and confirmation patterns until they become active scope.
 - Release 1.0.4 authenticated browser smoke used local Supabase only. Production was not touched.
 - Release 1.0.5 keeps Calendar setup prompt persistence deferred until a preference-backed dismissal design is approved.
+- Release 1.1 keeps recommendation engines, ratings, reviews, category-specific templates, external enrichment APIs, image upload storage, and notification delivery deferred.
 
 ## Last Updated
 July 2, 2026
