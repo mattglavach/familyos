@@ -62,6 +62,7 @@ Complete Release 0.9 household collaboration and establish the Release 0.9.1 per
 - [x] Complete Release 0.9 browser smoke tests, security review, documentation closeout, and merge/tag readiness validation
 - [x] Create Release 0.9.1 engineering process playbooks in `docs/process`
 - [x] Update agent, README, master index, roadmap, status, architecture, and AI docs to point future work at the process framework
+- [x] Add Release 0.9.1 governance docs, ADR template, planning logs, and reusable release/feature/module/bug/retro templates
 
 ## Blockers
 
@@ -108,3 +109,4 @@ Complete Release 0.9 household collaboration and establish the Release 0.9.1 per
 - Release 0.9 validation used disposable local database `familyos_r09_validation` in the local Supabase Docker container. Production was not touched. Validation fixed owner-only invitation enforcement and SQL ambiguity in invitation RPCs.
 - Release 0.9 final readiness validation used only local Supabase (`supabase_db_familyos`, local API on `127.0.0.1:54321`) and a smoke-test CRA server on `localhost:3002`. Browser smoke tests passed for owner invite creation/revoke, invite preview, adult accept, viewer decline/accept, active household switching, owner role update/removal, and hidden non-owner management controls.
 - Release 0.9.1 is documentation/process-only. It intentionally does not add application features.
+- Release 0.9.1 governance extends existing docs instead of replacing them; existing detailed design, database, and development docs remain source references.

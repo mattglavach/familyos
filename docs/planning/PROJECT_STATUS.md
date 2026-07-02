@@ -51,12 +51,14 @@ Release 0.9 household collaboration is validation-complete. Release 0.9.1 engine
 - Release 0.9 disposable local Supabase validation for migration chain, invitation lifecycle, owner-only controls, RLS denial paths, and active household preference switching
 - Release 0.9 browser smoke validation on local Supabase for owner, adult, and viewer collaboration flows, including invite create/preview/accept/decline/revoke, role update, member removal, active household switching, and hidden non-owner controls
 - Release 0.9.1 permanent engineering process framework covering release, feature, coding, architecture, UI, testing, documentation, git, review, checklist, and prompt workflows
+- Release 0.9.1 governance framework covering Family OS principles, project structure, module template, production readiness, AI engineering, API, security, performance, environments, dependencies, ADRs, planning logs, and reusable templates
 
 ## In Progress
 - Release 0.9.1 validation and closeout.
 
 ## Next
 - Review and adopt the Release 0.9.1 process framework for future release prompts.
+- Use `docs/templates/RELEASE_SPEC.md` for the next release request.
 - Merge Release 0.9.1 into `main` and tag after validation and review.
 - Configure Release 0.8 server OAuth environment values in Vercel before removing the legacy calendar fallback.
 - Decide whether to remove the legacy browser calendar fallback after deployed validation.
@@ -83,6 +85,7 @@ Release 0.9 household collaboration is validation-complete. Release 0.9.1 engine
 - Release 0.6C production baseline alignment backfilled existing module rows to the approved owner UUID. Future household-scoped sharing should move access through `household_id` once active-household runtime context is implemented.
 - Ownership transfer, owner recovery, and full household-only module RLS remain Release 0.9 follow-up work.
 - The new process framework should be tested against the next release and refined if any required step is unclear or redundant.
+- Governance templates should remain lightweight; expand them only when real releases expose gaps.
 
 ## Last Updated
 July 2, 2026

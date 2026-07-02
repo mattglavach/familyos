@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Added Release 0.9.1 governance and engineering reference docs for principles, project structure, modules, production readiness, AI engineering, APIs, security, performance, environments, dependencies, ADRs, technical debt, decision logging, roadmap process, and reusable templates.
 - Added `eslint` as a direct dev dependency so the existing `pnpm run lint` script works in clean pnpm worktrees.
 - Established the Release 0.9.1 permanent engineering framework under `docs/process`, including release, feature, coding, architecture, UI, testing, documentation, git, review, checklist, and prompt playbooks, and updated repository entry points to make the process docs the default source of truth.
 - Completed Release 0.9 readiness validation against disposable local Supabase only: full migration chain from empty database, Release 0.9 idempotency re-run, schema/RLS/RPC assertions, browser invite/member smoke tests on `localhost:3002`, and security review. Fixed empty-database migration ordering, local/Supabase `pgcrypto` search-path compatibility, and hidden owner-only controls for adult/viewer users.

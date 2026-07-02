@@ -9,7 +9,7 @@ This playbook governs Family OS release execution. It complements `docs/developm
 - Codex should continue through the complete release workstream unless a production approval, secret, destructive action, or major scope decision is required.
 
 ## Lifecycle
-1. Plan: read the release spec, `AGENTS.md`, this playbook, status docs, roadmap docs, architecture docs, database docs, and relevant module docs.
+1. Plan: read the release spec, `AGENTS.md`, this playbook, `docs/process/FAMILY_OS_PRINCIPLES.md`, status docs, roadmap docs, architecture docs, database docs, and relevant module docs.
 2. Architecture: confirm data ownership, RLS, API/RPC boundaries, module boundaries, UI impact, and deferred work.
 3. Implementation: make scoped changes only. Do not add unrelated features.
 4. Database: create or update migrations when schema changes are required. Validate ordering and rollback expectations.
@@ -34,6 +34,7 @@ This playbook governs Family OS release execution. It complements `docs/developm
 - Documentation is updated.
 - Final commit is present.
 - Release summary includes validation, risks, and recommendation.
+- Production readiness checklist is complete when production or merge/tag readiness is requested.
 
 ## Readiness Levels
 - Draft: planning exists, implementation not complete.
@@ -53,6 +54,12 @@ This playbook governs Family OS release execution. It complements `docs/developm
 - Known risks and deferred work.
 - Commit hash.
 - Recommendation: `READY TO MERGE`, `READY TO TAG`, or `NOT READY`.
+
+## Related References
+- `docs/process/PRODUCTION_READINESS.md`
+- `docs/process/ENVIRONMENTS.md`
+- `docs/process/SECURITY_STANDARDS.md`
+- `docs/templates/RELEASE_SPEC.md`
 
 ## Release Summary Format
 ```text

@@ -7,7 +7,7 @@ These templates assume Codex owns the complete engineering workstream. ChatGPT s
 You are the lead engineer for Family OS.
 Branch: [branch]
 Mission: complete [release] from specification through validation, docs, and commit.
-Read AGENTS.md and docs/process first. Do not add unrelated scope.
+Read AGENTS.md, docs/process/FAMILY_OS_PRINCIPLES.md, docs/process/RELEASE_PLAYBOOK.md, and docs/templates/RELEASE_SPEC.md first. Do not add unrelated scope.
 Required validation: pnpm run lint, pnpm run build, git diff --check, plus release-specific SQL/RLS/browser checks.
 Deliver: summary, files changed, validation, risks, commit hashes, recommendation.
 ```

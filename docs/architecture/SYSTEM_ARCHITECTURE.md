@@ -38,3 +38,5 @@ Each module should have:
 
 ## Engineering Process Layer
 `docs/process/` is the permanent engineering framework for releases, features, coding standards, architecture guidance, UI guidance, testing, documentation, git workflow, review, release checklists, and reusable prompts. Future architecture work should start from the process playbooks and then update this architecture documentation when durable decisions change.
+
+Material architecture decisions should use `docs/architecture/decisions/ADR_TEMPLATE.md`. Lightweight decisions can be recorded in `docs/planning/DECISION_LOG.md`.
