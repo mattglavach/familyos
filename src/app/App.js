@@ -313,8 +313,8 @@ class CalendarErrorBoundary extends Component {
       <div style={S.screen}>
         <Card>
           <CardContent className="space-y-3 p-4">
-            <CardTitle>Calendar needs a refresh</CardTitle>
-            <CardDescription>Calendar could not open cleanly. Try again, or open Calendar to check the connection.</CardDescription>
+            <CardTitle>Calendar needs attention</CardTitle>
+            <CardDescription>Calendar is still available. Try again, or check the connection on the Calendar screen.</CardDescription>
             <div className="flex flex-wrap gap-2">
               <Button type="button" onClick={this.retry}>Try again</Button>
               <Button type="button" variant="secondary" onClick={this.props.onSettings}>Open Calendar</Button>

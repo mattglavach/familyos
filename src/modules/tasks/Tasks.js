@@ -42,16 +42,16 @@ const DUE_FILTERS = [
   { value: "upcoming", label: "Upcoming" },
 ];
 const WORKSPACE_FILTERS = [
+  { value: "all", label: "All" },
   { value: "mine", label: "My Tasks" },
-  { value: "household", label: "Household" },
   { value: "today", label: "Today" },
   { value: "upcoming", label: "Upcoming" },
   { value: "overdue", label: "Overdue" },
   { value: "completed", label: "Completed" },
 ];
 const PRIMARY_WORKSPACE_FILTERS = [
+  { value: "all", label: "All" },
   { value: "mine", label: "My Tasks" },
-  { value: "household", label: "Household" },
   { value: "today", label: "Today" },
   { value: "overdue", label: "Overdue" },
 ];
@@ -407,21 +407,6 @@ function TaskDrawer({ open, mode, form, setForm, members, error, onClose, onSave
         </FormGroup>
         <FormRow>
           <FormGroup>
-            <Label htmlFor="task-assignee">Assignee</Label>
-            <Select id="task-assignee" value={form.assignee} onChange={event => setForm(previous => ({ ...previous, assignee: event.target.value }))}>
-              <option value="Family">Family</option>
-              {members.filter(member => member.status !== "inactive").map(member => (
-                <option key={member.id} value={member.name}>{member.name}</option>
-              ))}
-            </Select>
-          </FormGroup>
-          <FormGroup>
-            <Label htmlFor="task-due-date">Due Date</Label>
-            <Input id="task-due-date" type="date" value={form.due_date} onChange={event => setForm(previous => ({ ...previous, due_date: event.target.value }))} />
-          </FormGroup>
-        </FormRow>
-        <FormRow>
-          <FormGroup>
             <Label>Priority</Label>
             <ChipGroup value={form.priority} options={PRIORITY_OPTIONS} ariaLabel="Task priority" onValueChange={priority => setForm(previous => ({ ...previous, priority }))} />
           </FormGroup>
@@ -434,6 +419,21 @@ function TaskDrawer({ open, mode, form, setForm, members, error, onClose, onSave
           <FormGroup>
             <Label>Category</Label>
             <ChipGroup value={form.category} options={CATEGORY_OPTIONS} ariaLabel="Task category" onValueChange={category => setForm(previous => ({ ...previous, category }))} />
+          </FormGroup>
+          <FormGroup>
+            <Label htmlFor="task-assignee">Assignee</Label>
+            <Select id="task-assignee" value={form.assignee} onChange={event => setForm(previous => ({ ...previous, assignee: event.target.value }))}>
+              <option value="Family">Family</option>
+              {members.filter(member => member.status !== "inactive").map(member => (
+                <option key={member.id} value={member.name}>{member.name}</option>
+              ))}
+            </Select>
+          </FormGroup>
+        </FormRow>
+        <FormRow>
+          <FormGroup>
+            <Label htmlFor="task-due-date">Due Date</Label>
+            <Input id="task-due-date" type="date" value={form.due_date} onChange={event => setForm(previous => ({ ...previous, due_date: event.target.value }))} />
           </FormGroup>
           <FormGroup>
             <Label>Repeat</Label>
@@ -459,14 +459,14 @@ export function Tasks({ deps }) {
 
   const [metadata, setMetadata] = useState({});
   const [metadataError] = useState("");
-  const [activeFilter, setActiveFilter] = useState("household");
+  const [activeFilter, setActiveFilter] = useState("all");
   const [memberFilter, setMemberFilter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [dueFilter, setDueFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("priority");
+  const [sortBy, setSortBy] = useState("due");
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [drawer, setDrawer] = useState({ open: false, mode: "create", task: null });
   const [form, setForm] = useState(emptyTaskForm());
@@ -567,7 +567,7 @@ export function Tasks({ deps }) {
     else await taskTable.insert(row);
 
     closeDrawer();
-    notify(drawer.mode === "edit" ? "Task updated." : "Task created. You can find it in Household tasks.");
+    notify(drawer.mode === "edit" ? "Task updated." : "Task created. You can find it in All tasks.");
   }
 
   async function completeTask(task) {
@@ -677,9 +677,9 @@ export function Tasks({ deps }) {
   );
 
   const loading = taskTable.loading || family.loading;
-  const hasAdvancedFilters = memberFilter !== "All" || statusFilter !== "All" || priorityFilter !== "All" || categoryFilter !== "All" || dueFilter !== "all" || sortBy !== "priority" || SECONDARY_WORKSPACE_FILTERS.some(option => option.value === activeFilter);
-  const filterHelp = activeFilter === "household"
-    ? "Showing every open household task by default so new tasks are easy to find."
+  const hasAdvancedFilters = memberFilter !== "All" || statusFilter !== "All" || priorityFilter !== "All" || categoryFilter !== "All" || dueFilter !== "all" || sortBy !== "due" || SECONDARY_WORKSPACE_FILTERS.some(option => option.value === activeFilter);
+  const filterHelp = activeFilter === "all"
+    ? "Showing every open task by due date so new tasks are easy to find."
     : `Showing ${activeFilterLabel.toLowerCase()}.`;
 
   return (

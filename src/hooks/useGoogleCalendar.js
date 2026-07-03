@@ -13,7 +13,16 @@ function formatGoogleOAuthError(error) {
   if (error === "origin_mismatch") {
     return `Google Calendar is not available for ${getGoogleOAuthOrigin()} yet. Ask the household owner to finish calendar setup, then try again.`;
   }
-  return error || "Google Calendar sign-in failed.";
+  if (error === "popup_closed_by_user" || error === "cancelled" || error === "user_cancelled") {
+    return "Calendar connection was cancelled. Nothing changed.";
+  }
+  if (error === "access_denied" || error === "permission_denied") {
+    return "Calendar access was not approved. Connect again when you are ready to share calendar events.";
+  }
+  if (String(error || "").toLowerCase().includes("verified") || String(error || "").toLowerCase().includes("unverified")) {
+    return "Google Calendar is waiting for app approval. Ask the household owner to add test users or finish Google verification.";
+  }
+  return "Google Calendar could not connect. Try again when you are ready.";
 }
 
 function formatGoogleApiError(status, message) {
@@ -107,13 +116,22 @@ export function useGoogleCalendar() {
     const client=window.google.accounts.oauth2.initTokenClient({
       client_id:GOOGLE_CLIENT_ID,scope:GOOGLE_SCOPES,
       callback:(resp)=>{
-        if(resp.error){setStatus("error");setError(formatGoogleOAuthError(resp.error));return;}
-        if(!resp.access_token){setStatus("error");setError("Google Calendar did not return an access token. Try connecting again.");return;}
+        if(resp.error){
+          const message = formatGoogleOAuthError(resp.error);
+          setStatus(resp.error === "access_denied" ? "permission-error" : "error");
+          setError(message);
+          return;
+        }
+        if(!resp.access_token){setStatus("cancelled");setError("Calendar connection was not completed. Nothing changed.");return;}
         setToken(resp.access_token);
         setStatus("connected");
         fetchUserName(resp.access_token);
       },
-      error_callback:(resp)=>{setStatus("error");setError(formatGoogleOAuthError(resp?.type || resp?.error));},
+      error_callback:(resp)=>{
+        const code = resp?.type || resp?.error || "error";
+        setStatus(code === "popup_closed_by_user" ? "cancelled" : code === "access_denied" ? "permission-error" : "error");
+        setError(formatGoogleOAuthError(code));
+      },
     });
     client.requestAccessToken();
   }
