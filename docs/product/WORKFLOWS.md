@@ -77,9 +77,12 @@ Release 1.0 status: Future/partial.
 
 Future flow:
 1. Enter test readings.
-2. Review recommended action.
-3. Create maintenance task.
-4. Track trend and next test date.
+2. Review what the pool needs and why it matters.
+3. Confirm any recommended chemical or maintenance action.
+4. Log treatments, equipment changes, weather context, parties, and water clarity.
+5. Track trend, confidence, safety notes, and next test date.
+
+Release 1.3.2 planning note: Pool Care Assistant is documented as a future Home Platform submodule in `docs/product/POOL_CARE_ASSISTANT.md`. Do not expose future Pool Quick Add targets or AI coaching until the Pool module is explicitly scoped.
 
 ## Home Maintenance
 Goal: Track recurring home care and equipment history.

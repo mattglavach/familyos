@@ -10,17 +10,19 @@ The dashboard should use a mobile-first vertical flow. On wider screens, section
 
 Recommended widget order:
 1. Today's Priorities
-2. Today's Schedule
-3. My Tasks
-4. Household Insights
-5. Recent Activity when compact and useful
+2. Household Insights
+3. Today's Schedule
+4. My Tasks
+5. Planning cards and other awareness cards
+6. Recent Activity when compact and useful
 
 ## Priority Order
 1. Urgent or overdue household responsibilities.
-2. Today's schedule and time-sensitive events.
-3. Tasks assigned to the current user.
-4. Lower-frequency insights from household modules.
-5. Recent activity that helps explain what changed.
+2. Household module insights that need awareness.
+3. Today's schedule and time-sensitive events.
+4. Tasks assigned to the current user.
+5. Lower-frequency planning insights from household modules.
+6. Recent activity that helps explain what changed.
 
 ## Widgets
 

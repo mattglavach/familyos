@@ -89,6 +89,16 @@
 - [x] Implement Release 1.2 Shopping & Pantry with shared shopping lists/items, simple pantry inventory, Home insight, Quick Add, Search, and RLS-backed schema.
 - [x] Implement Release 1.3 Meal Planning with recipes, meal plans, meal assignments, pantry-aware Shopping review, Home insight, Quick Add, Search, and RLS-backed schema.
 - [x] Implement Release 1.3.1 Planning Platform polish for Calendar routing, Home awareness, grouped Search, Product Owner cleanup decisions, and validation documentation.
+- [x] Implement Release 1.3.2 Calendar/Product Cleanup plus Pool Care Assistant planning without adding Pool code, schema, or UI.
+
+## Release 1.3.2 Scope
+- [x] Treat Calendar disconnected, setup-required, cancelled, permission-denied, unverified-app, and expired-token states as normal recoverable states.
+- [x] Keep Calendar header action routed to Calendar and keep Connect Google Calendar trustworthy.
+- [x] Reorder Home to Today's Priorities, Household Insights, Today's Schedule, My Tasks, then planning awareness cards.
+- [x] Make Tasks default to All with Due Date sorting and keep secondary filters behind More Filters.
+- [x] Tighten frequent task form grouping without changing the task schema.
+- [x] Document Pool Care Assistant as a future Home Platform flagship submodule.
+- [x] Keep Pool module code, Pool tables, Pool migrations, Finance, Health, AI, Home platform implementation, integrations, and database redesign deferred.
 
 ## Release 1.3.1 Scope
 - [x] Keep Home as awareness and preserve direct drill-down rows without a generic Priorities page.

@@ -20,6 +20,12 @@ Use this document to track durable technical debt. Do not use chat history as th
   4. Add automated responsive smoke coverage for 390px, tablet, and desktop horizontal-overflow checks.
   5. Migrate remaining legacy deferred-module inline UI patterns only when those modules become active release scope.
 
+### Pool Care Assistant Implementation
+- Status: Open
+- Impact: Release 1.3.2 documents Pool Care Assistant as a future Home Platform flagship submodule, but does not implement its action engine, treatment history, equipment maintenance, Quick Add targets, integrations, or AI coach.
+- Trigger: Future Pool implementation release.
+- Notes: Start from `docs/product/POOL_CARE_ASSISTANT.md`; require product spec, security review, schema/RLS design, chemical safety rules, browser smoke, and human-confirmation requirements before implementation.
+
 ### Full Household-Scoped Module RLS
 - Status: Open
 - Impact: Existing module tables still preserve staged user-owned compatibility policies.
