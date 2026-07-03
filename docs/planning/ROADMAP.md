@@ -88,6 +88,14 @@
 - [x] Implement Release 1.1 Life Lists with generic lists/items, Home insight, Quick Add, Search, and RLS-backed schema.
 - [x] Implement Release 1.2 Shopping & Pantry with shared shopping lists/items, simple pantry inventory, Home insight, Quick Add, Search, and RLS-backed schema.
 - [x] Implement Release 1.3 Meal Planning with recipes, meal plans, meal assignments, pantry-aware Shopping review, Home insight, Quick Add, Search, and RLS-backed schema.
+- [x] Implement Release 1.3.1 Planning Platform polish for Calendar routing, Home awareness, grouped Search, Product Owner cleanup decisions, and validation documentation.
+
+## Release 1.3.1 Scope
+- [x] Keep Home as awareness and preserve direct drill-down rows without a generic Priorities page.
+- [x] Keep Tasks compact with Search, My Tasks, Household, Today, Overdue, and More Filters while preserving discoverability for newly created household tasks.
+- [x] Route Calendar header/status/setup actions to Calendar, with direct Connect Google Calendar, Refresh Status, and Check Connection actions.
+- [x] Group Universal Search results by surface and keep Quick Add destinations limited to supported workflows.
+- [x] Keep Finance, Health, Pool expansion, Home platform, AI, barcode/OCR, external APIs, recommendation engines, and database redesign deferred.
 
 ## Release 1.3 Scope
 - [x] Add Meal Plans, Recipes, Recipe Categories, Recipe Ingredients, and Meal Assignments data model.

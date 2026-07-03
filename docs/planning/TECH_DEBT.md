@@ -9,6 +9,17 @@ Use this document to track durable technical debt. Do not use chat history as th
 
 ## Debt Items
 
+### Product Owner UX Opportunities
+- Status: Open
+- Impact: Release 1.3.1 completed the highest-priority Planning Platform polish, but several refinements remain useful before a broader household rollout.
+- Trigger: Next product-owner polish release or before broad family onboarding.
+- Notes:
+  1. Add item-level deep-linking from Search and Home rows into the exact selected list, shopping item, pantry item, recipe, meal assignment, or task.
+  2. Continue reducing duplicated create affordances inside modules while preserving action-oriented module workflows.
+  3. Split Settings into clearer Account, Household, Calendar, and App sections when the page grows past comfortable scanning.
+  4. Add automated responsive smoke coverage for 390px, tablet, and desktop horizontal-overflow checks.
+  5. Migrate remaining legacy deferred-module inline UI patterns only when those modules become active release scope.
+
 ### Full Household-Scoped Module RLS
 - Status: Open
 - Impact: Existing module tables still preserve staged user-owned compatibility policies.

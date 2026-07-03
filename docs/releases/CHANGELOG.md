@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Implemented Release 1.3.1 Planning Platform polish: Calendar setup/status actions now stay in Calendar, Home and Notifications drill Calendar attention directly into Calendar, and Universal Search results are grouped by Tasks, Calendar, Life Lists, Shopping, Pantry, Meal Planning, Household, and Navigation.
+- Completed Product Owner cleanup checks for Today's Priorities, bottom-nav Quick Add, supported capture destinations, consumer Calendar copy, and no generic Priorities page.
 - Implemented Release 1.3 Meal Planning: added meal plans, recipes, recipe categories, recipe ingredients, meal assignments, pantry-aware missing ingredient review, reviewed Shopping list generation with duplicate prevention, Quick Add targets, Home awareness, Universal Search, seed fallback, and household-aware Supabase RLS.
 - Completed Release 1.3 validation against local/disposable Supabase only: base schema bootstrap, ordered migration chain through Meal Planning, table/index/constraint/RLS catalog checks, owner/adult/viewer/cross-household RLS matrix, authenticated browser smoke, 390px mobile sanity, console checks, and product cleanup validation.
 - Implemented Release 1.2 Shopping & Pantry: added household/shared/personal shopping lists, shopping items, pantry inventory, category/status/filter/sort/favorite/archive workflows, Quick Add targets, Home awareness, Universal Search, seed fallback, and household-aware Supabase RLS.

@@ -20,7 +20,7 @@ async function getSessionToken() {
   const { data, error } = await supabase.auth.getSession();
   if (error) throw error;
   const token = data.session?.access_token;
-  if (!token) throw new Error("Missing Supabase session.");
+  if (!token) throw new Error("Missing sign-in session.");
   return token;
 }
 

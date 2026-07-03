@@ -48,7 +48,7 @@ Release 1.0 should keep Quick Add focused on existing supported actions and avoi
 Release 1.3 keeps Task, Pool Reading, Life List, Life List Item, Shopping List, Shopping Item, Recipe, Meal Plan, and Meal Assignment enabled. Event, Health Entry, Note, Maintenance, nutrition, AI, and external recipe captures are not shown until those workflows are fully supported.
 
 ## Header Status Actions
-Global header actions should stay compact and trustworthy. Search, Notifications, Calendar status, and Settings may use icon-only buttons when they have accessible labels and tooltips. Calendar status should route to Calendar when healthy and to Settings when connection action or setup guidance is needed.
+Global header actions should stay compact and trustworthy. Search, Notifications, Calendar status, and Settings may use icon-only buttons when they have accessible labels and tooltips. Calendar status should route to Calendar for healthy, disconnected, permission, or setup states so the next action stays in the Calendar workflow instead of generic Settings.
 
 ## Notification Bell
 The notification bell is a future global surface for reminders, warnings, and household updates.

@@ -1,10 +1,10 @@
 # Project Status
 
 ## Current Version
-1.3.0
+1.3.1
 
 ## Current State
-Release 1.0 core MVP through Release 1.2 Shopping & Pantry are complete. Release 1.3 Meal Planning implementation and validation are complete on branch `release/1.3-meal-planning`.
+Release 1.0 core MVP through Release 1.3 Meal Planning are complete. Release 1.3.1 Planning Platform and Product Owner polish is in progress on branch `release/1.3.1-planning-platform-polish`.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -70,12 +70,13 @@ Release 1.0 core MVP through Release 1.2 Shopping & Pantry are complete. Release
 - Release 1.2 disposable/local validation passed for schema bootstrap, ordered migration chain, Shopping table/index/constraint/RLS checks, owner/adult/viewer/cross-household behavior, authenticated browser smoke, 390px mobile sanity checks, no console warnings/errors, and adult/viewer UI permission behavior
 - Release 1.3 adds Meal Plans, Recipes, Recipe Categories, Recipe Ingredients, Meal Assignments, More navigation, Home awareness, Quick Add targets, Universal Search integration, pantry-aware Shopping review/generation, seed fallback, and a Supabase migration with household-aware RLS
 - Release 1.3 disposable/local validation passed for schema bootstrap, ordered migration chain, Meal Planning table/index/constraint/RLS checks, owner/adult/viewer/cross-household behavior, authenticated browser smoke, 390px mobile sanity checks, no console warnings/errors, and product cleanup behavior
+- Release 1.3.1 keeps the Planning Platform action surfaces consistent: Calendar status/setup actions route to Calendar, Home and Notifications drill Calendar attention into Calendar, Universal Search is grouped by surface, and Product Owner cleanup decisions remain enforced
 
 ## In Progress
-- Release 1.3 merge and tag decision.
+- Release 1.3.1 final validation, browser smoke, and release closeout.
 
 ## Next
-- Complete Release 1.3 merge and release tagging after owner review.
+- Complete Release 1.3.1 merge and release tagging after owner review.
 - Configure Release 0.8 server OAuth environment values in Vercel before removing the legacy calendar fallback.
 - Decide whether to remove the legacy browser calendar fallback after deployed validation.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
@@ -123,6 +124,7 @@ Release 1.0 core MVP through Release 1.2 Shopping & Pantry are complete. Release
 - Release 1.2 validation used disposable/local Supabase only. Production was not touched.
 - Release 1.3 keeps nutrition tracking, Health platform integration, AI recommendations, recipe APIs, barcode/OCR, external recipe databases, cost optimization, restaurant integrations, comments, ratings, and social features deferred.
 - Release 1.3 validation used disposable/local Supabase only. Production was not touched.
+- Release 1.3.1 adds no database migration. Validation remains local/staging only; production should not be touched during polish validation.
 
 ## Last Updated
 July 2, 2026
