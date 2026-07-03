@@ -228,8 +228,8 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
     if (result?.authorizationUrl) window.location.assign(result.authorizationUrl);
   }
 
-  const hasServerConnection = Boolean(secureCalendar.connection);
-  const calendar = hasServerConnection
+  const hasServerCalendar = Boolean(secureCalendar);
+  const calendar = hasServerCalendar
     ? {
       mode: "secure",
       connected: secureCalendar.connected,
@@ -239,7 +239,7 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
       events: secureCalendar.events,
       lastSyncedAt: secureCalendar.connection?.last_sync_at || secureCalendar.lastFetchedAt,
       sourceLabel: "Google Calendar",
-      detail: secureCalendar.error || "Connect Google Calendar to show your family schedule.",
+      detail: "Connect Google Calendar to show your family schedule.",
       refresh: secureCalendar.fetchEvents,
       checkConnection: secureCalendar.refresh,
       connect: connectSecureCalendar,

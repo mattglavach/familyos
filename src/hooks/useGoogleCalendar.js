@@ -5,13 +5,9 @@ const GOOGLE_CLIENT_ID  = APP_CONFIG.googleClientId;
 const GOOGLE_SCOPES     = "https://www.googleapis.com/auth/calendar.readonly";
 const CALENDAR_ID       = APP_CONFIG.googleCalendarId;
 const LAST_SYNC_KEY     = "gc_last_synced_at";
-function getGoogleOAuthOrigin() {
-  return window.location.origin;
-}
-
 function formatGoogleOAuthError(error) {
   if (error === "origin_mismatch") {
-    return `Google Calendar is not available for ${getGoogleOAuthOrigin()} yet. Ask the household owner to finish calendar setup, then try again.`;
+    return "Google Calendar is not available in this environment. Family OS still works without it.";
   }
   if (error === "popup_closed_by_user" || error === "cancelled" || error === "user_cancelled") {
     return "Calendar connection was cancelled. Nothing changed.";
@@ -20,16 +16,16 @@ function formatGoogleOAuthError(error) {
     return "Calendar access was not approved. Connect again when you are ready to share calendar events.";
   }
   if (String(error || "").toLowerCase().includes("verified") || String(error || "").toLowerCase().includes("unverified")) {
-    return "Google Calendar is waiting for app approval. Ask the household owner to add test users or finish Google verification.";
+    return "Google Calendar is not available in this environment. Family OS still works without it.";
   }
-  return "Google Calendar could not connect. Try again when you are ready.";
+  return "Google Calendar could not connect. Connect again when you are ready.";
 }
 
 function formatGoogleApiError(status, message) {
   if (status === 401) return "Google Calendar session expired. Connect again to refresh access.";
   if (status === 403) return "Google Calendar permission is missing or was revoked. Connect again and approve calendar read access.";
   if (status === 404) return "Google Calendar could not find this household calendar. Ask the household owner to check the calendar connection.";
-  return message || `Google Calendar sync failed with status ${status}.`;
+  return message || "Google Calendar could not refresh right now.";
 }
 
 function formatEventTime(start) {
@@ -104,12 +100,12 @@ export function useGoogleCalendar() {
     setError(null);
     if(!GOOGLE_CLIENT_ID){
       setStatus("error");
-      setError("Google Calendar is not ready to connect yet. Ask the household owner to finish calendar setup, then try again.");
+      setError("Google Calendar is not available in this environment. Family OS still works without it.");
       return;
     }
     if(!scriptReady||!window.google?.accounts?.oauth2){
       setStatus("script-loading");
-      setError("Google Calendar sign-in is still loading. Try again in a moment.");
+      setError("Google Calendar is still loading. Refresh Calendar in a moment.");
       return;
     }
     setStatus("connecting");

@@ -50,8 +50,8 @@ export function normalizeCalendarStatus(calendar = {}) {
     return {
       key: CALENDAR_STATUS.CHECKING,
       tone: "warning",
-      label: "Checking",
-      detail: "Refreshing calendar status.",
+      label: "Refreshing",
+      detail: "Refreshing Google Calendar.",
       actionLabel: "Open Calendar",
       actionTarget: "calendar",
       needsAttention: false,
@@ -64,10 +64,10 @@ export function normalizeCalendarStatus(calendar = {}) {
       key: CALENDAR_STATUS.DISCONNECTED,
       tone: "neutral",
       label: "Not connected",
-      detail: "Calendar connection was not completed. Nothing changed.",
+      detail: "Google Calendar was not connected. Nothing changed.",
       actionLabel: "Connect Google Calendar",
       actionTarget: "calendar",
-      needsAttention: true,
+      needsAttention: false,
       canRefresh: false,
     };
   }
@@ -76,9 +76,9 @@ export function normalizeCalendarStatus(calendar = {}) {
     return {
       key: CALENDAR_STATUS.PERMISSION_RESTRICTED,
       tone: "warning",
-      label: "Permission needed",
-      detail: error || "Reconnect Google Calendar and approve calendar access.",
-      actionLabel: "Connect Google Calendar",
+      label: "Reconnect calendar",
+      detail: "Google Calendar access expired or was removed. Reconnect Google Calendar to show events.",
+      actionLabel: "Reconnect Calendar",
       actionTarget: "calendar",
       needsAttention: true,
       canRefresh: false,
@@ -90,11 +90,11 @@ export function normalizeCalendarStatus(calendar = {}) {
     return {
       key: setupRequired ? CALENDAR_STATUS.SETUP_REQUIRED : CALENDAR_STATUS.ERROR,
       tone: "warning",
-      label: setupRequired ? "Setup needed" : "Needs attention",
+      label: setupRequired ? "Connect unavailable" : "Calendar paused",
       detail: setupRequired
-        ? "Calendar connection is not available here yet."
-        : "Calendar needs attention. Refresh status or reconnect Google Calendar.",
-      actionLabel: "Connect Google Calendar",
+        ? "Google Calendar is not available in this environment. Family OS still works without it."
+        : "Refresh Calendar or reconnect Google Calendar to show events.",
+      actionLabel: setupRequired ? "Refresh Calendar" : "Reconnect Calendar",
       actionTarget: "calendar",
       needsAttention: true,
       canRefresh: false,
@@ -120,11 +120,11 @@ export function normalizeCalendarStatus(calendar = {}) {
     return {
       key: CALENDAR_STATUS.SETUP_REQUIRED,
       tone: "warning",
-      label: "Setup needed",
-      detail: "Calendar connection is not available here yet.",
-      actionLabel: "Connect Google Calendar",
+      label: "Connect unavailable",
+      detail: "Google Calendar is not available in this environment. Family OS still works without it.",
+      actionLabel: "Refresh Calendar",
       actionTarget: "calendar",
-      needsAttention: true,
+      needsAttention: false,
       canRefresh: false,
     };
   }
@@ -133,10 +133,10 @@ export function normalizeCalendarStatus(calendar = {}) {
     key: CALENDAR_STATUS.DISCONNECTED,
     tone: "neutral",
     label: "Not connected",
-    detail: calendar.detail || "Google Calendar is not connected yet.",
+    detail: calendar.detail || "Connect Google Calendar when your household wants schedule events on Home and Calendar.",
     actionLabel: "Connect Google Calendar",
     actionTarget: "calendar",
-    needsAttention: true,
+    needsAttention: false,
     canRefresh: false,
   };
 }

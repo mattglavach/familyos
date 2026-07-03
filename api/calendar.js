@@ -208,6 +208,14 @@ function normalizeGoogleEvent(event, index, source) {
   };
 }
 
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 async function verifyUser(req) {
   const token = getBearerToken(req);
   const supabaseUrl = getSupabaseUrl();
@@ -456,13 +464,17 @@ async function revokeGoogleToken(connection) {
 
 function sendCallbackPage(res, { ok, message, returnTo }) {
   const title = ok ? "Google Calendar connected" : "Calendar connection not completed";
+  const destination = returnTo || "/";
+  const safeTitle = escapeHtml(title);
+  const safeMessage = escapeHtml(message);
+  const safeDestination = escapeHtml(destination);
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.status(ok ? 200 : 400).send(`<!doctype html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title></head>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="2;url=${safeDestination}"><title>${safeTitle}</title></head>
 <body style="font-family:system-ui,sans-serif;background:#0f172a;color:#f8fafc;padding:24px">
-<h1>${title}</h1>
-<p>${message}</p>
-<p><a style="color:#93c5fd" href="${returnTo || "/"}">Return to Family OS</a></p>
+<h1>${safeTitle}</h1>
+<p>${safeMessage}</p>
+<p><a style="color:#93c5fd" href="${safeDestination}">Return to Family OS</a></p>
 </body></html>`);
 }
 
@@ -506,13 +518,13 @@ async function handleCallback(req, res) {
 
     sendCallbackPage(res, {
       ok: true,
-      message: "Your Google Calendar connection is now stored server-side.",
+      message: "Your Google Calendar is connected. Returning to Family OS.",
       returnTo: payload.return_to,
     });
   } catch (error) {
     sendCallbackPage(res, {
       ok: false,
-      message: "Google Calendar could not be connected right now. Return to Family OS and try again when you are ready.",
+      message: "Google Calendar could not be connected right now. Return to Family OS and connect again when you are ready.",
       returnTo: "/",
     });
   }

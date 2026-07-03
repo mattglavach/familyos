@@ -57,7 +57,7 @@ function calendarTone(gc) {
 
 function calendarLabel(gc) {
   if (gc.loading || gc.status === "syncing") return "Syncing";
-  if (gc.error) return "Needs attention";
+  if (gc.error) return "Reconnect calendar";
   if (!gc.token) return "Disconnected";
   if (gc.status === "empty") return "Connected, no events";
   return "Connected";
@@ -262,7 +262,7 @@ export function Settings({ auth, gc, secureCalendar }) {
       return;
     }
     if (!canStartCalendarConnection(secureCalendar)) {
-      notify(status.detail || "Calendar is not ready to connect yet.");
+      notify(status.detail || "Refresh Calendar before connecting again.");
       return;
     }
     const result = await secureCalendar.connect();
@@ -270,7 +270,7 @@ export function Settings({ auth, gc, secureCalendar }) {
       window.location.assign(result.authorizationUrl);
       return;
     }
-    notify("Calendar is not ready to connect yet.");
+    notify("Refresh Calendar before connecting again.");
   }
 
   async function disconnectSecureCalendar() {
@@ -570,12 +570,12 @@ export function Settings({ auth, gc, secureCalendar }) {
                 </Button>
               ) : (
                 <Button type="button" variant="secondary" disabled>
-                  {canManageCalendar ? "Calendar setup needed" : "Owner managed"}
+                  {canManageCalendar ? secureCalendarStatus.label : "Owner managed"}
                 </Button>
               )}
               <Button type="button" variant="secondary" onClick={secureCalendar.refresh} loading={secureCalendar.loading}>
                 <RefreshCw className="h-4 w-4" aria-hidden="true" />
-                Refresh Status
+                Refresh Calendar
               </Button>
               <Button type="button" variant="destructive-outline" onClick={() => requestConfirmation({ type: "disconnectCalendar", title: "Disconnect Google Calendar?", description: "Household events from Google Calendar will stop appearing until someone reconnects it.", confirmLabel: "Disconnect calendar" })} disabled={!secureCalendar.connection || !canManageCalendar}>
                 Disconnect
@@ -600,7 +600,7 @@ export function Settings({ auth, gc, secureCalendar }) {
               Refresh
             </Button>
             <Button type="button" onClick={reconnectCalendar} loading={gc.status === "connecting" || gc.status === "script-loading"} disabled={!gc.canConnect}>
-              {gc.canConnect ? "Reconnect" : "Device setup needed"}
+              {gc.canConnect ? "Reconnect" : "Device connection unavailable"}
             </Button>
             <Button type="button" variant="destructive-outline" onClick={() => requestConfirmation({ type: "forgetDeviceCalendar", title: "Forget this device connection?", description: "This device will stop using its saved Google Calendar connection. You can reconnect later.", confirmLabel: "Forget connection" })} disabled={!gc.token}>
               Forget Connection
@@ -646,7 +646,7 @@ export function Settings({ auth, gc, secureCalendar }) {
         <CardContent className="px-4 pb-4 pt-0">
           <SettingRow label="Account access" value={APP_CONFIG.supabaseUrl ? "Ready" : "Needs setup"} />
           <SettingRow label="Calendar sign-in" value={APP_CONFIG.googleClientId ? "Ready" : "Needs setup"} />
-          <SettingRow label="Needs attention" value={missingConfig.length ? `${missingConfig.length} setup item${missingConfig.length === 1 ? "" : "s"}` : "None"} />
+          <SettingRow label="App checks" value={missingConfig.length ? `${missingConfig.length} item${missingConfig.length === 1 ? "" : "s"} to finish` : "Ready"} />
         </CardContent>
       </Card>
 

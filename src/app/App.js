@@ -313,10 +313,10 @@ class CalendarErrorBoundary extends Component {
       <div style={S.screen}>
         <Card>
           <CardContent className="space-y-3 p-4">
-            <CardTitle>Calendar needs attention</CardTitle>
-            <CardDescription>Calendar is still available. Try again, or check the connection on the Calendar screen.</CardDescription>
+            <CardTitle>Calendar is paused</CardTitle>
+            <CardDescription>Open Calendar to refresh the schedule or reconnect Google Calendar.</CardDescription>
             <div className="flex flex-wrap gap-2">
-              <Button type="button" onClick={this.retry}>Try again</Button>
+              <Button type="button" onClick={this.retry}>Refresh Calendar</Button>
               <Button type="button" variant="secondary" onClick={this.props.onSettings}>Open Calendar</Button>
             </div>
           </CardContent>
@@ -369,7 +369,8 @@ function AuthenticatedApp({ auth }) {
   const inviteToken = typeof window === "undefined" ? "" : new URLSearchParams(window.location.search).get("invite");
   if (inviteToken) return <InvitationAcceptance inviteToken={inviteToken} onDone={() => switchTab("settings")} />;
 
-  const headerCalendar = secureCalendar.connection
+  const canUseSecureCalendar = Boolean(household.householdId);
+  const headerCalendar = canUseSecureCalendar
     ? {
       mode: "secure",
       connected: secureCalendar.connected,
@@ -377,9 +378,9 @@ function AuthenticatedApp({ auth }) {
       error: secureCalendar.error,
       status: secureCalendar.status,
       events: secureCalendar.events,
-      lastSyncedAt: secureCalendar.lastFetchedAt,
+      lastSyncedAt: secureCalendar.connection?.last_sync_at || secureCalendar.lastFetchedAt,
       sourceLabel: "Google Calendar",
-      detail: secureCalendar.error || "Connect Google Calendar to show your family schedule.",
+      detail: "Connect Google Calendar to show your family schedule.",
       refresh: secureCalendar.fetchEvents,
       checkConnection: secureCalendar.refresh,
       connect: connectSecureCalendar,

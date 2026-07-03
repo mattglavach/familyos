@@ -56,7 +56,7 @@ export function formatCalendarError(error, fallback = "Calendar could not be loa
     "does not exist",
     "relation",
   ])) {
-    return "Google Calendar is not ready to connect yet. Ask the household owner to finish calendar setup, then try again.";
+    return "Google Calendar is not available in this environment. Family OS still works without it.";
   }
 
   return formatUserFacingError(error, fallback);

@@ -117,7 +117,7 @@ export function Calendar({ calendar = {}, onNavigate = () => {}, deps = {} }) {
         </div>
         <Button type="button" variant="secondary" size="sm" onClick={safeCalendar.refresh} loading={safeCalendar.loading} disabled={safeCalendar.loading}>
           <RefreshCw className="h-4 w-4" aria-hidden="true" />
-          Refresh Status
+          Refresh Calendar
         </Button>
       </div>
 
@@ -125,7 +125,7 @@ export function Calendar({ calendar = {}, onNavigate = () => {}, deps = {} }) {
         <CardHeader className="p-4 pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             {safeCalendar.connected ? <CalendarCheck className="h-4 w-4 text-primary" aria-hidden="true" /> : <CalendarX className="h-4 w-4 text-muted-foreground" aria-hidden="true" />}
-            Calendar Connection
+            Google Calendar
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 px-4 pb-4 pt-0">
@@ -136,7 +136,7 @@ export function Calendar({ calendar = {}, onNavigate = () => {}, deps = {} }) {
           {safeCalendar.connected ? (
             <Button type="button" className="w-full" variant="secondary" onClick={safeCalendar.refresh} loading={safeCalendar.loading}>
               <RefreshCw className="h-4 w-4" aria-hidden="true" />
-              Refresh Status
+              Refresh Calendar
             </Button>
           ) : (
             <div className="grid gap-2 sm:grid-cols-2">
@@ -144,7 +144,7 @@ export function Calendar({ calendar = {}, onNavigate = () => {}, deps = {} }) {
                 {status.actionLabel}
               </Button>
               <Button type="button" variant="secondary" onClick={safeCalendar.checkConnection} loading={safeCalendar.loading}>
-                Check Connection
+                Refresh Calendar
               </Button>
             </div>
           )}
@@ -165,7 +165,7 @@ export function Calendar({ calendar = {}, onNavigate = () => {}, deps = {} }) {
             title="Today"
             events={grouped.today}
             emptyTitle="Nothing scheduled today"
-            emptyDetail="Connected calendar events for today will appear here."
+            emptyDetail="No events found for today."
             todayString={TODAY_STR}
             formatDateFull={formatDateFull}
           />
@@ -173,7 +173,7 @@ export function Calendar({ calendar = {}, onNavigate = () => {}, deps = {} }) {
             title="Upcoming"
             events={grouped.upcoming}
             emptyTitle="No upcoming events"
-            emptyDetail="Events in the next calendar window will appear here after sync."
+            emptyDetail="No upcoming events found."
             todayString={TODAY_STR}
             formatDateFull={formatDateFull}
           />
