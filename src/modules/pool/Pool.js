@@ -95,9 +95,11 @@ function recommendationCard(rec, onConfirm, editable) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 16, fontWeight: 800, color: COLORS.white, lineHeight: 1.35 }}>{rec.action}</div>
           <div style={{ fontSize: 13, color: COLORS.slateLight, lineHeight: 1.5, marginTop: 6 }}>{rec.explanation}</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 8, marginTop: 10 }}>
+            {rec.amount && <div style={{ fontSize: 12, color: COLORS.slate }}><b style={{ color: COLORS.white }}>Amount:</b> {rec.amount}</div>}
             <div style={{ fontSize: 12, color: COLORS.slate }}><b style={{ color: COLORS.white }}>When:</b> {rec.timing}</div>
             <div style={{ fontSize: 12, color: COLORS.slate }}><b style={{ color: COLORS.white }}>Retest:</b> {rec.retest}</div>
+            <div style={{ fontSize: 12, color: COLORS.slate }}><b style={{ color: COLORS.white }}>Confidence:</b> {rec.confidence}</div>
           </div>
           <div style={{ fontSize: 12, color: COLORS.slate, lineHeight: 1.45, marginTop: 8 }}>{rec.safetyNote}</div>
         </div>
@@ -285,10 +287,33 @@ export function Pool() {
 
   return (
     <div style={S.screen}>
+      <div style={{ ...S.statusCard(nextAction?.color || COLORS.blue), marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: COLORS.slate, fontWeight: 800, textTransform: "uppercase" }}>What should I do today?</div>
+        <div style={{ fontSize: 18, color: COLORS.white, fontWeight: 900, lineHeight: 1.35, marginTop: 6 }}>{nextAction?.action}</div>
+        <div style={{ fontSize: 14, color: COLORS.slateLight, lineHeight: 1.5, marginTop: 6 }}>{nextAction?.explanation}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 8, marginTop: 12 }}>
+          {[
+            ["How much", nextAction?.amount || "Use the action guidance"],
+            ["When", nextAction?.timing || "--"],
+            ["Retest", nextAction?.retest || "--"],
+          ].map(([label, value]) => (
+            <div key={label} style={{ ...S.statCell(nextAction?.color || COLORS.blue), textAlign: "left" }}>
+              <div style={{ fontSize: 11, color: COLORS.slate, fontWeight: 800, textTransform: "uppercase" }}>{label}</div>
+              <div style={{ fontSize: 12, color: COLORS.white, fontWeight: 800, lineHeight: 1.35, marginTop: 4 }}>{value}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+          <Button type="button" className="flex-1" onClick={() => openTest()} disabled={!editable}>Log Test</Button>
+          <Button type="button" variant="secondary" className="flex-1" onClick={() => nextAction && confirmAction(nextAction)} disabled={!editable || !nextAction || nextAction.priority === "low"}>Confirm</Button>
+        </div>
+        {!editable && <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 10 }}>Viewer access is read-only for Pool actions.</div>}
+      </div>
+
       <div style={{ ...S.statusCard(health.color), marginBottom: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
           <div>
-            <div style={{ fontSize: 12, color: COLORS.slate, fontWeight: 800, textTransform: "uppercase" }}>Overall Pool Health</div>
+            <div style={{ fontSize: 12, color: COLORS.slate, fontWeight: 800, textTransform: "uppercase" }}>Pool status</div>
             <div style={{ fontSize: 26, fontWeight: 900, color: health.color, marginTop: 2 }}>{health.status}</div>
             <div style={{ fontSize: 14, color: COLORS.slateLight, lineHeight: 1.5, marginTop: 6 }}>{health.summary}</div>
           </div>
@@ -304,17 +329,6 @@ export function Pool() {
           {metric("pH", latest?.ph, statusColor(poolStatus("ph", latest?.ph)))}
           {metric("Next", nextAction?.timing || "--", nextAction?.color || COLORS.slate)}
         </div>
-      </div>
-
-      <div style={{ ...S.statusCard(nextAction?.color || COLORS.blue), marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: COLORS.slate, fontWeight: 800, textTransform: "uppercase" }}>What should I do today?</div>
-        <div style={{ fontSize: 18, color: COLORS.white, fontWeight: 900, lineHeight: 1.35, marginTop: 6 }}>{nextAction?.action}</div>
-        <div style={{ fontSize: 14, color: COLORS.slateLight, lineHeight: 1.5, marginTop: 6 }}>{nextAction?.explanation}</div>
-        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-          <Button type="button" className="flex-1" onClick={() => openTest()} disabled={!editable}>Log Test</Button>
-          <Button type="button" variant="secondary" className="flex-1" onClick={() => nextAction && confirmAction(nextAction)} disabled={!editable || !nextAction || nextAction.priority === "low"}>Confirm</Button>
-        </div>
-        {!editable && <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 10 }}>Viewer access is read-only for Pool actions.</div>}
       </div>
 
       <div style={S.tabs}>
