@@ -1,7 +1,7 @@
 // - SEED DATA -
 export const SEED={
   pool_readings:[
-    {id:"7",date:"2026-06-17",logged_at:"2026-06-17T18:30:00Z",ph:8.0,free_chlorine:5.5,cc:0,salt:3350,cya:60,alkalinity:90,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"K-2006: 11 drops FC. Acid added 2 days prior. TA 90 ppm."},
+    {id:"7",date:"2026-06-17",logged_at:"2026-06-17T18:30:00Z",test_source:"Taylor Kit",ph:8.0,free_chlorine:5.5,cc:0,salt:3350,cya:60,alkalinity:90,calcium_hardness:null,water_temp:86,swg_setting:54,filter_pressure:null,pump_hours:8,recent_weather_notes:"Hot sunny week",recent_heavy_usage:false,notes:"K-2006: 11 drops FC. Acid added 2 days prior. TA 90 ppm."},
     {id:"6",date:"2026-06-15",logged_at:"2026-06-15T17:00:00Z",ph:7.8,free_chlorine:3.0,cc:0,salt:3450,cya:60,alkalinity:null,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:""},
     {id:"5",date:"2026-06-12",logged_at:"2026-06-12T16:00:00Z",ph:8.0,free_chlorine:4.0,cc:0,salt:3450,cya:60,alkalinity:null,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"CYA increased"},
     {id:"4",date:"2026-06-10",logged_at:"2026-06-10T15:00:00Z",ph:7.8,free_chlorine:2.0,cc:0,salt:3300,cya:60,alkalinity:null,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"Hot weather"},
@@ -9,22 +9,28 @@ export const SEED={
     {id:"2",date:"2026-05-31",logged_at:"2026-05-31T16:00:00Z",ph:8.0,free_chlorine:5.5,cc:0,salt:3300,cya:null,alkalinity:null,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:"K-2006: 11 drops FC."},
   ],
   pool_maintenance:[
-    {id:"1",date:"2026-06-13",type:"Brushed walls & floor",notes:""},
-    {id:"2",date:"2026-06-10",type:"Cleaned skimmer basket",notes:""},
+    {id:"1",date:"2026-06-13",type:"Brushed walls & floor",equipment_id:null,water_clarity:"Clear",notes:""},
+    {id:"2",date:"2026-06-10",type:"Cleaned skimmer basket",equipment_id:null,water_clarity:"Clear",notes:""},
   ],
   pool_treatments:[
     {id:"1",date:"2026-06-17",logged_at:"2026-06-17T19:00:00Z",muriatic_acid_oz:11,soda_ash_oz:null,sodium_bicarb_oz:null,salt_lbs:null,cya_oz:null,liquid_chlorine_oz:null,shock_lbs:null,algaecide_oz:null,swg_pct_before:54,swg_pct_after:65,brushed:false,vacuumed:false,cleaned_skimmer:false,cleaned_filter:false,cleaned_cell:false,checked_flow:false,notes:"pH was 8.0"},
   ],
   pool_settings:[{id:"1",filter_clean_baseline_psi:null}],
+  pool_equipment:[
+    {id:"pool-eq-1",type:"Pump",name:"Main Pump",brand:"Pentair",model:"",install_date:null,last_maintenance:"2026-05-15",next_maintenance:"2026-07-15",warranty_notes:"",manual_link:"",notes:"Primary circulation pump.",active:true},
+    {id:"pool-eq-2",type:"Salt Cell (SWG)",name:"Salt Cell",brand:"Pentair",model:"IntelliChlor IC40",install_date:null,last_maintenance:"2026-03-01",next_maintenance:"2026-09-01",warranty_notes:"",manual_link:"",notes:"Inspect for scale before peak season.",active:true},
+    {id:"pool-eq-3",type:"Filter",name:"Cartridge Filter",brand:"",model:"",install_date:null,last_maintenance:"2026-04-15",next_maintenance:"2026-07-15",warranty_notes:"",manual_link:"",notes:"Clean when pressure rises or schedule is due.",active:true},
+  ],
+  pool_action_audits:[],
   pool_schedule:[
-    {id:"1",title:"Check water level",last_completed:"2026-06-10",interval_days:7,notes:"SC evaporation heavy May Sept"},
-    {id:"2",title:"Clean skimmer basket",last_completed:"2026-06-10",interval_days:7,notes:"Check same day after storms"},
-    {id:"3",title:"Brush walls & floor",last_completed:"2026-06-13",interval_days:7,notes:"Vinyl   prevents algae buildup"},
-    {id:"4",title:"Check cell flow switch",last_completed:"2026-05-15",interval_days:30,notes:"Pentair flow switch fails silently"},
-    {id:"5",title:"Inspect O-rings & lid",last_completed:"2026-05-15",interval_days:30,notes:"Salt accelerates O-ring wear"},
-    {id:"6",title:"Clean cartridge filter",last_completed:"2026-04-15",interval_days:60,notes:"Remove, hose off, reinstall"},
-    {id:"7",title:"Clean salt cell (IntelliChlor)",last_completed:"2026-03-01",interval_days:90,notes:"Inspect plates, soak in acid if scale"},
-    {id:"8",title:"Test calcium hardness",last_completed:"2026-01-01",interval_days:90,notes:"Vinyl target 150 250 ppm"},
+    {id:"1",title:"Check water level",maintenance_type:"Water Level",equipment_id:null,last_completed:"2026-06-10",interval_days:7,notes:"SC evaporation heavy May Sept"},
+    {id:"2",title:"Clean skimmer basket",maintenance_type:"Betta Cleaning",equipment_id:null,last_completed:"2026-06-10",interval_days:7,notes:"Check same day after storms"},
+    {id:"3",title:"Brush walls & floor",maintenance_type:"Pool Surface",equipment_id:null,last_completed:"2026-06-13",interval_days:7,notes:"Vinyl prevents algae buildup"},
+    {id:"4",title:"Pump Inspection",maintenance_type:"Pump Inspection",equipment_id:"pool-eq-1",last_completed:"2026-05-15",interval_days:30,notes:"Pentair flow switch fails silently"},
+    {id:"5",title:"Inspect O-rings & lid",maintenance_type:"Pump Inspection",equipment_id:"pool-eq-1",last_completed:"2026-05-15",interval_days:30,notes:"Salt accelerates O-ring wear"},
+    {id:"6",title:"Filter Cleaning",maintenance_type:"Filter Cleaning",equipment_id:"pool-eq-3",last_completed:"2026-04-15",interval_days:60,notes:"Remove, hose off, reinstall"},
+    {id:"7",title:"SWG Cleaning",maintenance_type:"SWG Cleaning",equipment_id:"pool-eq-2",last_completed:"2026-03-01",interval_days:90,notes:"Inspect plates, soak in acid if scale"},
+    {id:"8",title:"Reagent Replacement",maintenance_type:"Reagent Replacement",equipment_id:null,last_completed:"2026-01-01",interval_days:180,notes:"Replace old test reagents"},
   ],
   home_maintenance:[
     {id:"1",title:"HVAC Filter",last_completed:"2026-03-01",interval_days:90,notes:"16x25x1 filter"},
