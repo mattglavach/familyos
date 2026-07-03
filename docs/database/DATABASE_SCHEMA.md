@@ -184,7 +184,7 @@ Release 1.4.0 adds `supabase/migrations/20260703_release_1_4_pool_care_assistant
 
 `pool_action_audits` stores recommendation audit history. Rows include `household_id`, `user_id`, optional `reading_id`, recommendation id, action, explanation, confidence, safety note, status, confirmed/completed timestamps, notes, and timestamps. This table supports future AI Coach traceability without adding AI runtime behavior in Release 1.4.0.
 
-Release 1.4.0 validation requirement: apply the migration against disposable/local Supabase and validate owner, adult, viewer, and cross-household access before production use.
+Release 1.4.0 validation passed against disposable/local Supabase only. The migration applies from an empty schema, the ordered migration chain applies cleanly through Release 1.4, re-running the 1.4 migration is acceptable, and Pool table, index, trigger, grant, RLS, and policy catalog checks passed. RLS validation also confirmed owner/adult writes, viewer read-only access, cross-household denial, and same-household checks for linked equipment/readings in maintenance, schedule, and action audit rows.
 
 ### garden_plants
 Stores plants and garden layout.

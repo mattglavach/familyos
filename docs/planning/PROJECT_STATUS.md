@@ -4,7 +4,7 @@
 1.4.0
 
 ## Current State
-Release 1.0 core MVP through Release 1.3.2 Calendar/Product Cleanup are complete. Release 1.4.0 Pool Care Assistant Foundation is in progress on branch `release/1.4.0-pool-care-assistant`.
+Release 1.0 core MVP through Release 1.3.2 Calendar/Product Cleanup are complete. Release 1.4.0 Pool Care Assistant Foundation is validation-complete on branch `release/1.4.0-pool-care-assistant`, with one remaining desktop row-edit risk before merge readiness.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -73,12 +73,13 @@ Release 1.0 core MVP through Release 1.3.2 Calendar/Product Cleanup are complete
 - Release 1.3.1 keeps the Planning Platform action surfaces consistent: Calendar status/setup actions route to Calendar, Home and Notifications drill Calendar attention into Calendar, Universal Search is grouped by surface, and Product Owner cleanup decisions remain enforced
 - Release 1.3.2 improves Calendar recoverability, Home order, Tasks default visibility/sorting, task form grouping, and documents Pool Care Assistant as a future Home Platform submodule without adding Pool implementation
 - Release 1.4.0 adds the Pool Care Assistant Foundation with a Pool action dashboard, water test logging, rule-based recommendations, treatment history, equipment inventory, maintenance reminders, Quick Add support, Universal Search support, and a Supabase migration for Pool equipment/action audit architecture
+- Release 1.4.0 validation passed against disposable/local Supabase only for migration/RLS, action engine scenarios, authenticated Pool browser smoke, Quick Add/Search persistence, adult/viewer UI permissions, responsive desktop/tablet/390px checks, and console checks
 
 ## In Progress
-- Release 1.4.0 migration/RLS validation, browser smoke, documentation closeout, and commit grouping.
+- Release 1.4.0 final checks, documentation closeout, commit grouping, and desktop row-edit risk disposition.
 
 ## Next
-- Complete Release 1.4.0 browser smoke and disposable/local Supabase migration validation before merge review.
+- Resolve or explicitly accept the Release 1.4.0 desktop swipe-card row edit risk before merge review.
 - Configure Release 0.8 server OAuth environment values in Vercel before removing the legacy calendar fallback.
 - Decide whether to remove the legacy browser calendar fallback after deployed validation.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
@@ -94,6 +95,8 @@ Release 1.0 core MVP through Release 1.3.2 Calendar/Product Cleanup are complete
 - Shopping & Pantry requires the Release 1.2 migration and refreshed Supabase/PostgREST schema cache in each environment before durable persistence is available.
 - Meal Planning requires the Release 1.3 migration and refreshed Supabase/PostgREST schema cache in each environment before durable persistence is available.
 - Pool Care Assistant requires the Release 1.4 migration and refreshed Supabase/PostgREST schema cache before equipment, action audit, and expanded Pool fields persist durably.
+- Release 1.4.0 Pool Quick Add persistence requires the household-aware helper path added during validation.
+- Desktop row edit actions in shared swipe cards require a mouse-accessible open gesture or alternate action presentation before Release 1.4.0 should be treated as merge-ready.
 - Google Calendar token storage remains browser-local only for older legacy fallback sessions. Release 0.8C no longer writes new `gc_token` values, and the server route does not expose tokens to the frontend. Deployed validation still requires server env configuration and Google Cloud redirect URI setup.
 - Legacy browser metadata keys for Release 0.6B settings, family members, and task metadata may remain on devices until local browser data is reset, but they are no longer the normal persistence path.
 - Six-item bottom navigation should be checked on physical mobile devices before broad family use.

@@ -21,10 +21,16 @@ Use this document to track durable technical debt. Do not use chat history as th
   5. Migrate remaining legacy deferred-module inline UI patterns only when those modules become active release scope.
 
 ### Pool Care Assistant Implementation
+- Status: Resolved in Release 1.4.0 for the scoped foundation.
+- Impact: Release 1.4.0 implements the action engine, treatment history, equipment maintenance, Quick Add targets, Search support, schema foundation, and validation for the scoped Pool Care Assistant foundation.
+- Trigger: Future Pool integration or AI Coach release.
+- Notes: Pentair, Home Assistant, AI Coach runtime, automatic dosing, automatic equipment control, imports, OCR, and exact product-label dosing remain separate future work.
+
+### Swipe Card Desktop Row Actions
 - Status: Open
-- Impact: Release 1.3.2 documents Pool Care Assistant as a future Home Platform flagship submodule, but does not implement its action engine, treatment history, equipment maintenance, Quick Add targets, integrations, or AI coach.
-- Trigger: Future Pool implementation release.
-- Notes: Start from `docs/product/POOL_CARE_ASSISTANT.md`; require product spec, security review, schema/RLS design, chemical safety rules, browser smoke, and human-confirmation requirements before implementation.
+- Impact: Pool equipment edit is supported through the shared swipe-card row action pattern, but desktop mouse activation of covered swipe actions needs a clearer accessible open gesture or alternate visible action presentation.
+- Trigger: Before Release 1.4.0 merge readiness or the next shared row-action UI hardening pass.
+- Notes: Validation confirmed Pool equipment add and mobile/responsive rendering. The attempted shared mouse-swipe patch was blocked by tooling approval, so this remains explicit debt.
 
 ### Full Household-Scoped Module RLS
 - Status: Open

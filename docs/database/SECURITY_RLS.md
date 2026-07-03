@@ -67,8 +67,10 @@ Users can access records where their profile belongs to the same household.
 - Owners and adults can create, update, and delete Pool tests, treatments, maintenance, reminders, equipment, and action audit rows.
 - Viewers are read-only in the Pool UI and are denied Pool writes by RLS unless a future release explicitly adds configurable viewer write access.
 - Cross-household Pool access is denied.
+- Pool maintenance and reminder rows that reference equipment must reference equipment in the same household.
+- Pool action audit rows that reference readings must reference readings in the same household, preventing cross-household spoofing by linked id.
 - Recommendation audit rows exist to track human-confirmed recommendations and completed actions. They do not authorize automatic dosing, equipment control, or AI-initiated changes.
-- Release 1.4 validation must confirm owner, adult, viewer, and non-member behavior against disposable/local Supabase before production use.
+- Release 1.4 validation passed against disposable/local Supabase only for owner, adult, viewer, non-member, cross-household, linked-record spoofing, and confirmed-action audit behavior.
 
 ## Future
 - Adult-only permissions

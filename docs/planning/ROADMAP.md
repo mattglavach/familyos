@@ -101,9 +101,10 @@
 - [x] Add recurring maintenance reminders for filter, SWG, pump, robot, Betta, reagents, season opening, and season closing.
 - [x] Add Pool Quick Add targets and Universal Search results.
 - [x] Add Pool equipment/action audit database foundation.
-- [ ] Validate migration/RLS against disposable or local Supabase before production.
-- [ ] Complete browser smoke across desktop, tablet, and 390px mobile.
-- [ ] Keep Pentair live integration, Home Assistant, AI platform, automatic dosing, automatic equipment control, Finance, and Health deferred.
+- [x] Validate migration/RLS against disposable or local Supabase before production.
+- [x] Complete browser smoke across desktop, tablet, and 390px mobile.
+- [x] Keep Pentair live integration, Home Assistant, AI platform, automatic dosing, automatic equipment control, Finance, and Health deferred.
+- [ ] Resolve or explicitly accept the desktop swipe-card row edit risk found during Pool equipment smoke.
 
 ## Release 1.3.2 Scope
 - [x] Treat Calendar disconnected, setup-required, cancelled, permission-denied, unverified-app, and expired-token states as normal recoverable states.

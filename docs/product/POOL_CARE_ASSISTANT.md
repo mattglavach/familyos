@@ -43,6 +43,8 @@ Outputs:
 
 The Release 1.4.0 action engine is rule-based and configurable in `src/modules/pool/actionEngine.js`. It does not call an AI platform, dose chemicals, control equipment, or make silent changes.
 
+Release 1.4.0 validation confirmed the common action scenarios: high pH recommends acid and retest guidance, low FC recommends sanitizer/SWG guidance, low salt recommends salt guidance, no current test recommends retesting, and overdue maintenance recommends maintenance action. Recommendations include action, amount when applicable, explanation, timing, retest guidance, confidence, and safety note.
+
 ### Treatment History
 Track:
 - Test readings.
@@ -141,3 +143,4 @@ Each integration requires separate product, security, data, and validation revie
 - AI Pool Coach runtime.
 - Automatic chemical dosing.
 - Automatic equipment control.
+- Desktop mouse-accessible swipe-card row edit behavior remains a shared UI follow-up before Release 1.4.0 should be treated as merge-ready.
