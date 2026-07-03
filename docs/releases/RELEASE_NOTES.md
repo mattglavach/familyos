@@ -1,5 +1,37 @@
 # Release Notes
 
+## Release 1.4.1
+
+### Version
+1.4.1
+
+### Date
+2026-07-03
+
+### Summary
+Release 1.4.1 completes the Calendar product path and performs a Pool Care Assistant product review. It fixes Calendar state routing and consumer copy, keeps Calendar recoverable when disconnected or unavailable, and makes Pool open on the next action before supporting chemistry status.
+
+### Calendar
+- Fixed the Calendar source selection so authenticated households use the secure household Calendar connection path before a connection row exists, instead of falling back to the legacy browser token path.
+- Updated Calendar, Home, Settings, Notifications, and the Calendar error boundary to use Connect Google Calendar, Refresh Calendar, and Reconnect Calendar language.
+- Normal disconnected, cancelled, and unavailable Calendar states no longer show a generic needs-attention warning or header attention dot.
+- Expired or revoked Calendar access now routes users to reconnect guidance without raw provider, SQL, or environment details.
+- Google Calendar callback success now uses consumer copy and automatically returns to Family OS after connection.
+
+### Pool
+- Moved the Pool action card above the status/chemistry summary so the module first answers what to do.
+- Added amount and confidence to recommendation cards and added a compact top-action detail row for how much, when, and retest guidance.
+- Kept recommendations rule-based and human-confirmed. No automatic dosing, equipment control, Pentair, Home Assistant, Finance, Health, or AI automation was added.
+- Confirmed the shared swipe-card edit/delete fallback remains available for Pool equipment and history rows.
+
+### Validation
+- Static validation passed: `eslint src --ext .js,.jsx`, `pnpm run build`, and `git diff --check`.
+- Browser smoke passed for authenticated local Home, Calendar disconnected state, Pool dashboard, Pool action-first UX, Pool equipment edit via desktop mouse fallback, Pool equipment edit via keyboard activation, Pool equipment edit at 390px mobile, Quick Add Pool targets, Universal Search Pool results and routing, desktop/tablet/390px no-overflow checks, and clean console logs.
+- Live Google OAuth connection and synced Google event rendering were not completed in this local CRA browser session. Validate those against a local Vercel dev or staging environment with Calendar server secrets before merge.
+
+### Recommendation
+Not ready until live Google OAuth connection and event rendering are validated in local Vercel dev or staging.
+
 ## Release 1.4.0
 
 ### Version

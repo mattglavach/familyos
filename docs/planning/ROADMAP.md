@@ -91,6 +91,20 @@
 - [x] Implement Release 1.3.1 Planning Platform polish for Calendar routing, Home awareness, grouped Search, Product Owner cleanup decisions, and validation documentation.
 - [x] Implement Release 1.3.2 Calendar/Product Cleanup plus Pool Care Assistant planning without adding Pool code, schema, or UI.
 - [x] Implement Release 1.4.0 Pool Care Assistant Foundation with rule-based recommendations, treatment history, equipment, maintenance, Home awareness, Quick Add, Search, and Pool schema foundations.
+- [x] Implement Release 1.4.1 Calendar Completion & Pool Product Review with secure Calendar source routing, consumer Calendar states, callback return behavior, and Pool action-first UX.
+
+## Release 1.4.1 Scope
+- [x] Prefer the secure household Calendar connection path before a Google connection row exists.
+- [x] Keep disconnected, cancelled, and unavailable Calendar states friendly and non-blocking.
+- [x] Use Connect Google Calendar, Refresh Calendar, and Reconnect Calendar actions across Calendar, Home, Settings, Notifications, and header status.
+- [x] Auto-return from Google Calendar callback pages with consumer-facing copy.
+- [x] Make Pool action-first by placing the top recommendation before supporting status/chemistry.
+- [x] Keep Pool recommendations visible with action, amount, why, timing, retest guidance, confidence, and safety note.
+- [x] Keep Pentair, Home Assistant, AI automation, automatic dosing, equipment control, Finance, Health, and unrelated modules deferred.
+- [x] Complete final local responsive browser smoke for Release 1.4.1 disconnected Calendar, Pool, Quick Add, Search, console, and overflow paths.
+- [x] Complete final lint, build, and diff-check.
+- [ ] Complete live Google OAuth connection and synced event rendering smoke in local Vercel dev or staging before merge.
+- [ ] Complete release commit.
 
 ## Release 1.4.0 Scope
 - [x] Add Pool Dashboard with overall health, latest readings, and next recommended action.

@@ -1,9 +1,18 @@
 # Current Sprint
 
 ## Sprint Goal
-Complete Release 1.4.0 Pool Care Assistant Foundation as the first Home Platform module without adding Pentair, Home Assistant, AI platform behavior, automatic dosing, automatic equipment control, Finance, or Health work.
+Complete Release 1.4.1 Calendar Completion & Pool Product Review without adding Pentair, Home Assistant, AI platform behavior, automatic dosing, automatic equipment control, Finance, Health, new integrations, or unrelated modules.
 
 ## Active Items
+- [x] Begin Release 1.4.1 Calendar Completion & Pool Product Review branch
+- [x] Fix Calendar secure connection source selection before a connection row exists
+- [x] Replace generic Calendar attention/status copy with Connect, Refresh, and Reconnect Calendar actions
+- [x] Make the Google Calendar callback return to Family OS with consumer-facing copy
+- [x] Move Pool's primary action card ahead of supporting chemistry status
+- [x] Surface Pool recommendation amount, timing, retest guidance, confidence, why, and safety note in the action review
+- [x] Complete Release 1.4.1 local authenticated browser smoke across desktop, tablet, and 390px mobile for disconnected Calendar, Pool, Quick Add, Search, no overflow, and clean console logs
+- [x] Complete Release 1.4.1 lint, build, and diff-check
+- [ ] Complete live Google OAuth connection and synced event rendering smoke in local Vercel dev or staging
 - [x] Add documentation structure
 - [x] Add AGENTS.md
 - [x] Add GitHub templates

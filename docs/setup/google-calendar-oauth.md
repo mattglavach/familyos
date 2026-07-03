@@ -9,6 +9,8 @@ Family OS has two Google Calendar paths:
 
 Google Calendar is optional. When these values are missing, the app should show a disconnected setup state and keep non-calendar workflows available.
 
+Release 1.4.1 expects Calendar to prefer the secure household connection path whenever a household is active. Disconnected, cancelled, and unavailable states should remain friendly and non-blocking; expired or revoked access should ask the user to reconnect; connected calendars should show events or a clear no-events state. User-facing Calendar screens should use Connect Google Calendar, Refresh Calendar, and Reconnect Calendar language rather than implementation terms.
+
 Set these values locally in `.env.local`, in staging, and in Vercel production when validating Calendar sync:
 
 ```env

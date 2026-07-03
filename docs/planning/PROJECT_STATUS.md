@@ -1,10 +1,10 @@
 # Project Status
 
 ## Current Version
-1.4.0
+1.4.1
 
 ## Current State
-Release 1.0 core MVP through Release 1.3.2 Calendar/Product Cleanup are complete. Release 1.4.0 Pool Care Assistant Foundation is validation-complete on branch `release/1.4.0-pool-care-assistant`.
+Release 1.0 core MVP through Release 1.4.0 Pool Care Assistant Foundation are complete. Release 1.4.1 Calendar Completion & Pool Product Review is in validation on branch `release/1.4.1-calendar-pool-product-review`.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -74,12 +74,13 @@ Release 1.0 core MVP through Release 1.3.2 Calendar/Product Cleanup are complete
 - Release 1.3.2 improves Calendar recoverability, Home order, Tasks default visibility/sorting, task form grouping, and documents Pool Care Assistant as a future Home Platform submodule without adding Pool implementation
 - Release 1.4.0 adds the Pool Care Assistant Foundation with a Pool action dashboard, water test logging, rule-based recommendations, treatment history, equipment inventory, maintenance reminders, Quick Add support, Universal Search support, and a Supabase migration for Pool equipment/action audit architecture
 - Release 1.4.0 validation passed against disposable/local Supabase only for migration/RLS, action engine scenarios, authenticated Pool browser smoke, Quick Add/Search persistence, adult/viewer UI permissions, responsive desktop/tablet/390px checks, and console checks
+- Release 1.4.1 fixes Calendar secure-source routing before connection, replaces generic Calendar attention copy with Connect/Refresh/Reconnect Calendar actions, auto-returns from the Google callback page, and moves Pool's action guidance ahead of supporting chemistry status
 
 ## In Progress
-- Release 1.4.0 final checks, documentation closeout, and commit grouping.
+- Release 1.4.1 live Google OAuth connection/event rendering smoke and commit grouping.
 
 ## Next
-- Merge-review Release 1.4.0 after final local checks and commit.
+- Merge-review Release 1.4.1 after live Google OAuth smoke and commit.
 - Configure Release 0.8 server OAuth environment values in Vercel before removing the legacy calendar fallback.
 - Decide whether to remove the legacy browser calendar fallback after deployed validation.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
@@ -88,8 +89,9 @@ Release 1.0 core MVP through Release 1.3.2 Calendar/Product Cleanup are complete
 
 - No active deploy-blocking build errors after the CI lint cleanup.
 - Production magic-link redirects depend on Supabase Auth Site URL and allowed redirect URLs being set to the deployed FamilyOS origin.
-- Google Calendar sync requires the active browser origin to be listed in Google Cloud Console Authorized JavaScript origins for the configured OAuth client.
-- Server-side Google Calendar sync also requires `calendar_connections`, Supabase service-role API access, Google OAuth client/secret/redirect settings, and token encryption/state secrets in each environment where Calendar is enabled.
+- Google Calendar sync requires the active browser origin to be listed in Google Cloud Console Authorized JavaScript origins for the configured Google client.
+- Secure Google Calendar sync also requires `calendar_connections`, service-role API access, Google client/secret/redirect settings, and token encryption/state secrets in each environment where Calendar is enabled.
+- Release 1.4.1 local browser smoke validated disconnected Calendar states and Calendar copy, but live Google OAuth connection and synced event rendering still need local Vercel dev or staging validation before merge.
 - Household invitations require the Release 0.9 household collaboration migration and a refreshed Supabase/PostgREST schema cache in each environment.
 - Life Lists requires the Release 1.1 migration and refreshed Supabase/PostgREST schema cache in each environment before durable persistence is available.
 - Shopping & Pantry requires the Release 1.2 migration and refreshed Supabase/PostgREST schema cache in each environment before durable persistence is available.

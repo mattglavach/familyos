@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Implemented Release 1.4.1 Calendar Completion & Pool Product Review: Calendar now consistently uses the household server connection path, avoids generic "needs attention" status for normal disconnected states, uses Connect/Refresh/Reconnect Calendar copy, and auto-returns from the Google callback page.
+- Improved Pool product UX so the action card appears before chemistry status and recommendations visibly include amount, timing, retest guidance, confidence, why, and safety notes without adding integrations, AI automation, dosing, or equipment control.
 - Fixed the final Release 1.4.0 validation blocker: shared swipe-card row actions now provide visible, focusable Edit/Delete controls plus mouse-drag support while preserving touch swipe behavior; Pool equipment edit validates on desktop mouse, keyboard, and mobile swipe paths.
 - Completed Release 1.4.0 Pool Care Assistant validation against disposable/local Supabase only: full schema bootstrap, ordered migration chain, idempotency behavior, Pool catalog checks, owner/adult/viewer/cross-household RLS matrix, action audit spoofing denial, authenticated browser smoke, Quick Add/Search persistence, responsive desktop/tablet/390px checks, clean console logs, and action-engine scenario checks.
 - Fixed Release 1.4.0 validation issues: Pool Quick Add now uses household-aware table helpers, Pool compatibility policies are removed from new 1.4 tables, and Pool maintenance/schedule/action audit RLS now blocks linked records from other households.

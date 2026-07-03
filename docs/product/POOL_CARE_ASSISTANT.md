@@ -45,6 +45,8 @@ The Release 1.4.0 action engine is rule-based and configurable in `src/modules/p
 
 Release 1.4.0 validation confirmed the common action scenarios: high pH recommends acid and retest guidance, low FC recommends sanitizer/SWG guidance, low salt recommends salt guidance, no current test recommends retesting, and overdue maintenance recommends maintenance action. Recommendations include action, amount when applicable, explanation, timing, retest guidance, confidence, and safety note.
 
+Release 1.4.1 product review keeps Pool action-first: the next recommended action appears before supporting pool status and chemistry metrics. Recommendation cards show amount, timing, retest guidance, confidence, plain-English explanation, and safety note without adding automatic dosing, equipment control, live integrations, or AI automation.
+
 ### Treatment History
 Track:
 - Test readings.
@@ -143,4 +145,3 @@ Each integration requires separate product, security, data, and validation revie
 - AI Pool Coach runtime.
 - Automatic chemical dosing.
 - Automatic equipment control.
-- Desktop mouse-accessible swipe-card row edit behavior remains a shared UI follow-up before Release 1.4.0 should be treated as merge-ready.
