@@ -1,5 +1,33 @@
 # Release Notes
 
+## Release 1.3.1
+
+### Version
+1.3.1
+
+### Date
+2026-07-02
+
+### Summary
+Release 1.3.1 is a Planning Platform and Product Owner polish release. It does not add a new product module or database schema. The release tightens cross-module consistency, Calendar action routing, Universal Search scanability, Home drill-down behavior, notification routing, and consumer-facing Calendar language after Life Lists, Shopping, Pantry, and Meal Planning landed.
+
+### Product Owner UX Improvements Completed
+- Calendar status in the header now routes to Calendar for setup and connection action instead of generic Settings.
+- Calendar now offers direct Connect Google Calendar, Refresh Status, and Check Connection actions on the Calendar screen.
+- Home Calendar awareness now summarizes setup/connection needs and drills directly into Calendar.
+- Notifications for Calendar attention now open Calendar instead of Settings.
+- Universal Search results are grouped by result type, with Pantry separated from Shopping for faster scanning.
+
+### Validation Notes
+- Product cleanup validation confirmed Today's Priorities has no "View all" action, each priority row remains individually clickable, the bottom Add navigation remains the primary Quick Add entry, and no generic Priorities page was introduced.
+- Browser smoke coverage targeted Home, Tasks, Calendar, Life Lists, Shopping, Pantry, Meal Planning, Quick Add, Universal Search, Notifications, Settings, desktop/tablet/mobile layout, console checks, and horizontal overflow.
+- No database migration was added for Release 1.3.1.
+
+### Deferred
+- Search result deep-linking to exact row selection remains a future refinement; Release 1.3.1 preserves correct module routing and grouped discovery.
+- Full visual unification of legacy deferred modules remains outside this polish release.
+- Push/email/SMS notifications, AI, external integrations, barcode/OCR, Finance, Health, Home platform, Pool expansion, and recommendation engines remain deferred.
+
 ## Release 1.3.0
 
 ### Version

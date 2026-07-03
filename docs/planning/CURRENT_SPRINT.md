@@ -1,7 +1,7 @@
 # Current Sprint
 
 ## Sprint Goal
-Implement Release 1.3 Meal Planning as the third Planning Platform module, keeping scope limited to recipes, meal plans, meal assignments, pantry awareness, reviewed Shopping integration, Home awareness, Quick Add, Universal Search, permissions, schema, documentation, and validation.
+Complete Release 1.3.1 Planning Platform and Product Owner polish across Home, Tasks, Calendar, Life Lists, Shopping, Pantry, Meal Planning, Quick Add, Search, Notifications, and Settings without adding new modules or schema.
 
 ## Active Items
 - [x] Add documentation structure
@@ -124,6 +124,10 @@ Implement Release 1.3 Meal Planning as the third Planning Platform module, keepi
 - [x] Add Meal Planning Home awareness, Quick Add, Universal Search, and reviewed Shopping integration
 - [x] Validate Release 1.3 migration/RLS against disposable local Supabase
 - [x] Complete authenticated local browser smoke for Meal Planning, Shopping integration, Quick Add, Home drill-downs, Universal Search, console checks, and 390px mobile layout
+- [x] Begin Release 1.3.1 Planning Platform polish branch
+- [x] Route Calendar setup/status actions through Calendar instead of generic Settings
+- [x] Group Universal Search results by surface and separate Pantry results
+- [x] Validate Product Owner cleanup decisions for Today's Priorities, bottom Add, Quick Add destinations, consumer copy, and no generic Priorities page
 
 ## Blockers
 
@@ -134,6 +138,7 @@ Implement Release 1.3 Meal Planning as the third Planning Platform module, keepi
 - Release 1.0.4 has no active validation blocker after lint, build, diff-check, authenticated local browser smoke, mobile 390px sanity checks, and console validation.
 - Release 1.1 has no active validation blocker after disposable/local migration/RLS checks, authenticated browser smoke, mobile sanity checks, lint, build, and diff-check.
 - Release 1.2 has no active validation blocker after disposable/local migration/RLS checks, authenticated browser smoke, mobile sanity checks, lint, build, and diff-check.
+- Release 1.3 has no active validation blocker after disposable/local migration/RLS checks, authenticated browser smoke, mobile sanity checks, lint, build, and diff-check.
 
 ## Notes
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.
