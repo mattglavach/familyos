@@ -1,5 +1,36 @@
 # Release Notes
 
+## Release 1.3.2
+
+### Version
+1.3.2
+
+### Date
+2026-07-03
+
+### Summary
+Release 1.3.2 is a Calendar/Product cleanup and Pool Care Assistant planning release. It fixes current Core and Planning UX issues without adding new modules, database schema, Pool runtime surfaces, integrations, Finance, Health, Home platform, or AI behavior.
+
+### Fixes
+- Calendar now treats cancelled, denied, incomplete, setup-required, unverified-app, and expired-token connection states as recoverable Calendar states.
+- Calendar fallback copy no longer shows the generic "Calendar needs a refresh" message.
+- Google Calendar callback cancellation now returns a friendly "not completed" page and leaves Family OS unchanged.
+- Home dashboard order is now Today's Priorities, Household Insights, Today's Schedule, My Tasks, then Planning awareness cards.
+- Tasks now defaults to All with Due Date sorting and keeps newly created tasks visible in the default view.
+- Task filters now show All, My Tasks, Today, Overdue, and More Filters as the primary filter set.
+- Task create/edit layout groups Priority + Status, Category + Assignee, and Due Date + Repeat to reduce form scrolling.
+
+### Product Planning
+- Added `docs/product/POOL_CARE_ASSISTANT.md` for the future Pool Care Assistant concept.
+- Updated product roadmap, module, workflow, planning, and technical-debt docs to keep Pool Care Assistant future-only until a dedicated implementation release.
+- Documented Google OAuth test-user and app-verification requirements.
+
+### Database Changes
+- None.
+
+### Deferred
+- Pool code, Pool UI, Pool tables, Pool migrations, chemical calculators, AI Pool Coach, integrations, photo upload, OCR, Finance, Health, Home platform implementation, and database redesign remain deferred.
+
 ## Release 1.3.1
 
 ### Version

@@ -1,7 +1,7 @@
 # Current Sprint
 
 ## Sprint Goal
-Complete Release 1.3.1 Planning Platform and Product Owner polish across Home, Tasks, Calendar, Life Lists, Shopping, Pantry, Meal Planning, Quick Add, Search, Notifications, and Settings without adding new modules or schema.
+Complete Release 1.3.2 Calendar/Product Cleanup plus Pool Care Assistant planning without adding Pool code, schema, UI, integrations, AI, or unrelated modules.
 
 ## Active Items
 - [x] Add documentation structure
@@ -128,6 +128,11 @@ Complete Release 1.3.1 Planning Platform and Product Owner polish across Home, T
 - [x] Route Calendar setup/status actions through Calendar instead of generic Settings
 - [x] Group Universal Search results by surface and separate Pantry results
 - [x] Validate Product Owner cleanup decisions for Today's Priorities, bottom Add, Quick Add destinations, consumer copy, and no generic Priorities page
+- [x] Begin Release 1.3.2 Calendar/Product Cleanup branch
+- [x] Treat Calendar cancelled, setup-required, denied, expired, and unverified-app states as recoverable user states
+- [x] Reorder Home dashboard to priorities, insights, schedule, tasks, and planning awareness
+- [x] Default Tasks to All with Due Date sorting and move secondary filters behind More Filters
+- [x] Add Pool Care Assistant future product planning docs without Pool implementation
 
 ## Blockers
 
@@ -139,6 +144,7 @@ Complete Release 1.3.1 Planning Platform and Product Owner polish across Home, T
 - Release 1.1 has no active validation blocker after disposable/local migration/RLS checks, authenticated browser smoke, mobile sanity checks, lint, build, and diff-check.
 - Release 1.2 has no active validation blocker after disposable/local migration/RLS checks, authenticated browser smoke, mobile sanity checks, lint, build, and diff-check.
 - Release 1.3 has no active validation blocker after disposable/local migration/RLS checks, authenticated browser smoke, mobile sanity checks, lint, build, and diff-check.
+- Release 1.3.1 has no active validation blocker after lint, build, diff-check, browser smoke, mobile sanity checks, and console validation.
 
 ## Notes
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.

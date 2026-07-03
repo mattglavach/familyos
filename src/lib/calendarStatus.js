@@ -13,6 +13,11 @@ const SETUP_PATTERNS = [
   "finish calendar setup",
   "not available",
   "could not load google calendar",
+  "hasn't verified",
+  "has not verified",
+  "unverified",
+  "origin_mismatch",
+  "idpiframe",
 ];
 
 const PERMISSION_PATTERNS = [
@@ -21,6 +26,14 @@ const PERMISSION_PATTERNS = [
   "revoked",
   "access",
   "expired",
+  "denied",
+  "access_denied",
+];
+
+const CANCELLED_PATTERNS = [
+  "cancel",
+  "closed",
+  "popup_closed",
 ];
 
 function includesAny(value, patterns) {
@@ -43,6 +56,19 @@ export function normalizeCalendarStatus(calendar = {}) {
       actionTarget: "calendar",
       needsAttention: false,
       canRefresh: Boolean(calendar.connected),
+    };
+  }
+
+  if (status === "cancelled" || includesAny(error, CANCELLED_PATTERNS)) {
+    return {
+      key: CALENDAR_STATUS.DISCONNECTED,
+      tone: "neutral",
+      label: "Not connected",
+      detail: "Calendar connection was not completed. Nothing changed.",
+      actionLabel: "Connect Google Calendar",
+      actionTarget: "calendar",
+      needsAttention: true,
+      canRefresh: false,
     };
   }
 

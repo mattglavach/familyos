@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Implemented Release 1.3.2 Calendar/Product cleanup: Calendar cancelled/denied/setup/unverified states are friendly recoverable states, Home order now prioritizes Household Insights before Schedule, Tasks defaults to All with Due Date sorting, and task forms are grouped for less scrolling.
+- Added Pool Care Assistant future product planning under the Home Platform roadmap without implementing Pool code, tables, migrations, UI, integrations, or AI behavior.
 - Implemented Release 1.3.1 Planning Platform polish: Calendar setup/status actions now stay in Calendar, Home and Notifications drill Calendar attention directly into Calendar, and Universal Search results are grouped by Tasks, Calendar, Life Lists, Shopping, Pantry, Meal Planning, Household, and Navigation.
 - Completed Product Owner cleanup checks for Today's Priorities, bottom-nav Quick Add, supported capture destinations, consumer Calendar copy, and no generic Priorities page.
 - Implemented Release 1.3 Meal Planning: added meal plans, recipes, recipe categories, recipe ingredients, meal assignments, pantry-aware missing ingredient review, reviewed Shopping list generation with duplicate prevention, Quick Add targets, Home awareness, Universal Search, seed fallback, and household-aware Supabase RLS.

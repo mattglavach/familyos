@@ -32,6 +32,7 @@ This folder is the operating manual for Family OS.
 - docs/product/UX_GUIDELINES.md
 - docs/product/DASHBOARD.md
 - docs/product/MODULES.md
+- docs/product/POOL_CARE_ASSISTANT.md
 - docs/product/PRODUCT_STRATEGY.md
 - docs/product/SUCCESS_METRICS.md
 - docs/product/PERSONAS.md

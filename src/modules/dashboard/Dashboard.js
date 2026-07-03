@@ -504,6 +504,13 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
         </CardContent>
       </Card>
 
+      <section>
+        <SectionHeader title="Household Insights" count={modules.length} tone="blue" />
+        <div className="grid grid-cols-2 gap-2.5">
+          {modules.map(item => <ModuleCard key={item.module} item={item} onNavigate={onNavigate} />)}
+        </div>
+      </section>
+
       <SchedulePanel
         calendar={calendar}
         events={allEvents}
@@ -626,13 +633,6 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
             />
           </Card>
         )}
-      </section>
-
-      <section>
-        <SectionHeader title="Household Insights" count={modules.length} tone="blue" />
-        <div className="grid grid-cols-2 gap-2.5">
-          {modules.map(item => <ModuleCard key={item.module} item={item} onNavigate={onNavigate} />)}
-        </div>
       </section>
 
       <section>

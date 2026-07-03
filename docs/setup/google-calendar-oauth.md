@@ -94,6 +94,16 @@ https://YOUR_VERCEL_PRODUCTION_DOMAIN.vercel.app
 https://YOUR_CUSTOM_DOMAIN
 ```
 
+## OAuth App Verification And Test Users
+
+If Google shows "Google hasn't verified this app", the OAuth consent screen is not fully verified for the requested Calendar scope.
+
+For local and staging validation, add each tester's Google account under **APIs & Services > OAuth consent screen > Test users**. Test users can continue through the warning screen during validation.
+
+For production use beyond test users, complete Google's OAuth app verification for the Calendar scope before asking household members to connect Google Calendar.
+
+Family OS should treat cancelled, denied, incomplete, expired, and unverified-app connection attempts as normal Calendar states. The app should keep Home, Tasks, and other modules usable and show friendly Calendar setup guidance rather than a blank screen or raw provider error.
+
 ## Local Development
 
 1. Copy `.env.example` to `.env.local`.

@@ -74,7 +74,7 @@ Experiences, travel ideas, long-term family plans.
 Home systems, recurring maintenance, equipment history, warranties, and reminders.
 
 ### Pool
-Pool chemistry, maintenance, equipment, and seasonal checklists.
+Pool Care Assistant for water health, treatment decisions, maintenance history, equipment care, seasonal readiness, and future AI coaching with human-confirmed actions.
 
 ### Yard
 Garden, plants, seasonal work, and outdoor maintenance.

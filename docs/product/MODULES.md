@@ -81,7 +81,7 @@ Dependencies: Sensitive permissions, data model, privacy review, dashboard insig
 Future enhancements: Bills, cash flow, net worth, budget alerts, retirement tie-ins.
 
 ## Pool
-Purpose: Pool chemistry, maintenance, equipment, reminders, and seasonal operations.
+Purpose: Pool care assistance for water health, treatment decisions, maintenance, equipment, reminders, and seasonal operations.
 
 Current status: Partial module.
 
@@ -89,7 +89,9 @@ Release target: Deferred from Release 1.0 except possible dashboard insight if a
 
 Dependencies: Pool test data, maintenance records, reminder model.
 
-Future enhancements: Trend charts, chemical guidance, equipment schedule, seasonal open/close checklists.
+Future enhancements: Pool Care Assistant action engine, treatment history, equipment maintenance, trend views, chemical guidance, seasonal open/close checklists, and a future AI Pool Coach.
+
+Release 1.3.2 planning guidance: Pool should become a Pool Care Assistant that answers what the pool needs, why it matters, and what to do next. See `docs/product/POOL_CARE_ASSISTANT.md`. Do not implement new Pool code, tables, migrations, UI, integrations, or AI behavior until a future Pool release is explicitly scoped.
 
 ## College
 Purpose: College planning, deadlines, savings, scholarships, visits, and family education decisions.

@@ -455,7 +455,7 @@ async function revokeGoogleToken(connection) {
 }
 
 function sendCallbackPage(res, { ok, message, returnTo }) {
-  const title = ok ? "Google Calendar connected" : "Google Calendar connection failed";
+  const title = ok ? "Google Calendar connected" : "Calendar connection not completed";
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.status(ok ? 200 : 400).send(`<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title></head>
@@ -469,7 +469,18 @@ function sendCallbackPage(res, { ok, message, returnTo }) {
 async function handleCallback(req, res) {
   try {
     const { code, state, error } = req.query || {};
-    if (error) throw new Error(String(error));
+    if (error) {
+      let returnTo = "/";
+      try {
+        returnTo = validateSignedState(state)?.return_to || "/";
+      } catch {}
+      sendCallbackPage(res, {
+        ok: false,
+        message: "Calendar connection was not completed. Nothing changed in Family OS.",
+        returnTo,
+      });
+      return;
+    }
     if (!code) throw new Error("Missing Google authorization code");
     const payload = validateSignedState(state);
     const membership = await requireMembership(payload.user_id, payload.household_id);
@@ -501,7 +512,7 @@ async function handleCallback(req, res) {
   } catch (error) {
     sendCallbackPage(res, {
       ok: false,
-      message: "Google Calendar could not be connected. Check the environment setup and try again.",
+      message: "Google Calendar could not be connected right now. Return to Family OS and try again when you are ready.",
       returnTo: "/",
     });
   }
