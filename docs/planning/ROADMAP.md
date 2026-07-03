@@ -31,6 +31,7 @@
 - [ ] Medical
 - [x] Life Lists
 - [x] Shopping & Pantry
+- [x] Meal Planning
 
 ## Phase 4 - Intelligence
 - [ ] AI assistant
@@ -86,6 +87,19 @@
 - [x] Implement Release 1.0.5 Calendar & Header Cleanup for Calendar tab resilience, icon-only header actions, and Calendar status clarity.
 - [x] Implement Release 1.1 Life Lists with generic lists/items, Home insight, Quick Add, Search, and RLS-backed schema.
 - [x] Implement Release 1.2 Shopping & Pantry with shared shopping lists/items, simple pantry inventory, Home insight, Quick Add, Search, and RLS-backed schema.
+- [x] Implement Release 1.3 Meal Planning with recipes, meal plans, meal assignments, pantry-aware Shopping review, Home insight, Quick Add, Search, and RLS-backed schema.
+
+## Release 1.3 Scope
+- [x] Add Meal Plans, Recipes, Recipe Categories, Recipe Ingredients, and Meal Assignments data model.
+- [x] Add Meal Planning module under More.
+- [x] Add recipe create/edit/favorite/archive/restore, ingredient, plan, assignment, sorting/filtering/search, and week workflows.
+- [x] Add reviewed Shopping List generation, missing ingredient selection, existing list merge, and duplicate prevention.
+- [x] Add simple pantry awareness for available and missing ingredients.
+- [x] Add Recipe, Meal Plan, and Meal Assignment targets to Universal Quick Add.
+- [x] Add Recipes, Meal Plans, and Meal Assignments to Universal Search.
+- [x] Add compact Home Meal Planning awareness with drill-down.
+- [x] Validate migration/RLS against disposable or local Supabase before production.
+- [x] Keep nutrition tracking, Health platform integration, AI recommendations, recipe APIs, barcode/OCR, external recipe databases, cost optimization, restaurant integrations, social features, comments, and ratings deferred.
 
 ## Release 1.2 Scope
 - [x] Add Shopping Lists, Shopping Items, Shopping Categories, and Pantry Items data model.

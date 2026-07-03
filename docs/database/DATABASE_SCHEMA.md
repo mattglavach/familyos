@@ -117,6 +117,39 @@ Rows include `household_id`, `user_id`, `name`, `current_quantity`, `minimum_qua
 
 Release 1.2 validation note: the Shopping migration was applied after the base schema and ordered migration chain in disposable local Supabase, then catalog and RLS checks confirmed all Shopping/Pantry tables, indexes, constraints, grants, RLS enablement, and policies.
 
+### meal_plans
+Stores personal, household, and shared meal planning containers for Release 1.3 Meal Planning.
+
+Rows include `household_id`, `user_id`, `owner_user_id`, `name`, `description`, `plan_type`, `start_date`, `end_date`, `visibility`, `favorite`, `archived`, `notes`, `sort_order`, future-ready `nutrition_ref`, `health_ref`, and `ai_ref`, `created_at`, and `updated_at`.
+
+`plan_type` supports `weekly`, `monthly`, and `custom`. `visibility` supports `personal`, `household`, and `shared`.
+
+### recipe_categories
+Stores household-scoped recipe category metadata.
+
+Rows include `household_id`, `user_id`, `name`, `color`, `sort_order`, `created_at`, and `updated_at`.
+
+### recipes
+Stores personal, household, and shared recipes.
+
+Rows include `household_id`, `user_id`, `owner_user_id`, `title`, `description`, `category`, `meal_type`, prep/cook time, `servings`, `difficulty`, `instructions`, `notes`, `favorite`, media/source URL placeholders, `tags`, `visibility`, `archived`, `sort_order`, future-ready `nutrition_ref`, `health_ref`, and `ai_ref`, `created_at`, and `updated_at`.
+
+`meal_type` supports `breakfast`, `lunch`, `dinner`, `snack`, and `other`. `difficulty` supports `easy`, `medium`, and `hard`.
+
+### recipe_ingredients
+Stores structured ingredients for recipes.
+
+Rows include `household_id`, `user_id`, `recipe_id`, `ingredient`, `quantity`, `unit`, `optional`, optional `pantry_item_id`, optional `shopping_item_id`, `notes`, `sort_order`, `created_at`, and `updated_at`.
+
+Ingredient access inherits from the parent recipe.
+
+### meal_assignments
+Stores dated meal slots inside meal plans.
+
+Rows include `household_id`, `user_id`, `meal_plan_id`, optional `recipe_id`, `meal_date`, `meal_type`, `title`, `notes`, `favorite`, `archived`, optional `shopping_list_id`, future-ready `nutrition_ref`, `health_ref`, and `ai_ref`, `created_at`, and `updated_at`.
+
+Assignment access inherits from the parent meal plan. Release 1.3 validation note: the Meal Planning migration was applied after the base schema and ordered migration chain in disposable local Supabase, then catalog and RLS checks confirmed all Meal Planning tables, indexes, constraints, grants, RLS enablement, and policies.
+
 ### finance_accounts
 Stores accounts for net worth and planning.
 

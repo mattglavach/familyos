@@ -24,7 +24,7 @@ Navigation should help household members move quickly between daily context, act
 ## Global Search
 Global search should search tasks, calendar events, people, documents, lists, modules, and household records according to permissions as those surfaces become implemented.
 
-Release 1.2 extends scoped global search to Shopping Lists, Shopping Items, and Pantry Items after their data and permission behavior is validated. Future modules should register searchable results only after their data and permission behavior are validated.
+Release 1.3 extends scoped global search to Recipes, Meal Plans, and Meal Assignments after their data and permission behavior is validated. Future modules should register searchable results only after their data and permission behavior are validated.
 
 ## Universal Quick Add
 Universal Quick Add should become the fastest way to capture household work.
@@ -34,6 +34,9 @@ Long-term capture targets:
 - Calendar event.
 - Reminder.
 - Shopping item.
+- Recipe.
+- Meal plan.
+- Meal assignment.
 - Note.
 - Pool reading.
 - Maintenance item.
@@ -42,7 +45,7 @@ Long-term capture targets:
 
 Release 1.0 should keep Quick Add focused on existing supported actions and avoid adding unsupported module types.
 
-Release 1.2 keeps Task, Pool Reading, Life List, Life List Item, Shopping List, and Shopping Item enabled. Event, Health Entry, Note, Maintenance, recipes, and meal-planning captures are not shown until those workflows are fully supported.
+Release 1.3 keeps Task, Pool Reading, Life List, Life List Item, Shopping List, Shopping Item, Recipe, Meal Plan, and Meal Assignment enabled. Event, Health Entry, Note, Maintenance, nutrition, AI, and external recipe captures are not shown until those workflows are fully supported.
 
 ## Header Status Actions
 Global header actions should stay compact and trustworthy. Search, Notifications, Calendar status, and Settings may use icon-only buttons when they have accessible labels and tooltips. Calendar status should route to Calendar when healthy and to Settings when connection action or setup guidance is needed.

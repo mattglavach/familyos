@@ -1,7 +1,7 @@
 # Current Sprint
 
 ## Sprint Goal
-Implement Release 1.2 Shopping & Pantry as the second Planning Platform module, keeping scope limited to shared shopping lists, shopping items, simple pantry inventory, Home awareness, Quick Add, Universal Search, permissions, schema, documentation, and validation.
+Implement Release 1.3 Meal Planning as the third Planning Platform module, keeping scope limited to recipes, meal plans, meal assignments, pantry awareness, reviewed Shopping integration, Home awareness, Quick Add, Universal Search, permissions, schema, documentation, and validation.
 
 ## Active Items
 - [x] Add documentation structure
@@ -118,6 +118,12 @@ Implement Release 1.2 Shopping & Pantry as the second Planning Platform module, 
 - [x] Add Shopping Home awareness, Quick Add, and Universal Search integration
 - [x] Validate Release 1.2 migration/RLS against disposable local Supabase
 - [x] Complete authenticated local browser smoke for Shopping, Pantry, Quick Add, Home drill-downs, Universal Search, permissions, console checks, and 390px mobile layout
+- [x] Begin Release 1.3 Meal Planning branch
+- [x] Add Meal Plans, Recipes, Recipe Categories, Recipe Ingredients, and Meal Assignments schema and RLS migration
+- [x] Add Meal Planning module under More
+- [x] Add Meal Planning Home awareness, Quick Add, Universal Search, and reviewed Shopping integration
+- [x] Validate Release 1.3 migration/RLS against disposable local Supabase
+- [x] Complete authenticated local browser smoke for Meal Planning, Shopping integration, Quick Add, Home drill-downs, Universal Search, console checks, and 390px mobile layout
 
 ## Blockers
 

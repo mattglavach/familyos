@@ -73,6 +73,27 @@ export const SEED={
     {id:"shop-cat-2",name:"Household",color:"#4A90D9",sort_order:2},
     {id:"shop-cat-3",name:"Costco",color:"#8B6FD4",sort_order:3},
   ],
+  meal_plans:[
+    {id:"meal-plan-1",name:"This Week",description:"Simple household dinner plan.",plan_type:"weekly",start_date:"2026-07-05",end_date:"2026-07-11",owner_user_id:null,visibility:"household",favorite:true,archived:false,notes:"Keep weeknights easy.",sort_order:1,nutrition_ref:null,health_ref:null,ai_ref:null,created_at:"2026-07-02T12:00:00Z",updated_at:"2026-07-02T12:00:00Z"},
+  ],
+  recipes:[
+    {id:"recipe-1",title:"Chicken Tacos",description:"Weeknight taco dinner.",category:"Family",meal_type:"dinner",prep_time_minutes:15,cook_time_minutes:20,servings:5,difficulty:"easy",instructions:"Cook chicken with seasoning. Warm tortillas. Set out toppings.",notes:"Use pantry rice as a side.",favorite:true,image_url:"",source_url:"",tags:["weeknight","family"],owner_user_id:null,visibility:"household",archived:false,sort_order:1,nutrition_ref:null,health_ref:null,ai_ref:null,created_at:"2026-07-02T12:00:00Z",updated_at:"2026-07-02T12:00:00Z"},
+    {id:"recipe-2",title:"Pasta Night",description:"Quick pasta with salad.",category:"Pasta",meal_type:"dinner",prep_time_minutes:10,cook_time_minutes:15,servings:5,difficulty:"easy",instructions:"Boil pasta. Warm sauce. Serve with salad.",notes:"Good backup meal.",favorite:false,image_url:"",source_url:"",tags:["quick"],owner_user_id:null,visibility:"shared",archived:false,sort_order:2,nutrition_ref:null,health_ref:null,ai_ref:null,created_at:"2026-07-02T12:00:00Z",updated_at:"2026-07-02T12:00:00Z"},
+  ],
+  recipe_ingredients:[
+    {id:"recipe-ing-1",recipe_id:"recipe-1",ingredient:"Chicken breast",quantity:2,unit:"lb",optional:false,pantry_item_id:null,shopping_item_id:null,notes:"",sort_order:1,created_at:"2026-07-02T12:00:00Z",updated_at:"2026-07-02T12:00:00Z"},
+    {id:"recipe-ing-2",recipe_id:"recipe-1",ingredient:"Tortillas",quantity:1,unit:"pack",optional:false,pantry_item_id:null,shopping_item_id:null,notes:"",sort_order:2,created_at:"2026-07-02T12:00:00Z",updated_at:"2026-07-02T12:00:00Z"},
+    {id:"recipe-ing-3",recipe_id:"recipe-1",ingredient:"Rice",quantity:1,unit:"bag",optional:false,pantry_item_id:"pantry-2",shopping_item_id:"shop-item-2",notes:"Pantry is low.",sort_order:3,created_at:"2026-07-02T12:00:00Z",updated_at:"2026-07-02T12:00:00Z"},
+    {id:"recipe-ing-4",recipe_id:"recipe-2",ingredient:"Pasta",quantity:1,unit:"box",optional:false,pantry_item_id:null,shopping_item_id:null,notes:"",sort_order:1,created_at:"2026-07-02T12:00:00Z",updated_at:"2026-07-02T12:00:00Z"},
+  ],
+  meal_assignments:[
+    {id:"meal-assignment-1",meal_plan_id:"meal-plan-1",recipe_id:"recipe-1",meal_date:"2026-07-05",meal_type:"dinner",title:"Chicken Tacos",notes:"",favorite:true,archived:false,shopping_list_id:null,nutrition_ref:null,health_ref:null,ai_ref:null,created_at:"2026-07-02T12:00:00Z",updated_at:"2026-07-02T12:00:00Z"},
+    {id:"meal-assignment-2",meal_plan_id:"meal-plan-1",recipe_id:"recipe-2",meal_date:"2026-07-06",meal_type:"dinner",title:"Pasta Night",notes:"",favorite:false,archived:false,shopping_list_id:null,nutrition_ref:null,health_ref:null,ai_ref:null,created_at:"2026-07-02T12:00:00Z",updated_at:"2026-07-02T12:00:00Z"},
+  ],
+  recipe_categories:[
+    {id:"recipe-cat-1",name:"Family",color:"#4A90D9",sort_order:1},
+    {id:"recipe-cat-2",name:"Pasta",color:"#8B6FD4",sort_order:2},
+  ],
   college_schools:[
     {id:"1",name:"University of Virginia",status:"researching",match_level:"Reach",app_type:"ED",app_deadline:"2026-11-01",visit_notes:""},
     {id:"2",name:"Wake Forest University",status:"researching",match_level:"Reach",app_type:"EA",app_deadline:"2026-11-15",visit_notes:""},

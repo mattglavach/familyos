@@ -37,10 +37,10 @@ Future morning, evening, weekend, school, travel, and seasonal routines.
 Release 1.2 shared grocery and household lists, shopping items, and simple pantry inventory.
 
 ### Meal Planning
-Weekly meals, recipes, preferences, and grocery generation.
+Release 1.3 weekly meal plans, recipes, recipe ingredients, meal assignments, pantry-aware missing ingredient review, and confirmed Shopping list generation.
 
 ### Recipes
-Family recipe library, favorites, dietary notes, and meal links.
+Release 1.3 family recipe library foundation with favorites, ingredients, tags, notes, and meal links. Dietary/nutrition intelligence remains future scope.
 
 ### Inventory
 Pantry, household supplies, home assets, and future document links.
@@ -104,7 +104,7 @@ Future hands-free capture and query.
 - Collaboration: invitations, members, roles, active household switching.
 - Release 1.0: core household operating readiness.
 - Post-1.0: refine navigation, calendar, notifications, and Quick Add.
-- Later: meal planning, recipes, documents, home maintenance, finance depth, AI, smart home, Shopping refinements, and richer Life Lists category templates or recommendations.
+- Later: nutrition preferences, Health integration, AI recommendations, external recipe APIs, documents, home maintenance, finance depth, smart home, Shopping refinements, and richer Life Lists category templates or recommendations.
 
 ## Release 1.0 Alignment
 Release 1.0 supports the Family Hub and Productivity pillars only where they are already part of the core operating loop. It should not start broad Planning, Life, Home expansion, or AI automation.

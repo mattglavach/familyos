@@ -1,5 +1,44 @@
 # Release Notes
 
+## Release 1.3.0
+
+### Version
+1.3.0
+
+### Date
+2026-07-02
+
+### Summary
+Release 1.3 adds Meal Planning as the third Planning Platform module. It gives the household recipes, recipe ingredients, weekly meal plans, dated meal assignments, pantry-aware missing ingredient review, Shopping list generation with duplicate prevention, Home awareness, Quick Add, and Universal Search.
+
+### Features
+- Added a Meal Planning module under More with Week, Recipes, and Plans views.
+- Added personal, household, shared, favorite, and archived meal plans and recipes.
+- Added recipe ingredients with quantity, unit, optional state, pantry link, shopping link, notes, and ordering.
+- Added meal assignments by date and meal type.
+- Added reviewed Shopping integration that can create or merge shopping items only after user confirmation.
+- Added pantry awareness for available and missing ingredients.
+- Added Recipe, Meal Plan, and Meal Assignment targets to Universal Quick Add.
+- Added Recipes, Meal Plans, and Meal Assignments to Universal Search.
+- Added compact Home Meal Planning awareness and recent activity entries that drill into Meal Planning.
+
+### Database Changes
+- Added `supabase/migrations/20260702_release_1_3_meal_planning.sql`.
+- Added `meal_plans`, `recipe_categories`, `recipes`, `recipe_ingredients`, and `meal_assignments`.
+- Added household-aware RLS for personal, household, and shared meal planning visibility and mutation permissions.
+
+### Deferred
+- Nutrition tracking, Health platform integration, AI recommendations, recipe APIs, barcode scanning, OCR, external recipe databases, cost optimization, restaurant integrations, social features, comments, and ratings remain deferred.
+- Pantry remains simple availability awareness; no depletion, conversion, substitution, or inventory intelligence was added.
+
+### Validation
+- `pnpm run lint` passed.
+- `pnpm run build` passed.
+- Disposable local Supabase validation passed on July 2, 2026: base schema bootstrap from empty with local auth prelude, ordered migration chain through Release 1.3, Meal Planning migration apply, table/index/constraint catalog checks, grants, RLS enablement, and policies.
+- RLS smoke passed for owner, adult, viewer, personal owner-only behavior, household/shared member reads, viewer denial paths, ingredient access through recipes, assignment access through meal plans, archived visible rows, and cross-household denial.
+- Authenticated local browser smoke passed for More to Meal Planning, recipe create/edit/favorite/archive/restore, ingredient create/edit path, meal plan create, meal assignment create, Shopping review/generation, duplicate prevention, generated Shopping list/item drill-down, Quick Add recipe/plan/assignment flows, Home drill-downs, Universal Search recipe/assignment results, 390px mobile layout, no horizontal overflow, and no console warnings/errors.
+- Product cleanup validation confirmed no floating Quick Add FAB, no Today's Priorities "View All", individually clickable priority/module rows, Quick Add exposes only supported destinations, and consumer-facing copy avoids technical terms.
+
 ## Release 1.2.0
 
 ### Version
