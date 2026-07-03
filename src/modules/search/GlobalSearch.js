@@ -24,7 +24,7 @@ function includesQuery(value, query) {
 
 function resultIcon(type) {
   if (type === "Tasks") return <ListTodo className="h-4 w-4 text-primary" aria-hidden="true" />;
-  if (type === "Shopping") return <ShoppingCart className="h-4 w-4 text-primary" aria-hidden="true" />;
+  if (type === "Shopping" || type === "Pantry") return <ShoppingCart className="h-4 w-4 text-primary" aria-hidden="true" />;
   if (type === "Meal Planning") return <Utensils className="h-4 w-4 text-primary" aria-hidden="true" />;
   if (type === "Life Lists") return <ListChecks className="h-4 w-4 text-primary" aria-hidden="true" />;
   if (type === "Calendar") return <CalendarDays className="h-4 w-4 text-primary" aria-hidden="true" />;
@@ -101,7 +101,7 @@ export function GlobalSearch({ open, onOpenChange, calendarEvents, onNavigate })
     const pantryResults = pantryTable.data
       .filter(item => !item.archived && includesQuery(`${item.name} ${item.notes} ${item.category} ${item.unit}`, normalizedQuery))
       .slice(0, 6)
-      .map(item => ({ type: "Shopping", label: item.name || "Pantry item", detail: item.reorder_flag ? "Pantry reorder" : "Pantry item", nav: "shopping" }));
+      .map(item => ({ type: "Pantry", label: item.name || "Pantry item", detail: item.reorder_flag ? "Pantry reorder" : "Pantry item", nav: "shopping" }));
     const mealPlanResults = mealPlanTable.data
       .filter(plan => !plan.archived && includesQuery(`${plan.name} ${plan.description} ${plan.notes} ${plan.visibility}`, normalizedQuery))
       .slice(0, 6)
@@ -118,6 +118,12 @@ export function GlobalSearch({ open, onOpenChange, calendarEvents, onNavigate })
       .filter(item => includesQuery(`${item.label} ${item.detail}`, normalizedQuery));
     return [...taskResults, ...eventResults, ...memberResults, ...listResults, ...itemResults, ...shoppingListResults, ...shoppingItemResults, ...pantryResults, ...mealPlanResults, ...recipeResults, ...mealAssignmentResults, ...navResults].slice(0, 18);
   }, [calendarEvents, family.members, itemTable.data, listTable.data, mealAssignmentTable.data, mealPlanTable.data, normalizedQuery, pantryTable.data, recipeTable.data, shoppingItemTable.data, shoppingListTable.data, taskTable.data]);
+  const groupedResults = useMemo(() => {
+    const order = ["Tasks", "Calendar", "Life Lists", "Shopping", "Pantry", "Meal Planning", "Household", "Navigation"];
+    return order
+      .map(type => ({ type, items: results.filter(result => result.type === type) }))
+      .filter(group => group.items.length);
+  }, [results]);
 
   function choose(nav) {
     onOpenChange(false);
@@ -133,18 +139,20 @@ export function GlobalSearch({ open, onOpenChange, calendarEvents, onNavigate })
           <CommandList>
             {!normalizedQuery && <CommandEmpty>Start typing to find a task, event, list, person, or app area.</CommandEmpty>}
             {normalizedQuery && !results.length && <CommandEmpty>No matching results. Try a task title, list item, family member, event name, or Settings.</CommandEmpty>}
-            {results.length > 0 && <CommandGroup heading="Results">
-            {results.map((result, index) => (
-              <CommandItem key={`${result.type}-${result.label}-${index}`} onClick={() => choose(result.nav)}>
-                {resultIcon(result.type)}
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-bold text-foreground">{result.label}</span>
-                  <span className="mt-1 block truncate text-xs text-muted-foreground">{result.detail}</span>
-                </span>
-                <Badge variant="blue">{result.type}</Badge>
-              </CommandItem>
+            {groupedResults.map(group => (
+              <CommandGroup key={group.type} heading={group.type}>
+                {group.items.map((result, index) => (
+                  <CommandItem key={`${result.type}-${result.label}-${index}`} onClick={() => choose(result.nav)}>
+                    {resultIcon(result.type)}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-bold text-foreground">{result.label}</span>
+                      <span className="mt-1 block truncate text-xs text-muted-foreground">{result.detail}</span>
+                    </span>
+                    <Badge variant="blue">{result.type}</Badge>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
             ))}
-            </CommandGroup>}
           </CommandList>
         </Command>
         <Button type="button" variant="secondary" className="w-full" onClick={() => onOpenChange(false)}>Close</Button>

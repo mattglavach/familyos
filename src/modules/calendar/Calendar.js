@@ -90,12 +90,20 @@ export function Calendar({ calendar = {}, onNavigate = () => {}, deps = {} }) {
     status: "disconnected",
     events: [],
     refresh: () => {},
+    checkConnection: () => {},
+    connect: () => {},
     ...calendar,
   };
   const status = normalizeCalendarStatus(safeCalendar);
   const events = Array.isArray(safeCalendar.events) ? safeCalendar.events.filter(Boolean) : [];
   const grouped = groupEvents(events, TODAY_STR);
-  const openSetup = () => onNavigate(status.actionTarget || "settings");
+  const startConnection = () => {
+    if (safeCalendar.canConnect === false) {
+      safeCalendar.checkConnection?.();
+      return;
+    }
+    safeCalendar.connect?.();
+  };
 
   return (
     <div style={S.screen} className="space-y-5">
@@ -107,9 +115,9 @@ export function Calendar({ calendar = {}, onNavigate = () => {}, deps = {} }) {
           </div>
           <div className="mt-1 text-2xl font-extrabold text-foreground">Today & Upcoming</div>
         </div>
-        <Button type="button" variant="secondary" size="sm" onClick={safeCalendar.refresh} loading={safeCalendar.loading} disabled={!status.canRefresh}>
+        <Button type="button" variant="secondary" size="sm" onClick={safeCalendar.refresh} loading={safeCalendar.loading} disabled={safeCalendar.loading}>
           <RefreshCw className="h-4 w-4" aria-hidden="true" />
-          Refresh
+          Refresh Status
         </Button>
       </div>
 
@@ -125,8 +133,20 @@ export function Calendar({ calendar = {}, onNavigate = () => {}, deps = {} }) {
             <StatusBadge status={status.tone}>{status.label}</StatusBadge>
           </div>
           <p className="text-sm leading-6 text-muted-foreground">{status.detail}</p>
-          {!safeCalendar.connected && (
-            <Button type="button" className="w-full" onClick={openSetup}>{status.actionLabel}</Button>
+          {safeCalendar.connected ? (
+            <Button type="button" className="w-full" variant="secondary" onClick={safeCalendar.refresh} loading={safeCalendar.loading}>
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
+              Refresh Status
+            </Button>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button type="button" onClick={startConnection} loading={safeCalendar.loading} disabled={safeCalendar.canConnect === false}>
+                {status.actionLabel}
+              </Button>
+              <Button type="button" variant="secondary" onClick={safeCalendar.checkConnection} loading={safeCalendar.loading}>
+                Check Connection
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -163,9 +183,9 @@ export function Calendar({ calendar = {}, onNavigate = () => {}, deps = {} }) {
           <EmptyStatePanel
             icon={<CalendarX className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />}
             title="Calendar is not connected"
-            detail={status.detail || "Connect Google Calendar in Settings to see household events here. You can still use Tasks and Home without a calendar."}
+            detail={status.detail || "Connect Google Calendar to see household events here. You can still use Tasks and Home without a calendar."}
             action={status.actionLabel}
-            onAction={openSetup}
+            onAction={startConnection}
             className="py-8"
           />
         </Card>

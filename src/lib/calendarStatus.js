@@ -52,8 +52,8 @@ export function normalizeCalendarStatus(calendar = {}) {
       tone: "warning",
       label: "Permission needed",
       detail: error || "Reconnect Google Calendar and approve calendar access.",
-      actionLabel: "Open Calendar Settings",
-      actionTarget: "settings",
+      actionLabel: "Connect Google Calendar",
+      actionTarget: "calendar",
       needsAttention: true,
       canRefresh: false,
     };
@@ -66,10 +66,10 @@ export function normalizeCalendarStatus(calendar = {}) {
       tone: "warning",
       label: setupRequired ? "Setup needed" : "Needs attention",
       detail: setupRequired
-        ? "Calendar setup is not available in this workspace yet."
-        : "Calendar needs attention. Refresh status or open Settings for the next step.",
-      actionLabel: "Open Calendar Settings",
-      actionTarget: "settings",
+        ? "Calendar connection is not available here yet."
+        : "Calendar needs attention. Refresh status or reconnect Google Calendar.",
+      actionLabel: "Connect Google Calendar",
+      actionTarget: "calendar",
       needsAttention: true,
       canRefresh: false,
     };
@@ -95,9 +95,9 @@ export function normalizeCalendarStatus(calendar = {}) {
       key: CALENDAR_STATUS.SETUP_REQUIRED,
       tone: "warning",
       label: "Setup needed",
-      detail: "Calendar setup is not available in this workspace yet.",
-      actionLabel: "Open Calendar Settings",
-      actionTarget: "settings",
+      detail: "Calendar connection is not available here yet.",
+      actionLabel: "Connect Google Calendar",
+      actionTarget: "calendar",
       needsAttention: true,
       canRefresh: false,
     };
@@ -108,8 +108,8 @@ export function normalizeCalendarStatus(calendar = {}) {
     tone: "neutral",
     label: "Not connected",
     detail: calendar.detail || "Google Calendar is not connected yet.",
-    actionLabel: "Open Calendar Settings",
-    actionTarget: "settings",
+    actionLabel: "Connect Google Calendar",
+    actionTarget: "calendar",
     needsAttention: true,
     canRefresh: false,
   };

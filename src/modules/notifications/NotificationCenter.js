@@ -58,9 +58,9 @@ function buildNotifications(tasks, calendarEvents, household, calendar) {
     notifications.push({ id: `event-today-${event.id || event.title}`, kind: "calendar", tone: "info", title: event.title || "Calendar event", detail: `${event.time || "All day"} today`, nav: "calendar" });
   });
   if (calendar.error) {
-    notifications.push({ id: "calendar-error", kind: "calendar", tone: "warning", title: "Calendar needs attention", detail: "Open Calendar settings to reconnect or finish setup.", nav: "settings" });
+    notifications.push({ id: "calendar-error", kind: "calendar", tone: "warning", title: "Calendar needs attention", detail: "Open Calendar to reconnect or check status.", nav: "calendar" });
   } else if (!calendar.connected) {
-    notifications.push({ id: "calendar-disconnected", kind: "calendar", tone: "neutral", title: "Calendar is disconnected", detail: "Connect Google Calendar in Settings.", nav: "settings" });
+    notifications.push({ id: "calendar-disconnected", kind: "calendar", tone: "neutral", title: "Calendar is disconnected", detail: "Connect Google Calendar from Calendar.", nav: "calendar" });
   }
   if (household.error) {
     notifications.push({ id: "household-error", kind: "security", tone: "warning", title: "Household needs attention", detail: "Open Settings to choose or refresh your household.", nav: "settings" });

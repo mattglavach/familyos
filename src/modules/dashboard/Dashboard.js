@@ -127,8 +127,8 @@ function SchedulePanel({
                   Connect Google Calendar
                 </Button>
               ) : (
-                <Button type="button" size="sm" onClick={() => onNavigate(status.actionTarget || "settings")}>
-                  {status.actionLabel || "Open Calendar Settings"}
+                <Button type="button" size="sm" onClick={() => onNavigate(status.actionTarget || "calendar")}>
+                  {status.actionLabel || "Open Calendar"}
                 </Button>
               )}
             </div>
@@ -239,10 +239,11 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
       events: secureCalendar.events,
       lastSyncedAt: secureCalendar.connection?.last_sync_at || secureCalendar.lastFetchedAt,
       sourceLabel: "Google Calendar",
-      detail: secureCalendar.error || "Connect Google Calendar in Settings to show your family schedule.",
+      detail: secureCalendar.error || "Connect Google Calendar to show your family schedule.",
       refresh: secureCalendar.fetchEvents,
+      checkConnection: secureCalendar.refresh,
       connect: connectSecureCalendar,
-      canConnect: !secureCalendar.error,
+      canConnect: true,
     }
     : {
       mode: "legacy",
@@ -253,8 +254,9 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
       events: gc.events,
       lastSyncedAt: gc.lastSyncedAt,
       sourceLabel: gc.sourceLabel || "Google Calendar",
-      detail: "Connect Google Calendar in Settings to show your family schedule.",
+      detail: "Connect Google Calendar to show your family schedule.",
       refresh: gc.refresh,
+      checkConnection: gc.refresh,
       connect: gc.signIn,
       canConnect: Boolean(gc.canConnect),
     };

@@ -314,10 +314,10 @@ class CalendarErrorBoundary extends Component {
         <Card>
           <CardContent className="space-y-3 p-4">
             <CardTitle>Calendar needs a refresh</CardTitle>
-            <CardDescription>Calendar could not open cleanly. Try again, or open Settings to check the calendar connection.</CardDescription>
+            <CardDescription>Calendar could not open cleanly. Try again, or open Calendar to check the connection.</CardDescription>
             <div className="flex flex-wrap gap-2">
               <Button type="button" onClick={this.retry}>Try again</Button>
-              <Button type="button" variant="secondary" onClick={this.props.onSettings}>Open Settings</Button>
+              <Button type="button" variant="secondary" onClick={this.props.onSettings}>Open Calendar</Button>
             </div>
           </CardContent>
         </Card>
@@ -359,6 +359,11 @@ function AuthenticatedApp({ auth }) {
     window.scrollTo({top:0,behavior:"auto"});
   }
 
+  async function connectSecureCalendar() {
+    const result = await secureCalendar.connect();
+    if (result?.authorizationUrl) window.location.assign(result.authorizationUrl);
+  }
+
   if (household.loading) return <GlobalLoading/>;
 
   const inviteToken = typeof window === "undefined" ? "" : new URLSearchParams(window.location.search).get("invite");
@@ -374,10 +379,11 @@ function AuthenticatedApp({ auth }) {
       events: secureCalendar.events,
       lastSyncedAt: secureCalendar.lastFetchedAt,
       sourceLabel: "Google Calendar",
-      detail: secureCalendar.error || "Connect Google Calendar in Settings to show your family schedule.",
+      detail: secureCalendar.error || "Connect Google Calendar to show your family schedule.",
       refresh: secureCalendar.fetchEvents,
-      connect: secureCalendar.connect,
-      canConnect: !secureCalendar.error,
+      checkConnection: secureCalendar.refresh,
+      connect: connectSecureCalendar,
+      canConnect: true,
     }
     : {
       mode: "legacy",
@@ -389,9 +395,10 @@ function AuthenticatedApp({ auth }) {
       lastSyncedAt: gc.lastSyncedAt,
       sourceLabel: gc.sourceLabel || "Google Calendar",
       detail: APP_CONFIG.googleClientId
-        ? "Connect Google Calendar in Settings to show your family schedule."
-        : "Calendar setup is not available in this workspace yet.",
+        ? "Connect Google Calendar to show your family schedule."
+        : "Calendar connection is not available here yet.",
       refresh: gc.refresh,
+      checkConnection: gc.refresh,
       connect: gc.signIn,
       canConnect: Boolean(gc.canConnect),
     };
@@ -416,7 +423,7 @@ function AuthenticatedApp({ auth }) {
         formatMoneyShort,maintStatus,useTable,calcRetirementProjection,getChemRecommendations,
       }}/>} 
       {tab==="calendar"&&(
-        <CalendarErrorBoundary resetKey={`${headerCalendar.status}-${headerCalendar.connected}-${headerCalendar.loading}`} onRetry={() => switchTab("calendar")} onSettings={() => switchTab("settings")}>
+        <CalendarErrorBoundary resetKey={`${headerCalendar.status}-${headerCalendar.connected}-${headerCalendar.loading}`} onRetry={() => switchTab("calendar")} onSettings={() => switchTab("calendar")}>
           <Calendar calendar={headerCalendar} onNavigate={switchTab} deps={{
             TODAY_STR,formatDateFull,
           }}/>
