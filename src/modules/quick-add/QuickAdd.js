@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check, ChevronLeft, ClipboardList, Droplets, ListChecks, ShoppingCart, Utensils } from "lucide-react";
 import { TODAY_STR } from "../../lib/dates";
-import { sb } from "../../lib/supabase";
 import { formatUserFacingError } from "../../lib/userFacingErrors";
 import { useHousehold } from "../../context/HouseholdContext";
 import { roleCanManage } from "../../hooks/useHouseholdCollaboration";
@@ -24,6 +23,9 @@ export function QuickAdd({onNavigate, openSignal = 0}){
   const mealPlans = useTable("meal_plans", "updated_at");
   const recipes = useTable("recipes", "updated_at");
   const mealAssignments = useTable("meal_assignments", "meal_date", true);
+  const poolReadings = useTable("pool_readings", "logged_at");
+  const poolTreatments = useTable("pool_treatments", "logged_at");
+  const poolMaintenance = useTable("pool_maintenance", "date");
   const household = useHousehold();
   const [form,setForm] = useState({});
   const [mode,setMode] = useState(null);
@@ -107,8 +109,7 @@ export function QuickAdd({onNavigate, openSignal = 0}){
     const loggedAt = new Date(`${d}T${timeStr}:00`).toISOString();
     const row={date:d,logged_at:loggedAt,test_source:form.test_source||"Manual",ph:num(form.ph),free_chlorine:fc,cc:num(form.cc),salt:num(form.salt),cya:num(form.cya),alkalinity:num(form.alkalinity),calcium_hardness:num(form.calcium_hardness),water_temp:num(form.water_temp),filter_pressure:num(form.filter_pressure),swg_setting:num(form.swg_setting),pump_hours:num(form.pump_hours),recent_weather_notes:form.recent_weather_notes||"",recent_heavy_usage:!!form.recent_heavy_usage,notes:form.notes||""};
     try{
-      const{error}=await sb.from("pool_readings").insert(row);
-      if(error){setSaveError(formatUserFacingError(error, "Pool reading could not be saved right now."));return;}
+      await poolReadings.insert(row);
       close();setToast({message:"Pool reading saved."});onNavigate("pool");
     }catch(e){setSaveError(formatUserFacingError(e, "Pool reading could not be saved right now."));}
   }
@@ -118,8 +119,7 @@ export function QuickAdd({onNavigate, openSignal = 0}){
     const d = form.date||TODAY_STR;
     const row={date:d,logged_at:new Date(`${d}T${form.time||new Date().toTimeString().slice(0,5)}:00`).toISOString(),muriatic_acid_oz:num(form.muriatic_acid_oz),salt_lbs:num(form.salt_lbs),cya_oz:num(form.cya_oz),liquid_chlorine_oz:num(form.liquid_chlorine_oz),swg_pct_before:num(form.swg_pct_before),swg_pct_after:num(form.swg_pct_after),water_clarity:form.water_clarity||"",notes:form.notes||""};
     try{
-      const{error}=await sb.from("pool_treatments").insert(row);
-      if(error){setSaveError(formatUserFacingError(error, "Pool chemical entry could not be saved right now."));return;}
+      await poolTreatments.insert(row);
       close();setToast({message:"Pool chemical entry saved."});onNavigate("pool");
     }catch(e){setSaveError(formatUserFacingError(e, "Pool chemical entry could not be saved right now."));}
   }
@@ -127,8 +127,7 @@ export function QuickAdd({onNavigate, openSignal = 0}){
     setSaveError(null);
     const row={date:form.date||TODAY_STR,type:form.type||kind,water_clarity:form.water_clarity||"",notes:form.notes||""};
     try{
-      const{error}=await sb.from("pool_maintenance").insert(row);
-      if(error){setSaveError(formatUserFacingError(error, "Pool entry could not be saved right now."));return;}
+      await poolMaintenance.insert(row);
       close();setToast({message:"Pool entry saved."});onNavigate("pool");
     }catch(e){setSaveError(formatUserFacingError(e, "Pool entry could not be saved right now."));}
   }

@@ -118,6 +118,8 @@ drop policy if exists "familyos_user_all" on public.pool_readings;
 drop policy if exists "familyos_user_all" on public.pool_treatments;
 drop policy if exists "familyos_user_all" on public.pool_maintenance;
 drop policy if exists "familyos_user_all" on public.pool_schedule;
+drop policy if exists "familyos_user_all" on public.pool_equipment;
+drop policy if exists "familyos_user_all" on public.pool_action_audits;
 
 drop policy if exists "pool_readings_member_select" on public.pool_readings;
 create policy "pool_readings_member_select" on public.pool_readings for select to authenticated using (
@@ -143,8 +145,29 @@ create policy "pool_maintenance_member_select" on public.pool_maintenance for se
 );
 drop policy if exists "pool_maintenance_manager_all" on public.pool_maintenance;
 create policy "pool_maintenance_manager_all" on public.pool_maintenance for all to authenticated
-using (public.familyos_has_household_role(household_id, array['owner', 'adult']))
-with check (user_id = auth.uid() and public.familyos_has_household_role(household_id, array['owner', 'adult']));
+using (
+  public.familyos_has_household_role(household_id, array['owner', 'adult'])
+  and (
+    equipment_id is null
+    or exists (
+      select 1 from public.pool_equipment pe
+      where pe.id = equipment_id
+        and pe.household_id = pool_maintenance.household_id
+    )
+  )
+)
+with check (
+  user_id = auth.uid()
+  and public.familyos_has_household_role(household_id, array['owner', 'adult'])
+  and (
+    equipment_id is null
+    or exists (
+      select 1 from public.pool_equipment pe
+      where pe.id = equipment_id
+        and pe.household_id = pool_maintenance.household_id
+    )
+  )
+);
 
 drop policy if exists "pool_schedule_member_select" on public.pool_schedule;
 create policy "pool_schedule_member_select" on public.pool_schedule for select to authenticated using (
@@ -152,8 +175,29 @@ create policy "pool_schedule_member_select" on public.pool_schedule for select t
 );
 drop policy if exists "pool_schedule_manager_all" on public.pool_schedule;
 create policy "pool_schedule_manager_all" on public.pool_schedule for all to authenticated
-using (public.familyos_has_household_role(household_id, array['owner', 'adult']))
-with check (user_id = auth.uid() and public.familyos_has_household_role(household_id, array['owner', 'adult']));
+using (
+  public.familyos_has_household_role(household_id, array['owner', 'adult'])
+  and (
+    equipment_id is null
+    or exists (
+      select 1 from public.pool_equipment pe
+      where pe.id = equipment_id
+        and pe.household_id = pool_schedule.household_id
+    )
+  )
+)
+with check (
+  user_id = auth.uid()
+  and public.familyos_has_household_role(household_id, array['owner', 'adult'])
+  and (
+    equipment_id is null
+    or exists (
+      select 1 from public.pool_equipment pe
+      where pe.id = equipment_id
+        and pe.household_id = pool_schedule.household_id
+    )
+  )
+);
 
 drop policy if exists "pool_equipment_member_select" on public.pool_equipment;
 create policy "pool_equipment_member_select" on public.pool_equipment for select to authenticated using (
@@ -170,5 +214,26 @@ create policy "pool_action_audits_member_select" on public.pool_action_audits fo
 );
 drop policy if exists "pool_action_audits_manager_all" on public.pool_action_audits;
 create policy "pool_action_audits_manager_all" on public.pool_action_audits for all to authenticated
-using (public.familyos_has_household_role(household_id, array['owner', 'adult']))
-with check (user_id = auth.uid() and public.familyos_has_household_role(household_id, array['owner', 'adult']));
+using (
+  public.familyos_has_household_role(household_id, array['owner', 'adult'])
+  and (
+    reading_id is null
+    or exists (
+      select 1 from public.pool_readings pr
+      where pr.id = reading_id
+        and pr.household_id = pool_action_audits.household_id
+    )
+  )
+)
+with check (
+  user_id = auth.uid()
+  and public.familyos_has_household_role(household_id, array['owner', 'adult'])
+  and (
+    reading_id is null
+    or exists (
+      select 1 from public.pool_readings pr
+      where pr.id = reading_id
+        and pr.household_id = pool_action_audits.household_id
+    )
+  )
+);
