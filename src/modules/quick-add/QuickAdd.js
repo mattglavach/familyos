@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check, ChevronLeft, ClipboardList, Droplets, ListChecks, ShoppingCart, Utensils } from "lucide-react";
 import { TODAY_STR } from "../../lib/dates";
-import { sb } from "../../lib/supabase";
 import { formatUserFacingError } from "../../lib/userFacingErrors";
 import { useHousehold } from "../../context/HouseholdContext";
 import { roleCanManage } from "../../hooks/useHouseholdCollaboration";
@@ -24,6 +23,9 @@ export function QuickAdd({onNavigate, openSignal = 0}){
   const mealPlans = useTable("meal_plans", "updated_at");
   const recipes = useTable("recipes", "updated_at");
   const mealAssignments = useTable("meal_assignments", "meal_date", true);
+  const poolReadings = useTable("pool_readings", "logged_at");
+  const poolTreatments = useTable("pool_treatments", "logged_at");
+  const poolMaintenance = useTable("pool_maintenance", "date");
   const household = useHousehold();
   const [form,setForm] = useState({});
   const [mode,setMode] = useState(null);
@@ -41,7 +43,10 @@ export function QuickAdd({onNavigate, openSignal = 0}){
     {id:"meal-assignment", icon:Utensils, label:"Meal Assignment", status:"Ready", enabled:true, accentClass:"border-l-sky-400", iconClass:"text-sky-300"},
     {id:"life-item", icon:ListChecks, label:"List Item", status:"Ready", enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
     {id:"life-list", icon:ListChecks, label:"Life List", status:"Ready", enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
-    {id:"pool", icon:Droplets, label:"Pool Reading", status:"Ready", enabled:true, accentClass:"border-l-primary", iconClass:"text-primary"},
+    {id:"pool", icon:Droplets, label:"Pool Test", status:"Ready", enabled:true, accentClass:"border-l-primary", iconClass:"text-primary"},
+    {id:"pool-treatment", icon:Droplets, label:"Chemical Added", status:"Ready", enabled:true, accentClass:"border-l-primary", iconClass:"text-primary"},
+    {id:"pool-maintenance", icon:Droplets, label:"Maintenance Completed", status:"Ready", enabled:true, accentClass:"border-l-primary", iconClass:"text-primary"},
+    {id:"pool-note", icon:Droplets, label:"Pool Note", status:"Ready", enabled:true, accentClass:"border-l-primary", iconClass:"text-primary"},
   ];
 
   const CATS = ["Pool","Yard","Home","College","Finance","Personal","Work"];
@@ -102,12 +107,29 @@ export function QuickAdd({onNavigate, openSignal = 0}){
     const d = form.date||TODAY_STR;
     const timeStr = form.time || new Date().toTimeString().slice(0,5);
     const loggedAt = new Date(`${d}T${timeStr}:00`).toISOString();
-    const row={date:d,logged_at:loggedAt,ph:num(form.ph),free_chlorine:fc,cc:num(form.cc),salt:num(form.salt),cya:num(form.cya),alkalinity:num(form.alkalinity),calcium_hardness:num(form.calcium_hardness),water_temp:num(form.water_temp),filter_pressure:num(form.filter_pressure),swg_setting:num(form.swg_setting),pump_hours:num(form.pump_hours),notes:form.notes||""};
+    const row={date:d,logged_at:loggedAt,test_source:form.test_source||"Manual",ph:num(form.ph),free_chlorine:fc,cc:num(form.cc),salt:num(form.salt),cya:num(form.cya),alkalinity:num(form.alkalinity),calcium_hardness:num(form.calcium_hardness),water_temp:num(form.water_temp),filter_pressure:num(form.filter_pressure),swg_setting:num(form.swg_setting),pump_hours:num(form.pump_hours),recent_weather_notes:form.recent_weather_notes||"",recent_heavy_usage:!!form.recent_heavy_usage,notes:form.notes||""};
     try{
-      const{error}=await sb.from("pool_readings").insert(row);
-      if(error){setSaveError(formatUserFacingError(error, "Pool reading could not be saved right now."));return;}
+      await poolReadings.insert(row);
       close();setToast({message:"Pool reading saved."});onNavigate("pool");
     }catch(e){setSaveError(formatUserFacingError(e, "Pool reading could not be saved right now."));}
+  }
+  async function savePoolTreatment(){
+    setSaveError(null);
+    function num(v){return(v===undefined||v===null||v==='') ? null : +v;}
+    const d = form.date||TODAY_STR;
+    const row={date:d,logged_at:new Date(`${d}T${form.time||new Date().toTimeString().slice(0,5)}:00`).toISOString(),muriatic_acid_oz:num(form.muriatic_acid_oz),salt_lbs:num(form.salt_lbs),cya_oz:num(form.cya_oz),liquid_chlorine_oz:num(form.liquid_chlorine_oz),swg_pct_before:num(form.swg_pct_before),swg_pct_after:num(form.swg_pct_after),water_clarity:form.water_clarity||"",notes:form.notes||""};
+    try{
+      await poolTreatments.insert(row);
+      close();setToast({message:"Pool chemical entry saved."});onNavigate("pool");
+    }catch(e){setSaveError(formatUserFacingError(e, "Pool chemical entry could not be saved right now."));}
+  }
+  async function savePoolMaintenance(kind="Maintenance Completed"){
+    setSaveError(null);
+    const row={date:form.date||TODAY_STR,type:form.type||kind,water_clarity:form.water_clarity||"",notes:form.notes||""};
+    try{
+      await poolMaintenance.insert(row);
+      close();setToast({message:"Pool entry saved."});onNavigate("pool");
+    }catch(e){setSaveError(formatUserFacingError(e, "Pool entry could not be saved right now."));}
   }
   async function saveLifeList(){
     setSaveError(null);
@@ -480,6 +502,10 @@ export function QuickAdd({onNavigate, openSignal = 0}){
               <FormGroup><Label>Time</Label><Input type="time" value={form.time||new Date().toTimeString().slice(0,5)} onChange={e=>setForm(p=>({...p,time:e.target.value}))}/></FormGroup>
             </FormRow>
             <FormGroup>
+              <Label>Test Source</Label>
+              <SegmentedControl value={form.test_source||"Manual"} options={[{value:"Taylor Kit",label:"Taylor Kit"},{value:"Pool Store",label:"Pool Store"},{value:"Manual",label:"Manual"}]} ariaLabel="Pool test source" onValueChange={test_source=>setForm(p=>({...p,test_source}))}/>
+            </FormGroup>
+            <FormGroup>
               <div className="flex items-center justify-between gap-3">
                 <Label className="mb-0">Free Chlorine</Label>
                 <SegmentedControl value={form._drops?"drops":"ppm"} options={[{value:"ppm",label:"ppm"},{value:"drops",label:"K-2006"}]} ariaLabel="Free chlorine entry mode" onValueChange={v=>setForm(p=>({...p,_drops:v==="drops"}))}/>
@@ -502,6 +528,44 @@ export function QuickAdd({onNavigate, openSignal = 0}){
             </FormRow>
             <FormGroup><Label>Notes</Label><Input value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/></FormGroup>
             <Button type="button" className="w-full" onClick={savePool}>Save Reading</Button>
+            {saveError&&<FormError>{saveError}</FormError>}
+            <Button type="button" variant="secondary" className="w-full" onClick={()=>setMode(null)}><ChevronLeft aria-hidden="true"/>Back</Button>
+          </FormSection>
+        </>}
+
+        {mode==="pool-treatment"&&<>
+          <FormSection>
+            <FormRow>
+              <FormGroup><Label>Date</Label><Input type="date" value={form.date||TODAY_STR} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/></FormGroup>
+              <FormGroup><Label>Time</Label><Input type="time" value={form.time||new Date().toTimeString().slice(0,5)} onChange={e=>setForm(p=>({...p,time:e.target.value}))}/></FormGroup>
+            </FormRow>
+            <FormRow>
+              <FormGroup><Label>Muriatic Acid (oz)</Label><Input type="number" value={form.muriatic_acid_oz||""} onChange={e=>setForm(p=>({...p,muriatic_acid_oz:e.target.value}))}/></FormGroup>
+              <FormGroup><Label>Salt (lb)</Label><Input type="number" value={form.salt_lbs||""} onChange={e=>setForm(p=>({...p,salt_lbs:e.target.value}))}/></FormGroup>
+            </FormRow>
+            <FormRow>
+              <FormGroup><Label>CYA (oz)</Label><Input type="number" value={form.cya_oz||""} onChange={e=>setForm(p=>({...p,cya_oz:e.target.value}))}/></FormGroup>
+              <FormGroup><Label>Chlorine (oz)</Label><Input type="number" value={form.liquid_chlorine_oz||""} onChange={e=>setForm(p=>({...p,liquid_chlorine_oz:e.target.value}))}/></FormGroup>
+            </FormRow>
+            <FormRow>
+              <FormGroup><Label>SWG Before</Label><Input type="number" value={form.swg_pct_before||""} onChange={e=>setForm(p=>({...p,swg_pct_before:e.target.value}))}/></FormGroup>
+              <FormGroup><Label>SWG After</Label><Input type="number" value={form.swg_pct_after||""} onChange={e=>setForm(p=>({...p,swg_pct_after:e.target.value}))}/></FormGroup>
+            </FormRow>
+            <FormGroup><Label>Water Clarity</Label><Input value={form.water_clarity||""} onChange={e=>setForm(p=>({...p,water_clarity:e.target.value}))}/></FormGroup>
+            <FormGroup><Label>Notes</Label><Input value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/></FormGroup>
+            <Button type="button" className="w-full" onClick={savePoolTreatment}>Save Chemical Entry</Button>
+            {saveError&&<FormError>{saveError}</FormError>}
+            <Button type="button" variant="secondary" className="w-full" onClick={()=>setMode(null)}><ChevronLeft aria-hidden="true"/>Back</Button>
+          </FormSection>
+        </>}
+
+        {(mode==="pool-maintenance"||mode==="pool-note")&&<>
+          <FormSection>
+            <FormGroup><Label>Date</Label><Input type="date" value={form.date||TODAY_STR} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/></FormGroup>
+            <FormGroup><Label>Type</Label><Input value={form.type||""} placeholder={mode==="pool-note"?"Pool note, weather note, pool party":"Filter cleaning, SWG cleaning, robot maintenance"} onChange={e=>setForm(p=>({...p,type:e.target.value}))}/></FormGroup>
+            <FormGroup><Label>Water Clarity</Label><Input value={form.water_clarity||""} onChange={e=>setForm(p=>({...p,water_clarity:e.target.value}))}/></FormGroup>
+            <FormGroup><Label>Notes</Label><Input value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/></FormGroup>
+            <Button type="button" className="w-full" onClick={()=>savePoolMaintenance(mode==="pool-note"?"Pool Note":"Maintenance Completed")}>Save Pool Entry</Button>
             {saveError&&<FormError>{saveError}</FormError>}
             <Button type="button" variant="secondary" className="w-full" onClick={()=>setMode(null)}><ChevronLeft aria-hidden="true"/>Back</Button>
           </FormSection>

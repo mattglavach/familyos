@@ -44,6 +44,11 @@ create table if not exists public.pool_readings (
   swg_setting numeric,
   filter_pressure numeric,
   pump_hours numeric,
+  test_source text not null default 'Manual',
+  recent_weather_notes text not null default '',
+  recent_heavy_usage boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
   notes text default ''
 );
 
@@ -51,6 +56,10 @@ create table if not exists public.pool_maintenance (
   id text primary key default gen_random_uuid()::text,
   date date not null,
   type text not null,
+  equipment_id text,
+  water_clarity text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
   notes text default ''
 );
 
@@ -74,20 +83,64 @@ create table if not exists public.pool_treatments (
   cleaned_filter boolean not null default false,
   cleaned_cell boolean not null default false,
   checked_flow boolean not null default false,
+  water_clarity text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
   notes text default ''
 );
 
 create table if not exists public.pool_schedule (
   id text primary key default gen_random_uuid()::text,
   title text not null,
+  equipment_id text,
+  maintenance_type text not null default 'Pool reminder',
   last_completed date not null,
   interval_days integer not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
   notes text default ''
 );
 
 create table if not exists public.pool_settings (
   id text primary key default gen_random_uuid()::text,
   filter_clean_baseline_psi numeric
+);
+
+create table if not exists public.pool_equipment (
+  id text primary key default gen_random_uuid()::text,
+  household_id uuid,
+  user_id uuid default auth.uid(),
+  type text not null,
+  name text not null,
+  brand text not null default '',
+  model text not null default '',
+  install_date date,
+  last_maintenance date,
+  next_maintenance date,
+  warranty_notes text not null default '',
+  manual_link text not null default '',
+  notes text not null default '',
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.pool_action_audits (
+  id text primary key default gen_random_uuid()::text,
+  household_id uuid,
+  user_id uuid default auth.uid(),
+  reading_id text references public.pool_readings(id) on delete set null,
+  recommendation_id text not null,
+  action text not null,
+  explanation text not null default '',
+  confidence text not null default 'Medium',
+  safety_note text not null default '',
+  status text not null default 'recommended',
+  confirmed_at timestamptz,
+  completed_at timestamptz,
+  notes text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
 create table if not exists public.college_schools (
@@ -241,7 +294,8 @@ declare
 begin
   foreach table_name in array array[
     'notes','tasks','home_maintenance','pool_readings','pool_maintenance',
-    'pool_treatments','pool_schedule','pool_settings','college_schools',
+    'pool_treatments','pool_schedule','pool_settings','pool_equipment',
+    'pool_action_audits','college_schools',
     'college_test_plan','college_essays','college_deadlines','sat_scores',
     'college_savings','college_goal','retirement_accounts',
     'retirement_assumptions','mortgage','other_debt','net_worth_snapshots',

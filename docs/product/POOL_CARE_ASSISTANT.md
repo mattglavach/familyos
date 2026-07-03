@@ -7,14 +7,14 @@ The product question is:
 
 > What does my pool need, why does it matter, and what should I do next?
 
-This is a future Home Platform flagship submodule. Release 1.3.2 documents the direction only. It does not add Pool code, database tables, migrations, UI, integrations, or AI behavior.
+Release 1.4.0 implements the Pool Care Assistant foundation as the first Home Platform module. It adds a Pool action workspace, rule-based recommendations, water test logging, treatment history, equipment tracking, maintenance reminders, Home awareness, Quick Add, Universal Search, and schema foundations.
 
 ## Product Position
 Pool belongs under the future Home Platform because it combines home equipment, seasonal care, safety, maintenance history, and future connected-device context.
 
 The assistant should help a household owner make safe, understandable care decisions. It should explain readings in plain English, recommend the next action, and track what changed over time.
 
-## Initial Future Scope
+## Release 1.4.0 Scope
 
 ### Action Engine
 Inputs:
@@ -40,6 +40,10 @@ Outputs:
 - Confidence level.
 - Plain-English explanation.
 - Safety note.
+
+The Release 1.4.0 action engine is rule-based and configurable in `src/modules/pool/actionEngine.js`. It does not call an AI platform, dose chemicals, control equipment, or make silent changes.
+
+Release 1.4.0 validation confirmed the common action scenarios: high pH recommends acid and retest guidance, low FC recommends sanitizer/SWG guidance, low salt recommends salt guidance, no current test recommends retesting, and overdue maintenance recommends maintenance action. Recommendations include action, amount when applicable, explanation, timing, retest guidance, confidence, and safety note.
 
 ### Treatment History
 Track:
@@ -112,12 +116,12 @@ Future Home signals should stay compact:
 
 Home should summarize only. Pool remains the action workspace.
 
-## Future Quick Add
-Do not expose these capture targets until the Pool module is ready:
-- Pool reading.
-- Chemical added.
-- Maintenance action.
-- Pool note.
+## Quick Add
+Release 1.4.0 exposes these capture targets:
+- Pool Test.
+- Chemical Added.
+- Maintenance Completed.
+- Pool Note.
 
 ## Future Integrations
 Future integrations may include:
@@ -129,11 +133,14 @@ Future integrations may include:
 
 Each integration requires separate product, security, data, and validation review before implementation.
 
-## Deferred In Release 1.3.2
-- Pool module code.
-- Pool tables or migrations.
-- Pool UI changes.
-- Chemical calculators.
-- AI recommendations.
-- External integrations.
-- Photo upload, OCR, or pool store parsing.
+## Deferred After Release 1.4.0
+- Pentair live integration.
+- Home Assistant integration.
+- Weather integration.
+- Taylor digital import.
+- Pool Store test-result import.
+- Image upload, OCR, or pool-store parsing.
+- AI Pool Coach runtime.
+- Automatic chemical dosing.
+- Automatic equipment control.
+- Desktop mouse-accessible swipe-card row edit behavior remains a shared UI follow-up before Release 1.4.0 should be treated as merge-ready.

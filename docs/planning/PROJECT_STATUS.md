@@ -1,10 +1,10 @@
 # Project Status
 
 ## Current Version
-1.3.2
+1.4.0
 
 ## Current State
-Release 1.0 core MVP through Release 1.3.1 Planning Platform polish are complete. Release 1.3.2 Calendar/Product Cleanup plus Pool Care Assistant planning is in progress on branch `release/1.3.2-calendar-product-pool-planning`.
+Release 1.0 core MVP through Release 1.3.2 Calendar/Product Cleanup are complete. Release 1.4.0 Pool Care Assistant Foundation is validation-complete on branch `release/1.4.0-pool-care-assistant`.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -72,12 +72,14 @@ Release 1.0 core MVP through Release 1.3.1 Planning Platform polish are complete
 - Release 1.3 disposable/local validation passed for schema bootstrap, ordered migration chain, Meal Planning table/index/constraint/RLS checks, owner/adult/viewer/cross-household behavior, authenticated browser smoke, 390px mobile sanity checks, no console warnings/errors, and product cleanup behavior
 - Release 1.3.1 keeps the Planning Platform action surfaces consistent: Calendar status/setup actions route to Calendar, Home and Notifications drill Calendar attention into Calendar, Universal Search is grouped by surface, and Product Owner cleanup decisions remain enforced
 - Release 1.3.2 improves Calendar recoverability, Home order, Tasks default visibility/sorting, task form grouping, and documents Pool Care Assistant as a future Home Platform submodule without adding Pool implementation
+- Release 1.4.0 adds the Pool Care Assistant Foundation with a Pool action dashboard, water test logging, rule-based recommendations, treatment history, equipment inventory, maintenance reminders, Quick Add support, Universal Search support, and a Supabase migration for Pool equipment/action audit architecture
+- Release 1.4.0 validation passed against disposable/local Supabase only for migration/RLS, action engine scenarios, authenticated Pool browser smoke, Quick Add/Search persistence, adult/viewer UI permissions, responsive desktop/tablet/390px checks, and console checks
 
 ## In Progress
-- Release 1.3.2 final validation, browser smoke, and release closeout.
+- Release 1.4.0 final checks, documentation closeout, and commit grouping.
 
 ## Next
-- Complete Release 1.3.2 merge and release tagging after owner review.
+- Merge-review Release 1.4.0 after final local checks and commit.
 - Configure Release 0.8 server OAuth environment values in Vercel before removing the legacy calendar fallback.
 - Decide whether to remove the legacy browser calendar fallback after deployed validation.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
@@ -92,6 +94,9 @@ Release 1.0 core MVP through Release 1.3.1 Planning Platform polish are complete
 - Life Lists requires the Release 1.1 migration and refreshed Supabase/PostgREST schema cache in each environment before durable persistence is available.
 - Shopping & Pantry requires the Release 1.2 migration and refreshed Supabase/PostgREST schema cache in each environment before durable persistence is available.
 - Meal Planning requires the Release 1.3 migration and refreshed Supabase/PostgREST schema cache in each environment before durable persistence is available.
+- Pool Care Assistant requires the Release 1.4 migration and refreshed Supabase/PostgREST schema cache before equipment, action audit, and expanded Pool fields persist durably.
+- Release 1.4.0 Pool Quick Add persistence requires the household-aware helper path added during validation.
+- Shared swipe-card row actions now have visible mouse/keyboard fallback controls and preserve swipe behavior. Monitor visual density as more modules adopt the pattern.
 - Google Calendar token storage remains browser-local only for older legacy fallback sessions. Release 0.8C no longer writes new `gc_token` values, and the server route does not expose tokens to the frontend. Deployed validation still requires server env configuration and Google Cloud redirect URI setup.
 - Legacy browser metadata keys for Release 0.6B settings, family members, and task metadata may remain on devices until local browser data is reset, but they are no longer the normal persistence path.
 - Six-item bottom navigation should be checked on physical mobile devices before broad family use.
@@ -126,7 +131,7 @@ Release 1.0 core MVP through Release 1.3.1 Planning Platform polish are complete
 - Release 1.3 keeps nutrition tracking, Health platform integration, AI recommendations, recipe APIs, barcode/OCR, external recipe databases, cost optimization, restaurant integrations, comments, ratings, and social features deferred.
 - Release 1.3 validation used disposable/local Supabase only. Production was not touched.
 - Release 1.3.1 adds no database migration. Validation remains local/staging only; production should not be touched during polish validation.
-- Release 1.3.2 adds no database migration and no Pool runtime surface. Pool Care Assistant remains product planning only until a future implementation release.
+- Release 1.4.0 keeps Pool recommendations rule-based and human-confirmed. AI Coach, live integrations, automatic dosing, and automatic equipment control remain deferred.
 
 ## Last Updated
-July 2, 2026
+July 3, 2026

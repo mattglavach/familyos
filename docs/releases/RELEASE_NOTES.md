@@ -1,5 +1,46 @@
 # Release Notes
 
+## Release 1.4.0
+
+### Version
+1.4.0
+
+### Date
+2026-07-03
+
+### Summary
+Release 1.4.0 implements the Pool Care Assistant Foundation as the first Home Platform module. Pool now answers what needs attention, why it matters, what to do next, and when to retest. The release is a decision-support foundation, not an automation or live-integration release.
+
+### Features
+- Added a Pool dashboard with overall health, last tested, water temperature, FC, pH, salt, and the next recommended action.
+- Added rule-based Pool recommendations with action, amount, timing, retest guidance, explanation, confidence, and safety note.
+- Added water test logging for FC, CC, pH, TA, CYA, salt, water temperature, source, weather notes, heavy usage, SWG %, pump runtime, and notes.
+- Added treatment history across tests, chemical additions, SWG changes, maintenance, notes, water clarity, weather, and party/heavy-use notes.
+- Added Pool equipment tracking for pump, SWG, filter, heater, robot cleaner, Betta skimmer, solar cover, and test kit.
+- Added recurring Pool maintenance reminders and completion logging.
+- Added Pool Quick Add targets for Pool Test, Chemical Added, Maintenance Completed, and Pool Note.
+- Added Pool tests, treatments, maintenance, equipment, and notes to Universal Search.
+
+### Database Changes
+- Added `supabase/migrations/20260703_release_1_4_pool_care_assistant.sql`.
+- Added Pool reading context fields, treatment water clarity, maintenance equipment linkage, schedule metadata, `pool_equipment`, and `pool_action_audits`.
+- Added household-aware RLS for Pool readings, treatments, maintenance, reminders, equipment, and action audits so viewers are read-only and owner/adult roles manage Pool operating data.
+- Tightened Pool RLS validation findings so maintenance reminders, schedules, and action audits cannot link to another household's equipment or reading rows.
+
+### Deferred
+- Pentair live integration, Home Assistant, Weather integration, Taylor digital import, Pool Store import, image upload/OCR, automatic chemical dosing, automatic equipment control, and AI platform behavior remain deferred.
+
+### Validation
+- Disposable/local Supabase validation passed for full schema bootstrap, ordered migration chain through `20260703_release_1_4_pool_care_assistant.sql`, migration re-run behavior, Pool tables/columns, `pool_equipment`, `pool_action_audits`, indexes, triggers, grants, RLS enablement, and intended policies.
+- RLS matrix validation passed for owner/adult Pool writes, viewer read-only behavior, cross-household denial, Pool tests/history/equipment/actions household isolation, linked-record spoofing denial, and confirmed action audit visibility.
+- Authenticated browser smoke passed for adult Pool creation flows, temporary owner-role writable UI, temporary viewer-role read-only UI, Home Pool card drill-in, Pool dashboard, Pool Test logging, recommendations, confirmed treatment/history, Chemical Added, Maintenance Completed, Pool Note, equipment add, reminder creation, Quick Add Pool targets, Universal Search results, desktop/tablet/390px mobile no-overflow checks, and clean console logs.
+- Action Engine validation passed for high pH, low FC, low salt, stale/no-test, and maintenance-due scenarios with action, explanation, timing, confidence, retest/safety guidance, and no automatic dosing.
+- Fixed validation issue where Pool Quick Add used raw Supabase inserts and missed household context.
+- Fixed the final Pool validation blocker by making shared row edit/delete actions usable by desktop mouse, keyboard, and swipe/touch. Pool equipment edit now validates end-to-end across desktop and mobile paths.
+
+### Recommendation
+Ready to merge after final lint, build, diff-check, and commit complete.
+
 ## Release 1.3.2
 
 ### Version

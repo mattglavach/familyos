@@ -1,7 +1,7 @@
 # Current Sprint
 
 ## Sprint Goal
-Complete Release 1.3.2 Calendar/Product Cleanup plus Pool Care Assistant planning without adding Pool code, schema, UI, integrations, AI, or unrelated modules.
+Complete Release 1.4.0 Pool Care Assistant Foundation as the first Home Platform module without adding Pentair, Home Assistant, AI platform behavior, automatic dosing, automatic equipment control, Finance, or Health work.
 
 ## Active Items
 - [x] Add documentation structure
@@ -133,6 +133,13 @@ Complete Release 1.3.2 Calendar/Product Cleanup plus Pool Care Assistant plannin
 - [x] Reorder Home dashboard to priorities, insights, schedule, tasks, and planning awareness
 - [x] Default Tasks to All with Due Date sorting and move secondary filters behind More Filters
 - [x] Add Pool Care Assistant future product planning docs without Pool implementation
+- [x] Begin Release 1.4.0 Pool Care Assistant Foundation branch
+- [x] Add Pool rule-based action engine
+- [x] Add Pool dashboard, test logging, recommendations, treatment history, equipment, and maintenance reminders
+- [x] Add Pool Quick Add and Universal Search support
+- [x] Add Pool equipment/action audit schema migration
+- [x] Validate Release 1.4.0 migration and RLS against disposable/local Supabase
+- [x] Complete Release 1.4.0 browser smoke for desktop, tablet, and 390px mobile
 
 ## Blockers
 
@@ -145,6 +152,8 @@ Complete Release 1.3.2 Calendar/Product Cleanup plus Pool Care Assistant plannin
 - Release 1.2 has no active validation blocker after disposable/local migration/RLS checks, authenticated browser smoke, mobile sanity checks, lint, build, and diff-check.
 - Release 1.3 has no active validation blocker after disposable/local migration/RLS checks, authenticated browser smoke, mobile sanity checks, lint, build, and diff-check.
 - Release 1.3.1 has no active validation blocker after lint, build, diff-check, browser smoke, mobile sanity checks, and console validation.
+- Release 1.4.0 migration/RLS validation and authenticated browser smoke are complete against disposable/local Supabase only.
+- Release 1.4.0 desktop swipe-card row edit risk is resolved; final lint/build/diff-check and commit remain before handoff.
 
 ## Notes
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.
