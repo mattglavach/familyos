@@ -20,6 +20,28 @@ Record decisions that shape the product.
 
 ## Decisions
 
+### July 3, 2026
+
+### Decision
+Implement Pool Care Assistant with a local rule-based action engine and human-confirmed action audit history.
+
+### Context
+Release 1.4.0 makes Pool the first Home Platform module. The product goal is decision support: explain what the pool needs, why it matters, what amount/action is recommended, and when to retest. The release explicitly excludes AI platform behavior, Pentair/Home Assistant live integrations, automatic dosing, and automatic equipment control.
+
+### Options Considered
+- Keep the legacy Pool chemistry tracker and defer recommendations.
+- Add an AI Pool Coach immediately.
+- Add a deterministic rule engine with future AI-ready audit/context fields.
+
+### Decision Rationale
+A rule engine is inspectable, testable, and safer for chemical recommendations than an unvalidated AI runtime. Recommendation audit rows preserve traceability for confirmed actions and give a future AI Coach structured context without allowing silent automation.
+
+### Tradeoffs
+Release 1.4.0 recommendations are intentionally conservative and generic. Exact dosing still depends on product labels and local pool assumptions. Live equipment data, weather feeds, and AI explanations remain deferred until each integration has its own security and validation review.
+
+### Follow-up
+Validate the Pool migration/RLS in disposable/local Supabase, complete browser smoke for owner/adult/viewer flows, and design any future AI Coach or live integrations as separate releases.
+
 ### July 2, 2026
 
 ### Decision

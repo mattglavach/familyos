@@ -17,7 +17,7 @@
 - [x] Settings
 
 ## Phase 2 - High-Value Modules
-- [ ] Pool
+- [x] Pool
 - [ ] Finance
 - [x] Tasks
 - [ ] Garden
@@ -90,6 +90,20 @@
 - [x] Implement Release 1.3 Meal Planning with recipes, meal plans, meal assignments, pantry-aware Shopping review, Home insight, Quick Add, Search, and RLS-backed schema.
 - [x] Implement Release 1.3.1 Planning Platform polish for Calendar routing, Home awareness, grouped Search, Product Owner cleanup decisions, and validation documentation.
 - [x] Implement Release 1.3.2 Calendar/Product Cleanup plus Pool Care Assistant planning without adding Pool code, schema, or UI.
+- [x] Implement Release 1.4.0 Pool Care Assistant Foundation with rule-based recommendations, treatment history, equipment, maintenance, Home awareness, Quick Add, Search, and Pool schema foundations.
+
+## Release 1.4.0 Scope
+- [x] Add Pool Dashboard with overall health, latest readings, and next recommended action.
+- [x] Add water test logging for FC, CC, pH, TA, CYA, salt, temperature, source, SWG, pump runtime, weather notes, heavy usage, and notes.
+- [x] Add configurable rule-based Action Engine with amount, timing, retest guidance, explanation, confidence, and safety note.
+- [x] Add treatment history timeline for readings, chemicals, SWG changes, maintenance, weather/party notes, and water clarity.
+- [x] Add equipment inventory for pump, SWG, filter, heater, robot cleaner, Betta skimmer, solar cover, and test kit.
+- [x] Add recurring maintenance reminders for filter, SWG, pump, robot, Betta, reagents, season opening, and season closing.
+- [x] Add Pool Quick Add targets and Universal Search results.
+- [x] Add Pool equipment/action audit database foundation.
+- [ ] Validate migration/RLS against disposable or local Supabase before production.
+- [ ] Complete browser smoke across desktop, tablet, and 390px mobile.
+- [ ] Keep Pentair live integration, Home Assistant, AI platform, automatic dosing, automatic equipment control, Finance, and Health deferred.
 
 ## Release 1.3.2 Scope
 - [x] Treat Calendar disconnected, setup-required, cancelled, permission-denied, unverified-app, and expired-token states as normal recoverable states.

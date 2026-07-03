@@ -61,6 +61,15 @@ Users can access records where their profile belongs to the same household.
 - Release 1.3 validation used disposable/local Supabase only and confirmed owner, adult, viewer, personal owner-only, household/shared read, archived visible rows, and cross-household denial paths.
 - Release 1.3 does not add nutrition tracking, Health platform access, AI recommendations, recipe APIs, barcode/OCR, external recipe databases, comments, ratings, or social features.
 
+## Release 1.4 Pool Care Assistant
+- `pool_readings`, `pool_treatments`, `pool_maintenance`, `pool_schedule`, `pool_equipment`, and `pool_action_audits` have RLS enabled.
+- Active household members can read Pool records for their household.
+- Owners and adults can create, update, and delete Pool tests, treatments, maintenance, reminders, equipment, and action audit rows.
+- Viewers are read-only in the Pool UI and are denied Pool writes by RLS unless a future release explicitly adds configurable viewer write access.
+- Cross-household Pool access is denied.
+- Recommendation audit rows exist to track human-confirmed recommendations and completed actions. They do not authorize automatic dosing, equipment control, or AI-initiated changes.
+- Release 1.4 validation must confirm owner, adult, viewer, and non-member behavior against disposable/local Supabase before production use.
+
 ## Future
 - Adult-only permissions
 - Child-safe views

@@ -168,6 +168,24 @@ Stores pool chemistry readings.
 ### pool_maintenance
 Stores pool maintenance actions.
 
+### Release 1.4 Pool Care Assistant
+
+Release 1.4.0 adds `supabase/migrations/20260703_release_1_4_pool_care_assistant.sql`.
+
+`pool_readings` now includes test source, recent weather notes, recent heavy usage, and timestamps in addition to chemistry readings. Supported test sources are Taylor Kit, Pool Store, Manual, and future-only Pentair/Home Assistant values.
+
+`pool_treatments` now includes water clarity and timestamps so chemical additions, SWG changes, and related observations can appear in the treatment timeline.
+
+`pool_maintenance` now supports optional `equipment_id`, water clarity, timestamps, and Pool notes such as weather or party context.
+
+`pool_schedule` now supports optional equipment linkage and maintenance type metadata for recurring reminders such as filter cleaning, SWG cleaning, pump inspection, robot maintenance, Betta cleaning, reagent replacement, season opening, and season closing.
+
+`pool_equipment` stores Pool equipment inventory. Rows include `household_id`, `user_id`, type, name, brand, model, install date, last maintenance, next maintenance, warranty notes, manual link, notes, active state, and timestamps.
+
+`pool_action_audits` stores recommendation audit history. Rows include `household_id`, `user_id`, optional `reading_id`, recommendation id, action, explanation, confidence, safety note, status, confirmed/completed timestamps, notes, and timestamps. This table supports future AI Coach traceability without adding AI runtime behavior in Release 1.4.0.
+
+Release 1.4.0 validation requirement: apply the migration against disposable/local Supabase and validate owner, adult, viewer, and cross-household access before production use.
+
 ### garden_plants
 Stores plants and garden layout.
 
