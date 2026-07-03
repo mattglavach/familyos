@@ -118,13 +118,15 @@ Release 1.2 guidance: Shopping is an action workspace for shopping lists and sim
 ## Meal Planning
 Purpose: Meals, recipes, family preferences, grocery planning, and weekly food decisions.
 
-Current status: Future.
+Current status: Active MVP.
 
-Release target: Deferred from Release 1.0.
+Release target: Release 1.3.
 
-Dependencies: Shopping, pantry, recipes, inventory, family preferences.
+Dependencies: Household context, Recipes schema, Recipe Ingredients schema, Meal Plans schema, Meal Assignments schema, Shopping Lists, Shopping Items, Pantry Items, Quick Add, Universal Search, Home awareness, permissions.
 
-Future enhancements: Recipe library, meal calendar, grocery generation, nutrition preferences.
+Future enhancements: Nutrition tracking, Health platform integration, AI recommendations, recipe APIs, external recipe databases, cost optimization, grocery optimization, family preferences, and richer calendar views.
+
+Release 1.3 guidance: Meal Planning is an action workspace for recipes, weekly planning, assignments, pantry-aware ingredient review, and confirmed Shopping list generation. Do not implement nutrition tracking, Health workflows, AI recommendations, barcode/OCR, external recipe APIs, cost optimization, restaurant integrations, comments, ratings, or social features inside this release.
 
 ## Life Lists
 Purpose: Books, movies, gifts, goals, bucket lists, travel ideas, and personal/family wish lists.

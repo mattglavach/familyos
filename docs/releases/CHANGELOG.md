@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Implemented Release 1.3 Meal Planning: added meal plans, recipes, recipe categories, recipe ingredients, meal assignments, pantry-aware missing ingredient review, reviewed Shopping list generation with duplicate prevention, Quick Add targets, Home awareness, Universal Search, seed fallback, and household-aware Supabase RLS.
+- Completed Release 1.3 validation against local/disposable Supabase only: base schema bootstrap, ordered migration chain through Meal Planning, table/index/constraint/RLS catalog checks, owner/adult/viewer/cross-household RLS matrix, authenticated browser smoke, 390px mobile sanity, console checks, and product cleanup validation.
 - Implemented Release 1.2 Shopping & Pantry: added household/shared/personal shopping lists, shopping items, pantry inventory, category/status/filter/sort/favorite/archive workflows, Quick Add targets, Home awareness, Universal Search, seed fallback, and household-aware Supabase RLS.
 - Completed Release 1.2 validation against local/disposable Supabase only: base schema bootstrap, ordered migration chain through Shopping, table/index/constraint/RLS catalog checks, owner/adult/viewer/cross-household RLS matrix, authenticated browser smoke, 390px mobile sanity, console checks, and local adult/viewer UI permission checks.
 - Completed Release 1.1 validation against disposable/local Supabase only: full schema and migration chain, Life Lists RLS behavior, authenticated browser smoke, 390px mobile sanity, console checks, and product cleanup for Quick Add and Today's Priorities.

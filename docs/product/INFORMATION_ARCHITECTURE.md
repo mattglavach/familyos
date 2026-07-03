@@ -43,7 +43,7 @@ Inside More:
 - College
 - Shopping
 - Life Lists
-- Meal Planning (future)
+- Meal Planning
 - Documents (future)
 - Settings
 
@@ -82,10 +82,10 @@ Life Lists cover books, movies, gifts, goals, bucket lists, ideas, places, activ
 
 Release 1.1 promotes Life Lists into More as a generic lifestyle planning module. Home should show only compact Life Lists awareness and drill-downs; the module remains the action workspace.
 
-## Meal Planning (Future)
-Meal Planning will cover meal plans, recipes, pantry, grocery generation, and family preferences.
+## Meal Planning
+Meal Planning covers meal plans, recipes, pantry-aware ingredient review, reviewed Shopping list generation, and weekly household food decisions.
 
-It is future because it depends on shopping, recipe, and richer inventory design.
+Release 1.3 promotes Meal Planning into More as the third Planning Platform module. Home should show only compact Meal Planning awareness and drill-downs; the module remains the action workspace. Nutrition tracking, Health workflows, AI recommendations, external recipe APIs, barcode/OCR, comments, ratings, and social features remain deferred.
 
 ## Documents (Future)
 Documents will cover document metadata, household records, warranties, school forms, medical documents, and future secure storage decisions.

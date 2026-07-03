@@ -48,6 +48,19 @@ Users can access records where their profile belongs to the same household.
 - Release 1.2 validation used disposable/local Supabase only and confirmed owner, adult, viewer, personal owner-only, household/shared read, pantry read-only viewer behavior, archived item behavior, and cross-household denial paths.
 - Release 1.2 does not add recipes, meal planning, barcode scanning, OCR, AI, external grocery APIs, recommendation engines, or public sharing.
 
+## Release 1.3 Meal Planning
+- `meal_plans`, `recipe_categories`, `recipes`, `recipe_ingredients`, and `meal_assignments` have RLS enabled.
+- Active household members can read household/shared meal plans, recipes, ingredients, and assignments.
+- Personal meal plans and recipes are visible only to `owner_user_id`; ingredients and assignments inherit access from the parent recipe or meal plan.
+- Owners and adults can create, update, and delete household/shared meal plans, recipes, ingredients, and assignments.
+- Any active signed-in member can create personal meal plans and recipes they own, and manage assignments/ingredients under those personal records.
+- Viewers cannot manage household/shared meal planning records, but can create and manage their own personal meal planning records.
+- Recipe categories are readable by active members and manageable by owners/adults only.
+- Cross-household meal plan, recipe, ingredient, assignment, and category access is denied.
+- Archived records remain readable when their parent visibility allows access; archive state is a product filter, not a security boundary.
+- Release 1.3 validation used disposable/local Supabase only and confirmed owner, adult, viewer, personal owner-only, household/shared read, archived visible rows, and cross-household denial paths.
+- Release 1.3 does not add nutrition tracking, Health platform access, AI recommendations, recipe APIs, barcode/OCR, external recipe databases, comments, ratings, or social features.
+
 ## Future
 - Adult-only permissions
 - Child-safe views

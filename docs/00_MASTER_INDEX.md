@@ -46,6 +46,7 @@ This folder is the operating manual for Family OS.
 - docs/architecture/AUTHENTICATION.md
 - docs/architecture/ROUTING.md
 - docs/architecture/DEPLOYMENT.md
+- docs/architecture/MEAL_PLANNING.md
 - docs/architecture/ARCHITECTURE_DECISIONS.md
 - docs/architecture/decisions/ADR_TEMPLATE.md
 
