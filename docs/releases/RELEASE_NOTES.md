@@ -36,9 +36,10 @@ Release 1.4.0 implements the Pool Care Assistant Foundation as the first Home Pl
 - Authenticated browser smoke passed for adult Pool creation flows, temporary owner-role writable UI, temporary viewer-role read-only UI, Home Pool card drill-in, Pool dashboard, Pool Test logging, recommendations, confirmed treatment/history, Chemical Added, Maintenance Completed, Pool Note, equipment add, reminder creation, Quick Add Pool targets, Universal Search results, desktop/tablet/390px mobile no-overflow checks, and clean console logs.
 - Action Engine validation passed for high pH, low FC, low salt, stale/no-test, and maintenance-due scenarios with action, explanation, timing, confidence, retest/safety guidance, and no automatic dosing.
 - Fixed validation issue where Pool Quick Add used raw Supabase inserts and missed household context.
+- Fixed the final Pool validation blocker by making shared row edit/delete actions usable by desktop mouse, keyboard, and swipe/touch. Pool equipment edit now validates end-to-end across desktop and mobile paths.
 
 ### Recommendation
-Not ready until the remaining desktop swipe-card row edit risk is resolved or accepted for follow-up.
+Ready to merge after final lint, build, diff-check, and commit complete.
 
 ## Release 1.3.2
 

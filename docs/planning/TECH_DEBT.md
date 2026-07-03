@@ -27,10 +27,10 @@ Use this document to track durable technical debt. Do not use chat history as th
 - Notes: Pentair, Home Assistant, AI Coach runtime, automatic dosing, automatic equipment control, imports, OCR, and exact product-label dosing remain separate future work.
 
 ### Swipe Card Desktop Row Actions
-- Status: Open
-- Impact: Pool equipment edit is supported through the shared swipe-card row action pattern, but desktop mouse activation of covered swipe actions needs a clearer accessible open gesture or alternate visible action presentation.
-- Trigger: Before Release 1.4.0 merge readiness or the next shared row-action UI hardening pass.
-- Notes: Validation confirmed Pool equipment add and mobile/responsive rendering. The attempted shared mouse-swipe patch was blocked by tooling approval, so this remains explicit debt.
+- Status: Resolved in Release 1.4.0.
+- Impact: Shared swipe-card row actions now include visible focusable Edit/Delete buttons and mouse-drag support while preserving the original swipe tray.
+- Trigger: Monitor future row-action surfaces for density and visual fit as more modules adopt the pattern.
+- Notes: Validation confirmed Pool equipment edit by desktop mouse, keyboard activation, and mobile swipe/touch path, plus Pool History fallback actions.
 
 ### Full Household-Scoped Module RLS
 - Status: Open

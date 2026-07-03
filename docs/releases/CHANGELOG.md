@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Fixed the final Release 1.4.0 validation blocker: shared swipe-card row actions now provide visible, focusable Edit/Delete controls plus mouse-drag support while preserving touch swipe behavior; Pool equipment edit validates on desktop mouse, keyboard, and mobile swipe paths.
 - Completed Release 1.4.0 Pool Care Assistant validation against disposable/local Supabase only: full schema bootstrap, ordered migration chain, idempotency behavior, Pool catalog checks, owner/adult/viewer/cross-household RLS matrix, action audit spoofing denial, authenticated browser smoke, Quick Add/Search persistence, responsive desktop/tablet/390px checks, clean console logs, and action-engine scenario checks.
 - Fixed Release 1.4.0 validation issues: Pool Quick Add now uses household-aware table helpers, Pool compatibility policies are removed from new 1.4 tables, and Pool maintenance/schedule/action audit RLS now blocks linked records from other households.
 - Implemented Release 1.4.0 Pool Care Assistant Foundation: new Pool action workspace, rule-based recommendations, water test logging, treatment timeline, equipment inventory, recurring maintenance reminders, Home awareness, Quick Add capture paths, Universal Search results, seed fallback, and Supabase migration for Pool equipment/action audit fields.

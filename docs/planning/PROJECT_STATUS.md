@@ -4,7 +4,7 @@
 1.4.0
 
 ## Current State
-Release 1.0 core MVP through Release 1.3.2 Calendar/Product Cleanup are complete. Release 1.4.0 Pool Care Assistant Foundation is validation-complete on branch `release/1.4.0-pool-care-assistant`, with one remaining desktop row-edit risk before merge readiness.
+Release 1.0 core MVP through Release 1.3.2 Calendar/Product Cleanup are complete. Release 1.4.0 Pool Care Assistant Foundation is validation-complete on branch `release/1.4.0-pool-care-assistant`.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -76,10 +76,10 @@ Release 1.0 core MVP through Release 1.3.2 Calendar/Product Cleanup are complete
 - Release 1.4.0 validation passed against disposable/local Supabase only for migration/RLS, action engine scenarios, authenticated Pool browser smoke, Quick Add/Search persistence, adult/viewer UI permissions, responsive desktop/tablet/390px checks, and console checks
 
 ## In Progress
-- Release 1.4.0 final checks, documentation closeout, commit grouping, and desktop row-edit risk disposition.
+- Release 1.4.0 final checks, documentation closeout, and commit grouping.
 
 ## Next
-- Resolve or explicitly accept the Release 1.4.0 desktop swipe-card row edit risk before merge review.
+- Merge-review Release 1.4.0 after final local checks and commit.
 - Configure Release 0.8 server OAuth environment values in Vercel before removing the legacy calendar fallback.
 - Decide whether to remove the legacy browser calendar fallback after deployed validation.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
@@ -96,7 +96,7 @@ Release 1.0 core MVP through Release 1.3.2 Calendar/Product Cleanup are complete
 - Meal Planning requires the Release 1.3 migration and refreshed Supabase/PostgREST schema cache in each environment before durable persistence is available.
 - Pool Care Assistant requires the Release 1.4 migration and refreshed Supabase/PostgREST schema cache before equipment, action audit, and expanded Pool fields persist durably.
 - Release 1.4.0 Pool Quick Add persistence requires the household-aware helper path added during validation.
-- Desktop row edit actions in shared swipe cards require a mouse-accessible open gesture or alternate action presentation before Release 1.4.0 should be treated as merge-ready.
+- Shared swipe-card row actions now have visible mouse/keyboard fallback controls and preserve swipe behavior. Monitor visual density as more modules adopt the pattern.
 - Google Calendar token storage remains browser-local only for older legacy fallback sessions. Release 0.8C no longer writes new `gc_token` values, and the server route does not expose tokens to the frontend. Deployed validation still requires server env configuration and Google Cloud redirect URI setup.
 - Legacy browser metadata keys for Release 0.6B settings, family members, and task metadata may remain on devices until local browser data is reset, but they are no longer the normal persistence path.
 - Six-item bottom navigation should be checked on physical mobile devices before broad family use.
