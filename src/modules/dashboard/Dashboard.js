@@ -10,6 +10,7 @@ import {
   ListChecks,
   ListTodo,
   ShoppingCart,
+  Utensils,
   Waves,
 } from "lucide-react";
 import { StatusBadge } from "../../components/ui/badge";
@@ -217,6 +218,10 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
   const shoppingLists = useTable("shopping_lists", "updated_at");
   const shoppingItems = useTable("shopping_items", "updated_at");
   const pantryItems = useTable("pantry_items", "updated_at");
+  const mealPlans = useTable("meal_plans", "updated_at");
+  const recipes = useTable("recipes", "updated_at");
+  const mealAssignments = useTable("meal_assignments", "meal_date", true);
+  const recipeIngredients = useTable("recipe_ingredients", "sort_order", true);
 
   async function connectSecureCalendar() {
     const result = await secureCalendar.connect();
@@ -266,6 +271,10 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
     shoppingLists,
     shoppingItems,
     pantryItems,
+    mealPlans,
+    recipes,
+    mealAssignments,
+    recipeIngredients,
   ].some(table => table.loading);
 
   const assump = assumptions.data[0];
@@ -394,11 +403,25 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
   const shoppingColor = lowPantryItems.length > 0 ? COLORS.amber : neededShoppingItems.length > 0 ? COLORS.green : COLORS.slate;
   const shoppingLabel = lowPantryItems.length > 0 ? `${lowPantryItems.length} low` : neededShoppingItems.length > 0 ? `${neededShoppingItems.length} needed` : "Add lists";
   const shoppingDetail = lowPantryItems[0]?.name ? `${lowPantryItems[0].name} low` : neededShoppingItems[0]?.name || favoriteShoppingLists[0]?.name || "Plan the next shop";
+  const recipeById = Object.fromEntries(recipes.data.map(recipe => [recipe.id, recipe]));
+  const todayMeals = mealAssignments.data.filter(item => !item.archived && item.meal_date === TODAY_STR);
+  const upcomingMeals = mealAssignments.data.filter(item => !item.archived && next7Days.includes(item.meal_date) && item.meal_date !== TODAY_STR).slice(0, 3);
+  const mealRecipeIds = new Set([...todayMeals, ...upcomingMeals].map(item => item.recipe_id).filter(Boolean));
+  const mealMissingCount = recipeIngredients.data.filter(ingredient => {
+    if (!mealRecipeIds.has(ingredient.recipe_id) || ingredient.optional) return false;
+    const pantryItem = pantryItems.data.find(item => item.id === ingredient.pantry_item_id || String(item.name || "").toLowerCase() === String(ingredient.ingredient || "").toLowerCase());
+    return !pantryItem || pantryItem.archived || pantryItem.reorder_flag || Number(pantryItem.current_quantity || 0) <= 0;
+  }).length;
+  const favoriteMealPlans = mealPlans.data.filter(plan => !plan.archived && plan.favorite).slice(0, 2);
+  const mealColor = mealMissingCount > 0 ? COLORS.amber : todayMeals.length > 0 ? COLORS.green : COLORS.slate;
+  const mealLabel = mealMissingCount > 0 ? `${mealMissingCount} missing` : todayMeals.length > 0 ? `${todayMeals.length} today` : "Plan meals";
+  const mealDetail = todayMeals[0] ? (recipeById[todayMeals[0].recipe_id]?.title || todayMeals[0].title) : favoriteMealPlans[0]?.name || "Build this week's meals";
 
   const modules = [
     { module: "Pool", color: poolColor, label: poolLabel, detail: poolDetail, nav: "pool", icon: Waves },
     { module: "Tasks", color: tasksColor, label: tasksLabel, detail: tasksDetail, nav: "tasks", icon: ListTodo },
     { module: "Shopping", color: shoppingColor, label: shoppingLabel, detail: shoppingDetail, nav: "shopping", icon: ShoppingCart },
+    { module: "Meal Planning", color: mealColor, label: mealLabel, detail: mealDetail, nav: "meal-planning", icon: Utensils },
     { module: "Finance", color: finColor, label: finLabel, detail: finDetail, nav: "finance", icon: DollarSign },
     { module: "College", color: collegeColor, label: collegeLabel, detail: collegeDetail, nav: "college", icon: GraduationCap },
     { module: "Life Lists", color: lifeListColor, label: lifeListLabel, detail: lifeListDetail, nav: "life-lists", icon: ListChecks },
@@ -425,6 +448,7 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
     }),
     ...deadlines.data.filter(deadline => deadline.completed).slice(0, 1).map(deadline => ({ date: deadline.due_date, text: `College: ${deadline.title}`, color: COLORS.green })),
     ...neededShoppingItems.slice(0, 2).map(item => ({ date: item.updated_at || item.created_at, text: `Shopping: ${item.name}`, color: COLORS.green })),
+    ...mealAssignments.data.filter(item => !item.archived).slice(0, 2).map(item => ({ date: item.updated_at || item.created_at || item.meal_date, text: `Meal: ${recipeById[item.recipe_id]?.title || item.title}`, color: COLORS.blue })),
     ...recentLifeItems.slice(0, 2).map(item => ({ date: item.updated_at || item.created_at, text: `Life Lists: ${item.title}`, color: COLORS.purple })),
   ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 4);
   const lifeListInsight = [
@@ -435,6 +459,11 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
     ...lowPantryItems.map(item => ({ text: item.name, color: COLORS.amber, nav: "shopping", detail: "Pantry low" })),
     ...neededShoppingItems.map(item => ({ text: item.name, color: item.priority === "high" ? COLORS.red : COLORS.green, nav: "shopping", detail: item.category || "Needed" })),
     ...favoriteShoppingLists.map(list => ({ text: list.name, color: list.color || COLORS.green, nav: "shopping", detail: "Favorite list" })),
+  ].slice(0, 5);
+  const mealInsight = [
+    ...todayMeals.map(item => ({ text: recipeById[item.recipe_id]?.title || item.title, color: COLORS.green, nav: "meal-planning", detail: item.meal_type ? item.meal_type.replace(/^\w/, letter => letter.toUpperCase()) : "Today" })),
+    ...upcomingMeals.map(item => ({ text: recipeById[item.recipe_id]?.title || item.title, color: COLORS.blue, nav: "meal-planning", detail: formatDate(item.meal_date) })),
+    ...favoriteMealPlans.map(plan => ({ text: plan.name, color: COLORS.purple, nav: "meal-planning", detail: "Favorite plan" })),
   ].slice(0, 5);
 
   return (
@@ -565,6 +594,32 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
               detail="Create a list or pantry item when the household needs something."
               action="Open Shopping"
               onAction={() => onNavigate("shopping")}
+              className="py-8"
+            />
+          </Card>
+        )}
+      </section>
+
+      <section>
+        <SectionHeader title="Meal Planning" count={mealInsight.length} tone="blue" action={<Button type="button" variant="ghost" size="xs" onClick={() => onNavigate("meal-planning")}>View all</Button>} />
+        {isLoading ? (
+          <SectionSkeleton rows={2} />
+        ) : mealInsight.length ? (
+          <Card>
+            <CardContent className="px-4 py-2">
+              {mealInsight.map((item, index) => (
+                <ActionRow key={`${item.text}-${index}`} item={item} showDivider={index < mealInsight.length - 1} onNavigate={onNavigate} />
+              ))}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <EmptyStatePanel
+              icon={<Utensils className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />}
+              title="No meals planned yet"
+              detail="Create a meal plan and add recipes for the week."
+              action="Open Meal Planning"
+              onAction={() => onNavigate("meal-planning")}
               className="py-8"
             />
           </Card>

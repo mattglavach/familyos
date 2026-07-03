@@ -12,6 +12,7 @@ export const TITLES = {
   college: "College Planning",
   finance: "Finance",
   "life-lists": "Life Lists",
+  "meal-planning": "Meal Planning",
   shopping: "Shopping",
   more: "More",
   pool: "Pool",

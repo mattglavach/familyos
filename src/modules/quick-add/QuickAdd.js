@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, ChevronLeft, ClipboardList, Droplets, ListChecks, ShoppingCart } from "lucide-react";
+import { Check, ChevronLeft, ClipboardList, Droplets, ListChecks, ShoppingCart, Utensils } from "lucide-react";
 import { TODAY_STR } from "../../lib/dates";
 import { sb } from "../../lib/supabase";
 import { formatUserFacingError } from "../../lib/userFacingErrors";
@@ -21,6 +21,9 @@ export function QuickAdd({onNavigate, openSignal = 0}){
   const lifeItems = useTable("life_list_items", "updated_at");
   const shoppingLists = useTable("shopping_lists", "updated_at");
   const shoppingItems = useTable("shopping_items", "updated_at");
+  const mealPlans = useTable("meal_plans", "updated_at");
+  const recipes = useTable("recipes", "updated_at");
+  const mealAssignments = useTable("meal_assignments", "meal_date", true);
   const household = useHousehold();
   const [form,setForm] = useState({});
   const [mode,setMode] = useState(null);
@@ -33,6 +36,9 @@ export function QuickAdd({onNavigate, openSignal = 0}){
     {id:"task", icon:ClipboardList, label:"Task", status:"Ready", enabled:true, accentClass:"border-l-violet-400", iconClass:"text-violet-300"},
     {id:"shopping-item", icon:ShoppingCart, label:"Shopping Item", status:"Ready", enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
     {id:"shopping-list", icon:ShoppingCart, label:"Shopping List", status:"Ready", enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
+    {id:"recipe", icon:Utensils, label:"Recipe", status:"Ready", enabled:true, accentClass:"border-l-sky-400", iconClass:"text-sky-300"},
+    {id:"meal-plan", icon:Utensils, label:"Meal Plan", status:"Ready", enabled:true, accentClass:"border-l-sky-400", iconClass:"text-sky-300"},
+    {id:"meal-assignment", icon:Utensils, label:"Meal Assignment", status:"Ready", enabled:true, accentClass:"border-l-sky-400", iconClass:"text-sky-300"},
     {id:"life-item", icon:ListChecks, label:"List Item", status:"Ready", enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
     {id:"life-list", icon:ListChecks, label:"Life List", status:"Ready", enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
     {id:"pool", icon:Droplets, label:"Pool Reading", status:"Ready", enabled:true, accentClass:"border-l-primary", iconClass:"text-primary"},
@@ -59,6 +65,12 @@ export function QuickAdd({onNavigate, openSignal = 0}){
     if (list.archived) return false;
     const visibility = list.visibility || "household";
     if (visibility === "personal") return list.owner_user_id === household.user?.id;
+    return canManageSharedLists && ["household", "shared"].includes(visibility);
+  });
+  const writableMealPlans = mealPlans.data.filter(plan => {
+    if (plan.archived) return false;
+    const visibility = plan.visibility || "household";
+    if (visibility === "personal") return plan.owner_user_id === household.user?.id;
     return canManageSharedLists && ["household", "shared"].includes(visibility);
   });
 
@@ -140,6 +152,39 @@ export function QuickAdd({onNavigate, openSignal = 0}){
       await shoppingLists.update(form.list_id,{updated_at:new Date().toISOString()});
       close();setToast({message:"Shopping item added."});onNavigate("shopping");
     }catch(e){setSaveError(formatUserFacingError(e, "Shopping item could not be saved right now."));}
+  }
+  async function saveRecipe(){
+    setSaveError(null);
+    if(!form.title){setSaveError("Recipe title is required");return;}
+    if(!canManageSharedLists && (form.visibility||"personal") !== "personal"){setSaveError("Your role can create personal recipes only.");return;}
+    const row={title:form.title,description:form.notes||"",category:form.category||"",meal_type:form.meal_type||"dinner",prep_time_minutes:0,cook_time_minutes:0,servings:0,difficulty:"easy",instructions:"",notes:form.notes||"",favorite:form.favorite||false,tags:(form.tags||"").split(",").map(tag=>tag.trim()).filter(Boolean),visibility:form.visibility||(canManageSharedLists?"household":"personal"),archived:false,sort_order:recipes.data.length+1,updated_at:new Date().toISOString()};
+    try{
+      await recipes.insert(row);
+      close();setToast({message:"Recipe created."});onNavigate("meal-planning");
+    }catch(e){setSaveError(formatUserFacingError(e, "Recipe could not be saved right now."));}
+  }
+  async function saveMealPlan(){
+    setSaveError(null);
+    if(!form.title){setSaveError("Meal plan name is required");return;}
+    if(!canManageSharedLists && (form.visibility||"personal") !== "personal"){setSaveError("Your role can create personal plans only.");return;}
+    const row={name:form.title,description:form.notes||"",plan_type:form.plan_type||"weekly",start_date:form.start_date||TODAY_STR,end_date:form.end_date||null,visibility:form.visibility||(canManageSharedLists?"household":"personal"),favorite:form.favorite||false,archived:false,notes:form.notes||"",sort_order:mealPlans.data.length+1,updated_at:new Date().toISOString()};
+    try{
+      await mealPlans.insert(row);
+      close();setToast({message:"Meal plan created."});onNavigate("meal-planning");
+    }catch(e){setSaveError(formatUserFacingError(e, "Meal plan could not be saved right now."));}
+  }
+  async function saveMealAssignment(){
+    setSaveError(null);
+    if(!form.plan_id){setSaveError("Choose a meal plan first.");return;}
+    if(!writableMealPlans.some(plan=>plan.id===form.plan_id)){setSaveError("Choose a meal plan you can update.");return;}
+    if(!form.recipe_id&&!form.title){setSaveError("Choose a recipe or add a meal title.");return;}
+    const recipe=recipes.data.find(item=>item.id===form.recipe_id);
+    const row={meal_plan_id:form.plan_id,recipe_id:form.recipe_id||null,title:form.title||recipe?.title||"",meal_date:form.meal_date||TODAY_STR,meal_type:form.meal_type||"dinner",notes:form.notes||"",favorite:form.favorite||false,archived:false,updated_at:new Date().toISOString()};
+    try{
+      await mealAssignments.insert(row);
+      await mealPlans.update(form.plan_id,{updated_at:new Date().toISOString()});
+      close();setToast({message:"Meal assigned."});onNavigate("meal-planning");
+    }catch(e){setSaveError(formatUserFacingError(e, "Meal assignment could not be saved right now."));}
   }
 
   return(<>
@@ -301,6 +346,92 @@ export function QuickAdd({onNavigate, openSignal = 0}){
               <Input placeholder="Brand, size, store note..." value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
             </FormGroup>
             <Button type="button" className="w-full" onClick={saveShoppingItem}>Add Shopping Item</Button>
+            {saveError&&<FormError>{saveError}</FormError>}
+            <Button type="button" variant="secondary" className="w-full" onClick={()=>setMode(null)}><ChevronLeft aria-hidden="true"/>Back</Button>
+          </FormSection>
+        </>}
+
+        {mode==="recipe"&&<>
+          <FormSection>
+            <FormGroup>
+              <Label>Recipe Name</Label>
+              <Input placeholder="e.g. Chicken tacos" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
+            </FormGroup>
+            <FormGroup>
+              <Label>Meal</Label>
+              <SegmentedControl value={form.meal_type||"dinner"} options={[{value:"breakfast",label:"Breakfast"},{value:"lunch",label:"Lunch"},{value:"dinner",label:"Dinner"},{value:"snack",label:"Snack"},{value:"other",label:"Other"}]} ariaLabel="Recipe meal type" onValueChange={meal_type=>setForm(p=>({...p,meal_type}))}/>
+            </FormGroup>
+            <FormGroup>
+              <Label>Category</Label>
+              <Input placeholder="Family, pasta, grill..." value={form.category||""} onChange={e=>setForm(p=>({...p,category:e.target.value}))}/>
+            </FormGroup>
+            <FormGroup>
+              <Label>Visibility</Label>
+              <SegmentedControl value={form.visibility||(canManageSharedLists?"household":"personal")} options={(canManageSharedLists?[{value:"household",label:"Household"},{value:"personal",label:"Personal"},{value:"shared",label:"Shared"}]:[{value:"personal",label:"Personal"}])} ariaLabel="Recipe visibility" onValueChange={visibility=>setForm(p=>({...p,visibility}))}/>
+            </FormGroup>
+            <FormGroup>
+              <Label>Tags</Label>
+              <Input placeholder="weeknight, family" value={form.tags||""} onChange={e=>setForm(p=>({...p,tags:e.target.value}))}/>
+            </FormGroup>
+            <FormGroup>
+              <Label>Notes</Label>
+              <Input placeholder="Optional details" value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/>
+            </FormGroup>
+            <Button type="button" className="w-full" onClick={saveRecipe}>Create Recipe</Button>
+            {saveError&&<FormError>{saveError}</FormError>}
+            <Button type="button" variant="secondary" className="w-full" onClick={()=>setMode(null)}><ChevronLeft aria-hidden="true"/>Back</Button>
+          </FormSection>
+        </>}
+
+        {mode==="meal-plan"&&<>
+          <FormSection>
+            <FormGroup>
+              <Label>Name</Label>
+              <Input placeholder="e.g. This Week" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
+            </FormGroup>
+            <FormGroup>
+              <Label>Type</Label>
+              <SegmentedControl value={form.plan_type||"weekly"} options={[{value:"weekly",label:"Weekly"},{value:"monthly",label:"Monthly"},{value:"custom",label:"Custom"}]} ariaLabel="Meal plan type" onValueChange={plan_type=>setForm(p=>({...p,plan_type}))}/>
+            </FormGroup>
+            <FormRow>
+              <FormGroup><Label>Start</Label><Input type="date" value={form.start_date||TODAY_STR} onChange={e=>setForm(p=>({...p,start_date:e.target.value}))}/></FormGroup>
+              <FormGroup><Label>End</Label><Input type="date" value={form.end_date||""} onChange={e=>setForm(p=>({...p,end_date:e.target.value}))}/></FormGroup>
+            </FormRow>
+            <FormGroup>
+              <Label>Visibility</Label>
+              <SegmentedControl value={form.visibility||(canManageSharedLists?"household":"personal")} options={(canManageSharedLists?[{value:"household",label:"Household"},{value:"personal",label:"Personal"},{value:"shared",label:"Shared"}]:[{value:"personal",label:"Personal"}])} ariaLabel="Meal plan visibility" onValueChange={visibility=>setForm(p=>({...p,visibility}))}/>
+            </FormGroup>
+            <FormGroup><Label>Notes</Label><Input value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/></FormGroup>
+            <Button type="button" className="w-full" onClick={saveMealPlan}>Create Meal Plan</Button>
+            {saveError&&<FormError>{saveError}</FormError>}
+            <Button type="button" variant="secondary" className="w-full" onClick={()=>setMode(null)}><ChevronLeft aria-hidden="true"/>Back</Button>
+          </FormSection>
+        </>}
+
+        {mode==="meal-assignment"&&<>
+          <FormSection>
+            <FormGroup>
+              <Label>Meal Plan</Label>
+              <select className="flex h-11 w-full rounded-md border border-input bg-secondary px-3 py-2 text-sm text-foreground" value={form.plan_id||""} onChange={e=>setForm(p=>({...p,plan_id:e.target.value}))}>
+                <option value="">Choose a plan</option>
+                {writableMealPlans.map(plan=><option key={plan.id} value={plan.id}>{plan.name}</option>)}
+              </select>
+              {!writableMealPlans.length&&<FormHelp>Create a personal meal plan before assigning a meal.</FormHelp>}
+            </FormGroup>
+            <FormRow>
+              <FormGroup><Label>Date</Label><Input type="date" value={form.meal_date||TODAY_STR} onChange={e=>setForm(p=>({...p,meal_date:e.target.value}))}/></FormGroup>
+              <FormGroup><Label>Meal</Label><SegmentedControl value={form.meal_type||"dinner"} options={[{value:"breakfast",label:"Breakfast"},{value:"lunch",label:"Lunch"},{value:"dinner",label:"Dinner"},{value:"snack",label:"Snack"}]} ariaLabel="Meal type" onValueChange={meal_type=>setForm(p=>({...p,meal_type}))}/></FormGroup>
+            </FormRow>
+            <FormGroup>
+              <Label>Recipe</Label>
+              <select className="flex h-11 w-full rounded-md border border-input bg-secondary px-3 py-2 text-sm text-foreground" value={form.recipe_id||""} onChange={e=>setForm(p=>({...p,recipe_id:e.target.value}))}>
+                <option value="">No recipe</option>
+                {recipes.data.filter(recipe=>!recipe.archived).map(recipe=><option key={recipe.id} value={recipe.id}>{recipe.title}</option>)}
+              </select>
+            </FormGroup>
+            <FormGroup><Label>Meal Title</Label><Input placeholder="Optional if recipe is selected" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/></FormGroup>
+            <FormGroup><Label>Notes</Label><Input value={form.notes||""} onChange={e=>setForm(p=>({...p,notes:e.target.value}))}/></FormGroup>
+            <Button type="button" className="w-full" onClick={saveMealAssignment}>Assign Meal</Button>
             {saveError&&<FormError>{saveError}</FormError>}
             <Button type="button" variant="secondary" className="w-full" onClick={()=>setMode(null)}><ChevronLeft aria-hidden="true"/>Back</Button>
           </FormSection>
