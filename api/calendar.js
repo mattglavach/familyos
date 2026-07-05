@@ -49,8 +49,9 @@ function getGoogleCalendarId() {
 function getBaseUrl(req) {
   const configured = process.env.APP_BASE_URL || process.env.REACT_APP_APP_BASE_URL || "";
   if (configured) return configured.replace(/\/$/, "");
-  const host = req.headers["x-forwarded-host"] || req.headers.host || "";
-  const proto = req.headers["x-forwarded-proto"] || (host.startsWith("localhost") ? "http" : "https");
+  const headers = req?.headers || {};
+  const host = headers["x-forwarded-host"] || headers.host || "";
+  const proto = headers["x-forwarded-proto"] || (host.startsWith("localhost") ? "http" : "https");
   return host ? `${proto}://${host}` : "";
 }
 
@@ -68,7 +69,7 @@ function getAllowedOrigins() {
 }
 
 function setCorsHeaders(req, res) {
-  const origin = req.headers.origin;
+  const origin = req?.headers?.origin;
   if (origin && getAllowedOrigins().includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Vary", "Origin");
@@ -78,17 +79,78 @@ function setCorsHeaders(req, res) {
 }
 
 function getBearerToken(req) {
-  const header = req.headers.authorization || "";
+  const header = req?.headers?.authorization || "";
   const match = header.match(/^Bearer\s+(.+)$/i);
   return match ? match[1] : "";
 }
 
 function parseBody(req) {
-  if (!req.body) return {};
+  if (!req?.body) return {};
   if (typeof req.body === "string") {
     try { return JSON.parse(req.body); } catch { return {}; }
   }
   return req.body;
+}
+
+function readAction(req) {
+  return req?.query?.action || parseBody(req).action || "status";
+}
+
+function envDiagnostics(action = "status") {
+  const availability = {
+    supabaseUrl: Boolean(getSupabaseUrl()),
+    supabaseAnonKey: Boolean(getAnonKey()),
+    supabaseServiceRoleKey: Boolean(getServiceRoleKey()),
+    googleClientId: Boolean(getGoogleClientId()),
+    googleClientSecret: Boolean(process.env.GOOGLE_OAUTH_CLIENT_SECRET),
+    googleRedirectUri: Boolean(process.env.GOOGLE_OAUTH_REDIRECT_URI),
+    googleTokenEncryptionKey: Boolean(process.env.GOOGLE_TOKEN_ENCRYPTION_KEY),
+    googleOAuthStateSecret: Boolean(process.env.GOOGLE_OAUTH_STATE_SECRET),
+    googleCalendarId: Boolean(process.env.GOOGLE_CALENDAR_ID || process.env.REACT_APP_GOOGLE_CALENDAR_ID),
+    appBaseUrl: Boolean(process.env.APP_BASE_URL || process.env.REACT_APP_APP_BASE_URL),
+    allowedOrigins: Boolean(process.env.ALLOWED_ORIGINS || process.env.VERCEL_URL),
+  };
+  const required = ["supabaseUrl", "supabaseAnonKey"];
+  if (action !== "callback") required.push("supabaseServiceRoleKey");
+  if (action === "connect" || action === "callback" || action === "events") {
+    required.push("googleClientId", "googleClientSecret", "googleTokenEncryptionKey");
+    if (!availability.googleOAuthStateSecret && !availability.googleTokenEncryptionKey) required.push("googleOAuthStateSecret");
+  }
+  const envNames = {
+    supabaseUrl: "SUPABASE_URL or REACT_APP_SUPABASE_URL",
+    supabaseAnonKey: "SUPABASE_ANON_KEY or REACT_APP_SUPABASE_ANON_KEY",
+    supabaseServiceRoleKey: "SUPABASE_SERVICE_ROLE_KEY",
+    googleClientId: "GOOGLE_OAUTH_CLIENT_ID or REACT_APP_GOOGLE_CLIENT_ID",
+    googleClientSecret: "GOOGLE_OAUTH_CLIENT_SECRET",
+    googleRedirectUri: "GOOGLE_OAUTH_REDIRECT_URI",
+    googleTokenEncryptionKey: "GOOGLE_TOKEN_ENCRYPTION_KEY",
+    googleOAuthStateSecret: "GOOGLE_OAUTH_STATE_SECRET or GOOGLE_TOKEN_ENCRYPTION_KEY",
+    googleCalendarId: "GOOGLE_CALENDAR_ID or REACT_APP_GOOGLE_CALENDAR_ID",
+    appBaseUrl: "APP_BASE_URL or REACT_APP_APP_BASE_URL",
+    allowedOrigins: "ALLOWED_ORIGINS or VERCEL_URL",
+  };
+  return {
+    action,
+    availability,
+    missing: required.filter((key) => !availability[key]).map((key) => envNames[key]),
+  };
+}
+
+function logRouteDiagnostic(context, req, error) {
+  const action = readAction(req);
+  const diagnostics = envDiagnostics(action);
+  const log = {
+    context,
+    action,
+    envAvailable: diagnostics.availability,
+    missingEnv: diagnostics.missing,
+  };
+  if (error) {
+    log.errorName = error.name || "Error";
+    log.errorMessage = error.message || String(error);
+    log.errorCode = error.code || undefined;
+  }
+  console.info("[calendar-api-diagnostic]", log);
 }
 
 function calendarErrorPayload(error) {
@@ -787,24 +849,32 @@ async function handleAction(req, res, auth) {
 }
 
 export default async function handler(req, res) {
-  setCorsHeaders(req, res);
-
-  if (req.method === "OPTIONS") { res.status(200).end(); return; }
-  if (!["GET", "POST"].includes(req.method)) { res.status(405).json({ error: "Method not allowed" }); return; }
-
-  const origin = req.headers.origin;
-  if (origin && !getAllowedOrigins().includes(origin)) {
-    res.status(403).json({ error: "Origin not allowed" });
-    return;
-  }
-
-  const action = req.query.action || parseBody(req).action || "status";
-  if (action === "callback") {
-    await handleCallback(req, res);
-    return;
-  }
-
+  let action = "status";
   try {
+    setCorsHeaders(req, res);
+
+    if (req.method === "OPTIONS") { res.status(200).end(); return; }
+    if (!["GET", "POST"].includes(req.method)) { res.status(405).json({ error: "Method not allowed" }); return; }
+
+    const origin = req?.headers?.origin;
+    if (origin && !getAllowedOrigins().includes(origin)) {
+      res.status(403).json({ error: "Origin not allowed" });
+      return;
+    }
+
+    action = readAction(req);
+    logRouteDiagnostic("entry", req);
+
+    if (action === "diagnostic") {
+      res.status(200).json(envDiagnostics(action));
+      return;
+    }
+
+    if (action === "callback") {
+      await handleCallback(req, res);
+      return;
+    }
+
     const auth = await verifyUser(req);
     if (auth.error) {
       sendCalendarError(res, auth.error, auth.status);
@@ -812,6 +882,7 @@ export default async function handler(req, res) {
     }
     await handleAction(req, res, auth);
   } catch (error) {
+    logRouteDiagnostic("handler.catch", req, error);
     logCalendarError("handler", error, { action });
     sendCalendarError(res, error);
   }
