@@ -106,6 +106,9 @@ function SchedulePanel({
 
   if (!calendar.connected) {
     const canConnect = calendar.canConnect !== false && typeof calendar.connect === "function";
+    const primaryCalendarAction = status.actionTarget === "calendar" && status.actionLabel === "Refresh Calendar"
+      ? calendar.checkConnection
+      : calendar.connect;
     return (
       <Card style={{ borderLeft: `3px solid ${calendar.status === "needs_reauth" || calendar.error ? COLORS.amber : COLORS.slate}` }}>
         <CardContent className="space-y-3 pt-5">
@@ -123,8 +126,8 @@ function SchedulePanel({
             <div className="flex flex-wrap gap-2">
               <Button type="button" variant="secondary" size="sm" onClick={() => onNavigate("calendar")}>Calendar</Button>
               {canConnect ? (
-                <Button type="button" size="sm" onClick={calendar.connect} loading={calendar.loading}>
-                  Connect Google Calendar
+                <Button type="button" size="sm" onClick={primaryCalendarAction} loading={calendar.loading}>
+                  {status.actionLabel || "Connect Google Calendar"}
                 </Button>
               ) : (
                 <Button type="button" size="sm" onClick={() => onNavigate(status.actionTarget || "calendar")}>

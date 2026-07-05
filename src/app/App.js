@@ -313,7 +313,7 @@ class CalendarErrorBoundary extends Component {
       <div style={S.screen}>
         <Card>
           <CardContent className="space-y-3 p-4">
-            <CardTitle>Calendar is paused</CardTitle>
+            <CardTitle>Calendar could not load</CardTitle>
             <CardDescription>Open Calendar to refresh the schedule or reconnect Google Calendar.</CardDescription>
             <div className="flex flex-wrap gap-2">
               <Button type="button" onClick={this.retry}>Refresh Calendar</Button>

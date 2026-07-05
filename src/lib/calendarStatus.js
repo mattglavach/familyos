@@ -85,15 +85,28 @@ export function normalizeCalendarStatus(calendar = {}) {
     };
   }
 
+  if (status === "error") {
+    return {
+      key: CALENDAR_STATUS.PERMISSION_RESTRICTED,
+      tone: "warning",
+      label: "Reconnect calendar",
+      detail: error || "Google Calendar could not refresh. Reconnect Google Calendar to show events.",
+      actionLabel: "Reconnect Calendar",
+      actionTarget: "calendar",
+      needsAttention: true,
+      canRefresh: false,
+    };
+  }
+
   if (error) {
     const setupRequired = includesAny(error, SETUP_PATTERNS);
     return {
       key: setupRequired ? CALENDAR_STATUS.SETUP_REQUIRED : CALENDAR_STATUS.ERROR,
       tone: "warning",
-      label: setupRequired ? "Connect unavailable" : "Calendar paused",
+      label: setupRequired ? "Connect unavailable" : "Reconnect calendar",
       detail: setupRequired
         ? "Google Calendar is not available in this environment. Family OS still works without it."
-        : "Refresh Calendar or reconnect Google Calendar to show events.",
+        : "Google Calendar could not refresh. Reconnect Google Calendar to show events.",
       actionLabel: setupRequired ? "Refresh Calendar" : "Reconnect Calendar",
       actionTarget: "calendar",
       needsAttention: true,

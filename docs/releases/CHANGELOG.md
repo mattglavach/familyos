@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Fixed Calendar paused-state recovery: generic Calendar errors no longer render as "Calendar paused"; reconnect states launch OAuth against the existing failed connection row, setup states refresh status instead of starting OAuth, and refresh buttons are hidden when they cannot recover the state.
 - Fixed Calendar API production status failure handling: missing service-role config now returns `503 calendar_service_role_missing`, invalid service-role access returns `503 calendar_service_access`, and missing Calendar schema returns `424 calendar_schema_missing` with sanitized server logs instead of opaque 500 responses.
 - Added Calendar API route-entry diagnostics so production can report action, env availability booleans, missing env var names, and sanitized error metadata before auth/Supabase calls; `action=diagnostic` returns safe JSON with no outgoing requests.
 - Fixed authenticated Calendar status behavior so a missing Google Calendar connection returns `200` with `connected:false` instead of surfacing a 404, while true missing schema still returns `424 calendar_schema_missing`; OAuth callback can now persist a connected row if the signed pending row is absent.

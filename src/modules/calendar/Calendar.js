@@ -97,8 +97,10 @@ export function Calendar({ calendar = {}, onNavigate = () => {}, deps = {} }) {
   const status = normalizeCalendarStatus(safeCalendar);
   const events = Array.isArray(safeCalendar.events) ? safeCalendar.events.filter(Boolean) : [];
   const grouped = groupEvents(events, TODAY_STR);
+  const refreshCalendar = status.canRefresh ? safeCalendar.refresh : safeCalendar.checkConnection;
+  const showRefreshButton = safeCalendar.connected || status.canRefresh || safeCalendar.canConnect === false;
   const startConnection = () => {
-    if (safeCalendar.canConnect === false) {
+    if (safeCalendar.canConnect === false || status.key === "setup_required") {
       safeCalendar.checkConnection?.();
       return;
     }
@@ -115,10 +117,12 @@ export function Calendar({ calendar = {}, onNavigate = () => {}, deps = {} }) {
           </div>
           <div className="mt-1 text-2xl font-extrabold text-foreground">Today & Upcoming</div>
         </div>
-        <Button type="button" variant="secondary" size="sm" onClick={safeCalendar.refresh} loading={safeCalendar.loading} disabled={safeCalendar.loading}>
-          <RefreshCw className="h-4 w-4" aria-hidden="true" />
-          Refresh Calendar
-        </Button>
+        {showRefreshButton && (
+          <Button type="button" variant="secondary" size="sm" onClick={refreshCalendar} loading={safeCalendar.loading} disabled={safeCalendar.loading}>
+            <RefreshCw className="h-4 w-4" aria-hidden="true" />
+            Refresh Calendar
+          </Button>
+        )}
       </div>
 
       <Card style={{ borderLeft: `3px solid ${status.tone === "connected" ? COLORS.green : status.tone === "warning" ? COLORS.amber : COLORS.slate}` }}>
@@ -139,13 +143,15 @@ export function Calendar({ calendar = {}, onNavigate = () => {}, deps = {} }) {
               Refresh Calendar
             </Button>
           ) : (
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className={`grid gap-2 ${showRefreshButton ? "sm:grid-cols-2" : ""}`}>
               <Button type="button" onClick={startConnection} loading={safeCalendar.loading} disabled={safeCalendar.canConnect === false}>
                 {status.actionLabel}
               </Button>
-              <Button type="button" variant="secondary" onClick={safeCalendar.checkConnection} loading={safeCalendar.loading}>
-                Refresh Calendar
-              </Button>
+              {showRefreshButton && (
+                <Button type="button" variant="secondary" onClick={refreshCalendar} loading={safeCalendar.loading}>
+                  Refresh Calendar
+                </Button>
+              )}
             </div>
           )}
         </CardContent>

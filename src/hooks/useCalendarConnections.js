@@ -41,9 +41,23 @@ async function callCalendarApi(action, { householdId, method = "GET", body = {} 
   if (!response.ok) {
     const error = new Error(data.error || "Calendar API request failed.");
     error.status = response.status;
+    error.code = data.code || "";
     throw error;
   }
   return data;
+}
+
+function disconnectedStateFromError(error) {
+  if (error?.code === "calendar_schema_missing" || error?.code === "calendar_service_role_missing" || error?.code === "calendar_service_access" || error?.code === "calendar_google_config_missing" || error?.code === "calendar_token_key_invalid" || error?.code === "calendar_state_secret_missing") {
+    return {
+      connected: false,
+      status: "setup_required",
+      connection: null,
+      connections: [],
+      events: [],
+    };
+  }
+  return null;
 }
 
 export function useCalendarConnections(householdId) {
@@ -59,7 +73,13 @@ export function useCalendarConnections(householdId) {
       const data = await callCalendarApi("status", { householdId });
       setState(previous => ({ ...previous, ...data, loading: false, error: "" }));
     } catch (error) {
-      setState(previous => ({ ...previous, loading: false, error: formatCalendarError(error) }));
+      const disconnected = disconnectedStateFromError(error);
+      setState(previous => ({
+        ...previous,
+        ...(disconnected || {}),
+        loading: false,
+        error: formatCalendarError(error),
+      }));
     }
   }, [householdId]);
 
@@ -77,7 +97,13 @@ export function useCalendarConnections(householdId) {
       }));
       return data;
     } catch (error) {
-      setState(previous => ({ ...previous, loading: false, error: formatCalendarError(error) }));
+      const disconnected = disconnectedStateFromError(error);
+      setState(previous => ({
+        ...previous,
+        ...(disconnected || {}),
+        loading: false,
+        error: formatCalendarError(error),
+      }));
       return null;
     }
   }, [householdId]);
@@ -122,7 +148,13 @@ export function useCalendarConnections(householdId) {
       }));
       return data.events || [];
     } catch (error) {
-      setState(previous => ({ ...previous, loading: false, error: formatCalendarError(error) }));
+      const disconnected = disconnectedStateFromError(error);
+      setState(previous => ({
+        ...previous,
+        ...(disconnected || {}),
+        loading: false,
+        error: formatCalendarError(error),
+      }));
       return [];
     }
   }, [householdId]);

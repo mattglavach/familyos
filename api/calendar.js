@@ -514,11 +514,18 @@ async function createPendingConnection(userId, householdId) {
   const existing = await listConnections(userId, householdId);
   if (existing.error) return existing;
   const pending = existing.rows.find((row) => (
-    row.connection_status === "pending"
+    ["pending", "needs_reauth", "error"].includes(row.connection_status)
     && !row.revoked_at
-    && !row.provider_account_email
   ));
-  if (pending) return { connection: pending };
+  if (pending) {
+    if (pending.connection_status === "pending") return { connection: pending };
+    const updated = await updateConnection(pending.id, {
+      connection_status: "pending",
+      revoked_at: null,
+    });
+    if (updated.error) return updated;
+    return { connection: updated.connection || pending };
+  }
 
   const payload = {
     user_id: userId,
