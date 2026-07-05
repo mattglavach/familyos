@@ -218,6 +218,14 @@ function classifyRestError(error, status, fallback) {
   });
 }
 
+function isConnectionNotFound(error) {
+  if (!(error instanceof CalendarRouteError)) return false;
+  const message = `${error.cause?.message || ""} ${error.message || ""}`.toLowerCase();
+  return error.status === 404
+    && error.code === "calendar_backend_error"
+    && (message.includes("not found") || message.includes("0 rows") || message.includes("no rows"));
+}
+
 function validateConnectConfiguration(req) {
   if (!getGoogleClientId() || !process.env.GOOGLE_OAUTH_CLIENT_SECRET) {
     return new CalendarRouteError(CALENDAR_CONFIG_MESSAGE, { status: 503, code: "calendar_google_config_missing" });
@@ -465,6 +473,7 @@ async function listConnections(userId, householdId) {
     order: "created_at.desc",
   });
   const result = await rest(`calendar_connections?${query.toString()}`);
+  if (isConnectionNotFound(result.error)) return { rows: [] };
   if (result.error) return { error: result.error, status: result.status };
   return { rows: result.data || [] };
 }
@@ -480,7 +489,14 @@ async function getConnection(connectionId, userId, householdId) {
   });
   const result = await rest(`calendar_connections?${query.toString()}`);
   if (result.error) return { error: result.error, status: result.status };
-  if (!result.data?.length) return { error: "Calendar connection not found", status: 404 };
+  if (!result.data?.length) {
+    const error = new CalendarRouteError("Calendar connection not found.", {
+      status: 404,
+      code: "calendar_backend_error",
+      cause: new Error("Calendar connection not found."),
+    });
+    return { error, status: error.status };
+  }
   return { connection: result.data[0] };
 }
 
@@ -510,6 +526,30 @@ async function createPendingConnection(userId, householdId) {
     provider: "google",
     scopes: GOOGLE_SCOPES,
     connection_status: "pending",
+  };
+  const result = await rest("calendar_connections?select=*", {
+    method: "POST",
+    body: payload,
+    prefer: "return=representation",
+  });
+  if (result.error) return { error: result.error, status: result.status };
+  return { connection: Array.isArray(result.data) ? result.data[0] : result.data };
+}
+
+async function createConnectionFromCallback({ connectionId, userId, householdId, tokenData, userInfo, existingRefreshToken = null }) {
+  const tokenExpiry = new Date(Date.now() + Number(tokenData.expires_in || 3600) * 1000).toISOString();
+  const payload = {
+    id: connectionId,
+    user_id: userId,
+    household_id: householdId,
+    provider: "google",
+    provider_account_email: userInfo.email || null,
+    access_token_ciphertext: encryptToken(tokenData.access_token),
+    refresh_token_ciphertext: tokenData.refresh_token ? encryptToken(tokenData.refresh_token) : existingRefreshToken,
+    token_expiry: tokenExpiry,
+    scopes: tokenData.scope ? tokenData.scope.split(" ") : GOOGLE_SCOPES,
+    connection_status: tokenData.refresh_token || existingRefreshToken ? "connected" : "needs_reauth",
+    revoked_at: null,
   };
   const result = await rest("calendar_connections?select=*", {
     method: "POST",
@@ -680,23 +720,31 @@ async function handleCallback(req, res) {
     const membership = await requireMembership(payload.user_id, payload.household_id);
     if (membership.error) throw membership.error;
 
-    const connectionResult = await getConnection(payload.connection_id, payload.user_id, payload.household_id);
-    if (connectionResult.error) throw connectionResult.error;
-
     const tokenData = await exchangeCodeForTokens(req, code);
     const userInfo = await fetchGoogleUserInfo(tokenData.access_token);
-    const existingRefreshToken = connectionResult.connection.refresh_token_ciphertext;
-    const tokenExpiry = new Date(Date.now() + Number(tokenData.expires_in || 3600) * 1000).toISOString();
-    const updated = await updateConnection(payload.connection_id, {
-      provider_account_email: userInfo.email || connectionResult.connection.provider_account_email || null,
-      access_token_ciphertext: encryptToken(tokenData.access_token),
-      refresh_token_ciphertext: tokenData.refresh_token ? encryptToken(tokenData.refresh_token) : existingRefreshToken,
-      token_expiry: tokenExpiry,
-      scopes: tokenData.scope ? tokenData.scope.split(" ") : GOOGLE_SCOPES,
-      connection_status: tokenData.refresh_token || existingRefreshToken ? "connected" : "needs_reauth",
-      revoked_at: null,
-    });
-    if (updated.error) throw updated.error;
+    const connectionResult = await getConnection(payload.connection_id, payload.user_id, payload.household_id);
+    if (connectionResult.error && !isConnectionNotFound(connectionResult.error)) throw connectionResult.error;
+
+    const existingRefreshToken = connectionResult.connection?.refresh_token_ciphertext || null;
+    const callbackWrite = connectionResult.connection
+      ? await updateConnection(payload.connection_id, {
+        provider_account_email: userInfo.email || connectionResult.connection.provider_account_email || null,
+        access_token_ciphertext: encryptToken(tokenData.access_token),
+        refresh_token_ciphertext: tokenData.refresh_token ? encryptToken(tokenData.refresh_token) : existingRefreshToken,
+        token_expiry: new Date(Date.now() + Number(tokenData.expires_in || 3600) * 1000).toISOString(),
+        scopes: tokenData.scope ? tokenData.scope.split(" ") : GOOGLE_SCOPES,
+        connection_status: tokenData.refresh_token || existingRefreshToken ? "connected" : "needs_reauth",
+        revoked_at: null,
+      })
+      : await createConnectionFromCallback({
+        connectionId: payload.connection_id,
+        userId: payload.user_id,
+        householdId: payload.household_id,
+        tokenData,
+        userInfo,
+        existingRefreshToken,
+      });
+    if (callbackWrite.error) throw callbackWrite.error;
 
     sendCallbackPage(res, {
       ok: true,

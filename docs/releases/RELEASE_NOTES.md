@@ -19,6 +19,8 @@ Release 1.4.1 completes the Calendar product path and performs a Pool Care Assis
 - Google Calendar callback success now uses consumer copy and automatically returns to Family OS after connection.
 - Calendar API status/connect/refresh failures now classify production configuration and migration problems without exposing secrets: missing service-role config returns `503 calendar_service_role_missing`, invalid service-role access returns `503 calendar_service_access`, and missing Calendar schema returns `424 calendar_schema_missing`.
 - Calendar API route entry now logs safe diagnostics with action, env availability booleans, missing env var names, and sanitized error name/message/code. `action=diagnostic` returns the same safe env diagnostic JSON without auth or outgoing requests.
+- Authenticated Calendar status now treats a missing Google Calendar connection as a normal disconnected state: `200` with `connected:false`, `status:"disconnected"`, and no connection rows. Missing Calendar schema still returns `424 calendar_schema_missing`.
+- Google OAuth callback can now persist the connected `calendar_connections` row even if the signed pending row is no longer present at callback time.
 
 ### Pool
 - Moved the Pool action card above the status/chemistry summary so the module first answers what to do.
@@ -30,6 +32,7 @@ Release 1.4.1 completes the Calendar product path and performs a Pool Care Assis
 - Static validation passed: `eslint src --ext .js,.jsx`, `pnpm run build`, and `git diff --check`.
 - Calendar API handler validation passed with mocked post-auth status requests for missing service-role config, invalid service-role access, and missing `calendar_connections` schema.
 - Calendar API diagnostic validation passed locally with zero outgoing requests. Production still returned the pre-fix authenticated status behavior before redeploy, so production must be redeployed and rechecked.
+- Calendar API status validation passed locally for empty connection list, connection-not-found 404 normalization, and missing-table schema errors.
 - Browser smoke passed for authenticated local Home, Calendar disconnected state, Pool dashboard, Pool action-first UX, Pool equipment edit via desktop mouse fallback, Pool equipment edit via keyboard activation, Pool equipment edit at 390px mobile, Quick Add Pool targets, Universal Search Pool results and routing, desktop/tablet/390px no-overflow checks, and clean console logs.
 - Live Google OAuth connection and synced Google event rendering were not completed in this local CRA browser session. Validate those against a local Vercel dev or staging environment with Calendar server secrets before merge.
 
