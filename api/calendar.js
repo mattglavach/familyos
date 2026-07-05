@@ -12,6 +12,19 @@ const GOOGLE_SCOPES = [
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 const TOKEN_REFRESH_SKEW_MS = 5 * 60 * 1000;
 const CALENDAR_SETUP_ERROR = "Google Calendar is not configured for this environment.";
+const CALENDAR_CONFIG_MESSAGE = "Calendar service is not configured for this environment.";
+const CALENDAR_DATABASE_MESSAGE = "Calendar database is not ready for this environment.";
+const CALENDAR_ACCESS_MESSAGE = "Calendar service cannot access household data in this environment.";
+
+class CalendarRouteError extends Error {
+  constructor(message, { status = 500, code = "calendar_unavailable", cause } = {}) {
+    super(message);
+    this.name = "CalendarRouteError";
+    this.status = status;
+    this.code = code;
+    this.cause = cause;
+  }
+}
 
 function getSupabaseUrl() {
   return process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL || "";
@@ -76,6 +89,93 @@ function parseBody(req) {
     try { return JSON.parse(req.body); } catch { return {}; }
   }
   return req.body;
+}
+
+function calendarErrorPayload(error) {
+  if (error instanceof CalendarRouteError) {
+    return { error: error.message, code: error.code };
+  }
+  if (typeof error === "string") {
+    return { error, code: "calendar_request_error" };
+  }
+  return { error: "Calendar service is unavailable right now.", code: "calendar_unavailable" };
+}
+
+function sendCalendarError(res, error, fallbackStatus) {
+  const status = error instanceof CalendarRouteError ? error.status : fallbackStatus || 500;
+  res.status(status).json(calendarErrorPayload(error));
+}
+
+function logCalendarError(context, error, metadata = {}) {
+  const code = error instanceof CalendarRouteError ? error.code : "calendar_unavailable";
+  const status = error instanceof CalendarRouteError ? error.status : 500;
+  const cause = error?.cause || error;
+  console.error("[calendar-api]", {
+    context,
+    code,
+    status,
+    message: cause?.message || error?.message || String(error),
+    supabaseStatus: metadata.supabaseStatus,
+    supabaseCode: metadata.supabaseCode,
+    action: metadata.action,
+  });
+}
+
+function isMissingSchemaError(error) {
+  const text = `${error?.message || ""} ${error?.details || ""} ${error?.hint || ""} ${error?.code || ""}`.toLowerCase();
+  return text.includes("calendar_connections")
+    || text.includes("household_members")
+    || text.includes("schema cache")
+    || text.includes("does not exist")
+    || text.includes("relation")
+    || text.includes("undefined_table")
+    || text.includes("42p01")
+    || text.includes("pgrst205");
+}
+
+function classifyRestError(error, status, fallback) {
+  const message = error?.message || error?.error_description || error?.details || fallback;
+  if (isMissingSchemaError(error)) {
+    return new CalendarRouteError(CALENDAR_DATABASE_MESSAGE, {
+      status: 424,
+      code: "calendar_schema_missing",
+      cause: new Error(message),
+    });
+  }
+  if (status === 401 || status === 403) {
+    return new CalendarRouteError(CALENDAR_ACCESS_MESSAGE, {
+      status: 503,
+      code: "calendar_service_access",
+      cause: new Error(message),
+    });
+  }
+  return new CalendarRouteError(fallback, {
+    status: status && status >= 400 && status < 500 ? status : 502,
+    code: "calendar_backend_error",
+    cause: new Error(message),
+  });
+}
+
+function validateConnectConfiguration(req) {
+  if (!getGoogleClientId() || !process.env.GOOGLE_OAUTH_CLIENT_SECRET) {
+    return new CalendarRouteError(CALENDAR_CONFIG_MESSAGE, { status: 503, code: "calendar_google_config_missing" });
+  }
+  if (!getStateSecret()) {
+    return new CalendarRouteError(CALENDAR_CONFIG_MESSAGE, { status: 503, code: "calendar_state_secret_missing" });
+  }
+  try {
+    getEncryptionKey();
+  } catch (error) {
+    return new CalendarRouteError(CALENDAR_CONFIG_MESSAGE, {
+      status: 503,
+      code: "calendar_token_key_invalid",
+      cause: error,
+    });
+  }
+  if (!getRedirectUri(req)) {
+    return new CalendarRouteError(CALENDAR_CONFIG_MESSAGE, { status: 503, code: "calendar_redirect_missing" });
+  }
+  return null;
 }
 
 function base64UrlEncode(value) {
@@ -221,7 +321,11 @@ async function verifyUser(req) {
   const supabaseUrl = getSupabaseUrl();
   const anonKey = getAnonKey();
   if (!token) return { error: "Missing Supabase session bearer token", status: 401 };
-  if (!supabaseUrl || !anonKey) return { error: "Calendar service is not configured for this environment.", status: 500 };
+  if (!supabaseUrl || !anonKey) {
+    const error = new CalendarRouteError(CALENDAR_CONFIG_MESSAGE, { status: 503, code: "calendar_supabase_config_missing" });
+    logCalendarError("verifyUser.config", error);
+    return { error, status: error.status };
+  }
 
   const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
     headers: {
@@ -237,8 +341,15 @@ async function verifyUser(req) {
 async function rest(path, { method = "GET", body, prefer } = {}) {
   const supabaseUrl = getSupabaseUrl();
   const serviceRoleKey = getServiceRoleKey();
+  if (!supabaseUrl) {
+    const error = new CalendarRouteError(CALENDAR_CONFIG_MESSAGE, { status: 503, code: "calendar_supabase_config_missing" });
+    logCalendarError("rest.config", error);
+    return { error, status: error.status };
+  }
   if (!serviceRoleKey) {
-    return { error: { message: "Calendar service is not configured for this environment." }, status: 500 };
+    const error = new CalendarRouteError(CALENDAR_CONFIG_MESSAGE, { status: 503, code: "calendar_service_role_missing" });
+    logCalendarError("rest.config", error);
+    return { error, status: error.status };
   }
 
   const headers = {
@@ -254,8 +365,17 @@ async function rest(path, { method = "GET", body, prefer } = {}) {
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
-  if (!response.ok) return { error: data, status: response.status };
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = { message: text || "Supabase returned an unreadable response" };
+  }
+  if (!response.ok) {
+    const error = classifyRestError(data, response.status, "Calendar data could not be loaded.");
+    logCalendarError("rest.response", error, { supabaseStatus: response.status, supabaseCode: data?.code });
+    return { error, status: error.status };
+  }
   return { data, status: response.status };
 }
 
@@ -269,7 +389,7 @@ async function requireMembership(userId, householdId) {
     limit: "1",
   });
   const result = await rest(`household_members?${query.toString()}`);
-  if (result.error) return { error: result.error.message || "Could not verify household membership", status: result.status };
+  if (result.error) return { error: result.error, status: result.status };
   if (!result.data?.length) return { error: "User is not an active member of this household", status: 403 };
   return { membership: result.data[0] };
 }
@@ -283,7 +403,7 @@ async function listConnections(userId, householdId) {
     order: "created_at.desc",
   });
   const result = await rest(`calendar_connections?${query.toString()}`);
-  if (result.error) return { error: result.error.message || "Could not load calendar connections", status: result.status };
+  if (result.error) return { error: result.error, status: result.status };
   return { rows: result.data || [] };
 }
 
@@ -297,7 +417,7 @@ async function getConnection(connectionId, userId, householdId) {
     limit: "1",
   });
   const result = await rest(`calendar_connections?${query.toString()}`);
-  if (result.error) return { error: result.error.message || "Could not load calendar connection", status: result.status };
+  if (result.error) return { error: result.error, status: result.status };
   if (!result.data?.length) return { error: "Calendar connection not found", status: 404 };
   return { connection: result.data[0] };
 }
@@ -308,7 +428,7 @@ async function updateConnection(connectionId, payload) {
     body: payload,
     prefer: "return=representation",
   });
-  if (result.error) return { error: result.error.message || "Could not update calendar connection", status: result.status };
+  if (result.error) return { error: result.error, status: result.status };
   return { connection: Array.isArray(result.data) ? result.data[0] : result.data };
 }
 
@@ -334,7 +454,7 @@ async function createPendingConnection(userId, householdId) {
     body: payload,
     prefer: "return=representation",
   });
-  if (result.error) return { error: result.error.message || "Could not create pending calendar connection", status: result.status };
+  if (result.error) return { error: result.error, status: result.status };
   return { connection: Array.isArray(result.data) ? result.data[0] : result.data };
 }
 
@@ -409,7 +529,7 @@ async function refreshAccessToken(connection) {
     scopes: data.scope ? data.scope.split(" ") : connection.scopes || GOOGLE_SCOPES,
     connection_status: "connected",
   });
-  if (updated.error) throw new Error(updated.error);
+  if (updated.error) throw updated.error;
   return { accessToken: data.access_token, connection: updated.connection };
 }
 
@@ -496,10 +616,10 @@ async function handleCallback(req, res) {
     if (!code) throw new Error("Missing Google authorization code");
     const payload = validateSignedState(state);
     const membership = await requireMembership(payload.user_id, payload.household_id);
-    if (membership.error) throw new Error(membership.error);
+    if (membership.error) throw membership.error;
 
     const connectionResult = await getConnection(payload.connection_id, payload.user_id, payload.household_id);
-    if (connectionResult.error) throw new Error(connectionResult.error);
+    if (connectionResult.error) throw connectionResult.error;
 
     const tokenData = await exchangeCodeForTokens(req, code);
     const userInfo = await fetchGoogleUserInfo(tokenData.access_token);
@@ -514,7 +634,7 @@ async function handleCallback(req, res) {
       connection_status: tokenData.refresh_token || existingRefreshToken ? "connected" : "needs_reauth",
       revoked_at: null,
     });
-    if (updated.error) throw new Error(updated.error);
+    if (updated.error) throw updated.error;
 
     sendCallbackPage(res, {
       ok: true,
@@ -522,6 +642,7 @@ async function handleCallback(req, res) {
       returnTo: payload.return_to,
     });
   } catch (error) {
+    logCalendarError("callback", error);
     sendCallbackPage(res, {
       ok: false,
       message: "Google Calendar could not be connected right now. Return to Family OS and connect again when you are ready.",
@@ -557,14 +678,14 @@ async function disconnectConnection(userId, householdId, connectionId) {
     },
     prefer: "return=representation",
   });
-  if (result.error) return { error: result.error.message || "Could not disconnect calendar", status: result.status };
+  if (result.error) return { error: result.error, status: result.status };
   return { connections: (result.data || []).map(safeConnection) };
 }
 
 async function handleEvents(res, userId, householdId) {
   const connections = await listConnections(userId, householdId);
   if (connections.error) {
-    res.status(connections.status).json({ error: connections.error });
+    sendCalendarError(res, connections.error, connections.status);
     return;
   }
   const active = connections.rows.find((row) => row.connection_status === "connected" && !row.revoked_at);
@@ -582,6 +703,7 @@ async function handleEvents(res, userId, householdId) {
     const nextRows = connections.rows.map((row) => row.id === token.connection.id ? (synced.connection || token.connection) : row);
     res.status(200).json({ ...normalizedStatus(nextRows), events });
   } catch (error) {
+    logCalendarError("events.refresh", error);
     await updateConnection(active.id, { connection_status: "needs_reauth" }).catch(() => null);
     res.status(200).json({
       ...normalizedStatus(connections.rows.map((row) => row.id === active.id ? { ...row, connection_status: "needs_reauth" } : row)),
@@ -599,14 +721,20 @@ async function handleAction(req, res, auth) {
 
   const membership = await requireMembership(userId, householdId);
   if (membership.error) {
-    res.status(membership.status).json({ error: membership.error });
+    sendCalendarError(res, membership.error, membership.status);
     return;
   }
 
   if (action === "connect") {
+    const configError = validateConnectConfiguration(req);
+    if (configError) {
+      logCalendarError("connect.config", configError, { action });
+      sendCalendarError(res, configError);
+      return;
+    }
     const pending = await createPendingConnection(userId, householdId);
     if (pending.error) {
-      res.status(pending.status).json({ error: pending.error });
+      sendCalendarError(res, pending.error, pending.status);
       return;
     }
     const authorization = buildGoogleAuthorizationUrl({
@@ -616,7 +744,13 @@ async function handleAction(req, res, auth) {
       connectionId: pending.connection.id,
     });
     if (authorization.error) {
-      res.status(501).json({ error: authorization.error, connection: safeConnection(pending.connection) });
+      const error = new CalendarRouteError(CALENDAR_CONFIG_MESSAGE, {
+        status: 503,
+        code: "calendar_google_config_missing",
+        cause: new Error(authorization.error),
+      });
+      logCalendarError("connect.authorization", error, { action });
+      res.status(error.status).json({ ...calendarErrorPayload(error), connection: safeConnection(pending.connection) });
       return;
     }
     res.status(200).json({ ...authorization, connection: safeConnection(pending.connection) });
@@ -626,7 +760,7 @@ async function handleAction(req, res, auth) {
   if (action === "disconnect") {
     const disconnected = await disconnectConnection(userId, householdId, body.connection_id || req.query.connection_id);
     if (disconnected.error) {
-      res.status(disconnected.status).json({ error: disconnected.error });
+      sendCalendarError(res, disconnected.error, disconnected.status);
       return;
     }
     res.status(200).json({ disconnected: true, connections: disconnected.connections });
@@ -640,7 +774,7 @@ async function handleAction(req, res, auth) {
 
   const connections = await listConnections(userId, householdId);
   if (connections.error) {
-    res.status(connections.status).json({ error: connections.error });
+    sendCalendarError(res, connections.error, connections.status);
     return;
   }
 
@@ -673,11 +807,12 @@ export default async function handler(req, res) {
   try {
     const auth = await verifyUser(req);
     if (auth.error) {
-      res.status(auth.status).json({ error: auth.error });
+      sendCalendarError(res, auth.error, auth.status);
       return;
     }
     await handleAction(req, res, auth);
   } catch (error) {
-    res.status(500).json({ error: "Calendar service is unavailable right now." });
+    logCalendarError("handler", error, { action });
+    sendCalendarError(res, error);
   }
 }
