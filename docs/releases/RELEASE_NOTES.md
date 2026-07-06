@@ -1,5 +1,43 @@
 # Release Notes
 
+## Release 1.4.4
+
+### Version
+1.4.4
+
+### Date
+2026-07-06
+
+### Summary
+Release 1.4.4 improves Pool recommendation trust, explainability, safety, and mobile usability. The release focuses on chemical calculation guardrails and Pool UX only. It does not modify Auth, Google OAuth, Calendar integration, Supabase schema, backend APIs, environment variables, Vercel configuration, or non-Pool modules.
+
+### Calculation Fixes And Assumptions
+- Stabilizer/CYA now uses an explicit pure cyanuric acid basis: 13 oz by weight raises CYA by 10 ppm in 10,000 gallons.
+- CYA recommendations stop when current CYA is at or above target and warn instead when CYA is high.
+- Large stabilizer additions are staged at 64 oz per step with instructions to circulate and retest before adding more.
+- Liquid chlorine, salt, muriatic acid, baking soda, and calcium hardness recommendations now include pool-volume scaling, current/target values, raw dose, rounded dose, and guardrail notes.
+- Missing or invalid pool volume blocks chemical dosing recommendations.
+
+### UX Improvements
+- Recommendation cards now show action, amount, how to add, expected outcome, warnings, retest timing, safety notes, and expandable "Show calculation" details.
+- Pool dashboard now prioritizes swim readiness, current water status, FC/pH/CYA/salt status, trend chips, recent treatment visibility, and next action.
+- Pool history is grouped by date with clearer Reading/Chemical/Maintenance scan labels.
+- Pool test entry keeps core fields first and collapses advanced context fields to reduce mobile scrolling.
+
+### Validation Scenarios
+- CYA 0 to 30: 66 oz calculated total, staged.
+- CYA 30 to 70: 88 oz calculated total, staged.
+- CYA 40 to 70: 66 oz calculated total, staged.
+- CYA at target and above target: no stabilizer addition.
+- 456 oz stabilizer would imply roughly a 206 ppm CYA increase in a 17,000 gallon pool and is not presented as a single safe dose; large-dose warnings and staged guidance apply.
+- Additional scenario coverage included high/low pH, low/high FC, low/target salt, low/high TA, missing CYA, and missing/invalid pool volume behavior.
+
+### Validation Status
+- `pnpm run lint`: passed.
+- `pnpm run build`: passed.
+- `git diff --check`: passed.
+- Desktop and 390px Pool browser smoke: blocked in this workspace because local Supabase is unreachable at `127.0.0.1:54321` and the app remains on the auth loading skeleton.
+
 ## Release 1.4.0
 
 ### Version

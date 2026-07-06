@@ -1,7 +1,7 @@
 # Current Sprint
 
 ## Sprint Goal
-Complete Release 1.4.0 Pool Care Assistant Foundation as the first Home Platform module without adding Pentair, Home Assistant, AI platform behavior, automatic dosing, automatic equipment control, Finance, or Health work.
+Complete Release 1.4.4 Pool Intelligence & UX by making Pool recommendations safer, explainable, and mobile-friendly without Auth, Google OAuth, Calendar, schema, backend, environment, Vercel, or non-Pool module changes.
 
 ## Active Items
 - [x] Add documentation structure
@@ -140,6 +140,13 @@ Complete Release 1.4.0 Pool Care Assistant Foundation as the first Home Platform
 - [x] Add Pool equipment/action audit schema migration
 - [x] Validate Release 1.4.0 migration and RLS against disposable/local Supabase
 - [x] Complete Release 1.4.0 browser smoke for desktop, tablet, and 390px mobile
+- [x] Begin Release 1.4.4 Pool Intelligence & UX branch
+- [x] Audit stabilizer, chlorine, salt, acid, alkalinity, and calcium dose formulas
+- [x] Add Pool recommendation guardrails, staged stabilizer guidance, and calculation details
+- [x] Improve Pool dashboard, recommendation cards, history grouping, and test-entry layout
+- [x] Run lint, build, and formula scenario validation
+- [x] Complete git diff check
+- [ ] Complete authenticated desktop plus 390px Pool smoke validation
 
 ## Blockers
 
@@ -154,6 +161,7 @@ Complete Release 1.4.0 Pool Care Assistant Foundation as the first Home Platform
 - Release 1.3.1 has no active validation blocker after lint, build, diff-check, browser smoke, mobile sanity checks, and console validation.
 - Release 1.4.0 migration/RLS validation and authenticated browser smoke are complete against disposable/local Supabase only.
 - Release 1.4.0 desktop swipe-card row edit risk is resolved; final lint/build/diff-check and commit remain before handoff.
+- Release 1.4.4 has no implementation blocker. Authenticated desktop and 390px Pool smoke validation is blocked in this workspace because local Supabase is unreachable at `127.0.0.1:54321`.
 
 ## Notes
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.

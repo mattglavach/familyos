@@ -1,10 +1,10 @@
 # Project Status
 
 ## Current Version
-1.4.0
+1.4.4
 
 ## Current State
-Release 1.0 core MVP through Release 1.3.2 Calendar/Product Cleanup are complete. Release 1.4.0 Pool Care Assistant Foundation is validation-complete on branch `release/1.4.0-pool-care-assistant`.
+Release 1.0 core MVP through Release 1.4.0 Pool Care Assistant Foundation are complete. Release 1.4.4 Pool Intelligence & UX is in validation on branch `release/1.4.4-pool-intelligence-ux`.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -74,12 +74,13 @@ Release 1.0 core MVP through Release 1.3.2 Calendar/Product Cleanup are complete
 - Release 1.3.2 improves Calendar recoverability, Home order, Tasks default visibility/sorting, task form grouping, and documents Pool Care Assistant as a future Home Platform submodule without adding Pool implementation
 - Release 1.4.0 adds the Pool Care Assistant Foundation with a Pool action dashboard, water test logging, rule-based recommendations, treatment history, equipment inventory, maintenance reminders, Quick Add support, Universal Search support, and a Supabase migration for Pool equipment/action audit architecture
 - Release 1.4.0 validation passed against disposable/local Supabase only for migration/RLS, action engine scenarios, authenticated Pool browser smoke, Quick Add/Search persistence, adult/viewer UI permissions, responsive desktop/tablet/390px checks, and console checks
+- Release 1.4.4 improves Pool recommendation safety and explainability with explicit formula bases, staged CYA dosing, large-dose warnings, calculation details, swim-readiness dashboard polish, trend visibility, grouped history, and shorter test entry
 
 ## In Progress
-- Release 1.4.0 final checks, documentation closeout, and commit grouping.
+- Release 1.4.4 authenticated desktop Pool smoke and 390px mobile Pool smoke after local Supabase is available.
 
 ## Next
-- Merge-review Release 1.4.0 after final local checks and commit.
+- Merge-review Release 1.4.4 only after automated checks and authenticated desktop plus 390px Pool smoke pass.
 - Configure Release 0.8 server OAuth environment values in Vercel before removing the legacy calendar fallback.
 - Decide whether to remove the legacy browser calendar fallback after deployed validation.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
@@ -134,4 +135,4 @@ Release 1.0 core MVP through Release 1.3.2 Calendar/Product Cleanup are complete
 - Release 1.4.0 keeps Pool recommendations rule-based and human-confirmed. AI Coach, live integrations, automatic dosing, and automatic equipment control remain deferred.
 
 ## Last Updated
-July 3, 2026
+July 6, 2026

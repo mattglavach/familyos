@@ -91,6 +91,17 @@
 - [x] Implement Release 1.3.1 Planning Platform polish for Calendar routing, Home awareness, grouped Search, Product Owner cleanup decisions, and validation documentation.
 - [x] Implement Release 1.3.2 Calendar/Product Cleanup plus Pool Care Assistant planning without adding Pool code, schema, or UI.
 - [x] Implement Release 1.4.0 Pool Care Assistant Foundation with rule-based recommendations, treatment history, equipment, maintenance, Home awareness, Quick Add, Search, and Pool schema foundations.
+- [x] Implement Release 1.4.4 Pool Intelligence & UX with chemical calculation guardrails, staged stabilizer guidance, explainable recommendations, dashboard polish, grouped history, and shorter test entry.
+
+## Release 1.4.4 Scope
+- [x] Audit stabilizer/CYA, liquid chlorine, salt, muriatic acid, baking soda/alkalinity, and calcium hardness dose formulas.
+- [x] Add large-dose, missing-volume, invalid-reading, high-current-value, and duplicate-recommendation guardrails.
+- [x] Add expandable calculation details to recommendation cards.
+- [x] Improve Pool dashboard swim-readiness, status, trends, recent treatment, and next-action visibility.
+- [x] Improve Pool test entry, history scanability, copy, and mobile density.
+- [x] Document validation scenarios and the 456 oz stabilizer analysis.
+- [ ] Complete desktop Pool smoke and 390px Pool smoke before merge readiness.
+- [x] Keep Auth, Google OAuth, Calendar, Supabase schema, backend APIs, environment variables, Vercel configuration, and non-Pool modules unchanged.
 
 ## Release 1.4.0 Scope
 - [x] Add Pool Dashboard with overall health, latest readings, and next recommended action.
