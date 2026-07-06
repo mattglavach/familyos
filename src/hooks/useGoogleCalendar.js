@@ -167,16 +167,41 @@ export function useGoogleCalendar() {
         setError(formatGoogleApiError(statusCode,data.error?.message));
         return;
       }
+      const syncedAt=new Date().toISOString();
       const mapped=(data.items||[]).map((e,i)=>{
         const start=e.start?.dateTime||e.start?.date||"";
         if(!start)return null;
         const allDay=!e.start?.dateTime;
         const dateStr=start.split("T")[0];
         const timeStr=allDay?"All day":formatEventTime(start);
-        return{id:e.id||i,title:e.summary||"(No title)",date:dateStr,time:timeStr,allDay,member:assignMember(e.summary,e.description),location:e.location||"",source:sourceLabel(),htmlLink:e.htmlLink||""};
+        return{
+          id:e.id||i,
+          title:e.summary||"(No title)",
+          date:dateStr,
+          start,
+          end:e.end?.dateTime||e.end?.date||"",
+          time:timeStr,
+          allDay,
+          member:assignMember(e.summary,e.description),
+          location:e.location||"",
+          description:e.description||"",
+          notes:e.description||"",
+          attendees:(e.attendees||[]).map(attendee=>({
+            email:attendee.email||"",
+            name:attendee.displayName||attendee.email||"",
+            responseStatus:attendee.responseStatus||"",
+          })).filter(attendee=>attendee.email||attendee.name),
+          organizer:e.organizer?.displayName||e.organizer?.email||"",
+          creator:e.creator?.displayName||e.creator?.email||"",
+          source:sourceLabel(),
+          calendar:sourceLabel(),
+          htmlLink:e.htmlLink||"",
+          status:e.status||"confirmed",
+          lastSyncedAt:e.updated||syncedAt,
+          updated:e.updated||"",
+        };
       }).filter(Boolean);
       setEvents(mapped);
-      const syncedAt=new Date().toISOString();
       localStorage.setItem(LAST_SYNC_KEY,syncedAt);
       setLastSyncedAt(syncedAt);
       setStatus(mapped.length?"synced":"empty");

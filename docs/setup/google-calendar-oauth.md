@@ -30,6 +30,8 @@ APP_BASE_URL=https://your-familyos-domain.vercel.app
 
 The server-side path also requires the `calendar_connections` table from the Release 0.8 migration and a valid active household membership for the signed-in user.
 
+The Calendar API allows local origins, Vercel's `VERCEL_URL`, configured `ALLOWED_ORIGINS`, and the configured `APP_BASE_URL` / `REACT_APP_APP_BASE_URL` origin. Custom-domain deployments should set `APP_BASE_URL` or `ALLOWED_ORIGINS` so same-origin Calendar status, connect, disconnect, and event calls are accepted.
+
 ## Release 0.8 Server-Side Foundation
 
 The server-side foundation is implemented in `api/calendar.js` and stores metadata in `public.calendar_connections`.

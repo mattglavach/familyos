@@ -43,11 +43,20 @@ export function formatCalendarError(error, fallback = "Calendar could not be loa
   const message = rawMessage(error);
   if (!message) return fallback;
 
+  if (matches(message, ["missing sign-in session", "invalid supabase session", "session bearer"])) {
+    return "Your Family OS session needs attention. Sign in again, then reconnect Calendar.";
+  }
+  if (matches(message, ["needs_reauth", "refresh token", "token refresh", "calendar refresh token", "not connected"])) {
+    return "Google Calendar needs to be reconnected. Reconnect Calendar and approve calendar access.";
+  }
+  if (matches(message, ["permission", "approve", "revoked", "access_denied", "denied", "insufficient authentication scopes"])) {
+    return "Google Calendar permission is missing. Reconnect Calendar and approve calendar read access.";
+  }
+  if (matches(message, ["origin not allowed", "origin_mismatch", "redirect_uri_mismatch", "oauth state", "invalid oauth", "oauth client"])) {
+    return "Google Calendar setup needs attention for this app URL. Ask the household owner to check the Google OAuth origin and redirect settings.";
+  }
+
   if (matches(message, [
-    "google_oauth",
-    "google_token",
-    "google calendar",
-    "oauth client",
     "supabase_service_role_key",
     "supabase api environment",
     "calendar_connections",

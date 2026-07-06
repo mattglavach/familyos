@@ -1,9 +1,21 @@
 # Current Sprint
 
 ## Sprint Goal
-Complete Release 1.4.5 Pool Advisor & Experience by turning Pool into a trusted daily advisor that explains swim readiness, priority actions, treatment review, trends, history, testing, maintenance, and contextual guidance without weakening Release 1.4.4 safety guardrails.
+Complete Release 1.5.0 Calendar Platform by making Calendar a reliable household scheduling foundation with clear Google Calendar connection guidance, schedule visibility, event details, Home awareness, and documented OAuth assumptions without changing Pool, Finance, Health, Home Assistant, AI Assistant, or database schema.
 
 ## Active Items
+- [x] Begin Release 1.5.0 Calendar Platform branch
+- [x] Review Calendar/OAuth implementation and prior deferrals
+- [x] Add Calendar dashboard summary, grouped event list, detail view, and connection guidance
+- [x] Add Home dashboard next-event and upcoming schedule awareness
+- [x] Improve Calendar/OAuth error mapping and allowed-origin handling
+- [x] Update Release 1.5.0 release and planning documentation
+- [x] Run Release 1.5.0 lint validation
+- [x] Run Release 1.5.0 production build validation
+- [x] Run Release 1.5.0 git diff check
+- [ ] Complete authenticated desktop Calendar smoke validation
+- [ ] Complete authenticated 390px Calendar smoke validation
+- [ ] Complete Calendar connect/reconnect smoke validation
 - [x] Add documentation structure
 - [x] Add AGENTS.md
 - [x] Add GitHub templates
@@ -155,6 +167,7 @@ Complete Release 1.4.5 Pool Advisor & Experience by turning Pool into a trusted 
 
 ## Blockers
 
+- Release 1.5.0 has no known implementation blocker. Authenticated desktop Calendar smoke, 390px Calendar smoke, Calendar connect/reconnect smoke, Home Calendar card smoke, and error/empty-state smoke are blocked in this workspace because local Supabase is unreachable at `127.0.0.1:54321`.
 - Release 0.6B has no active code blockers after local lint/build validation. Real-device family testing and Vercel deployment validation remain before broad use.
 - Release 0.6C has no active production migration blocker after baseline alignment and household foundation validation.
 - Release 1.0.2 has no active validation blocker after completing local authenticated adult, viewer, mobile, and task lifecycle smoke checks.

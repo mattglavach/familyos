@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Implemented Release 1.5.0 Calendar Platform foundation: added a richer Calendar dashboard with connection guidance, schedule summary, Today/Tomorrow/This Week/Upcoming event groups, event details, source/owner/location/attendee/sync metadata, Home next-event and upcoming schedule awareness, safer Calendar/OAuth error messages, and custom-domain API origin handling without database schema changes.
 - Implemented Release 1.4.5 Pool Advisor & Experience: upgraded Pool into a decision-oriented advisor dashboard with health/readiness/retest guidance, grouped action plan, treatment review before logging chemicals, richer trend/history/maintenance/context/help surfaces, and faster required-vs-optional test entry while preserving Release 1.4.4 calculation guardrails.
 - Implemented Release 1.4.4 Pool Intelligence & UX: audited Pool chemical formulas, added staged stabilizer guidance and large-dose guardrails, expanded recommendation explanations with calculation details, improved swim-readiness/dashboard trends, grouped Pool history by date, and shortened Pool test entry without Auth, OAuth, Calendar, schema, backend, environment, or Vercel changes.
 - Fixed the final Release 1.4.0 validation blocker: shared swipe-card row actions now provide visible, focusable Edit/Delete controls plus mouse-drag support while preserving touch swipe behavior; Pool equipment edit validates on desktop mouse, keyboard, and mobile swipe paths.

@@ -93,6 +93,18 @@
 - [x] Implement Release 1.4.0 Pool Care Assistant Foundation with rule-based recommendations, treatment history, equipment, maintenance, Home awareness, Quick Add, Search, and Pool schema foundations.
 - [x] Implement Release 1.4.4 Pool Intelligence & UX with chemical calculation guardrails, staged stabilizer guidance, explainable recommendations, dashboard polish, grouped history, and shorter test entry.
 - [x] Implement Release 1.4.5 Pool Advisor & Experience with advisor dashboard, grouped action plan, treatment review, trend visibility, history usability, test-entry improvements, maintenance awareness, contextual guidance, and help copy.
+- [x] Implement Release 1.5.0 Calendar Platform with schedule dashboard, grouped event list, event details, connection/reconnect guidance, OAuth error clarity, and Home schedule awareness.
+
+## Release 1.5.0 Scope
+- [x] Review existing Calendar/OAuth implementation and documented deferrals from prior releases.
+- [x] Improve Calendar/OAuth reliability for same-origin custom domains, setup errors, permission/reconnect states, and frontend-safe event metadata.
+- [x] Add Calendar dashboard summary for today's events, next event, connection state, and last sync.
+- [x] Add grouped event list sections for Today, Tomorrow, This Week, and Upcoming.
+- [x] Add Calendar event detail visibility for title, date/time, location, notes, attendees, source, status, and last synced metadata.
+- [x] Add Calendar connection UX with connected/disconnected/setup/permission/error states, Connect/Reconnect actions, and safe fallback copy.
+- [x] Add Home dashboard Calendar awareness for next event and upcoming schedule rows with direct Calendar navigation.
+- [x] Keep Pool recommendation logic, Finance, Health, Home Assistant, AI Assistant, database schema, and Vercel configuration unchanged.
+- [ ] Complete lint, build, diff-check, desktop authenticated Calendar smoke, 390px authenticated Calendar smoke, Calendar connect/reconnect smoke, Home Calendar card smoke, and error/empty-state smoke before merge readiness.
 
 ## Release 1.4.5 Scope
 - [x] Transform Pool dashboard into a decision screen for swim readiness, health, last test, priority next action, chemistry status, recent chemical additions, trends, and retest guidance.

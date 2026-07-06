@@ -1,5 +1,55 @@
 # Release Notes
 
+## Release 1.5.0
+
+### Version
+1.5.0
+
+### Date
+2026-07-06
+
+### Summary
+Release 1.5.0 builds the Calendar Platform foundation for Family OS. Calendar now has a dedicated schedule dashboard, clearer Google Calendar connection guidance, grouped event lists, event detail visibility, and Home dashboard schedule awareness. The release focuses on Calendar reliability and OAuth clarity only; Pool recommendation logic, Finance, Health, Home Assistant, AI Assistant, database schema, and Vercel configuration remain unchanged.
+
+### Calendar Platform Improvements
+- Added a Calendar schedule summary with Today count, next event, and connection state.
+- Added grouped event sections for Today, Tomorrow, This Week, and Upcoming.
+- Added event cards with title, date/time, location, source calendar, and owner/family member when available.
+- Added an event detail panel showing title, date/time, location, notes/description, attendees, calendar source, status, and last synced metadata when available.
+- Added connected, disconnected, setup-needed, permission-needed, loading, empty, and error guidance that keeps non-calendar Family OS workflows usable.
+- Added a Reconnect Calendar action on the Calendar screen when a connection already exists.
+- Added plain-language copy explaining what Calendar access enables and what happens if connection fails.
+- Added Home dashboard awareness for the next calendar event and compact upcoming schedule rows that drill into Calendar.
+
+### Calendar/OAuth Fixes
+- Added `APP_BASE_URL` / `REACT_APP_APP_BASE_URL` to the Calendar API allowed-origin list so custom-domain same-origin calls are not rejected when `ALLOWED_ORIGINS` is not separately configured.
+- Improved Calendar error mapping for setup/configuration issues, session issues, permission/revocation issues, reconnect-needed states, OAuth origin mismatch, and redirect mismatch.
+- Extended server-side and legacy fallback event normalization with frontend-safe detail metadata: start/end, description/notes, attendees, organizer/creator, source calendar, status, and updated time.
+
+### OAuth And Configuration Assumptions
+- Google Calendar remains optional. Missing Calendar server secrets or missing `calendar_connections` should show setup guidance and should not block Home, Tasks, Pool, Shopping, Meal Planning, Life Lists, or Settings.
+- Server-side Calendar sync still requires the Release 0.8 `calendar_connections` migration plus Supabase service-role, Google OAuth client/secret/redirect, token encryption, state secret, and Google Cloud authorized redirect settings.
+- Legacy browser Calendar fallback remains in place until deployed server OAuth validation and family-device smoke testing prove it is safe to remove.
+
+### Database Changes
+- None.
+
+### Deferred
+- Notifications, reminder engine, automation rules, multi-provider calendar support, Calendar event creation/editing, schema redesign, Home Assistant, AI Assistant, Finance, Health, and Pool recommendation changes remain deferred.
+
+### Validation Status
+- `pnpm run lint`: passed.
+- `pnpm run build`: passed. CRA emitted the existing Node `fs.F_OK` deprecation warning after a successful compile.
+- `git diff --check`: passed with line-ending normalization warnings only.
+- Desktop authenticated Calendar smoke: blocked because local Supabase is not reachable at `127.0.0.1:54321`; the app remains on the global auth loading skeleton and logs Supabase auth `Failed to fetch` errors.
+- 390px authenticated Calendar smoke: blocked for the same local Supabase connectivity reason.
+- Calendar connect/reconnect smoke: blocked for the same local Supabase connectivity reason.
+- Home Dashboard Calendar card smoke: blocked for the same local Supabase connectivity reason.
+- Error/empty-state smoke: blocked for the same local Supabase connectivity reason.
+
+### Recommendation
+Not ready to merge until lint, build, diff-check, desktop authenticated Calendar smoke, 390px authenticated Calendar smoke, and Calendar connection/reconnection behavior all pass.
+
 ## Release 1.4.5
 
 ### Version
