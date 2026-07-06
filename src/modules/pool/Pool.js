@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, ClipboardList, Droplets, History, Settings2, Wrench } from "lucide-react";
+import { AlertTriangle, CalendarClock, CheckCircle2, ClipboardList, Droplets, FlaskConical, HelpCircle, History, Settings2, ThermometerSun, Wrench } from "lucide-react";
 import { EmptyState, Loading, Modal, SwipeCard, SwipeHint } from "../../components/common";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -37,6 +37,28 @@ export function poolStatus(param, value) {
 const TEST_SOURCES = ["Taylor Kit", "Pool Store", "Manual"];
 const HISTORY_FILTERS = ["All", "Chemical", "Reading", "Maintenance", "Note"];
 const EQUIPMENT_TYPES = ["Pump", "Salt Cell (SWG)", "Filter", "Heater", "Robot Cleaner", "Betta Skimmer", "Solar Cover", "Test Kit"];
+const CORE_TEST_FIELDS = ["free_chlorine", "ph"];
+const TEST_FIELD_LABELS = {
+  free_chlorine: "FC",
+  cc: "CC",
+  ph: "pH",
+  alkalinity: "TA",
+  cya: "CYA",
+  salt: "Salt",
+  water_temp: "Temperature",
+  swg_setting: "SWG",
+  pump_hours: "Pump runtime",
+  calcium_hardness: "CH",
+};
+const HELP_COPY = [
+  ["FC", "Free chlorine is the active sanitizer. Keep it high enough for current CYA before swimming."],
+  ["CC", "Combined chlorine points to used-up sanitizer. High CC means oxidize and retest before normal care."],
+  ["pH", "pH affects comfort and chlorine strength. Correct it in controlled steps before fine-tuning other chemistry."],
+  ["TA", "Total alkalinity buffers pH. Low TA causes swings; high TA can make pH drift up."],
+  ["CYA", "Stabilizer protects chlorine from sun. Add slowly because CYA is hard to lower."],
+  ["Salt", "Salt feeds the chlorine generator. Low salt limits production; high salt can stress equipment."],
+  ["CH", "Calcium hardness protects some surfaces. Confirm pool surface and product label before dosing."],
+];
 const MAINTENANCE_PRESETS = [
   ["Filter Cleaning", 30],
   ["SWG Cleaning", 90],
@@ -98,6 +120,20 @@ function trend(readings, key) {
   return { label: `${delta > 0 ? "Up" : "Down"} ${Math.abs(delta).toFixed(key === "ph" ? 1 : 0)}`, color: delta > 0 ? COLORS.amber : COLORS.blue };
 }
 
+function trendDetail(readings, key, suffix = "") {
+  const values = readings.filter(reading => reading[key] !== null && reading[key] !== undefined).slice(0, 5).reverse();
+  const current = values.length ? values[values.length - 1]?.[key] : null;
+  const points = values.map(reading => Number(reading[key])).filter(Number.isFinite);
+  const max = points.length ? Math.max(...points) : 1;
+  const min = points.length ? Math.min(...points) : 0;
+  return {
+    ...trend(readings, key),
+    current: current ?? "--",
+    suffix,
+    bars: points.map(value => ({ value, pct: max === min ? 55 : 24 + ((value - min) / (max - min)) * 66 })),
+  };
+}
+
 function swimReadiness(latest, recommendations) {
   if (!latest) return { label: "Test first", color: COLORS.amber, detail: "Log current FC and pH before swimming." };
   const blockers = recommendations.filter(rec => ["critical", "high"].includes(rec.priority));
@@ -112,7 +148,114 @@ function swimReadiness(latest, recommendations) {
   return { label: "Use caution", color: COLORS.amber, detail: "Confirm FC and pH before swimming." };
 }
 
-function recommendationCard(rec, onConfirm, editable) {
+function retestGuidance(latest, recommendations) {
+  if (!latest) return { label: "Due now", detail: "Log a full test before any treatment plan.", color: COLORS.amber };
+  const age = daysAgo(latest.date);
+  const urgent = recommendations.some(rec => ["critical", "high"].includes(rec.priority));
+  const chemical = recommendations.some(rec => rec.category === "Chemical" && rec.priority !== "low");
+  if (urgent || chemical) return { label: "After treatment", detail: recommendations.find(rec => rec.priority !== "low")?.retest || "Retest after circulation.", color: COLORS.amber };
+  if (age >= 3) return { label: "Due today", detail: `Last full test was ${age} days ago.`, color: COLORS.amber };
+  return { label: "On cadence", detail: "Retest within 2-3 days, sooner after heat, rain, or heavy swimming.", color: COLORS.green };
+}
+
+function chemistrySummary(latest) {
+  if (!latest) return [];
+  return [
+    ["FC", latest.free_chlorine, "ppm", "free_chlorine"],
+    ["CC", latest.cc, "ppm", "cc"],
+    ["pH", latest.ph, "", "ph"],
+    ["TA", latest.alkalinity, "ppm", "alkalinity"],
+    ["CYA", latest.cya, "ppm", "cya"],
+    ["Salt", latest.salt, "ppm", "salt"],
+    ["CH", latest.calcium_hardness, "ppm", "calcium_hardness"],
+  ];
+}
+
+function actionGroup(rec) {
+  if (rec.id === "all-good") return "Monitor";
+  if (/retest/i.test(`${rec.action} ${rec.timing}`) || rec.category === "Reading") return "Retest";
+  if (rec.priority === "critical" || rec.priority === "high" || /today|tonight|now/i.test(rec.timing || "")) return "Do Today";
+  if (/week/i.test(rec.timing || "")) return "This Week";
+  return "Monitor";
+}
+
+function buildActionPlan(recommendations) {
+  const groups = { "Do Today": [], Retest: [], "This Week": [], Monitor: [] };
+  recommendations.forEach(rec => groups[actionGroup(rec)].push(rec));
+  return groups;
+}
+
+function totalChemicalText(recs) {
+  const chemicals = recs.filter(rec => rec.category === "Chemical" && rec.amount);
+  if (!chemicals.length) return "No chemical additions in this plan.";
+  return chemicals.map(rec => rec.amount).join(" + ");
+}
+
+function expectedChemistry(latest, recs) {
+  if (!latest) return "A current test is required before estimating treatment outcome.";
+  const expected = recs.map(rec => rec.expectedOutcome).filter(Boolean);
+  if (expected.length) return expected.join(" ");
+  return "Expect readings to move toward the configured operating range after circulation and retesting.";
+}
+
+function stagedAdditions(recs) {
+  const staged = recs.flatMap(rec => rec.warnings || []).filter(note => /stage|half|split|large/i.test(note));
+  if (staged.length) return staged;
+  return ["Add only one treatment at a time when products interact, circulate, then retest before adding more."];
+}
+
+function latestChemicalText(treatment) {
+  if (!treatment) return "No recent chemical additions logged.";
+  return [
+    treatment.muriatic_acid_oz && `${treatment.muriatic_acid_oz} oz acid`,
+    treatment.salt_lbs && `${treatment.salt_lbs} lb salt`,
+    treatment.cya_oz && `${treatment.cya_oz} oz CYA`,
+    treatment.liquid_chlorine_oz && `${treatment.liquid_chlorine_oz} oz chlorine`,
+    treatment.swg_pct_after && `SWG to ${treatment.swg_pct_after}%`,
+  ].filter(Boolean).join(", ") || treatment.notes || "Treatment logged";
+}
+
+function maintenanceGuidance(latest, dueMaintenance, equipment) {
+  const guidance = [];
+  const pumpHours = num(latest?.pump_hours);
+  const temp = num(latest?.water_temp);
+  if (pumpHours !== null && pumpHours < POOL_RULE_CONFIG.targets.pumpHours.minimum) {
+    guidance.push({ title: "Pump runtime", detail: "Run at least 8 hours today so circulation and SWG output can catch up.", color: COLORS.amber });
+  } else {
+    guidance.push({ title: "Pump runtime", detail: temp && temp >= 88 ? "Hot water increases chlorine demand. Consider extra runtime today." : "Keep normal runtime unless FC starts drifting.", color: temp && temp >= 88 ? COLORS.amber : COLORS.green });
+  }
+  const due = dueMaintenance.find(item => item.status === "overdue" || item.status === "due-soon");
+  if (due) guidance.push({ title: due.title, detail: due.status === "overdue" ? "Maintenance is overdue. Complete it before chasing chemistry changes." : "Maintenance is due soon. Plan it this week.", color: maintColor(due.status) });
+  if (equipment.some(item => /salt cell|swg/i.test(item.type || item.name || ""))) guidance.push({ title: "Salt cell", detail: "Inspect for scale when chlorine output or flow seems off.", color: COLORS.blue });
+  if (equipment.some(item => /robot|skimmer|betta/i.test(item.type || item.name || ""))) guidance.push({ title: "Cleaner checks", detail: "Empty robot/skimmer baskets after storms or heavy debris days.", color: COLORS.blue });
+  return guidance.slice(0, 4);
+}
+
+function contextGuidance(latest, readings) {
+  const notes = readings.slice(0, 5).map(item => `${item.notes || ""} ${item.recent_weather_notes || ""}`).join(" ");
+  const temp = num(latest?.water_temp);
+  return [
+    temp && temp >= POOL_RULE_CONFIG.targets.waterTemp.high ? "Summer heat: retest FC tomorrow and consider extra pump runtime." : "Summer mode: retest more often during hot, sunny stretches.",
+    /rain|storm/i.test(notes) ? "Heavy rain: check water level, baskets, pH, and FC after circulation." : "Heavy rain: log a note after storms so recommendations can account for dilution and debris.",
+    /party|heavy/i.test(notes) ? "Heavy swimmer load: run pump longer and retest FC the next morning." : "Pool party: test before guests, raise FC within safe range, and retest after.",
+    "Vacation mode: before travel, test fully, clean baskets/filter, verify SWG and pump schedule, and ask someone to check water level.",
+  ];
+}
+
+function historyDetail(item, nextReading) {
+  if (item.kind === "Reading") return `Source: ${item.test_source || "Manual"}${item.water_temp ? ` | Temp ${item.water_temp} F` : ""}${item.recent_heavy_usage ? " | Heavy use" : ""}`;
+  if (item.kind === "Chemical" && nextReading) return `Next test: FC ${nextReading.free_chlorine ?? "--"} / pH ${nextReading.ph ?? "--"} on ${formatDate(nextReading.date)}`;
+  if (item.water_clarity) return `Water clarity: ${item.water_clarity}`;
+  return "";
+}
+
+function isMajorHistoryItem(item) {
+  if (item.kind === "Chemical") return Boolean(item.muriatic_acid_oz || item.salt_lbs || item.cya_oz || item.liquid_chlorine_oz);
+  if (item.kind === "Reading") return ["free_chlorine", "ph", "cc", "salt", "cya"].some(key => poolStatus(key, item[key]) === "red");
+  return /filter|swg|storm|party|green|cloud/i.test(`${item.type || ""} ${item.notes || ""} ${item.water_clarity || ""}`);
+}
+
+function recommendationCard(rec, onReview, editable) {
   const Icon = rec.priority === "critical" || rec.priority === "high" ? AlertTriangle : CheckCircle2;
   return (
     <div key={rec.id} style={{ ...S.statusCard(rec.color), marginBottom: 10 }}>
@@ -147,7 +290,7 @@ function recommendationCard(rec, onConfirm, editable) {
         </div>
       </div>
       {editable && rec.priority !== "low" && (
-        <Button type="button" className="mt-3 w-full" onClick={() => onConfirm(rec)}>Confirm Action</Button>
+        <Button type="button" className="mt-3 w-full" onClick={() => onReview(rec)}>Review Plan</Button>
       )}
     </div>
   );
@@ -169,6 +312,8 @@ export function Pool() {
   const [historyFilter, setHistoryFilter] = useState("All");
   const [sourceMode, setSourceMode] = useState("Taylor Kit");
   const [showAdvancedTest, setShowAdvancedTest] = useState(false);
+  const [testSaveError, setTestSaveError] = useState("");
+  const [reviewRec, setReviewRec] = useState(null);
 
   const latest = latestReadingValues(readings.data);
   const recommendations = useMemo(
@@ -182,17 +327,23 @@ export function Pool() {
   const health = getPoolHealth(latest, recommendations);
   const nextAction = recommendations[0];
   const readiness = swimReadiness(latest, recommendations);
+  const retest = retestGuidance(latest, recommendations);
+  const actionPlan = useMemo(() => buildActionPlan(recommendations), [recommendations]);
+  const treatmentPlan = useMemo(() => reviewRec ? [reviewRec, ...recommendations.filter(rec => rec.id !== reviewRec.id && rec.category === "Chemical" && rec.priority !== "low")] : [], [recommendations, reviewRec]);
   const trends = [
-    { name: "FC", ...trend(readings.data, "free_chlorine") },
-    { name: "pH", ...trend(readings.data, "ph") },
-    { name: "CYA", ...trend(readings.data, "cya") },
-    { name: "Salt", ...trend(readings.data, "salt") },
-    { name: "Temp", ...trend(readings.data, "water_temp") },
+    { name: "FC", ...trendDetail(readings.data, "free_chlorine", "ppm") },
+    { name: "pH", ...trendDetail(readings.data, "ph") },
+    { name: "CYA", ...trendDetail(readings.data, "cya", "ppm") },
+    { name: "Salt", ...trendDetail(readings.data, "salt", "ppm") },
+    { name: "TA", ...trendDetail(readings.data, "alkalinity", "ppm") },
+    { name: "Temp", ...trendDetail(readings.data, "water_temp", "F") },
   ];
   const recentTreatment = treatments.data[0];
   const dueMaintenance = schedule.data
     .map(item => ({ ...item, status: maintStatus(item), due: item.last_completed ? nextDueDate(item.last_completed, item.interval_days) : null }))
     .sort((a, b) => ({ overdue: 0, "due-soon": 1, ok: 2 }[a.status] - { overdue: 0, "due-soon": 1, ok: 2 }[b.status]));
+  const equipmentGuidance = maintenanceGuidance(latest, dueMaintenance, equipment.data);
+  const seasonalGuidance = contextGuidance(latest, readings.data);
 
   const history = useMemo(() => {
     const rows = [
@@ -236,14 +387,23 @@ export function Pool() {
   }
 
   function openTest(row = null) {
-    setForm(row ? { ...row, time: row.logged_at ? new Date(row.logged_at).toTimeString().slice(0, 5) : "" } : { date: TODAY_STR, test_source: "Taylor Kit" });
+    setTestSaveError("");
+    setForm(row ? { ...row, time: row.logged_at ? new Date(row.logged_at).toTimeString().slice(0, 5) : "" } : { date: TODAY_STR, test_source: "Taylor Kit", swg_setting: latest?.swg_setting ?? "", pump_hours: latest?.pump_hours ?? "" });
     setSourceMode(row?.test_source || "Taylor Kit");
     setModal("test");
   }
 
   async function saveTest() {
     const invalidFields = ["free_chlorine", "cc", "ph", "alkalinity", "cya", "salt", "water_temp", "swg_setting", "pump_hours", "calcium_hardness"].filter(key => fieldError(key));
-    if (invalidFields.length) return;
+    const missingCore = CORE_TEST_FIELDS.filter(key => form[key] === "" || form[key] === undefined || form[key] === null);
+    if (missingCore.length) {
+      setTestSaveError(`Required today: ${missingCore.map(key => TEST_FIELD_LABELS[key]).join(" and ")}.`);
+      return;
+    }
+    if (invalidFields.length) {
+      setTestSaveError(`Check ${invalidFields.map(key => TEST_FIELD_LABELS[key]).join(", ")} before saving.`);
+      return;
+    }
     const row = {
       date: form.date || TODAY_STR,
       logged_at: dateTime(form.date || TODAY_STR, form.time),
@@ -281,6 +441,17 @@ export function Pool() {
     });
     setForm({ date: TODAY_STR, notes: rec.action });
     setModal(rec.category === "Equipment" ? "maintenance" : "treatment");
+  }
+
+  function openReview(rec) {
+    setReviewRec(rec);
+    setModal("review");
+  }
+
+  async function confirmReviewedPlan() {
+    if (!reviewRec) return;
+    await confirmAction(reviewRec);
+    setReviewRec(null);
   }
 
   async function saveTreatment() {
@@ -369,40 +540,45 @@ export function Pool() {
       <div style={{ ...S.statusCard(readiness.color), marginBottom: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
           <div>
-            <div style={{ fontSize: 12, color: COLORS.slate, fontWeight: 800, textTransform: "uppercase" }}>Swim Readiness</div>
+            <div style={{ fontSize: 12, color: COLORS.slate, fontWeight: 800, textTransform: "uppercase" }}>Pool Advisor</div>
             <div style={{ fontSize: 26, fontWeight: 900, color: readiness.color, marginTop: 2 }}>{readiness.label}</div>
             <div style={{ fontSize: 14, color: COLORS.slateLight, lineHeight: 1.5, marginTop: 6 }}>{readiness.detail}</div>
           </div>
           <Droplets size={28} color={readiness.color} aria-hidden="true" />
         </div>
         <div style={{ ...S.statGrid, marginTop: 14 }}>
-          {metric("Last Tested", latest ? `${daysAgo(latest.date)}d` : "--", latest && daysAgo(latest.date) <= 2 ? COLORS.green : COLORS.amber, latest ? formatDate(latest.date) : "No test")}
-          {metric("Health", health.status, health.color, health.summary)}
-          {metric("Salt", latest?.salt ? `${latest.salt}` : "--", statusColor(poolStatus("salt", latest?.salt)), "ppm")}
+          {metric("Health Score", health.status, health.color, health.summary)}
+          {metric("Last Test", latest ? `${daysAgo(latest.date)}d` : "--", latest && daysAgo(latest.date) <= 2 ? COLORS.green : COLORS.amber, latest ? formatDate(latest.date) : "No test")}
+          {metric("Retest", retest.label, retest.color, retest.detail)}
         </div>
         <div style={{ ...S.statGrid, marginTop: 10 }}>
           {metric("FC", latest?.free_chlorine, statusColor(poolStatus("free_chlorine", latest?.free_chlorine)), "ppm")}
           {metric("pH", latest?.ph, statusColor(poolStatus("ph", latest?.ph)))}
           {metric("CYA", latest?.cya, statusColor(poolStatus("cya", latest?.cya)), "ppm")}
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 6, marginTop: 10 }}>
-          {trends.map(item => (
-            <div key={item.name} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "7px 5px", textAlign: "center" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(84px, 1fr))", gap: 6, marginTop: 10 }}>
+          {trends.slice(0, 4).map(item => (
+            <div key={item.name} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "8px 6px", textAlign: "center" }}>
               <div style={{ fontSize: 11, color: COLORS.slate }}>{item.name}</div>
+              <div style={{ fontSize: 13, color: COLORS.white, fontWeight: 900, marginTop: 2 }}>{item.current}{item.suffix ? ` ${item.suffix}` : ""}</div>
               <div style={{ fontSize: 11, color: item.color, fontWeight: 800, marginTop: 2 }}>{item.label}</div>
             </div>
           ))}
         </div>
-        {recentTreatment && <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 10 }}>Last chemical: {history.find(item => item.kind === "Chemical")?.text || "Treatment logged"} on {formatDate(recentTreatment.date)}</div>}
+        <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 10 }}>Recent chemical: {latestChemicalText(recentTreatment)}{recentTreatment?.date ? ` on ${formatDate(recentTreatment.date)}` : ""}</div>
       </div>
 
       <div style={{ ...S.statusCard(nextAction?.color || COLORS.blue), marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: COLORS.slate, fontWeight: 800, textTransform: "uppercase" }}>What should I do today?</div>
+        <div style={{ fontSize: 12, color: COLORS.slate, fontWeight: 800, textTransform: "uppercase" }}>Priority Next Action</div>
         <div style={{ fontSize: 18, color: COLORS.white, fontWeight: 900, lineHeight: 1.35, marginTop: 6 }}>{nextAction?.action}</div>
         <div style={{ fontSize: 14, color: COLORS.slateLight, lineHeight: 1.5, marginTop: 6 }}>{nextAction?.explanation}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
+          <div style={{ fontSize: 12, color: COLORS.slate }}><b style={{ color: COLORS.white }}>When:</b> {nextAction?.timing || "Today"}</div>
+          <div style={{ fontSize: 12, color: COLORS.slate }}><b style={{ color: COLORS.white }}>Retest:</b> {nextAction?.retest || retest.detail}</div>
+        </div>
         <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
           <Button type="button" className="flex-1" onClick={() => openTest()} disabled={!editable}>Log Test</Button>
-          <Button type="button" variant="secondary" className="flex-1" onClick={() => nextAction && confirmAction(nextAction)} disabled={!editable || !nextAction || nextAction.priority === "low"}>Confirm</Button>
+          <Button type="button" variant="secondary" className="flex-1" onClick={() => nextAction && openReview(nextAction)} disabled={!editable || !nextAction || nextAction.priority === "low"}>Review</Button>
         </div>
         {!editable && <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 10 }}>Viewer access is read-only for Pool actions.</div>}
       </div>
@@ -424,7 +600,84 @@ export function Pool() {
         <>
           {tab === "dashboard" && (
             <>
-              {recommendations.map(rec => recommendationCard(rec, confirmAction, editable))}
+              <div style={S.card}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <ClipboardList size={18} color={COLORS.blue} aria-hidden="true" />
+                  <div style={{ fontSize: 16, fontWeight: 900 }}>Action Plan</div>
+                </div>
+                {Object.entries(actionPlan).map(([group, items]) => (
+                  <div key={group} style={{ marginTop: 10 }}>
+                    <div style={{ fontSize: 12, color: COLORS.slate, fontWeight: 900, textTransform: "uppercase" }}>{group}</div>
+                    {items.length ? items.map(rec => (
+                      <div key={`${group}-${rec.id}`} style={{ borderLeft: `3px solid ${rec.color}`, padding: "8px 0 8px 10px", marginTop: 6 }}>
+                        <div style={{ fontSize: 14, color: COLORS.white, fontWeight: 900 }}>{rec.action}</div>
+                        <div style={{ fontSize: 12, color: COLORS.slateLight, lineHeight: 1.45, marginTop: 3 }}>{rec.explanation}</div>
+                        <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 4 }}>{rec.timing} | {rec.retest}</div>
+                        {rec.safetyNote && <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 4 }}>Safety: {rec.safetyNote}</div>}
+                        {rec.expectedOutcome && <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 4 }}>Expected: {rec.expectedOutcome}</div>}
+                        {editable && rec.priority !== "low" && <Button type="button" size="sm" variant="secondary" className="mt-2" onClick={() => openReview(rec)}>Review</Button>}
+                      </div>
+                    )) : <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 6 }}>No actions in this group.</div>}
+                  </div>
+                ))}
+              </div>
+
+              <div style={S.card}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <FlaskConical size={18} color={COLORS.green} aria-hidden="true" />
+                  <div style={{ fontSize: 16, fontWeight: 900 }}>Current Chemistry</div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(76px, 1fr))", gap: 8 }}>
+                  {chemistrySummary(latest).map(([label, value, unit, key]) => (
+                    <div key={label} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: 8 }}>
+                      <div style={{ fontSize: 11, color: COLORS.slate }}>{label}</div>
+                      <div style={{ fontSize: 16, color: statusColor(poolStatus(key, value)), fontWeight: 900 }}>{value ?? "--"}</div>
+                      {unit && <div style={{ fontSize: 11, color: COLORS.slate }}>{unit}</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={S.card}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <ThermometerSun size={18} color={COLORS.amber} aria-hidden="true" />
+                  <div style={{ fontSize: 16, fontWeight: 900 }}>Trends</div>
+                </div>
+                <div style={{ display: "grid", gap: 8 }}>
+                  {trends.map(item => (
+                    <div key={`trend-${item.name}`} style={{ display: "grid", gridTemplateColumns: "52px 1fr 78px", gap: 8, alignItems: "center" }}>
+                      <div style={{ fontSize: 13, color: COLORS.white, fontWeight: 800 }}>{item.name}</div>
+                      <div style={{ display: "flex", alignItems: "end", gap: 3, height: 34, borderBottom: `1px solid ${COLORS.border}` }}>
+                        {item.bars.length ? item.bars.map((bar, index) => <div key={`${item.name}-${index}`} style={{ flex: 1, height: `${bar.pct}%`, minHeight: 4, borderRadius: 4, background: item.color }} />) : <div style={{ fontSize: 12, color: COLORS.slate }}>Log more tests</div>}
+                      </div>
+                      <div style={{ fontSize: 12, color: item.color, textAlign: "right", fontWeight: 800 }}>{item.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {recommendations.map(rec => recommendationCard(rec, openReview, editable))}
+
+              <div style={S.card}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <HelpCircle size={18} color={COLORS.blue} aria-hidden="true" />
+                  <div style={{ fontSize: 16, fontWeight: 900 }}>Why This Matters</div>
+                </div>
+                <div style={{ display: "grid", gap: 8 }}>
+                  {HELP_COPY.map(([label, copy]) => (
+                    <details key={label} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "8px 10px" }}>
+                      <summary style={{ cursor: "pointer", color: COLORS.white, fontSize: 13, fontWeight: 900 }}>{label}</summary>
+                      <div style={{ fontSize: 12, color: COLORS.slateLight, lineHeight: 1.45, marginTop: 6 }}>{copy}</div>
+                    </details>
+                  ))}
+                </div>
+              </div>
+
+              <div style={S.card}>
+                <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 6 }}>Seasonal Context</div>
+                {seasonalGuidance.map(item => <div key={item} style={{ fontSize: 13, color: COLORS.slateLight, lineHeight: 1.5, marginTop: 6 }}>{item}</div>)}
+              </div>
+
               <div style={S.card}>
                 <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 6 }}>Action Engine</div>
                 <div style={{ fontSize: 13, color: COLORS.slateLight, lineHeight: 1.55 }}>Rules are local and configurable. They use FC, CC, pH, TA, CYA, salt, temperature, SWG %, pump runtime, recent notes, treatment history, and maintenance dates. Future AI can explain these rules, but actions stay human-confirmed.</div>
@@ -449,29 +702,34 @@ export function Pool() {
               {Object.entries(groupedHistory).map(([date, items]) => (
                 <section key={date} style={{ marginBottom: 12 }}>
                   <div style={{ fontSize: 12, color: COLORS.slate, fontWeight: 900, textTransform: "uppercase", margin: "8px 0" }}>{formatDate(date)}</div>
-                  {items.map(item => (
-                    <SwipeCard key={`${item.kind}-${item.id}`} id={`${item.kind}-${item.id}`} activeId={activeSwipe} setActiveId={setActiveSwipe}
-                      onEdit={() => {
-                        setForm({ ...item });
-                        setModal(item.kind === "Reading" ? "test" : item.kind === "Chemical" ? "treatment" : "maintenance");
-                      }}
-                      onDelete={() => {
-                        if (item.kind === "Reading") readings.remove(item.id);
-                        else if (item.kind === "Chemical") treatments.remove(item.id);
-                        else maintenance.remove(item.id);
-                        setActiveSwipe(null);
-                      }}
-                      style={S.card}>
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                        <div>
-                          <div style={{ fontSize: 13, color: item.kind === "Chemical" ? COLORS.amber : item.kind === "Reading" ? COLORS.blue : COLORS.green, fontWeight: 800 }}>{item.kind}</div>
-                          <div style={{ fontSize: 15, color: COLORS.white, fontWeight: 800, marginTop: 3 }}>{item.text}</div>
-                          {item.notes && <div style={{ fontSize: 13, color: COLORS.slate, lineHeight: 1.45, marginTop: 5 }}>{item.notes}</div>}
+                  {items.map(item => {
+                    const nextReading = item.kind === "Chemical" ? readings.data.find(reading => new Date(reading.logged_at || reading.date) > new Date(item.sort || item.date)) : null;
+                    const major = isMajorHistoryItem(item);
+                    return (
+                      <SwipeCard key={`${item.kind}-${item.id}`} id={`${item.kind}-${item.id}`} activeId={activeSwipe} setActiveId={setActiveSwipe}
+                        onEdit={() => {
+                          setForm({ ...item });
+                          setModal(item.kind === "Reading" ? "test" : item.kind === "Chemical" ? "treatment" : "maintenance");
+                        }}
+                        onDelete={() => {
+                          if (item.kind === "Reading") readings.remove(item.id);
+                          else if (item.kind === "Chemical") treatments.remove(item.id);
+                          else maintenance.remove(item.id);
+                          setActiveSwipe(null);
+                        }}
+                        style={{ ...S.card, borderLeft: `4px solid ${major ? COLORS.amber : COLORS.border}` }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                          <div>
+                            <div style={{ fontSize: 13, color: item.kind === "Chemical" ? COLORS.amber : item.kind === "Reading" ? COLORS.blue : COLORS.green, fontWeight: 800 }}>{item.kind}{major ? " - major" : ""}</div>
+                            <div style={{ fontSize: 15, color: COLORS.white, fontWeight: 800, marginTop: 3 }}>{item.text}</div>
+                            {historyDetail(item, nextReading) && <div style={{ fontSize: 12, color: COLORS.slateLight, lineHeight: 1.45, marginTop: 5 }}>{historyDetail(item, nextReading)}</div>}
+                            {item.notes && <div style={{ fontSize: 13, color: COLORS.slate, lineHeight: 1.45, marginTop: 5 }}>{item.notes}</div>}
+                          </div>
+                          {item.kind === "Reading" && <div style={{ fontSize: 12, color: COLORS.slate, whiteSpace: "nowrap" }}>FC {item.free_chlorine ?? "--"} / pH {item.ph ?? "--"}</div>}
                         </div>
-                        {item.kind === "Reading" && <div style={{ fontSize: 12, color: COLORS.slate, whiteSpace: "nowrap" }}>FC {item.free_chlorine ?? "--"} / pH {item.ph ?? "--"}</div>}
-                      </div>
-                    </SwipeCard>
-                  ))}
+                      </SwipeCard>
+                    );
+                  })}
                 </section>
               ))}
             </>
@@ -503,6 +761,18 @@ export function Pool() {
 
           {tab === "maintenance" && (
             <>
+              <div style={S.card}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <CalendarClock size={18} color={COLORS.blue} aria-hidden="true" />
+                  <div style={{ fontSize: 16, fontWeight: 900 }}>Equipment Guidance</div>
+                </div>
+                {equipmentGuidance.map(item => (
+                  <div key={item.title} style={{ borderLeft: `3px solid ${item.color}`, padding: "6px 0 6px 10px" }}>
+                    <div style={{ fontSize: 14, color: COLORS.white, fontWeight: 900 }}>{item.title}</div>
+                    <div style={{ fontSize: 12, color: COLORS.slateLight, lineHeight: 1.45 }}>{item.detail}</div>
+                  </div>
+                ))}
+              </div>
               {editable && <Button type="button" className="mb-3 w-full" onClick={() => { setForm({ title: "Filter Cleaning", interval_days: 30, last_completed: TODAY_STR }); setModal("schedule"); }}>Add Reminder</Button>}
               {!dueMaintenance.length && <EmptyState title="No maintenance reminders" detail="Add recurring reminders for filter, SWG, pump, robot, Betta, reagents, opening, and closing." />}
               {dueMaintenance.map(item => {
@@ -527,22 +797,70 @@ export function Pool() {
         </>
       )}
 
+      {modal === "review" && reviewRec && (
+        <Modal title="Review Treatment Plan" onClose={() => { setModal(null); setReviewRec(null); }}>
+          <FormSection>
+            <div style={S.card}>
+              <div style={{ fontSize: 14, fontWeight: 900, marginBottom: 8 }}>Current chemistry summary</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(72px, 1fr))", gap: 8 }}>
+                {chemistrySummary(latest).slice(0, 6).map(([label, value, unit, key]) => (
+                  <div key={`review-${label}`} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: 8 }}>
+                    <div style={{ fontSize: 11, color: COLORS.slate }}>{label}</div>
+                    <div style={{ fontSize: 15, color: statusColor(poolStatus(key, value)), fontWeight: 900 }}>{value ?? "--"}</div>
+                    {unit && <div style={{ fontSize: 11, color: COLORS.slate }}>{unit}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={S.card}>
+              <div style={{ fontSize: 14, fontWeight: 900, marginBottom: 8 }}>Recommended actions</div>
+              {treatmentPlan.map(rec => (
+                <div key={`review-rec-${rec.id}`} style={{ borderLeft: `3px solid ${rec.color}`, padding: "8px 0 8px 10px" }}>
+                  <div style={{ fontSize: 14, color: COLORS.white, fontWeight: 900 }}>{rec.action}</div>
+                  <div style={{ fontSize: 12, color: COLORS.slateLight, lineHeight: 1.45, marginTop: 4 }}>{rec.explanation}</div>
+                  {rec.amount && <div style={{ fontSize: 12, color: rec.color, fontWeight: 900, marginTop: 4 }}>{rec.amount}</div>}
+                </div>
+              ))}
+            </div>
+
+            <div style={S.card}>
+              <div style={{ fontSize: 14, fontWeight: 900, marginBottom: 8 }}>Treatment details</div>
+              <div style={{ fontSize: 13, color: COLORS.slateLight, lineHeight: 1.5 }}><b style={{ color: COLORS.white }}>Total chemicals:</b> {totalChemicalText(treatmentPlan)}</div>
+              <div style={{ fontSize: 13, color: COLORS.slateLight, lineHeight: 1.5, marginTop: 6 }}><b style={{ color: COLORS.white }}>Expected after treatment:</b> {expectedChemistry(latest, treatmentPlan)}</div>
+              <div style={{ fontSize: 13, color: COLORS.slateLight, lineHeight: 1.5, marginTop: 6 }}><b style={{ color: COLORS.white }}>Wait time:</b> {reviewRec.timing}. Keep the pump running as directed and follow product labels.</div>
+              <div style={{ fontSize: 13, color: COLORS.slateLight, lineHeight: 1.5, marginTop: 6 }}><b style={{ color: COLORS.white }}>Retest schedule:</b> {reviewRec.retest}</div>
+              <div style={{ fontSize: 13, color: COLORS.slateLight, lineHeight: 1.5, marginTop: 6 }}><b style={{ color: COLORS.white }}>Staged additions:</b></div>
+              {stagedAdditions(treatmentPlan).map(note => <div key={note} style={{ fontSize: 12, color: COLORS.amber, lineHeight: 1.45, marginTop: 4 }}>{note}</div>)}
+              <div style={{ fontSize: 12, color: COLORS.slate, lineHeight: 1.45, marginTop: 8 }}>{reviewRec.safetyNote}</div>
+            </div>
+
+            <Button type="button" className="w-full" onClick={confirmReviewedPlan}>Confirm and Log</Button>
+          </FormSection>
+        </Modal>
+      )}
+
       {modal === "test" && (
         <Modal title={form.id ? "Edit Pool Test" : "Log Pool Test"} onClose={() => { setModal(null); setForm({}); }}>
           <FormSection>
             <FormRow><FormGroup><Label>Date</Label><Input type="date" value={form.date || TODAY_STR} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} /></FormGroup><FormGroup><Label>Time</Label><Input type="time" value={form.time || new Date().toTimeString().slice(0, 5)} onChange={e => setForm(p => ({ ...p, time: e.target.value }))} /></FormGroup></FormRow>
             <FormGroup><Label>Test Source</Label><SegmentedControl value={sourceMode} options={TEST_SOURCES.map(value => ({ value, label: value }))} ariaLabel="Test source" onValueChange={setSourceMode} /></FormGroup>
+            <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: 10 }}>
+              <div style={{ fontSize: 13, color: COLORS.white, fontWeight: 900 }}>Required today</div>
+              <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 3 }}>FC and pH drive swim readiness and treatment safety.</div>
+            </div>
             <FormRow>
-              <FormGroup><Label>FC ppm</Label><Input type="number" min="0" max="50" step="0.5" value={form.free_chlorine ?? ""} onChange={e => setForm(p => ({ ...p, free_chlorine: e.target.value }))} />{fieldError("free_chlorine") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("free_chlorine")}</div>}</FormGroup>
-              <FormGroup><Label>pH</Label><Input type="number" min="6.2" max="9" step="0.1" value={form.ph ?? ""} onChange={e => setForm(p => ({ ...p, ph: e.target.value }))} />{fieldError("ph") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("ph")}</div>}</FormGroup>
+              <FormGroup><Label>FC ppm *</Label><Input type="number" min="0" max="50" step="0.5" inputMode="decimal" value={form.free_chlorine ?? ""} onChange={e => { setTestSaveError(""); setForm(p => ({ ...p, free_chlorine: e.target.value })); }} />{fieldError("free_chlorine") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("free_chlorine")}</div>}</FormGroup>
+              <FormGroup><Label>pH *</Label><Input type="number" min="6.2" max="9" step="0.1" inputMode="decimal" value={form.ph ?? ""} onChange={e => { setTestSaveError(""); setForm(p => ({ ...p, ph: e.target.value })); }} />{fieldError("ph") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("ph")}</div>}</FormGroup>
+            </FormRow>
+            <div style={{ fontSize: 13, color: COLORS.white, fontWeight: 900 }}>Optional full chemistry</div>
+            <FormRow>
+              <FormGroup><Label>CYA ppm</Label><Input type="number" min="0" max="200" inputMode="numeric" value={form.cya ?? ""} onChange={e => setForm(p => ({ ...p, cya: e.target.value }))} />{fieldError("cya") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("cya")}</div>}</FormGroup>
+              <FormGroup><Label>Salt ppm</Label><Input type="number" min="0" max="8000" inputMode="numeric" value={form.salt ?? ""} onChange={e => setForm(p => ({ ...p, salt: e.target.value }))} />{fieldError("salt") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("salt")}</div>}</FormGroup>
             </FormRow>
             <FormRow>
-              <FormGroup><Label>CYA ppm</Label><Input type="number" min="0" max="200" value={form.cya ?? ""} onChange={e => setForm(p => ({ ...p, cya: e.target.value }))} />{fieldError("cya") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("cya")}</div>}</FormGroup>
-              <FormGroup><Label>Salt ppm</Label><Input type="number" min="0" max="8000" value={form.salt ?? ""} onChange={e => setForm(p => ({ ...p, salt: e.target.value }))} />{fieldError("salt") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("salt")}</div>}</FormGroup>
-            </FormRow>
-            <FormRow>
-              <FormGroup><Label>CC ppm</Label><Input type="number" min="0" max="20" step="0.5" value={form.cc ?? ""} onChange={e => setForm(p => ({ ...p, cc: e.target.value }))} />{fieldError("cc") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("cc")}</div>}</FormGroup>
-              <FormGroup><Label>TA ppm</Label><Input type="number" min="0" max="300" value={form.alkalinity ?? ""} onChange={e => setForm(p => ({ ...p, alkalinity: e.target.value }))} />{fieldError("alkalinity") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("alkalinity")}</div>}</FormGroup>
+              <FormGroup><Label>CC ppm</Label><Input type="number" min="0" max="20" step="0.5" inputMode="decimal" value={form.cc ?? ""} onChange={e => setForm(p => ({ ...p, cc: e.target.value }))} />{fieldError("cc") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("cc")}</div>}</FormGroup>
+              <FormGroup><Label>TA ppm</Label><Input type="number" min="0" max="300" inputMode="numeric" value={form.alkalinity ?? ""} onChange={e => setForm(p => ({ ...p, alkalinity: e.target.value }))} />{fieldError("alkalinity") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("alkalinity")}</div>}</FormGroup>
             </FormRow>
             <button type="button" className="flex w-full items-center justify-between rounded-lg border border-border bg-secondary px-3 py-3 text-left text-sm font-semibold" onClick={() => setShowAdvancedTest(value => !value)}>
               <span>Advanced test details</span><span style={{ color: COLORS.slate }}>{showAdvancedTest ? "Hide" : "Show"}</span>
@@ -555,7 +873,8 @@ export function Pool() {
                 <button type="button" className="flex w-full items-center gap-3 rounded-lg border border-border bg-secondary px-3 py-3 text-left text-sm font-semibold" onClick={() => setForm(p => ({ ...p, recent_heavy_usage: !p.recent_heavy_usage }))}><span className={`h-5 w-5 rounded-md border ${form.recent_heavy_usage ? "border-primary bg-primary" : "border-muted-foreground"}`} />Recent heavy usage or party</button>
               </>
             )}
-            <FormGroup><Label>Notes</Label><Input value={form.notes || ""} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} /></FormGroup>
+            <FormGroup><Label>Notes</Label><Input value={form.notes || ""} placeholder="Clarity, swimmer load, dosing context..." onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} /></FormGroup>
+            {testSaveError && <div style={{ border: `1px solid ${COLORS.red}`, borderRadius: 8, padding: 10, color: COLORS.red, fontSize: 13 }}>{testSaveError}</div>}
             <Button type="button" className="w-full" onClick={saveTest}>Save Test</Button>
           </FormSection>
         </Modal>

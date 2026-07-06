@@ -1,5 +1,49 @@
 # Release Notes
 
+## Release 1.4.5
+
+### Version
+1.4.5
+
+### Date
+2026-07-06
+
+### Summary
+Release 1.4.5 transforms Pool from a calculator-led surface into a Pool Advisor experience. The Pool module now answers whether the pool is swim-ready, what needs attention, what to do next, why it matters, and when to retest. The release builds on Release 1.4.4 calculation guardrails and does not modify Auth, Google OAuth, Calendar integration, Supabase schema, backend APIs, environment variables, Vercel configuration, or non-Pool modules.
+
+### Pool Advisor Improvements
+- Added an advisor dashboard with Water Health Score, Swim Readiness, Last Test, Priority Next Action, Current Chemistry, Recent Chemical, trend indicators, and retest due guidance.
+- Added a grouped action plan with Do Today, Retest, This Week, and Monitor sections. Each action keeps what to do, why, timing, safety notes, and expected outcome visible.
+- Added a treatment review modal before confirming actionable recommendations. The review shows current chemistry, recommended actions, total chemicals, staged additions, expected outcome, wait time, and retest schedule.
+- Expanded lightweight trends for FC, pH, CYA, Salt, TA, and temperature using mobile-safe mini bars and plain text trend labels.
+- Improved Pool history with date grouping, record type labels, major-change highlighting, notes, source/context details, and before/after visibility where a later test exists.
+- Added equipment and maintenance guidance for pump runtime, due reminders, salt cell inspection, and cleaner/skimmer checks using existing Pool data.
+- Added seasonal/contextual guidance for heat, heavy rain, heavy swimmer load, and vacation preparation without adding new integrations or schema.
+- Added concise "Why this matters" help copy for FC, CC, pH, TA, CYA, Salt, and CH.
+- Improved test entry with required FC/pH fields, optional full chemistry grouping, smart SWG/pump defaults from the latest reading, inline validation, mobile numeric inputs, clear units, and reduced scrolling.
+
+### Safety And Guardrails
+- Release 1.4.4 dose calculations, staged stabilizer guidance, large-dose warnings, invalid volume blocking, high-current-value guardrails, and duplicate chlorine suppression remain in `src/modules/pool/actionEngine.js`.
+- Release 1.4.5 adds review and explanation around existing recommendations; it does not bypass the action engine or automatically dose chemicals.
+- Confirmed recommendations still write only to the existing action audit path and then open the existing treatment or maintenance logging flow for human confirmation.
+
+### Database Changes
+- None.
+
+### Deferred
+- Calendar, OAuth, notifications, AI Assistant, Home Assistant, automatic dosing, automatic equipment control, live weather/Pentair integrations, new Pool schema, and non-Pool module work remain out of scope.
+
+### Validation Status
+- `pnpm run lint`: passed.
+- `pnpm run build`: passed. CRA emitted the existing Node `fs.F_OK` deprecation warning after a successful compile.
+- `git diff --check`: passed with line-ending normalization warnings only.
+- Desktop authenticated Pool smoke: blocked because local Supabase is not reachable at `127.0.0.1:54321`; the app remains on the auth loading skeleton and logs Supabase auth `Failed to fetch` errors.
+- 390px authenticated Pool smoke: blocked for the same local Supabase connectivity reason.
+- Pool recommendation review, action plan, history, and test entry smoke: blocked by the authenticated app not reaching the Pool module.
+
+### Recommendation
+Not ready to merge until lint, build, diff-check, desktop authenticated Pool smoke, and 390px authenticated Pool smoke all pass.
+
 ## Release 1.4.4
 
 ### Version
