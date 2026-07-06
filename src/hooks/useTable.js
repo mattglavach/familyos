@@ -19,15 +19,22 @@ export function useTable(table,orderCol,orderAsc=false,options={}){
     householdScoped = true,
   } = options || {};
   const [data,setData]=useState(null),[loading,setLoading]=useState(true);
-  const load=useCallback(async()=>{
+  const load=useCallback(async(options={})=>{
     setLoading(true);
     try{
       let query = supabase.from(table).select("*").order(orderCol,{ascending:orderAsc});
       if (householdScoped && householdId) query = query.eq("household_id", householdId);
       const{data:rows,error}=await query;
-      if(!error)setData(rows);else setData(SEED[table]||[]);
+      if(!error)setData(rows);
+      else{
+        if(options.throwOnError) throw error;
+        setData(SEED[table]||[]);
+      }
     }
-    catch{setData(SEED[table]||[]);}
+    catch(error){
+      if(options.throwOnError) throw error;
+      setData(SEED[table]||[]);
+    }
     setLoading(false);
   },[table,orderCol,orderAsc,householdId,householdScoped]);
   useEffect(()=>{load();},[load]);
@@ -45,8 +52,35 @@ export function useTable(table,orderCol,orderAsc=false,options={}){
     if (userId && next.user_id === undefined) next.user_id = userId;
     return next;
   }
-  async function insert(row){const nextRow=withOwnership(row);try{const{data:r,error}=await supabase.from(table).insert(nextRow).select().single();if(!error){await load();notifyTableChanged(table);}else{console.error(`Insert failed on ${table}:`,error);setData(p=>[{...nextRow,id:String(Date.now())},...(p||[])]);}return r;}catch(e){console.error(`Insert exception on ${table}:`,e);setData(p=>[{...nextRow,id:String(Date.now())},...(p||[])]);}}
-  async function update(id,row){const nextRow=withOwnership(row);try{const{error}=await supabase.from(table).update(nextRow).eq("id",id);if(!error){await load();notifyTableChanged(table);}else{console.error(`Update failed on ${table}:`,error);setData(p=>p.map(r=>r.id===id?{...r,...nextRow}:r));}}catch(e){console.error(`Update exception on ${table}:`,e);setData(p=>p.map(r=>r.id===id?{...r,...nextRow}:r));}}
-  async function remove(id){try{const{error}=await supabase.from(table).delete().eq("id",id);if(!error){await load();notifyTableChanged(table);}else{console.error(`Delete failed on ${table}:`,error);setData(p=>p.filter(r=>r.id!==id));}}catch(e){console.error(`Delete exception on ${table}:`,e);setData(p=>p.filter(r=>r.id!==id));}}
+  async function insert(row){
+    const nextRow=withOwnership(row);
+    const{data:r,error}=await supabase.from(table).insert(nextRow).select().single();
+    if(error){
+      console.error(`Insert failed on ${table}:`,error);
+      throw error;
+    }
+    await load({throwOnError:true});
+    notifyTableChanged(table);
+    return r;
+  }
+  async function update(id,row){
+    const nextRow=withOwnership(row);
+    const{error}=await supabase.from(table).update(nextRow).eq("id",id);
+    if(error){
+      console.error(`Update failed on ${table}:`,error);
+      throw error;
+    }
+    await load({throwOnError:true});
+    notifyTableChanged(table);
+  }
+  async function remove(id){
+    const{error}=await supabase.from(table).delete().eq("id",id);
+    if(error){
+      console.error(`Delete failed on ${table}:`,error);
+      throw error;
+    }
+    await load({throwOnError:true});
+    notifyTableChanged(table);
+  }
   return{data:data||[],loading,reload:load,insert,update,remove};
 }

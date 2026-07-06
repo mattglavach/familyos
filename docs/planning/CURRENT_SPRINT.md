@@ -162,6 +162,8 @@ Complete Release 1.5.0 Calendar Platform by making Calendar a reliable household
 - [x] Begin Release 1.4.5 Pool Advisor & Experience branch
 - [x] Add Pool advisor dashboard, action plan, treatment review, trends, history, test-entry, maintenance, seasonal, and help-copy improvements
 - [x] Run Release 1.4.5 lint, build, and diff-check validation
+- [x] Fix Pool Test Quick Add pH regression with shared FC/pH validation and automated coverage
+- [x] Fix Pool Test local-only persistence regression by making Supabase mutation failures throw and keeping failed saves visible
 - [ ] Complete authenticated desktop Pool smoke validation
 - [ ] Complete authenticated 390px Pool smoke validation
 
@@ -181,6 +183,8 @@ Complete Release 1.5.0 Calendar Platform by making Calendar a reliable household
 - Release 1.4.0 desktop swipe-card row edit risk is resolved; final lint/build/diff-check and commit remain before handoff.
 - Release 1.4.4 has no implementation blocker. Authenticated desktop and 390px Pool smoke validation is blocked in this workspace because local Supabase is unreachable at `127.0.0.1:54321`.
 - Release 1.4.5 has no known implementation blocker. Authenticated desktop and 390px Pool smoke validation is blocked in this workspace because local Supabase is unreachable at `127.0.0.1:54321`.
+- Pool Test pH production regression root cause: the Quick Add Pool Test path drifted from the Pool module test-entry contract during the required-vs-optional test entry work. pH is intended to remain required with FC for new Pool Test creation. The fix restores pH as a required Quick Add field, shares validation/row-building helpers across both create paths, and covers rendering, missing-pH validation, and successful create behavior in `QuickAdd.test.js`.
+- Pool Test persistence regression root cause: the shared `useTable` mutation helpers swallowed Supabase insert/update/delete failures, wrote temporary local state, and returned without throwing. Failed Pool Test inserts could therefore appear saved until navigation, reload, or a fresh select. Mutations now throw on Supabase errors and reload from the database only after confirmed success. Active Tasks, Life Lists, Shopping, Pool, Quick Add, and Meal Planning mutation paths now handle rejected writes defensively.
 
 ## Notes
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.

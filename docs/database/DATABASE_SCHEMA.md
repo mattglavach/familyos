@@ -174,6 +174,8 @@ Release 1.4.0 adds `supabase/migrations/20260703_release_1_4_pool_care_assistant
 
 `pool_readings` now includes test source, recent weather notes, recent heavy usage, and timestamps in addition to chemistry readings. Supported test sources are Taylor Kit, Pool Store, Manual, and future-only Pentair/Home Assistant values.
 
+Current app create flows require FC and pH before inserting a new Pool Test because those fields drive swim readiness and treatment safety. The database columns remain nullable for legacy readings and future import compatibility; app validation is responsible for enforcing required FC/pH on new manual entries.
+
 `pool_treatments` now includes water clarity and timestamps so chemical additions, SWG changes, and related observations can appear in the treatment timeline.
 
 `pool_maintenance` now supports optional `equipment_id`, water clarity, timestamps, and Pool notes such as weather or party context.

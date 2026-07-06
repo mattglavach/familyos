@@ -13,6 +13,15 @@ The Pool module is the Pool Care Assistant. It tracks water tests, treatments, e
 - Quick Add targets and Universal Search coverage.
 - Owner/adult write access with viewer read-only UI behavior.
 
+## Pool Test Contract
+- New Pool Test creation requires FC and pH in both the Pool module drawer and Quick Add.
+- Quick Add and the Pool module share the same Pool Test validation and row-building helpers so `ph` and `free_chlorine` are submitted consistently to `pool_readings`.
+- The database keeps historical `pool_readings.ph` and `pool_readings.free_chlorine` nullable for legacy/import compatibility, but current app create flows validate both fields before insert.
+
+## Production Bug Notes
+- July 6, 2026: fixed a Quick Add Pool Test regression where the create path could drift from the Pool module's required FC/pH form contract. Automated coverage now verifies pH rendering, missing-pH validation, and successful Pool Test creation.
+- July 6, 2026: fixed a local-only persistence regression where failed Supabase writes could appear temporarily in Pool history through shared table-hook fallback state. Pool Test saves now depend on confirmed Supabase insert/update success, and failed writes remain visible as errors instead of success.
+
 ## Future Enhancements
 - AI Pool Coach explanations.
 - Pentair, Home Assistant, Weather, Taylor, and pool-store imports.

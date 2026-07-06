@@ -16,6 +16,7 @@ import { OriginDrawer } from "../../components/origin/drawer";
 import { useHousehold } from "../../context/HouseholdContext";
 import { roleCanManage, roleLabel } from "../../hooks/useHouseholdCollaboration";
 import { useTable } from "../../hooks/useTable";
+import { formatUserFacingError } from "../../lib/userFacingErrors";
 import { COLORS, S } from "../../theme";
 
 const LIST_VISIBILITY = [
@@ -329,12 +330,16 @@ export function Shopping() {
       meal_plan_ref: listForm.meal_plan_ref || null,
       updated_at: new Date().toISOString(),
     };
-    if (listForm.id) await lists.update(listForm.id, row);
-    else {
-      const created = await lists.insert(row);
-      if (created?.id) setSelectedId(created.id);
+    try {
+      if (listForm.id) await lists.update(listForm.id, row);
+      else {
+        const created = await lists.insert(row);
+        if (created?.id) setSelectedId(created.id);
+      }
+      setListDrawer(false);
+    } catch (error) {
+      setError(formatUserFacingError(error, "Shopping list could not be saved right now."));
     }
-    setListDrawer(false);
   }
 
   async function saveItem() {
@@ -367,10 +372,14 @@ export function Shopping() {
       meal_plan_ref: itemForm.meal_plan_ref || null,
       updated_at: new Date().toISOString(),
     };
-    if (itemForm.id) await items.update(itemForm.id, row);
-    else await items.insert(row);
-    await lists.update(selectedList.id, { updated_at: new Date().toISOString() });
-    setItemDrawer(false);
+    try {
+      if (itemForm.id) await items.update(itemForm.id, row);
+      else await items.insert(row);
+      await lists.update(selectedList.id, { updated_at: new Date().toISOString() });
+      setItemDrawer(false);
+    } catch (error) {
+      setError(formatUserFacingError(error, "Shopping item could not be saved right now."));
+    }
   }
 
   async function savePantryItem() {
@@ -398,41 +407,65 @@ export function Shopping() {
       meal_plan_ref: pantryForm.meal_plan_ref || null,
       updated_at: new Date().toISOString(),
     };
-    if (pantryForm.id) await pantry.update(pantryForm.id, row);
-    else await pantry.insert(row);
-    setPantryDrawer(false);
+    try {
+      if (pantryForm.id) await pantry.update(pantryForm.id, row);
+      else await pantry.insert(row);
+      setPantryDrawer(false);
+    } catch (error) {
+      setError(formatUserFacingError(error, "Pantry item could not be saved right now."));
+    }
   }
 
   async function togglePurchased(item) {
     const purchased = !item.purchased;
-    await items.update(item.id, {
-      purchased,
-      purchased_at: purchased ? new Date().toISOString() : null,
-      archived: false,
-      updated_at: new Date().toISOString(),
-    });
-    await lists.update(item.list_id, { updated_at: new Date().toISOString() });
+    try {
+      await items.update(item.id, {
+        purchased,
+        purchased_at: purchased ? new Date().toISOString() : null,
+        archived: false,
+        updated_at: new Date().toISOString(),
+      });
+      await lists.update(item.list_id, { updated_at: new Date().toISOString() });
+    } catch (error) {
+      setError(formatUserFacingError(error, "Shopping item could not be updated right now."));
+    }
   }
 
   async function toggleItemFavorite(item) {
-    await items.update(item.id, { favorite: !item.favorite, updated_at: new Date().toISOString() });
+    try {
+      await items.update(item.id, { favorite: !item.favorite, updated_at: new Date().toISOString() });
+    } catch (error) {
+      setError(formatUserFacingError(error, "Shopping item could not be updated right now."));
+    }
   }
 
   async function togglePantryFavorite(item) {
-    await pantry.update(item.id, { favorite: !item.favorite, updated_at: new Date().toISOString() });
+    try {
+      await pantry.update(item.id, { favorite: !item.favorite, updated_at: new Date().toISOString() });
+    } catch (error) {
+      setError(formatUserFacingError(error, "Pantry item could not be updated right now."));
+    }
   }
 
   async function archiveList() {
     if (!selectedList) return;
-    await lists.update(selectedList.id, { archived: !selectedList.archived, updated_at: new Date().toISOString() });
+    try {
+      await lists.update(selectedList.id, { archived: !selectedList.archived, updated_at: new Date().toISOString() });
+    } catch (error) {
+      setError(formatUserFacingError(error, "Shopping list could not be updated right now."));
+    }
   }
 
   async function deleteSelectedList() {
     if (!selectedList) return;
-    await Promise.all(listItems.map(item => items.remove(item.id)));
-    await lists.remove(selectedList.id);
-    setSelectedId(null);
-    setConfirm(null);
+    try {
+      await Promise.all(listItems.map(item => items.remove(item.id)));
+      await lists.remove(selectedList.id);
+      setSelectedId(null);
+      setConfirm(null);
+    } catch (error) {
+      setError(formatUserFacingError(error, "Shopping list could not be deleted right now."));
+    }
   }
 
   if (selectedList) {
