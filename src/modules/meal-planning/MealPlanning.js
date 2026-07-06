@@ -300,12 +300,16 @@ export function MealPlanning() {
     const sourceDates = weekDays.map(day => addDays(day, offset));
     const source = planAssignments.filter(item => sourceDates.includes(item.meal_date));
     const existingKeys = new Set(planAssignments.map(item => `${item.meal_date}-${item.meal_type}`));
-    for (const item of source) {
-      const targetDate = addDays(item.meal_date, -offset);
-      if (existingKeys.has(`${targetDate}-${item.meal_type}`)) continue;
-      await assignments.insert({ meal_plan_id: activePlan.id, recipe_id: item.recipe_id, title: item.title, meal_date: targetDate, meal_type: item.meal_type, notes: item.notes || "", favorite: false, archived: false });
+    try {
+      for (const item of source) {
+        const targetDate = addDays(item.meal_date, -offset);
+        if (existingKeys.has(`${targetDate}-${item.meal_type}`)) continue;
+        await assignments.insert({ meal_plan_id: activePlan.id, recipe_id: item.recipe_id, title: item.title, meal_date: targetDate, meal_type: item.meal_type, notes: item.notes || "", favorite: false, archived: false });
+      }
+      await plans.update(activePlan.id, { updated_at: new Date().toISOString() });
+    } catch (err) {
+      setError(formatUserFacingError(err, "Meal assignments could not be copied right now."));
     }
-    await plans.update(activePlan.id, { updated_at: new Date().toISOString() });
   }
 
   async function generateShoppingItems() {

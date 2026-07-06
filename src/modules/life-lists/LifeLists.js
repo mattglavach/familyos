@@ -16,6 +16,7 @@ import { OriginDrawer } from "../../components/origin/drawer";
 import { useHousehold } from "../../context/HouseholdContext";
 import { useTable } from "../../hooks/useTable";
 import { roleCanManage, roleLabel } from "../../hooks/useHouseholdCollaboration";
+import { formatUserFacingError } from "../../lib/userFacingErrors";
 import { COLORS, S } from "../../theme";
 
 const LIST_VISIBILITY = [
@@ -237,12 +238,16 @@ export function LifeLists() {
       owner_user_id: listForm.owner_user_id || household.user?.id,
       updated_at: new Date().toISOString(),
     };
-    if (listForm.id) await lists.update(listForm.id, row);
-    else {
-      const created = await lists.insert(row);
-      if (created?.id) setSelectedId(created.id);
+    try {
+      if (listForm.id) await lists.update(listForm.id, row);
+      else {
+        const created = await lists.insert(row);
+        if (created?.id) setSelectedId(created.id);
+      }
+      setListDrawer(false);
+    } catch (error) {
+      setError(formatUserFacingError(error, "List could not be saved right now."));
     }
-    setListDrawer(false);
   }
 
   async function saveItem() {
@@ -272,38 +277,58 @@ export function LifeLists() {
       completed_at: status === "completed" ? (itemForm.completed_at || new Date().toISOString()) : null,
       updated_at: new Date().toISOString(),
     };
-    if (itemForm.id) await items.update(itemForm.id, row);
-    else await items.insert(row);
-    await lists.update(selectedList.id, { updated_at: new Date().toISOString() });
-    setItemDrawer(false);
+    try {
+      if (itemForm.id) await items.update(itemForm.id, row);
+      else await items.insert(row);
+      await lists.update(selectedList.id, { updated_at: new Date().toISOString() });
+      setItemDrawer(false);
+    } catch (error) {
+      setError(formatUserFacingError(error, "List item could not be saved right now."));
+    }
   }
 
   async function toggleItemComplete(item) {
     const completed = item.status === "completed" || item.completed_at;
-    await items.update(item.id, {
-      status: completed ? "planned" : "completed",
-      completed_at: completed ? null : new Date().toISOString(),
-      archived: false,
-      updated_at: new Date().toISOString(),
-    });
-    await lists.update(item.list_id, { updated_at: new Date().toISOString() });
+    try {
+      await items.update(item.id, {
+        status: completed ? "planned" : "completed",
+        completed_at: completed ? null : new Date().toISOString(),
+        archived: false,
+        updated_at: new Date().toISOString(),
+      });
+      await lists.update(item.list_id, { updated_at: new Date().toISOString() });
+    } catch (error) {
+      setError(formatUserFacingError(error, "List item could not be updated right now."));
+    }
   }
 
   async function toggleItemFavorite(item) {
-    await items.update(item.id, { favorite: !item.favorite, updated_at: new Date().toISOString() });
+    try {
+      await items.update(item.id, { favorite: !item.favorite, updated_at: new Date().toISOString() });
+    } catch (error) {
+      setError(formatUserFacingError(error, "List item could not be updated right now."));
+    }
   }
 
   async function archiveList() {
     if (!selectedList) return;
-    await lists.update(selectedList.id, { archived: !selectedList.archived, updated_at: new Date().toISOString() });
+    try {
+      await lists.update(selectedList.id, { archived: !selectedList.archived, updated_at: new Date().toISOString() });
+    } catch (error) {
+      setError(formatUserFacingError(error, "List could not be updated right now."));
+    }
   }
 
   async function deleteSelectedList() {
     if (!selectedList) return;
-    await Promise.all(allItems.map(item => items.remove(item.id)));
-    await lists.remove(selectedList.id);
-    setSelectedId(null);
-    setConfirm(null);
+    try {
+      await Promise.all(allItems.map(item => items.remove(item.id)));
+      await lists.remove(selectedList.id);
+      setSelectedId(null);
+      setConfirm(null);
+    } catch (error) {
+      setError(formatUserFacingError(error, "List could not be deleted right now."));
+    }
   }
 
   if (!selectedList) {

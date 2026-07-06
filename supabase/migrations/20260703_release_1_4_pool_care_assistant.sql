@@ -58,7 +58,7 @@ create table if not exists public.pool_action_audits (
   id text primary key default gen_random_uuid()::text,
   household_id uuid references public.households(id) on delete cascade,
   user_id uuid references auth.users(id) on delete set null default auth.uid(),
-  reading_id text references public.pool_readings(id) on delete set null,
+  reading_id uuid references public.pool_readings(id) on delete set null,
   recommendation_id text not null,
   action text not null,
   explanation text not null default '',

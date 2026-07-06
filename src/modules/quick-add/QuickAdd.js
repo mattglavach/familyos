@@ -5,6 +5,7 @@ import { formatUserFacingError } from "../../lib/userFacingErrors";
 import { useHousehold } from "../../context/HouseholdContext";
 import { roleCanManage } from "../../hooks/useHouseholdCollaboration";
 import { useTable } from "../../hooks/useTable";
+import { buildPoolReadingRow, poolTestFieldError, validatePoolTestForm } from "../pool/poolTestForm";
 import { OriginDrawer } from "../../components/origin/drawer";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -101,13 +102,9 @@ export function QuickAdd({onNavigate, openSignal = 0}){
   }
   async function savePool(){
     setSaveError(null);
-    function num(v){return(v===undefined||v===null||v==='') ? null : +v;}
-    let fc = num(form.free_chlorine);
-    if(form._drops && fc!==null) fc = Math.round(fc * 0.5 * 10) / 10;
-    const d = form.date||TODAY_STR;
-    const timeStr = form.time || new Date().toTimeString().slice(0,5);
-    const loggedAt = new Date(`${d}T${timeStr}:00`).toISOString();
-    const row={date:d,logged_at:loggedAt,test_source:form.test_source||"Manual",ph:num(form.ph),free_chlorine:fc,cc:num(form.cc),salt:num(form.salt),cya:num(form.cya),alkalinity:num(form.alkalinity),calcium_hardness:num(form.calcium_hardness),water_temp:num(form.water_temp),filter_pressure:num(form.filter_pressure),swg_setting:num(form.swg_setting),pump_hours:num(form.pump_hours),recent_weather_notes:form.recent_weather_notes||"",recent_heavy_usage:!!form.recent_heavy_usage,notes:form.notes||""};
+    const validation = validatePoolTestForm(form);
+    if(!validation.valid){setSaveError(validation.message);return;}
+    const row = buildPoolReadingRow(form);
     try{
       await poolReadings.insert(row);
       close();setToast({message:"Pool reading saved."});onNavigate("pool");
@@ -507,16 +504,22 @@ export function QuickAdd({onNavigate, openSignal = 0}){
             </FormGroup>
             <FormGroup>
               <div className="flex items-center justify-between gap-3">
-                <Label className="mb-0">Free Chlorine</Label>
+                <Label className="mb-0">FC ppm *</Label>
                 <SegmentedControl value={form._drops?"drops":"ppm"} options={[{value:"ppm",label:"ppm"},{value:"drops",label:"K-2006"}]} ariaLabel="Free chlorine entry mode" onValueChange={v=>setForm(p=>({...p,_drops:v==="drops"}))}/>
               </div>
-              <Input type="number" step="0.5" placeholder={form._drops?"e.g. 11 drops":"e.g. 5.5"} value={form.free_chlorine||""} onChange={e=>setForm(p=>({...p,free_chlorine:e.target.value}))}/>
+              <Input type="number" min="0" max="50" step="0.5" inputMode="decimal" aria-label="FC ppm" placeholder={form._drops?"e.g. 11 drops":"e.g. 5.5"} value={form.free_chlorine||""} onChange={e=>{setSaveError(null);setForm(p=>({...p,free_chlorine:e.target.value}));}}/>
               {form._drops&&form.free_chlorine&&<FormHelp>= {(+form.free_chlorine*0.5).toFixed(1)} ppm FC</FormHelp>}
+              {poolTestFieldError("free_chlorine", form)&&<FormError>{poolTestFieldError("free_chlorine", form)}</FormError>}
+            </FormGroup>
+            <FormGroup>
+              <Label>pH *</Label>
+              <Input type="number" min="6.2" max="9" step="0.1" inputMode="decimal" aria-label="pH" value={form.ph||""} onChange={e=>{setSaveError(null);setForm(p=>({...p,ph:e.target.value}));}}/>
+              {poolTestFieldError("ph", form)&&<FormError>{poolTestFieldError("ph", form)}</FormError>}
             </FormGroup>
             <FormGroup><Label>CC</Label><Input type="number" step="0.5" placeholder="0" value={form.cc!==undefined?form.cc:""} onChange={e=>setForm(p=>({...p,cc:e.target.value}))}/></FormGroup>
             <FormRow>
-              <FormGroup><Label>pH</Label><Input type="number" step="0.1" value={form.ph||""} onChange={e=>setForm(p=>({...p,ph:e.target.value}))}/></FormGroup>
               <FormGroup><Label>Salt (ppm)</Label><Input type="number" value={form.salt||""} onChange={e=>setForm(p=>({...p,salt:e.target.value}))}/></FormGroup>
+              <FormGroup><Label>Water Temp F</Label><Input type="number" value={form.water_temp||""} onChange={e=>setForm(p=>({...p,water_temp:e.target.value}))}/></FormGroup>
             </FormRow>
             <FormRow>
               <FormGroup><Label>CYA (ppm)</Label><Input type="number" value={form.cya||""} onChange={e=>setForm(p=>({...p,cya:e.target.value}))}/></FormGroup>

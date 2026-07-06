@@ -25,6 +25,7 @@ import { OriginDrawer } from "../../components/origin/drawer";
 import { COLORS, MEMBER_COLORS, S } from "../../theme";
 import { useHousehold } from "../../context/HouseholdContext";
 import { useFamilyMembers } from "../dashboard/useFamilyMembers";
+import { formatUserFacingError } from "../../lib/userFacingErrors";
 
 const TASK_METADATA_KEY = "familyos_task_metadata_v1";
 
@@ -524,6 +525,10 @@ export function Tasks({ deps }) {
     setToast({ message });
   }
 
+  function notifyMutationError(error, fallback = "Task could not be saved right now.") {
+    notify(formatUserFacingError(error, fallback));
+  }
+
   function openCreateTask() {
     const defaultMember = family.members.find(member => member.id === household.userPreferences?.default_person_id);
     const defaultAssignee = defaultMember?.name || activeMembers[0]?.name || "Family";
@@ -555,7 +560,7 @@ export function Tasks({ deps }) {
       return;
     }
 
-    const id = drawer.task?.id || `task-${Date.now()}`;
+    const id = drawer.mode === "edit" ? drawer.task?.id : null;
     const row = {
       ...taskRowFromForm(form, id, drawer.task, TODAY_STR),
       ...taskMetadataFromForm(form, members, drawer.task, TODAY_STR),
@@ -563,18 +568,23 @@ export function Tasks({ deps }) {
       updated_by_user_id: household.user?.id || null,
     };
 
-    if (drawer.mode === "edit" && drawer.task) await taskTable.update(drawer.task.id, row);
-    else await taskTable.insert(row);
+    try {
+      if (drawer.mode === "edit" && drawer.task) await taskTable.update(drawer.task.id, row);
+      else await taskTable.insert(row);
 
-    closeDrawer();
-    notify(drawer.mode === "edit" ? "Task updated." : "Task created. You can find it in All tasks.");
+      closeDrawer();
+      notify(drawer.mode === "edit" ? "Task updated." : "Task created. You can find it in All tasks.");
+    } catch (error) {
+      setFormError(formatUserFacingError(error, "Task could not be saved right now."));
+    }
   }
 
   async function completeTask(task) {
     if (task.recurring_interval_days) {
       const nextDue = new Date(TODAY_DATE);
       nextDue.setDate(nextDue.getDate() + Number(task.recurring_interval_days));
-      await taskTable.update(task.id, {
+      try {
+        await taskTable.update(task.id, {
         title: task.title,
         category: task.category || "Home",
         priority: task.priority || "med",
@@ -589,12 +599,16 @@ export function Tasks({ deps }) {
         completed_at: TODAY_STR,
         module_key: task.module_key || "tasks",
         updated_by_user_id: household.user?.id || null,
-      });
-      notify("Recurring task completed and rescheduled.");
+        });
+        notify("Recurring task completed and rescheduled.");
+      } catch (error) {
+        notifyMutationError(error, "Task could not be completed right now.");
+      }
       return;
     }
 
-    await taskTable.update(task.id, {
+    try {
+      await taskTable.update(task.id, {
       title: task.title,
       category: task.category || "Home",
       priority: task.priority || "med",
@@ -609,12 +623,16 @@ export function Tasks({ deps }) {
       completed_at: TODAY_STR,
       module_key: task.module_key || "tasks",
       updated_by_user_id: household.user?.id || null,
-    });
-    notify("Task completed.");
+      });
+      notify("Task completed.");
+    } catch (error) {
+      notifyMutationError(error, "Task could not be completed right now.");
+    }
   }
 
   async function reopenTask(task) {
-    await taskTable.update(task.id, {
+    try {
+      await taskTable.update(task.id, {
       title: task.title,
       category: task.category || "Home",
       priority: task.priority || "med",
@@ -629,20 +647,28 @@ export function Tasks({ deps }) {
       completed_at: null,
       module_key: task.module_key || "tasks",
       updated_by_user_id: household.user?.id || null,
-    });
-    notify("Task reopened.");
+      });
+      notify("Task reopened.");
+    } catch (error) {
+      notifyMutationError(error, "Task could not be reopened right now.");
+    }
   }
 
   async function confirmDelete() {
     const task = confirmDeleteTask;
     if (!task) return;
-    setConfirmDeleteTask(null);
-    await taskTable.remove(task.id);
-    notify("Task deleted.");
+    try {
+      await taskTable.remove(task.id);
+      setConfirmDeleteTask(null);
+      notify("Task deleted.");
+    } catch (error) {
+      notifyMutationError(error, "Task could not be deleted right now.");
+    }
   }
 
   async function reassignTask(task, assignee) {
-    await taskTable.update(task.id, {
+    try {
+      await taskTable.update(task.id, {
       title: task.title,
       category: task.category || "Home",
       priority: task.priority || "med",
@@ -657,8 +683,11 @@ export function Tasks({ deps }) {
       completed_at: task.completed_at || null,
       module_key: task.module_key || "tasks",
       updated_by_user_id: household.user?.id || null,
-    });
-    notify(`Task assigned to ${assignee}.`);
+      });
+      notify(`Task assigned to ${assignee}.`);
+    } catch (error) {
+      notifyMutationError(error, "Task could not be reassigned right now.");
+    }
   }
 
   const renderTask = task => (

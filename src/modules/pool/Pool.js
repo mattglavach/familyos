@@ -9,10 +9,12 @@ import { ChipGroup, SegmentedControl } from "../../components/ui/segmented-contr
 import { roleCanManage } from "../../hooks/useHouseholdCollaboration";
 import { useHousehold } from "../../context/HouseholdContext";
 import { TODAY_STR, daysAgo, daysBetween, formatDate, nextDueDate } from "../../lib/dates";
+import { formatUserFacingError } from "../../lib/userFacingErrors";
 import { useTable } from "../../hooks/useTable";
 import { maintColor, maintStatus, statusColor } from "../../utils/status";
 import { COLORS, S } from "../../theme";
 import { getChemRecommendations, getPoolHealth, getPoolRecommendations, POOL_RULE_CONFIG } from "./actionEngine";
+import { buildPoolReadingRow, poolTestFieldError, validatePoolTestForm } from "./poolTestForm";
 
 export { getChemRecommendations };
 
@@ -37,19 +39,6 @@ export function poolStatus(param, value) {
 const TEST_SOURCES = ["Taylor Kit", "Pool Store", "Manual"];
 const HISTORY_FILTERS = ["All", "Chemical", "Reading", "Maintenance", "Note"];
 const EQUIPMENT_TYPES = ["Pump", "Salt Cell (SWG)", "Filter", "Heater", "Robot Cleaner", "Betta Skimmer", "Solar Cover", "Test Kit"];
-const CORE_TEST_FIELDS = ["free_chlorine", "ph"];
-const TEST_FIELD_LABELS = {
-  free_chlorine: "FC",
-  cc: "CC",
-  ph: "pH",
-  alkalinity: "TA",
-  cya: "CYA",
-  salt: "Salt",
-  water_temp: "Temperature",
-  swg_setting: "SWG",
-  pump_hours: "Pump runtime",
-  calcium_hardness: "CH",
-};
 const HELP_COPY = [
   ["FC", "Free chlorine is the active sanitizer. Keep it high enough for current CYA before swimming."],
   ["CC", "Combined chlorine points to used-up sanitizer. High CC means oxidize and retest before normal care."],
@@ -313,6 +302,7 @@ export function Pool() {
   const [sourceMode, setSourceMode] = useState("Taylor Kit");
   const [showAdvancedTest, setShowAdvancedTest] = useState(false);
   const [testSaveError, setTestSaveError] = useState("");
+  const [poolActionError, setPoolActionError] = useState("");
   const [reviewRec, setReviewRec] = useState(null);
 
   const latest = latestReadingValues(readings.data);
@@ -366,81 +356,58 @@ export function Pool() {
   }, {}), [history]);
 
   function fieldError(key) {
-    const value = num(form[key]);
-    if (form[key] === "" || form[key] === undefined || form[key] === null) return "";
-    if (value === null) return "Enter a number.";
-    const ranges = {
-      free_chlorine: [0, 50],
-      cc: [0, 20],
-      ph: [6.2, 9.0],
-      alkalinity: [0, 300],
-      cya: [0, 200],
-      salt: [0, 8000],
-      water_temp: [32, 110],
-      swg_setting: [0, 100],
-      pump_hours: [0, 24],
-      calcium_hardness: [0, 1000],
-    };
-    const range = ranges[key];
-    if (range && (value < range[0] || value > range[1])) return `Expected ${range[0]}-${range[1]}.`;
-    return "";
+    return poolTestFieldError(key, form);
+  }
+
+  function showPoolMutationError(error, fallback) {
+    setPoolActionError(formatUserFacingError(error, fallback));
   }
 
   function openTest(row = null) {
     setTestSaveError("");
+    setPoolActionError("");
     setForm(row ? { ...row, time: row.logged_at ? new Date(row.logged_at).toTimeString().slice(0, 5) : "" } : { date: TODAY_STR, test_source: "Taylor Kit", swg_setting: latest?.swg_setting ?? "", pump_hours: latest?.pump_hours ?? "" });
     setSourceMode(row?.test_source || "Taylor Kit");
     setModal("test");
   }
 
   async function saveTest() {
-    const invalidFields = ["free_chlorine", "cc", "ph", "alkalinity", "cya", "salt", "water_temp", "swg_setting", "pump_hours", "calcium_hardness"].filter(key => fieldError(key));
-    const missingCore = CORE_TEST_FIELDS.filter(key => form[key] === "" || form[key] === undefined || form[key] === null);
-    if (missingCore.length) {
-      setTestSaveError(`Required today: ${missingCore.map(key => TEST_FIELD_LABELS[key]).join(" and ")}.`);
+    setTestSaveError("");
+    setPoolActionError("");
+    const validation = validatePoolTestForm(form);
+    if (!validation.valid) {
+      setTestSaveError(validation.message);
       return;
     }
-    if (invalidFields.length) {
-      setTestSaveError(`Check ${invalidFields.map(key => TEST_FIELD_LABELS[key]).join(", ")} before saving.`);
-      return;
+    const row = buildPoolReadingRow(form, { testSource: sourceMode, time: form.time });
+    try {
+      if (form.id) await readings.update(form.id, row);
+      else await readings.insert(row);
+      setModal(null); setForm({});
+    } catch (error) {
+      setTestSaveError(formatUserFacingError(error, "Pool test could not be saved right now."));
     }
-    const row = {
-      date: form.date || TODAY_STR,
-      logged_at: dateTime(form.date || TODAY_STR, form.time),
-      test_source: sourceMode,
-      ph: num(form.ph),
-      free_chlorine: num(form.free_chlorine),
-      cc: num(form.cc),
-      salt: num(form.salt),
-      cya: num(form.cya),
-      alkalinity: num(form.alkalinity),
-      calcium_hardness: num(form.calcium_hardness),
-      water_temp: num(form.water_temp),
-      swg_setting: num(form.swg_setting),
-      pump_hours: num(form.pump_hours),
-      recent_weather_notes: form.recent_weather_notes || "",
-      recent_heavy_usage: Boolean(form.recent_heavy_usage),
-      notes: form.notes || "",
-    };
-    if (form.id) await readings.update(form.id, row);
-    else await readings.insert(row);
-    setModal(null); setForm({});
   }
 
   async function confirmAction(rec) {
-    await audits.insert({
-      reading_id: latest?.id || null,
-      recommendation_id: rec.id,
-      action: rec.action,
-      explanation: rec.explanation,
-      confidence: rec.confidence,
-      safety_note: rec.safetyNote,
-      status: "confirmed",
-      created_at: new Date().toISOString(),
-      confirmed_at: new Date().toISOString(),
-    });
-    setForm({ date: TODAY_STR, notes: rec.action });
-    setModal(rec.category === "Equipment" ? "maintenance" : "treatment");
+    setPoolActionError("");
+    try {
+      await audits.insert({
+        reading_id: latest?.id || null,
+        recommendation_id: rec.id,
+        action: rec.action,
+        explanation: rec.explanation,
+        confidence: rec.confidence,
+        safety_note: rec.safetyNote,
+        status: "confirmed",
+        created_at: new Date().toISOString(),
+        confirmed_at: new Date().toISOString(),
+      });
+      setForm({ date: TODAY_STR, notes: rec.action });
+      setModal(rec.category === "Equipment" ? "maintenance" : "treatment");
+    } catch (error) {
+      showPoolMutationError(error, "Pool action could not be confirmed right now.");
+    }
   }
 
   function openReview(rec) {
@@ -477,9 +444,14 @@ export function Pool() {
       water_clarity: form.water_clarity || "",
       notes: form.notes || "",
     };
-    if (form.id) await treatments.update(form.id, row);
-    else await treatments.insert(row);
-    setModal(null); setForm({});
+    setPoolActionError("");
+    try {
+      if (form.id) await treatments.update(form.id, row);
+      else await treatments.insert(row);
+      setModal(null); setForm({});
+    } catch (error) {
+      showPoolMutationError(error, "Pool treatment could not be saved right now.");
+    }
   }
 
   async function saveMaintenance() {
@@ -490,9 +462,14 @@ export function Pool() {
       water_clarity: form.water_clarity || "",
       notes: form.notes || "",
     };
-    if (form.id) await maintenance.update(form.id, row);
-    else await maintenance.insert(row);
-    setModal(null); setForm({});
+    setPoolActionError("");
+    try {
+      if (form.id) await maintenance.update(form.id, row);
+      else await maintenance.insert(row);
+      setModal(null); setForm({});
+    } catch (error) {
+      showPoolMutationError(error, "Pool maintenance entry could not be saved right now.");
+    }
   }
 
   async function saveEquipment() {
@@ -509,9 +486,14 @@ export function Pool() {
       notes: form.notes || "",
       active: form.active !== false,
     };
-    if (form.id) await equipment.update(form.id, row);
-    else await equipment.insert(row);
-    setModal(null); setForm({});
+    setPoolActionError("");
+    try {
+      if (form.id) await equipment.update(form.id, row);
+      else await equipment.insert(row);
+      setModal(null); setForm({});
+    } catch (error) {
+      showPoolMutationError(error, "Pool equipment could not be saved right now.");
+    }
   }
 
   async function saveSchedule() {
@@ -523,14 +505,24 @@ export function Pool() {
       interval_days: Number(form.interval_days || 30),
       notes: form.notes || "",
     };
-    if (form.id) await schedule.update(form.id, row);
-    else await schedule.insert(row);
-    setModal(null); setForm({});
+    setPoolActionError("");
+    try {
+      if (form.id) await schedule.update(form.id, row);
+      else await schedule.insert(row);
+      setModal(null); setForm({});
+    } catch (error) {
+      showPoolMutationError(error, "Pool reminder could not be saved right now.");
+    }
   }
 
   async function markScheduleDone(item) {
-    await schedule.update(item.id, { ...item, last_completed: TODAY_STR });
-    await maintenance.insert({ date: TODAY_STR, type: item.maintenance_type || item.title, equipment_id: item.equipment_id || null, notes: "Completed from Pool maintenance reminders." });
+    setPoolActionError("");
+    try {
+      await schedule.update(item.id, { ...item, last_completed: TODAY_STR });
+      await maintenance.insert({ date: TODAY_STR, type: item.maintenance_type || item.title, equipment_id: item.equipment_id || null, notes: "Completed from Pool maintenance reminders." });
+    } catch (error) {
+      showPoolMutationError(error, "Pool reminder could not be completed right now.");
+    }
   }
 
   const loading = readings.loading || treatments.loading || maintenance.loading || schedule.loading || equipment.loading || audits.loading;
@@ -582,6 +574,12 @@ export function Pool() {
         </div>
         {!editable && <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 10 }}>Viewer access is read-only for Pool actions.</div>}
       </div>
+
+      {poolActionError && (
+        <div style={{ border: `1px solid ${COLORS.red}`, borderRadius: 8, padding: 10, color: COLORS.red, fontSize: 13, marginBottom: 12 }}>
+          {poolActionError}
+        </div>
+      )}
 
       <div style={S.tabs}>
         {[
@@ -711,11 +709,16 @@ export function Pool() {
                           setForm({ ...item });
                           setModal(item.kind === "Reading" ? "test" : item.kind === "Chemical" ? "treatment" : "maintenance");
                         }}
-                        onDelete={() => {
-                          if (item.kind === "Reading") readings.remove(item.id);
-                          else if (item.kind === "Chemical") treatments.remove(item.id);
-                          else maintenance.remove(item.id);
-                          setActiveSwipe(null);
+                        onDelete={async () => {
+                          setPoolActionError("");
+                          try {
+                            if (item.kind === "Reading") await readings.remove(item.id);
+                            else if (item.kind === "Chemical") await treatments.remove(item.id);
+                            else await maintenance.remove(item.id);
+                            setActiveSwipe(null);
+                          } catch (error) {
+                            showPoolMutationError(error, "Pool history item could not be deleted right now.");
+                          }
                         }}
                         style={{ ...S.card, borderLeft: `4px solid ${major ? COLORS.amber : COLORS.border}` }}>
                         <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
@@ -743,7 +746,15 @@ export function Pool() {
               {equipment.data.map(item => (
                 <SwipeCard key={item.id} id={`equip-${item.id}`} activeId={activeSwipe} setActiveId={setActiveSwipe}
                   onEdit={() => { setForm(item); setModal("equipment"); }}
-                  onDelete={() => { equipment.remove(item.id); setActiveSwipe(null); }}
+                  onDelete={async () => {
+                    setPoolActionError("");
+                    try {
+                      await equipment.remove(item.id);
+                      setActiveSwipe(null);
+                    } catch (error) {
+                      showPoolMutationError(error, "Pool equipment could not be deleted right now.");
+                    }
+                  }}
                   style={S.statusCard(item.next_maintenance && daysBetween(item.next_maintenance) <= 7 ? COLORS.amber : COLORS.blue)}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
                     <div>
@@ -850,8 +861,8 @@ export function Pool() {
               <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 3 }}>FC and pH drive swim readiness and treatment safety.</div>
             </div>
             <FormRow>
-              <FormGroup><Label>FC ppm *</Label><Input type="number" min="0" max="50" step="0.5" inputMode="decimal" value={form.free_chlorine ?? ""} onChange={e => { setTestSaveError(""); setForm(p => ({ ...p, free_chlorine: e.target.value })); }} />{fieldError("free_chlorine") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("free_chlorine")}</div>}</FormGroup>
-              <FormGroup><Label>pH *</Label><Input type="number" min="6.2" max="9" step="0.1" inputMode="decimal" value={form.ph ?? ""} onChange={e => { setTestSaveError(""); setForm(p => ({ ...p, ph: e.target.value })); }} />{fieldError("ph") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("ph")}</div>}</FormGroup>
+              <FormGroup><Label>FC ppm *</Label><Input type="number" min="0" max="50" step="0.5" inputMode="decimal" aria-label="FC ppm" value={form.free_chlorine ?? ""} onChange={e => { setTestSaveError(""); setForm(p => ({ ...p, free_chlorine: e.target.value })); }} />{fieldError("free_chlorine") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("free_chlorine")}</div>}</FormGroup>
+              <FormGroup><Label>pH *</Label><Input type="number" min="6.2" max="9" step="0.1" inputMode="decimal" aria-label="pH" value={form.ph ?? ""} onChange={e => { setTestSaveError(""); setForm(p => ({ ...p, ph: e.target.value })); }} />{fieldError("ph") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("ph")}</div>}</FormGroup>
             </FormRow>
             <div style={{ fontSize: 13, color: COLORS.white, fontWeight: 900 }}>Optional full chemistry</div>
             <FormRow>

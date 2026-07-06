@@ -101,6 +101,7 @@ function SchedulePanel({
   events,
   onNavigate,
   todayString,
+  formatDate,
 }) {
   const status = calendarStatus(calendar);
 
@@ -139,6 +140,11 @@ function SchedulePanel({
   }
 
   const todayEvents = events.filter(event => event?.date === todayString).slice(0, 3);
+  const futureEvents = events
+    .filter(event => event?.date && event.date >= todayString)
+    .sort((a, b) => `${a.date} ${a.time || ""}`.localeCompare(`${b.date} ${b.time || ""}`));
+  const nextEvent = futureEvents[0] || null;
+  const upcomingEvents = futureEvents.filter(event => event.date !== todayString).slice(0, 3);
 
   return (
     <Card style={{ borderLeft: `3px solid ${status.status === "failed" || status.status === "warning" ? COLORS.amber : COLORS.blue}` }}>
@@ -149,6 +155,9 @@ function SchedulePanel({
               <CalendarDays className="h-4 w-4 text-primary" aria-hidden="true" />
               Today&apos;s Schedule
             </CardTitle>
+            <div className="mt-1 text-xs leading-5 text-muted-foreground">
+              {nextEvent ? `Next: ${nextEvent.title} at ${nextEvent.time || "All day"}` : "No upcoming calendar events in the current window."}
+            </div>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <StatusBadge status={status.status}>{status.label}</StatusBadge>
             </div>
@@ -173,26 +182,47 @@ function SchedulePanel({
             <Skeleton className="h-3 w-2/5" />
             <Skeleton className="h-3.5 w-3/5" />
           </div>
-        ) : todayEvents.length === 0 ? (
-          <EmptyStatePanel
-            title="No events today"
-            detail="Open Calendar for the full schedule."
-            action="Open Calendar"
-            onAction={() => onNavigate("calendar")}
-            className="py-7"
-          />
         ) : (
-          <div className="space-y-2">
-            {todayEvents.map(event => (
-              <button key={event.id} type="button" onClick={() => onNavigate("calendar")} className="flex min-h-12 w-full items-center gap-3 rounded-lg border border-border bg-card p-3 text-left transition-colors hover:bg-accent">
-                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: COLORS.blue }} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-foreground">{event.title}</span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">{event.time || "All day"}</span>
-                </span>
-                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-              </button>
-            ))}
+          <div className="space-y-4">
+            {todayEvents.length === 0 ? (
+              <EmptyStatePanel
+                title="No events today"
+                detail={upcomingEvents.length ? "Upcoming events are listed below." : "Open Calendar for the full schedule."}
+                action="Open Calendar"
+                onAction={() => onNavigate("calendar")}
+                className="py-6"
+              />
+            ) : (
+              <div className="space-y-2">
+                {todayEvents.map(event => (
+                  <button key={event.id} type="button" onClick={() => onNavigate("calendar")} className="flex min-h-12 w-full items-center gap-3 rounded-lg border border-border bg-card p-3 text-left transition-colors hover:bg-accent">
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: COLORS.blue }} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold text-foreground">{event.title}</span>
+                      <span className="mt-0.5 block text-xs text-muted-foreground">{event.time || "All day"}</span>
+                    </span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  </button>
+                ))}
+              </div>
+            )}
+            {upcomingEvents.length > 0 && (
+              <div className="border-t border-border pt-3">
+                <div className="mb-2 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Upcoming Schedule</div>
+                <div className="space-y-2">
+                  {upcomingEvents.map(event => (
+                    <button key={event.id} type="button" onClick={() => onNavigate("calendar")} className="flex min-h-11 w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-accent">
+                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: getMemberColor(null, event.member) }} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-foreground">{event.title}</span>
+                        <span className="mt-0.5 block text-xs text-muted-foreground">{formatDate(event.date)} - {event.time || "All day"}</span>
+                      </span>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
@@ -516,6 +546,7 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
         events={allEvents}
         onNavigate={onNavigate}
         todayString={TODAY_STR}
+        formatDate={formatDate}
       />
 
       <section>

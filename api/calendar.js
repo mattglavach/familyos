@@ -51,7 +51,9 @@ function getAllowedOrigins() {
     .map((origin) => origin.trim())
     .filter(Boolean);
   const vercelUrl = process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : [];
-  return [...new Set([...DEFAULT_ALLOWED_ORIGINS, ...vercelUrl, ...configured])];
+  const appBaseUrl = process.env.APP_BASE_URL || process.env.REACT_APP_APP_BASE_URL || "";
+  const appOrigin = appBaseUrl ? [appBaseUrl.replace(/\/$/, "")] : [];
+  return [...new Set([...DEFAULT_ALLOWED_ORIGINS, ...vercelUrl, ...appOrigin, ...configured])];
 }
 
 function setCorsHeaders(req, res) {
@@ -192,6 +194,7 @@ function normalizeGoogleEvent(event, index, source) {
   const allDay = !event.start?.dateTime;
   const date = start.split("T")[0];
   const startDate = new Date(start);
+  const end = event.end?.dateTime || event.end?.date || "";
   const time = allDay || Number.isNaN(startDate.getTime())
     ? "All day"
     : startDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
@@ -199,12 +202,26 @@ function normalizeGoogleEvent(event, index, source) {
     id: event.id || String(index),
     title: event.summary || "(No title)",
     date,
+    start,
+    end,
     time,
     allDay,
     location: event.location || "",
+    description: event.description || "",
+    notes: event.description || "",
+    attendees: (event.attendees || []).map((attendee) => ({
+      email: attendee.email || "",
+      name: attendee.displayName || attendee.email || "",
+      responseStatus: attendee.responseStatus || "",
+    })).filter((attendee) => attendee.email || attendee.name),
+    organizer: event.organizer?.displayName || event.organizer?.email || "",
+    creator: event.creator?.displayName || event.creator?.email || "",
     source,
+    calendar: source,
     htmlLink: event.htmlLink || "",
     status: event.status || "confirmed",
+    lastSyncedAt: event.updated || "",
+    updated: event.updated || "",
   };
 }
 

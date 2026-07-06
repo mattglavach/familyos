@@ -1,9 +1,21 @@
 # Current Sprint
 
 ## Sprint Goal
-Complete Release 1.4.5 Pool Advisor & Experience by turning Pool into a trusted daily advisor that explains swim readiness, priority actions, treatment review, trends, history, testing, maintenance, and contextual guidance without weakening Release 1.4.4 safety guardrails.
+Complete Release 1.5.0 Calendar Platform by making Calendar a reliable household scheduling foundation with clear Google Calendar connection guidance, schedule visibility, event details, Home awareness, and documented OAuth assumptions without changing Pool, Finance, Health, Home Assistant, AI Assistant, or database schema.
 
 ## Active Items
+- [x] Begin Release 1.5.0 Calendar Platform branch
+- [x] Review Calendar/OAuth implementation and prior deferrals
+- [x] Add Calendar dashboard summary, grouped event list, detail view, and connection guidance
+- [x] Add Home dashboard next-event and upcoming schedule awareness
+- [x] Improve Calendar/OAuth error mapping and allowed-origin handling
+- [x] Update Release 1.5.0 release and planning documentation
+- [x] Run Release 1.5.0 lint validation
+- [x] Run Release 1.5.0 production build validation
+- [x] Run Release 1.5.0 git diff check
+- [ ] Complete authenticated desktop Calendar smoke validation
+- [ ] Complete authenticated 390px Calendar smoke validation
+- [ ] Complete Calendar connect/reconnect smoke validation
 - [x] Add documentation structure
 - [x] Add AGENTS.md
 - [x] Add GitHub templates
@@ -150,11 +162,15 @@ Complete Release 1.4.5 Pool Advisor & Experience by turning Pool into a trusted 
 - [x] Begin Release 1.4.5 Pool Advisor & Experience branch
 - [x] Add Pool advisor dashboard, action plan, treatment review, trends, history, test-entry, maintenance, seasonal, and help-copy improvements
 - [x] Run Release 1.4.5 lint, build, and diff-check validation
+- [x] Fix Pool Test Quick Add pH regression with shared FC/pH validation and automated coverage
+- [x] Fix Pool Test local-only persistence regression by making Supabase mutation failures throw and keeping failed saves visible
+- [x] Fix preview-wide Supabase write failure by applying missing remote Release 0.9 and Release 1.1-1.4 migrations, aligning Pool action audit `reading_id` with UUID Pool reading IDs, and letting Tasks use database-generated UUIDs on create
 - [ ] Complete authenticated desktop Pool smoke validation
 - [ ] Complete authenticated 390px Pool smoke validation
 
 ## Blockers
 
+- Release 1.5.0 has no known implementation blocker. Authenticated desktop Calendar smoke, 390px Calendar smoke, Calendar connect/reconnect smoke, Home Calendar card smoke, and error/empty-state smoke are blocked in this workspace because local Supabase is unreachable at `127.0.0.1:54321`.
 - Release 0.6B has no active code blockers after local lint/build validation. Real-device family testing and Vercel deployment validation remain before broad use.
 - Release 0.6C has no active production migration blocker after baseline alignment and household foundation validation.
 - Release 1.0.2 has no active validation blocker after completing local authenticated adult, viewer, mobile, and task lifecycle smoke checks.
@@ -168,6 +184,9 @@ Complete Release 1.4.5 Pool Advisor & Experience by turning Pool into a trusted 
 - Release 1.4.0 desktop swipe-card row edit risk is resolved; final lint/build/diff-check and commit remain before handoff.
 - Release 1.4.4 has no implementation blocker. Authenticated desktop and 390px Pool smoke validation is blocked in this workspace because local Supabase is unreachable at `127.0.0.1:54321`.
 - Release 1.4.5 has no known implementation blocker. Authenticated desktop and 390px Pool smoke validation is blocked in this workspace because local Supabase is unreachable at `127.0.0.1:54321`.
+- Pool Test pH production regression root cause: the Quick Add Pool Test path drifted from the Pool module test-entry contract during the required-vs-optional test entry work. pH is intended to remain required with FC for new Pool Test creation. The fix restores pH as a required Quick Add field, shares validation/row-building helpers across both create paths, and covers rendering, missing-pH validation, and successful create behavior in `QuickAdd.test.js`.
+- Pool Test persistence regression root cause: the shared `useTable` mutation helpers swallowed Supabase insert/update/delete failures, wrote temporary local state, and returned without throwing. Failed Pool Test inserts could therefore appear saved until navigation, reload, or a fresh select. Mutations now throw on Supabase errors and reload from the database only after confirmed success. Active Tasks, Life Lists, Shopping, Pool, Quick Add, and Meal Planning mutation paths now handle rejected writes defensively.
+- Preview write validation root cause: the linked FamilyOS Supabase project had household foundation and Calendar schema but was missing Release 0.9 invitations and Release 1.1-1.4 module migrations. Module reads fell back to seed data and all sampled writes failed. The remote database now has the missing module tables, Pool reading context columns, and RLS policies. Task creation also needed to stop sending `task-*` IDs because the remote `tasks.id` column is UUID-backed.
 
 ## Notes
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.
