@@ -78,6 +78,7 @@ Release 1.0 core MVP through Release 1.4.5 Pool Advisor & Experience are complet
 - Release 1.4.5 upgrades Pool into an advisor experience with health/readiness/retest guidance, grouped action plan, treatment review before applying chemicals, richer trends/history, maintenance/context guidance, help copy, and faster required-vs-optional test entry
 - Pool Test pH production regression fixed: Quick Add and the Pool module now share the required FC/pH validation and row-building contract, Quick Add visibly renders `pH *`, and automated tests cover pH rendering, validation, and successful Pool Test creation.
 - Pool Test local-only persistence regression fixed: shared Supabase table mutations now throw on insert/update/delete failure instead of creating temporary local rows, Pool Test save paths only show success after persistence succeeds, and active Tasks, Life Lists, Shopping, Pool, Quick Add, and Meal Planning mutation paths handle rejected writes defensively.
+- Preview-wide Supabase write failure fixed: the linked FamilyOS Supabase project was missing Release 0.9 and Release 1.1-1.4 database migrations, so module reads were falling back to seed data and writes failed across Pool, Tasks, Life Lists, Shopping, and Meal Planning. Missing migrations were applied remotely, Pool action audit `reading_id` was aligned to UUID Pool reading IDs, and Tasks now lets the database generate UUID IDs on create.
 - Release 1.5.0 adds the Calendar Platform foundation with a Calendar schedule summary, Today/Tomorrow/This Week/Upcoming groups, event details, connection/reconnect guidance, safer OAuth/setup/permission messaging, Home next-event/upcoming schedule awareness, and custom-domain Calendar API origin handling
 
 ## In Progress
@@ -139,6 +140,7 @@ Release 1.0 core MVP through Release 1.4.5 Pool Advisor & Experience are complet
 - Release 1.4.0 keeps Pool recommendations rule-based and human-confirmed. AI Coach, live integrations, automatic dosing, and automatic equipment control remain deferred.
 - Release 1.4.5 intentionally keeps Pool advisor logic client-side and schema-neutral. Treatment review improves human confirmation but does not replace product-label safety checks or durable migration-backed workflow state.
 - `pool_readings.ph` and `pool_readings.free_chlorine` remain nullable in the database for legacy/import compatibility, while current app create flows require both fields before insert.
+- Supabase migration filenames currently reuse date-only versions for multiple same-day migrations. Remote migration metadata was repaired by date after the preview fix, but future migration work should use unique timestamp prefixes to avoid CLI ambiguity.
 - Release 1.5.0 keeps Calendar read-only. Event creation/editing, reminders, automation, notifications, multi-provider support, and legacy browser fallback removal remain deferred until deployed OAuth validation and a richer scheduling model are approved.
 
 ## Last Updated

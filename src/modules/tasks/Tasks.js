@@ -560,7 +560,7 @@ export function Tasks({ deps }) {
       return;
     }
 
-    const id = drawer.task?.id || `task-${Date.now()}`;
+    const id = drawer.mode === "edit" ? drawer.task?.id : null;
     const row = {
       ...taskRowFromForm(form, id, drawer.task, TODAY_STR),
       ...taskMetadataFromForm(form, members, drawer.task, TODAY_STR),

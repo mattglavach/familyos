@@ -164,6 +164,7 @@ Complete Release 1.5.0 Calendar Platform by making Calendar a reliable household
 - [x] Run Release 1.4.5 lint, build, and diff-check validation
 - [x] Fix Pool Test Quick Add pH regression with shared FC/pH validation and automated coverage
 - [x] Fix Pool Test local-only persistence regression by making Supabase mutation failures throw and keeping failed saves visible
+- [x] Fix preview-wide Supabase write failure by applying missing remote Release 0.9 and Release 1.1-1.4 migrations, aligning Pool action audit `reading_id` with UUID Pool reading IDs, and letting Tasks use database-generated UUIDs on create
 - [ ] Complete authenticated desktop Pool smoke validation
 - [ ] Complete authenticated 390px Pool smoke validation
 
@@ -185,6 +186,7 @@ Complete Release 1.5.0 Calendar Platform by making Calendar a reliable household
 - Release 1.4.5 has no known implementation blocker. Authenticated desktop and 390px Pool smoke validation is blocked in this workspace because local Supabase is unreachable at `127.0.0.1:54321`.
 - Pool Test pH production regression root cause: the Quick Add Pool Test path drifted from the Pool module test-entry contract during the required-vs-optional test entry work. pH is intended to remain required with FC for new Pool Test creation. The fix restores pH as a required Quick Add field, shares validation/row-building helpers across both create paths, and covers rendering, missing-pH validation, and successful create behavior in `QuickAdd.test.js`.
 - Pool Test persistence regression root cause: the shared `useTable` mutation helpers swallowed Supabase insert/update/delete failures, wrote temporary local state, and returned without throwing. Failed Pool Test inserts could therefore appear saved until navigation, reload, or a fresh select. Mutations now throw on Supabase errors and reload from the database only after confirmed success. Active Tasks, Life Lists, Shopping, Pool, Quick Add, and Meal Planning mutation paths now handle rejected writes defensively.
+- Preview write validation root cause: the linked FamilyOS Supabase project had household foundation and Calendar schema but was missing Release 0.9 invitations and Release 1.1-1.4 module migrations. Module reads fell back to seed data and all sampled writes failed. The remote database now has the missing module tables, Pool reading context columns, and RLS policies. Task creation also needed to stop sending `task-*` IDs because the remote `tasks.id` column is UUID-backed.
 
 ## Notes
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.

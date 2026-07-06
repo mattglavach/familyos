@@ -176,6 +176,8 @@ Release 1.4.0 adds `supabase/migrations/20260703_release_1_4_pool_care_assistant
 
 Current app create flows require FC and pH before inserting a new Pool Test because those fields drive swim readiness and treatment safety. The database columns remain nullable for legacy readings and future import compatibility; app validation is responsible for enforcing required FC/pH on new manual entries.
 
+Preview validation note: on July 6, 2026, post-deploy preview validation found the linked FamilyOS Supabase project had household foundation and Calendar schema but was missing Release 0.9 invitations and Release 1.1-1.4 module migrations. The missing migrations were applied to restore durable writes for Pool, Life Lists, Shopping, and Meal Planning. `pool_action_audits.reading_id` now matches the remote `pool_readings.id` UUID type.
+
 `pool_treatments` now includes water clarity and timestamps so chemical additions, SWG changes, and related observations can appear in the treatment timeline.
 
 `pool_maintenance` now supports optional `equipment_id`, water clarity, timestamps, and Pool notes such as weather or party context.
