@@ -1,10 +1,10 @@
 # Project Status
 
 ## Current Version
-1.4.0
+1.4.5 in progress
 
 ## Current State
-Release 1.0 core MVP through Release 1.3.2 Calendar/Product Cleanup are complete. Release 1.4.0 Pool Care Assistant Foundation is validation-complete on branch `release/1.4.0-pool-care-assistant`.
+Release 1.0 core MVP through Release 1.4.4 Pool Intelligence & UX are complete or in validation. Release 1.4.5 Pool Advisor & Experience is active on branch `release/1.4.5-pool-advisor-experience`.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -74,12 +74,14 @@ Release 1.0 core MVP through Release 1.3.2 Calendar/Product Cleanup are complete
 - Release 1.3.2 improves Calendar recoverability, Home order, Tasks default visibility/sorting, task form grouping, and documents Pool Care Assistant as a future Home Platform submodule without adding Pool implementation
 - Release 1.4.0 adds the Pool Care Assistant Foundation with a Pool action dashboard, water test logging, rule-based recommendations, treatment history, equipment inventory, maintenance reminders, Quick Add support, Universal Search support, and a Supabase migration for Pool equipment/action audit architecture
 - Release 1.4.0 validation passed against disposable/local Supabase only for migration/RLS, action engine scenarios, authenticated Pool browser smoke, Quick Add/Search persistence, adult/viewer UI permissions, responsive desktop/tablet/390px checks, and console checks
+- Release 1.4.4 improves Pool recommendation safety and explainability with explicit formula bases, staged CYA dosing, large-dose warnings, calculation details, swim-readiness dashboard polish, trend visibility, grouped history, and shorter test entry
+- Release 1.4.5 upgrades Pool into an advisor experience with health/readiness/retest guidance, grouped action plan, treatment review before applying chemicals, richer trends/history, maintenance/context guidance, help copy, and faster required-vs-optional test entry
 
 ## In Progress
-- Release 1.4.0 final checks, documentation closeout, and commit grouping.
+- Release 1.4.5 authenticated Pool smoke validation after local Supabase is available. Lint, build, and diff-check pass; desktop and 390px Pool smoke are blocked because local Supabase is unreachable at `127.0.0.1:54321`.
 
 ## Next
-- Merge-review Release 1.4.0 after final local checks and commit.
+- Merge-review Release 1.4.5 only after automated checks and authenticated desktop plus 390px Pool smoke pass.
 - Configure Release 0.8 server OAuth environment values in Vercel before removing the legacy calendar fallback.
 - Decide whether to remove the legacy browser calendar fallback after deployed validation.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
@@ -132,6 +134,7 @@ Release 1.0 core MVP through Release 1.3.2 Calendar/Product Cleanup are complete
 - Release 1.3 validation used disposable/local Supabase only. Production was not touched.
 - Release 1.3.1 adds no database migration. Validation remains local/staging only; production should not be touched during polish validation.
 - Release 1.4.0 keeps Pool recommendations rule-based and human-confirmed. AI Coach, live integrations, automatic dosing, and automatic equipment control remain deferred.
+- Release 1.4.5 intentionally keeps Pool advisor logic client-side and schema-neutral. Treatment review improves human confirmation but does not replace product-label safety checks or durable migration-backed workflow state.
 
 ## Last Updated
-July 3, 2026
+July 6, 2026

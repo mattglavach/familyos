@@ -1,5 +1,87 @@
 # Release Notes
 
+## Release 1.4.5
+
+### Version
+1.4.5
+
+### Date
+2026-07-06
+
+### Summary
+Release 1.4.5 transforms Pool from a calculator-led surface into a Pool Advisor experience. The Pool module now answers whether the pool is swim-ready, what needs attention, what to do next, why it matters, and when to retest. The release builds on Release 1.4.4 calculation guardrails and does not modify Auth, Google OAuth, Calendar integration, Supabase schema, backend APIs, environment variables, Vercel configuration, or non-Pool modules.
+
+### Pool Advisor Improvements
+- Added an advisor dashboard with Water Health Score, Swim Readiness, Last Test, Priority Next Action, Current Chemistry, Recent Chemical, trend indicators, and retest due guidance.
+- Added a grouped action plan with Do Today, Retest, This Week, and Monitor sections. Each action keeps what to do, why, timing, safety notes, and expected outcome visible.
+- Added a treatment review modal before confirming actionable recommendations. The review shows current chemistry, recommended actions, total chemicals, staged additions, expected outcome, wait time, and retest schedule.
+- Expanded lightweight trends for FC, pH, CYA, Salt, TA, and temperature using mobile-safe mini bars and plain text trend labels.
+- Improved Pool history with date grouping, record type labels, major-change highlighting, notes, source/context details, and before/after visibility where a later test exists.
+- Added equipment and maintenance guidance for pump runtime, due reminders, salt cell inspection, and cleaner/skimmer checks using existing Pool data.
+- Added seasonal/contextual guidance for heat, heavy rain, heavy swimmer load, and vacation preparation without adding new integrations or schema.
+- Added concise "Why this matters" help copy for FC, CC, pH, TA, CYA, Salt, and CH.
+- Improved test entry with required FC/pH fields, optional full chemistry grouping, smart SWG/pump defaults from the latest reading, inline validation, mobile numeric inputs, clear units, and reduced scrolling.
+
+### Safety And Guardrails
+- Release 1.4.4 dose calculations, staged stabilizer guidance, large-dose warnings, invalid volume blocking, high-current-value guardrails, and duplicate chlorine suppression remain in `src/modules/pool/actionEngine.js`.
+- Release 1.4.5 adds review and explanation around existing recommendations; it does not bypass the action engine or automatically dose chemicals.
+- Confirmed recommendations still write only to the existing action audit path and then open the existing treatment or maintenance logging flow for human confirmation.
+
+### Database Changes
+- None.
+
+### Deferred
+- Calendar, OAuth, notifications, AI Assistant, Home Assistant, automatic dosing, automatic equipment control, live weather/Pentair integrations, new Pool schema, and non-Pool module work remain out of scope.
+
+### Validation Status
+- `pnpm run lint`: passed.
+- `pnpm run build`: passed. CRA emitted the existing Node `fs.F_OK` deprecation warning after a successful compile.
+- `git diff --check`: passed with line-ending normalization warnings only.
+- Desktop authenticated Pool smoke: blocked because local Supabase is not reachable at `127.0.0.1:54321`; the app remains on the auth loading skeleton and logs Supabase auth `Failed to fetch` errors.
+- 390px authenticated Pool smoke: blocked for the same local Supabase connectivity reason.
+- Pool recommendation review, action plan, history, and test entry smoke: blocked by the authenticated app not reaching the Pool module.
+
+### Recommendation
+Not ready to merge until lint, build, diff-check, desktop authenticated Pool smoke, and 390px authenticated Pool smoke all pass.
+
+## Release 1.4.4
+
+### Version
+1.4.4
+
+### Date
+2026-07-06
+
+### Summary
+Release 1.4.4 improves Pool recommendation trust, explainability, safety, and mobile usability. The release focuses on chemical calculation guardrails and Pool UX only. It does not modify Auth, Google OAuth, Calendar integration, Supabase schema, backend APIs, environment variables, Vercel configuration, or non-Pool modules.
+
+### Calculation Fixes And Assumptions
+- Stabilizer/CYA now uses an explicit pure cyanuric acid basis: 13 oz by weight raises CYA by 10 ppm in 10,000 gallons.
+- CYA recommendations stop when current CYA is at or above target and warn instead when CYA is high.
+- Large stabilizer additions are staged at 64 oz per step with instructions to circulate and retest before adding more.
+- Liquid chlorine, salt, muriatic acid, baking soda, and calcium hardness recommendations now include pool-volume scaling, current/target values, raw dose, rounded dose, and guardrail notes.
+- Missing or invalid pool volume blocks chemical dosing recommendations.
+
+### UX Improvements
+- Recommendation cards now show action, amount, how to add, expected outcome, warnings, retest timing, safety notes, and expandable "Show calculation" details.
+- Pool dashboard now prioritizes swim readiness, current water status, FC/pH/CYA/salt status, trend chips, recent treatment visibility, and next action.
+- Pool history is grouped by date with clearer Reading/Chemical/Maintenance scan labels.
+- Pool test entry keeps core fields first and collapses advanced context fields to reduce mobile scrolling.
+
+### Validation Scenarios
+- CYA 0 to 30: 66 oz calculated total, staged.
+- CYA 30 to 70: 88 oz calculated total, staged.
+- CYA 40 to 70: 66 oz calculated total, staged.
+- CYA at target and above target: no stabilizer addition.
+- 456 oz stabilizer would imply roughly a 206 ppm CYA increase in a 17,000 gallon pool and is not presented as a single safe dose; large-dose warnings and staged guidance apply.
+- Additional scenario coverage included high/low pH, low/high FC, low/target salt, low/high TA, missing CYA, and missing/invalid pool volume behavior.
+
+### Validation Status
+- `pnpm run lint`: passed.
+- `pnpm run build`: passed.
+- `git diff --check`: passed.
+- Desktop and 390px Pool browser smoke: blocked in this workspace because local Supabase is unreachable at `127.0.0.1:54321` and the app remains on the auth loading skeleton.
+
 ## Release 1.4.0
 
 ### Version
