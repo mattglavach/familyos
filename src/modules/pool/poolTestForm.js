@@ -1,6 +1,8 @@
 import { TODAY_STR } from "../../lib/dates";
 
-export const POOL_TEST_REQUIRED_FIELDS = ["free_chlorine", "ph"];
+export const POOL_TEST_CONTEXT_OPTIONS = {
+  rain: "Rain",
+};
 
 export const POOL_TEST_FIELD_LABELS = {
   free_chlorine: "FC",
@@ -46,22 +48,48 @@ export function poolTestFieldError(key, form) {
   return "";
 }
 
-export function validatePoolTestForm(form) {
-  const missingCore = POOL_TEST_REQUIRED_FIELDS.filter(key => form[key] === "" || form[key] === undefined || form[key] === null);
-  if (missingCore.length) {
-    return {
-      valid: false,
-      message: `Required today: ${missingCore.map(key => POOL_TEST_FIELD_LABELS[key]).join(" and ")}.`,
-      fields: missingCore,
-    };
-  }
+export function hasRainContext(form) {
+  return String(form.recent_weather_notes || "").split(",").map(item => item.trim().toLowerCase()).includes("rain");
+}
 
+export function setRainContext(form, enabled) {
+  const notes = String(form.recent_weather_notes || "")
+    .split(",")
+    .map(item => item.trim())
+    .filter(Boolean)
+    .filter(item => item.toLowerCase() !== "rain");
+  if (enabled) notes.unshift(POOL_TEST_CONTEXT_OPTIONS.rain);
+  return notes.join(", ");
+}
+
+export function hasMeaningfulPoolTestEntry(form) {
+  const hasNumber = Object.keys(POOL_TEST_FIELD_RANGES).some(key => {
+    const value = form[key];
+    return value !== "" && value !== undefined && value !== null;
+  });
+  return Boolean(
+    hasNumber
+    || String(form.notes || "").trim()
+    || String(form.recent_weather_notes || "").trim()
+    || form.recent_heavy_usage
+  );
+}
+
+export function validatePoolTestForm(form) {
   const invalidFields = Object.keys(POOL_TEST_FIELD_RANGES).filter(key => poolTestFieldError(key, form));
   if (invalidFields.length) {
     return {
       valid: false,
       message: `Check ${invalidFields.map(key => POOL_TEST_FIELD_LABELS[key]).join(", ")} before saving.`,
       fields: invalidFields,
+    };
+  }
+
+  if (!hasMeaningfulPoolTestEntry(form)) {
+    return {
+      valid: false,
+      message: "Add at least one test result, note, rain, or party/heavy-use context before saving.",
+      fields: [],
     };
   }
 

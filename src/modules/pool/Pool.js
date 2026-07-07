@@ -14,7 +14,7 @@ import { useTable } from "../../hooks/useTable";
 import { maintColor, maintStatus, statusColor } from "../../utils/status";
 import { COLORS, S } from "../../theme";
 import { getChemRecommendations, getPoolHealth, getPoolRecommendations, POOL_RULE_CONFIG } from "./actionEngine";
-import { buildPoolReadingRow, poolTestFieldError, validatePoolTestForm } from "./poolTestForm";
+import { buildPoolReadingRow, hasRainContext, poolTestFieldError, setRainContext, validatePoolTestForm } from "./poolTestForm";
 
 export { getChemRecommendations };
 
@@ -857,34 +857,37 @@ export function Pool() {
             <FormRow><FormGroup><Label>Date</Label><Input type="date" value={form.date || TODAY_STR} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} /></FormGroup><FormGroup><Label>Time</Label><Input type="time" value={form.time || new Date().toTimeString().slice(0, 5)} onChange={e => setForm(p => ({ ...p, time: e.target.value }))} /></FormGroup></FormRow>
             <FormGroup><Label>Test Source</Label><SegmentedControl value={sourceMode} options={TEST_SOURCES.map(value => ({ value, label: value }))} ariaLabel="Test source" onValueChange={setSourceMode} /></FormGroup>
             <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: 10 }}>
-              <div style={{ fontSize: 13, color: COLORS.white, fontWeight: 900 }}>Required today</div>
-              <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 3 }}>FC and pH drive swim readiness and treatment safety.</div>
+              <div style={{ fontSize: 13, color: COLORS.white, fontWeight: 900 }}>Chemistry</div>
+              <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 3 }}>Log any values you tested. At least one result, note, or context flag is needed.</div>
             </div>
             <FormRow>
-              <FormGroup><Label>FC ppm *</Label><Input type="number" min="0" max="50" step="0.5" inputMode="decimal" aria-label="FC ppm" value={form.free_chlorine ?? ""} onChange={e => { setTestSaveError(""); setForm(p => ({ ...p, free_chlorine: e.target.value })); }} />{fieldError("free_chlorine") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("free_chlorine")}</div>}</FormGroup>
-              <FormGroup><Label>pH *</Label><Input type="number" min="6.2" max="9" step="0.1" inputMode="decimal" aria-label="pH" value={form.ph ?? ""} onChange={e => { setTestSaveError(""); setForm(p => ({ ...p, ph: e.target.value })); }} />{fieldError("ph") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("ph")}</div>}</FormGroup>
-            </FormRow>
-            <div style={{ fontSize: 13, color: COLORS.white, fontWeight: 900 }}>Optional full chemistry</div>
-            <FormRow>
-              <FormGroup><Label>CYA ppm</Label><Input type="number" min="0" max="200" inputMode="numeric" value={form.cya ?? ""} onChange={e => setForm(p => ({ ...p, cya: e.target.value }))} />{fieldError("cya") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("cya")}</div>}</FormGroup>
-              <FormGroup><Label>Salt ppm</Label><Input type="number" min="0" max="8000" inputMode="numeric" value={form.salt ?? ""} onChange={e => setForm(p => ({ ...p, salt: e.target.value }))} />{fieldError("salt") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("salt")}</div>}</FormGroup>
+              <FormGroup><Label>FC ppm</Label><Input type="number" min="0" max="50" step="0.5" inputMode="decimal" aria-label="FC ppm" value={form.free_chlorine ?? ""} onChange={e => { setTestSaveError(""); setForm(p => ({ ...p, free_chlorine: e.target.value })); }} />{fieldError("free_chlorine") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("free_chlorine")}</div>}</FormGroup>
+              <FormGroup><Label>CC ppm</Label><Input type="number" min="0" max="20" step="0.5" inputMode="decimal" value={form.cc ?? ""} onChange={e => { setTestSaveError(""); setForm(p => ({ ...p, cc: e.target.value })); }} />{fieldError("cc") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("cc")}</div>}</FormGroup>
             </FormRow>
             <FormRow>
-              <FormGroup><Label>CC ppm</Label><Input type="number" min="0" max="20" step="0.5" inputMode="decimal" value={form.cc ?? ""} onChange={e => setForm(p => ({ ...p, cc: e.target.value }))} />{fieldError("cc") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("cc")}</div>}</FormGroup>
-              <FormGroup><Label>TA ppm</Label><Input type="number" min="0" max="300" inputMode="numeric" value={form.alkalinity ?? ""} onChange={e => setForm(p => ({ ...p, alkalinity: e.target.value }))} />{fieldError("alkalinity") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("alkalinity")}</div>}</FormGroup>
+              <FormGroup><Label>pH</Label><Input type="number" min="6.2" max="9" step="0.1" inputMode="decimal" aria-label="pH" value={form.ph ?? ""} onChange={e => { setTestSaveError(""); setForm(p => ({ ...p, ph: e.target.value })); }} />{fieldError("ph") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("ph")}</div>}</FormGroup>
+              <FormGroup><Label>TA ppm</Label><Input type="number" min="0" max="300" inputMode="numeric" value={form.alkalinity ?? ""} onChange={e => { setTestSaveError(""); setForm(p => ({ ...p, alkalinity: e.target.value })); }} />{fieldError("alkalinity") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("alkalinity")}</div>}</FormGroup>
             </FormRow>
+            <FormRow>
+              <FormGroup><Label>CYA ppm</Label><Input type="number" min="0" max="200" inputMode="numeric" value={form.cya ?? ""} onChange={e => { setTestSaveError(""); setForm(p => ({ ...p, cya: e.target.value })); }} />{fieldError("cya") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("cya")}</div>}</FormGroup>
+              <FormGroup><Label>Salt ppm</Label><Input type="number" min="0" max="8000" inputMode="numeric" value={form.salt ?? ""} onChange={e => { setTestSaveError(""); setForm(p => ({ ...p, salt: e.target.value })); }} />{fieldError("salt") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("salt")}</div>}</FormGroup>
+            </FormRow>
+            <FormGroup><Label>Temperature F</Label><Input type="number" min="32" max="110" value={form.water_temp ?? ""} onChange={e => { setTestSaveError(""); setForm(p => ({ ...p, water_temp: e.target.value })); }} />{fieldError("water_temp") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("water_temp")}</div>}</FormGroup>
+            <FormGroup><Label>Notes</Label><Input value={form.notes || ""} placeholder="Clarity, swimmer load, dosing context..." onChange={e => { setTestSaveError(""); setForm(p => ({ ...p, notes: e.target.value })); }} /></FormGroup>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <button type="button" className="flex w-full items-center gap-3 rounded-lg border border-border bg-secondary px-3 py-3 text-left text-sm font-semibold" onClick={() => { setTestSaveError(""); setForm(p => ({ ...p, recent_heavy_usage: !p.recent_heavy_usage })); }}><span className={`h-5 w-5 rounded-md border ${form.recent_heavy_usage ? "border-primary bg-primary" : "border-muted-foreground"}`} />Party</button>
+              <button type="button" className="flex w-full items-center gap-3 rounded-lg border border-border bg-secondary px-3 py-3 text-left text-sm font-semibold" onClick={() => { setTestSaveError(""); setForm(p => ({ ...p, recent_weather_notes: setRainContext(p, !hasRainContext(p)) })); }}><span className={`h-5 w-5 rounded-md border ${hasRainContext(form) ? "border-primary bg-primary" : "border-muted-foreground"}`} />Rain</button>
+            </div>
             <button type="button" className="flex w-full items-center justify-between rounded-lg border border-border bg-secondary px-3 py-3 text-left text-sm font-semibold" onClick={() => setShowAdvancedTest(value => !value)}>
               <span>Advanced test details</span><span style={{ color: COLORS.slate }}>{showAdvancedTest ? "Hide" : "Show"}</span>
             </button>
             {showAdvancedTest && (
               <>
-                <FormRow><FormGroup><Label>Water Temp F</Label><Input type="number" min="32" max="110" value={form.water_temp ?? ""} onChange={e => setForm(p => ({ ...p, water_temp: e.target.value }))} />{fieldError("water_temp") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("water_temp")}</div>}</FormGroup><FormGroup><Label>SWG %</Label><Input type="number" min="0" max="100" value={form.swg_setting ?? ""} onChange={e => setForm(p => ({ ...p, swg_setting: e.target.value }))} />{fieldError("swg_setting") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("swg_setting")}</div>}</FormGroup></FormRow>
+                <FormRow><FormGroup><Label>Filter PSI</Label><Input type="number" min="0" max="60" value={form.filter_pressure ?? ""} onChange={e => setForm(p => ({ ...p, filter_pressure: e.target.value }))} />{fieldError("filter_pressure") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("filter_pressure")}</div>}</FormGroup><FormGroup><Label>SWG %</Label><Input type="number" min="0" max="100" value={form.swg_setting ?? ""} onChange={e => setForm(p => ({ ...p, swg_setting: e.target.value }))} />{fieldError("swg_setting") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("swg_setting")}</div>}</FormGroup></FormRow>
                 <FormRow><FormGroup><Label>Pump Runtime</Label><Input type="number" min="0" max="24" value={form.pump_hours ?? ""} onChange={e => setForm(p => ({ ...p, pump_hours: e.target.value }))} />{fieldError("pump_hours") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("pump_hours")}</div>}</FormGroup><FormGroup><Label>Calcium ppm</Label><Input type="number" min="0" max="1000" value={form.calcium_hardness ?? ""} onChange={e => setForm(p => ({ ...p, calcium_hardness: e.target.value }))} />{fieldError("calcium_hardness") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("calcium_hardness")}</div>}</FormGroup></FormRow>
                 <FormGroup><Label>Recent Weather</Label><Input value={form.recent_weather_notes || ""} placeholder="Heat, rain, storms..." onChange={e => setForm(p => ({ ...p, recent_weather_notes: e.target.value }))} /></FormGroup>
-                <button type="button" className="flex w-full items-center gap-3 rounded-lg border border-border bg-secondary px-3 py-3 text-left text-sm font-semibold" onClick={() => setForm(p => ({ ...p, recent_heavy_usage: !p.recent_heavy_usage }))}><span className={`h-5 w-5 rounded-md border ${form.recent_heavy_usage ? "border-primary bg-primary" : "border-muted-foreground"}`} />Recent heavy usage or party</button>
               </>
             )}
-            <FormGroup><Label>Notes</Label><Input value={form.notes || ""} placeholder="Clarity, swimmer load, dosing context..." onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} /></FormGroup>
             {testSaveError && <div style={{ border: `1px solid ${COLORS.red}`, borderRadius: 8, padding: 10, color: COLORS.red, fontSize: 13 }}>{testSaveError}</div>}
             <Button type="button" className="w-full" onClick={saveTest}>Save Test</Button>
           </FormSection>
