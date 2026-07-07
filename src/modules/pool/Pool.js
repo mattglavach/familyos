@@ -366,7 +366,7 @@ export function Pool() {
   function openTest(row = null) {
     setTestSaveError("");
     setPoolActionError("");
-    setForm(row ? { ...row, time: row.logged_at ? new Date(row.logged_at).toTimeString().slice(0, 5) : "" } : { date: TODAY_STR, test_source: "Taylor Kit", swg_setting: latest?.swg_setting ?? "", pump_hours: latest?.pump_hours ?? "" });
+    setForm(row ? { ...row, time: row.logged_at ? new Date(row.logged_at).toTimeString().slice(0, 5) : "" } : { date: TODAY_STR, test_source: "Taylor Kit" });
     setSourceMode(row?.test_source || "Taylor Kit");
     setModal("test");
   }

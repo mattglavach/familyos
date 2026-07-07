@@ -131,6 +131,18 @@ describe("Pool Test persistence UI", () => {
     }));
   });
 
+  test("blocks empty Pool module Pool Test saves", async () => {
+    act(() => root.render(React.createElement(Pool)));
+    clickByText(container, "Log Test");
+
+    await act(async () => {
+      Simulate.click([...container.querySelectorAll("button")].find(item => item.textContent.includes("Save Test")));
+    });
+
+    expect(tables.pool_readings.insert).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("Add at least one test result");
+  });
+
   test("fetched partial Pool Test appears in history and updates current status after reload", () => {
     tables.pool_readings = table([
       {
