@@ -2,7 +2,7 @@ import React, { act } from "react";
 import { Simulate } from "react-dom/test-utils";
 import { createRoot } from "react-dom/client";
 import { QuickAdd } from "./QuickAdd";
-import { buildPoolReadingRow, validatePoolTestForm } from "../pool/poolTestForm";
+import { buildPoolReadingRow, setRainContext, validatePoolTestForm } from "../pool/poolTestForm";
 import { useHousehold } from "../../context/HouseholdContext";
 import { useTable } from "../../hooks/useTable";
 
@@ -60,25 +60,66 @@ describe("QuickAdd Pool Test", () => {
     jest.clearAllMocks();
   });
 
-  test("renders the pH field in the Pool Test form", () => {
+  test("renders optional pH and FC fields in the Pool Test form", () => {
     act(() => root.render(React.createElement(QuickAdd, { openSignal: 1, onNavigate: jest.fn() })));
     clickByText(container, "Pool Test");
 
-    expect(container.textContent).toContain("pH *");
+    expect(container.textContent).toContain("FC ppm");
+    expect(container.textContent).toContain("CC ppm");
+    expect(container.textContent).toContain("pH");
+    expect(container.textContent).not.toContain("pH *");
     expect(container.querySelector('input[aria-label="pH"]')).not.toBeNull();
   });
 
-  test("blocks Pool Test creation when pH is missing", async () => {
+  test("renders CC directly after FC before pH", () => {
     act(() => root.render(React.createElement(QuickAdd, { openSignal: 1, onNavigate: jest.fn() })));
     clickByText(container, "Pool Test");
-    changeInput(container.querySelector('input[aria-label="FC ppm"]'), "5.5");
+
+    const text = container.textContent;
+    expect(text.indexOf("FC ppm")).toBeLessThan(text.indexOf("CC ppm"));
+    expect(text.indexOf("CC ppm")).toBeLessThan(text.indexOf("pH"));
+  });
+
+  test("blocks Pool Test creation when no test value or context is provided", async () => {
+    act(() => root.render(React.createElement(QuickAdd, { openSignal: 1, onNavigate: jest.fn() })));
+    clickByText(container, "Pool Test");
 
     await act(async () => {
       Simulate.click([...container.querySelectorAll("button")].find(item => item.textContent.includes("Save Reading")));
     });
 
     expect(poolReadings.insert).not.toHaveBeenCalled();
-    expect(container.textContent).toContain("Required today: pH.");
+    expect(container.textContent).toContain("Add at least one test result");
+  });
+
+  test("creates a partial Pool Test without pH or FC", async () => {
+    act(() => root.render(React.createElement(QuickAdd, { openSignal: 1, onNavigate: jest.fn() })));
+    clickByText(container, "Pool Test");
+    changeInput([...container.querySelectorAll("input")].find(input => input.previousSibling?.textContent === "CC ppm") || container.querySelector('input[placeholder="0"]'), "0.5");
+
+    await act(async () => {
+      Simulate.click([...container.querySelectorAll("button")].find(item => item.textContent.includes("Save Reading")));
+    });
+
+    expect(poolReadings.insert).toHaveBeenCalledWith(expect.objectContaining({
+      free_chlorine: null,
+      ph: null,
+      cc: 0.5,
+    }));
+  });
+
+  test("validates provided pH and FC ranges", async () => {
+    act(() => root.render(React.createElement(QuickAdd, { openSignal: 1, onNavigate: jest.fn() })));
+    clickByText(container, "Pool Test");
+    changeInput(container.querySelector('input[aria-label="FC ppm"]'), "51");
+    changeInput(container.querySelector('input[aria-label="pH"]'), "10");
+
+    await act(async () => {
+      Simulate.click([...container.querySelectorAll("button")].find(item => item.textContent.includes("Save Reading")));
+    });
+
+    expect(poolReadings.insert).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("Check FC, pH before saving.");
   });
 
   test("creates a Pool Test with numeric pH and FC values", async () => {
@@ -96,6 +137,34 @@ describe("QuickAdd Pool Test", () => {
       ph: 7.5,
       test_source: "Manual",
     }));
+  });
+
+  test("saves Party and Rain context fields", async () => {
+    act(() => root.render(React.createElement(QuickAdd, { openSignal: 1, onNavigate: jest.fn() })));
+    clickByText(container, "Pool Test");
+    clickByText(container, "Party");
+    clickByText(container, "Rain");
+
+    await act(async () => {
+      Simulate.click([...container.querySelectorAll("button")].find(item => item.textContent.includes("Save Reading")));
+    });
+
+    expect(poolReadings.insert).toHaveBeenCalledWith(expect.objectContaining({
+      recent_heavy_usage: true,
+      recent_weather_notes: "Rain",
+    }));
+  });
+
+  test("close button has an accessible hit target and closes Quick Add", () => {
+    act(() => root.render(React.createElement(QuickAdd, { openSignal: 1, onNavigate: jest.fn() })));
+
+    const closeButton = container.querySelector('button[aria-label="Close"]');
+    expect(closeButton).not.toBeNull();
+    expect(closeButton.className).toContain("h-11");
+
+    act(() => Simulate.click(closeButton));
+
+    expect(container.textContent).not.toContain("Quick Add");
   });
 
   test("keeps the Pool Test form open and shows an error when insert fails", async () => {
@@ -118,11 +187,19 @@ describe("QuickAdd Pool Test", () => {
 });
 
 describe("Pool Test form helpers", () => {
-  test("validatePoolTestForm requires both FC and pH", () => {
-    expect(validatePoolTestForm({ free_chlorine: "5.5" })).toEqual({
+  test("validatePoolTestForm allows FC and pH to be omitted when another value is present", () => {
+    expect(validatePoolTestForm({ cc: "0.5" })).toEqual({
+      valid: true,
+      message: "",
+      fields: [],
+    });
+  });
+
+  test("validatePoolTestForm blocks completely empty Pool Tests", () => {
+    expect(validatePoolTestForm({})).toEqual({
       valid: false,
-      message: "Required today: pH.",
-      fields: ["ph"],
+      message: "Add at least one test result, note, rain, or party/heavy-use context before saving.",
+      fields: [],
     });
   });
 
@@ -135,5 +212,10 @@ describe("Pool Test form helpers", () => {
       ph: 7.5,
     }));
     expect(Number.isNaN(Date.parse(row.logged_at))).toBe(false);
+  });
+
+  test("setRainContext adds and removes the Rain marker without dropping other weather notes", () => {
+    expect(setRainContext({ recent_weather_notes: "Wind" }, true)).toBe("Rain, Wind");
+    expect(setRainContext({ recent_weather_notes: "Rain, Wind" }, false)).toBe("Wind");
   });
 });

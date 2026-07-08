@@ -13,6 +13,7 @@ Complete Release 1.5.0 Calendar Platform by making Calendar a reliable household
 - [x] Run Release 1.5.0 lint validation
 - [x] Run Release 1.5.0 production build validation
 - [x] Run Release 1.5.0 git diff check
+- [x] Apply production Pool Test feedback for partial tests, Party/Rain context, Quick Add close usability, and reload visibility coverage
 - [ ] Complete authenticated desktop Calendar smoke validation
 - [ ] Complete authenticated 390px Calendar smoke validation
 - [ ] Complete Calendar connect/reconnect smoke validation
@@ -184,7 +185,7 @@ Complete Release 1.5.0 Calendar Platform by making Calendar a reliable household
 - Release 1.4.0 desktop swipe-card row edit risk is resolved; final lint/build/diff-check and commit remain before handoff.
 - Release 1.4.4 has no implementation blocker. Authenticated desktop and 390px Pool smoke validation is blocked in this workspace because local Supabase is unreachable at `127.0.0.1:54321`.
 - Release 1.4.5 has no known implementation blocker. Authenticated desktop and 390px Pool smoke validation is blocked in this workspace because local Supabase is unreachable at `127.0.0.1:54321`.
-- Pool Test pH production regression root cause: the Quick Add Pool Test path drifted from the Pool module test-entry contract during the required-vs-optional test entry work. pH is intended to remain required with FC for new Pool Test creation. The fix restores pH as a required Quick Add field, shares validation/row-building helpers across both create paths, and covers rendering, missing-pH validation, and successful create behavior in `QuickAdd.test.js`.
+- Pool Test partial-log production feedback root cause: the previous regression fix correctly centralized validation and row creation but encoded FC/pH as required even though users need partial Pool Test logs. Pool module and Quick Add now share validation that allows missing FC and pH, enforces numeric ranges only for provided values, requires at least one result/note/context field, and saves Party/Rain context through existing Pool reading columns.
 - Pool Test persistence regression root cause: the shared `useTable` mutation helpers swallowed Supabase insert/update/delete failures, wrote temporary local state, and returned without throwing. Failed Pool Test inserts could therefore appear saved until navigation, reload, or a fresh select. Mutations now throw on Supabase errors and reload from the database only after confirmed success. Active Tasks, Life Lists, Shopping, Pool, Quick Add, and Meal Planning mutation paths now handle rejected writes defensively.
 - Preview write validation root cause: the linked FamilyOS Supabase project had household foundation and Calendar schema but was missing Release 0.9 invitations and Release 1.1-1.4 module migrations. Module reads fell back to seed data and all sampled writes failed. The remote database now has the missing module tables, Pool reading context columns, and RLS policies. Task creation also needed to stop sending `task-*` IDs because the remote `tasks.id` column is UUID-backed.
 
