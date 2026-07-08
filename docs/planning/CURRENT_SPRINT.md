@@ -1,9 +1,14 @@
 # Current Sprint
 
 ## Sprint Goal
-Complete Release 1.5.0 Calendar Platform by making Calendar a reliable household scheduling foundation with clear Google Calendar connection guidance, schedule visibility, event details, Home awareness, and documented OAuth assumptions without changing Pool, Finance, Health, Home Assistant, AI Assistant, or database schema.
+Complete Release 1.5.1 Pool & Quick Add UX Polish by standardizing add/edit form layouts, validation placement, compact responsive fields, and save/cancel behavior across Pool, Quick Add, Tasks, Shopping, Meal Planning, and Life Lists without adding modules or changing the database schema.
 
 ## Active Items
+- [x] Begin Release 1.5.1 Pool & Quick Add UX Polish branch
+- [x] Add shared reusable form components for sections, rows, numeric fields, toggles, notes, date/time entry, footers, delete buttons, and validation summaries
+- [x] Standardize Pool Test and Quick Add Pool Test chemistry fields through shared Pool field metadata and validation helpers
+- [x] Standardize Tasks, Shopping, Meal Planning, and Life Lists drawer footers, notes, toggles, validation summaries, and duplicate-submit guards
+- [x] Run Release 1.5.1 production build validation
 - [x] Begin Release 1.5.0 Calendar Platform branch
 - [x] Review Calendar/OAuth implementation and prior deferrals
 - [x] Add Calendar dashboard summary, grouped event list, detail view, and connection guidance
@@ -171,6 +176,7 @@ Complete Release 1.5.0 Calendar Platform by making Calendar a reliable household
 
 ## Blockers
 
+- Release 1.5.1 has no known implementation blocker. Authenticated create/edit/delete smoke validation still needs to run against a reachable local or deployed Supabase environment.
 - Release 1.5.0 has no known implementation blocker. Authenticated desktop Calendar smoke, 390px Calendar smoke, Calendar connect/reconnect smoke, Home Calendar card smoke, and error/empty-state smoke are blocked in this workspace because local Supabase is unreachable at `127.0.0.1:54321`.
 - Release 0.6B has no active code blockers after local lint/build validation. Real-device family testing and Vercel deployment validation remain before broad use.
 - Release 0.6C has no active production migration blocker after baseline alignment and household foundation validation.
@@ -190,6 +196,7 @@ Complete Release 1.5.0 Calendar Platform by making Calendar a reliable household
 - Preview write validation root cause: the linked FamilyOS Supabase project had household foundation and Calendar schema but was missing Release 0.9 invitations and Release 1.1-1.4 module migrations. Module reads fell back to seed data and all sampled writes failed. The remote database now has the missing module tables, Pool reading context columns, and RLS policies. Task creation also needed to stop sending `task-*` IDs because the remote `tasks.id` column is UUID-backed.
 
 ## Notes
+- Release 1.5.1 is schema-neutral and uses existing Pool, Tasks, Shopping, Meal Planning, and Life Lists tables. `pnpm run build` passed on July 8, 2026.
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.
 - Production build now passes with `CI=true`; remaining deploy validation should happen through Vercel.
 - Email magic-link redirects are generated from the current browser origin; Supabase Auth Site URL and allowed redirect URLs must include the deployed Vercel origin.

@@ -1,10 +1,10 @@
 # Project Status
 
 ## Current Version
-1.5.0 in progress
+1.5.1 in progress
 
 ## Current State
-Release 1.0 core MVP through Release 1.4.5 Pool Advisor & Experience are complete or in validation. Release 1.5.0 Calendar Platform is active on branch `release/1.5.0-calendar-platform`.
+Release 1.0 core MVP through Release 1.5.0 Calendar Platform are complete or in validation. Release 1.5.1 Pool & Quick Add UX Polish is active on branch `release/1.5.1-pool-quickadd-ux`.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -80,12 +80,13 @@ Release 1.0 core MVP through Release 1.4.5 Pool Advisor & Experience are complet
 - Pool Test local-only persistence regression fixed: shared Supabase table mutations now throw on insert/update/delete failure instead of creating temporary local rows, Pool Test save paths only show success after persistence succeeds, and active Tasks, Life Lists, Shopping, Pool, Quick Add, and Meal Planning mutation paths handle rejected writes defensively.
 - Preview-wide Supabase write failure fixed: the linked FamilyOS Supabase project was missing Release 0.9 and Release 1.1-1.4 database migrations, so module reads were falling back to seed data and writes failed across Pool, Tasks, Life Lists, Shopping, and Meal Planning. Missing migrations were applied remotely, Pool action audit `reading_id` was aligned to UUID Pool reading IDs, and Tasks now lets the database generate UUID IDs on create.
 - Release 1.5.0 adds the Calendar Platform foundation with a Calendar schedule summary, Today/Tomorrow/This Week/Upcoming groups, event details, connection/reconnect guidance, safer OAuth/setup/permission messaging, Home next-event/upcoming schedule awareness, and custom-domain Calendar API origin handling
+- Release 1.5.1 adds shared form controls and standardizes Pool Test, Quick Add Pool Test, Tasks, Shopping, Meal Planning, and Life Lists drawer form layouts, inline validation placement, compact notes/number/toggle controls, save/cancel footers, and duplicate-submit guards without database schema changes
 
 ## In Progress
-- Release 1.5.0 Calendar Platform validation. Lint, build, and diff-check pass; authenticated desktop Calendar smoke, 390px Calendar smoke, connect/reconnect smoke, Home Calendar card smoke, and error/empty-state smoke are blocked because local Supabase is unreachable at `127.0.0.1:54321`.
+- Release 1.5.1 Pool & Quick Add UX Polish validation. Production build passes; authenticated Pool Test, Quick Add Pool Test, Tasks, Shopping, Meal Planning, and Life Lists create/edit/delete smoke validation still needs a reachable Supabase-backed environment.
 
 ## Next
-- Merge-review Release 1.5.0 only after automated checks and authenticated desktop plus 390px Calendar smoke plus connect/reconnect behavior pass.
+- Merge-review Release 1.5.1 after code review and authenticated smoke validation for Pool, Quick Add, Tasks, Shopping, Meal Planning, and Life Lists.
 - Configure Release 0.8 server OAuth environment values in Vercel before removing the legacy calendar fallback.
 - Decide whether to remove the legacy browser calendar fallback after deployed validation.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
@@ -142,6 +143,7 @@ Release 1.0 core MVP through Release 1.4.5 Pool Advisor & Experience are complet
 - `pool_readings.ph` and `pool_readings.free_chlorine` remain nullable and app create flows support partial Pool Tests; validation now requires at least one tested value, note, rain context, or party/heavy-use context before insert.
 - Supabase migration filenames currently reuse date-only versions for multiple same-day migrations. Remote migration metadata was repaired by date after the preview fix, but future migration work should use unique timestamp prefixes to avoid CLI ambiguity.
 - Release 1.5.0 keeps Calendar read-only. Event creation/editing, reminders, automation, notifications, multi-provider support, and legacy browser fallback removal remain deferred until deployed OAuth validation and a richer scheduling model are approved.
+- Release 1.5.1 intentionally adds no new modules, schema changes, or new product workflows. It centralizes shared form UI and leaves deeper form-state architecture for a future broader UI migration.
 
 ## Last Updated
-July 6, 2026
+July 8, 2026

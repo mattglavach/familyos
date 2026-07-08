@@ -15,6 +15,13 @@
 - FormSection
 - FormHelp
 - FormError
+- NumberField
+- ToggleField
+- NotesField
+- DateTimeField
+- SaveCancelFooter
+- DeleteButton
+- ValidationSummary
 - SegmentedControl
 - ChipGroup
 - SectionHeader
@@ -75,3 +82,7 @@
 - The local wrapper layer now covers the baseline future-module primitive set requested for Release 1.0.3.
 - Quick Add and Tasks use chips for common recurrence/status/priority/category choices; dynamic assignee selection remains a dropdown.
 - Universal Search uses the local `Command` wrapper for keyboard-friendly command-style results without changing search scope.
+
+## Release 1.5.1 Notes
+- Shared form controls now cover compact numeric fields, notes textareas, binary toggles, date/time rows, validation summaries, delete actions, and save/cancel footers for migrated drawer forms.
+- Pool Test and Quick Add Pool Test share Pool field metadata and validation helpers so labels, ranges, helper text, and inline errors stay aligned.
