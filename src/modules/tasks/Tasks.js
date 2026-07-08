@@ -13,14 +13,13 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { EmptyStatePanel } from "../../components/ui/empty-state";
-import { FormError, FormGroup, FormHelp, FormRow, FormSection } from "../../components/ui/form";
+import { FormGroup, FormHelp, FormRow, FormSection, NotesField, SaveCancelFooter, ValidationSummary } from "../../components/ui/form";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { SectionHeader } from "../../components/ui/section-header";
 import { ChipGroup } from "../../components/ui/segmented-control";
 import { Select } from "../../components/ui/select";
 import { Skeleton } from "../../components/ui/skeleton";
-import { Textarea } from "../../components/ui/textarea";
 import { OriginDrawer } from "../../components/origin/drawer";
 import { COLORS, MEMBER_COLORS, S } from "../../theme";
 import { useHousehold } from "../../context/HouseholdContext";
@@ -383,29 +382,21 @@ function TaskList({ title, count, tone, tasks, emptyTitle, emptyDetail, renderTa
   );
 }
 
-function TaskDrawer({ open, mode, form, setForm, members, error, onClose, onSave }) {
+function TaskDrawer({ open, mode, form, setForm, members, error, onClose, onSave, submitting }) {
   return (
     <OriginDrawer
       open={open}
       onOpenChange={nextOpen => !nextOpen && onClose()}
       title={mode === "edit" ? "Edit Task" : "Create Task"}
       description="Tasks support shared household work, module categories, assignment, priority, status, and due dates."
-      footer={
-        <>
-          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button type="button" onClick={onSave}>{mode === "edit" ? "Save" : "Create"}</Button>
-        </>
-      }
+      footer={<SaveCancelFooter saveLabel={mode === "edit" ? "Save" : "Create"} onCancel={onClose} onSave={onSave} submitting={submitting} />}
     >
       <FormSection>
         <FormGroup>
           <Label htmlFor="task-title">Title</Label>
           <Input id="task-title" value={form.title} placeholder="What needs to happen?" onChange={event => setForm(previous => ({ ...previous, title: event.target.value }))} />
         </FormGroup>
-        <FormGroup>
-          <Label htmlFor="task-description">Description / Notes</Label>
-          <Textarea id="task-description" value={form.description} placeholder="Add context, steps, or reminders." onChange={event => setForm(previous => ({ ...previous, description: event.target.value }))} />
-        </FormGroup>
+        <NotesField id="task-description" label="Description / Notes" value={form.description} placeholder="Add context, steps, or reminders." onChange={description => setForm(previous => ({ ...previous, description }))} />
         <FormRow>
           <FormGroup>
             <Label>Priority</Label>
@@ -442,7 +433,7 @@ function TaskDrawer({ open, mode, form, setForm, members, error, onClose, onSave
           </FormGroup>
         </FormRow>
         <FormHelp>Daily, weekly, monthly, and yearly recurrence use the existing interval-days field. Weekday-only recurrence needs a future recurrence model.</FormHelp>
-        {error && <FormError>{error}</FormError>}
+        <ValidationSummary error={error} />
       </FormSection>
     </OriginDrawer>
   );
@@ -472,6 +463,7 @@ export function Tasks({ deps }) {
   const [drawer, setDrawer] = useState({ open: false, mode: "create", task: null });
   const [form, setForm] = useState(emptyTaskForm());
   const [formError, setFormError] = useState("");
+  const [formSubmitting, setFormSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
   const [confirmDeleteTask, setConfirmDeleteTask] = useState(null);
 
@@ -554,6 +546,7 @@ export function Tasks({ deps }) {
   }
 
   async function saveTask() {
+    if (formSubmitting) return;
     const validationError = validateTask(form);
     if (validationError) {
       setFormError(validationError);
@@ -569,6 +562,7 @@ export function Tasks({ deps }) {
     };
 
     try {
+      setFormSubmitting(true);
       if (drawer.mode === "edit" && drawer.task) await taskTable.update(drawer.task.id, row);
       else await taskTable.insert(row);
 
@@ -576,6 +570,8 @@ export function Tasks({ deps }) {
       notify(drawer.mode === "edit" ? "Task updated." : "Task created. You can find it in All tasks.");
     } catch (error) {
       setFormError(formatUserFacingError(error, "Task could not be saved right now."));
+    } finally {
+      setFormSubmitting(false);
     }
   }
 
@@ -830,6 +826,7 @@ export function Tasks({ deps }) {
         setForm={setForm}
         members={members}
         error={formError}
+        submitting={formSubmitting}
         onClose={closeDrawer}
         onSave={saveTask}
       />

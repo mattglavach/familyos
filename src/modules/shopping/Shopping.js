@@ -5,13 +5,12 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { EmptyStatePanel } from "../../components/ui/empty-state";
-import { FormError, FormGroup, FormHelp, FormRow, FormSection } from "../../components/ui/form";
+import { FormGroup, FormHelp, FormRow, FormSection, NotesField, NumberField, SaveCancelFooter, ToggleField, ValidationSummary } from "../../components/ui/form";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Select } from "../../components/ui/select";
 import { ChipGroup, SegmentedControl } from "../../components/ui/segmented-control";
 import { SectionHeader } from "../../components/ui/section-header";
-import { Textarea } from "../../components/ui/textarea";
 import { OriginDrawer } from "../../components/origin/drawer";
 import { useHousehold } from "../../context/HouseholdContext";
 import { roleCanManage, roleLabel } from "../../hooks/useHouseholdCollaboration";
@@ -210,6 +209,7 @@ export function Shopping() {
   const [itemForm, setItemForm] = useState({});
   const [pantryForm, setPantryForm] = useState({});
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [confirm, setConfirm] = useState(null);
   const canManageSharedLists = roleCanManage(household.membership?.role);
   const canCreate = Boolean(household.user?.id);
@@ -306,6 +306,7 @@ export function Shopping() {
   }
 
   async function saveList() {
+    if (submitting) return;
     setError("");
     if (!listForm.name?.trim()) {
       setError("List name is required.");
@@ -331,6 +332,7 @@ export function Shopping() {
       updated_at: new Date().toISOString(),
     };
     try {
+      setSubmitting(true);
       if (listForm.id) await lists.update(listForm.id, row);
       else {
         const created = await lists.insert(row);
@@ -339,10 +341,13 @@ export function Shopping() {
       setListDrawer(false);
     } catch (error) {
       setError(formatUserFacingError(error, "Shopping list could not be saved right now."));
+    } finally {
+      setSubmitting(false);
     }
   }
 
   async function saveItem() {
+    if (submitting) return;
     setError("");
     if (!selectedList?.id) {
       setError("Choose a shopping list first.");
@@ -373,16 +378,20 @@ export function Shopping() {
       updated_at: new Date().toISOString(),
     };
     try {
+      setSubmitting(true);
       if (itemForm.id) await items.update(itemForm.id, row);
       else await items.insert(row);
       await lists.update(selectedList.id, { updated_at: new Date().toISOString() });
       setItemDrawer(false);
     } catch (error) {
       setError(formatUserFacingError(error, "Shopping item could not be saved right now."));
+    } finally {
+      setSubmitting(false);
     }
   }
 
   async function savePantryItem() {
+    if (submitting) return;
     setError("");
     if (!canManagePantry) {
       setError("Your role can view pantry, but not update it.");
@@ -408,11 +417,14 @@ export function Shopping() {
       updated_at: new Date().toISOString(),
     };
     try {
+      setSubmitting(true);
       if (pantryForm.id) await pantry.update(pantryForm.id, row);
       else await pantry.insert(row);
       setPantryDrawer(false);
     } catch (error) {
       setError(formatUserFacingError(error, "Pantry item could not be saved right now."));
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -521,8 +533,8 @@ export function Shopping() {
             </CardContent>
           </Card>
         )}
-        <ListDrawer open={listDrawer} onOpenChange={setListDrawer} form={listForm} setForm={setListForm} onSave={saveList} error={error} canManageSharedLists={canManageSharedLists} />
-        <ItemDrawer open={itemDrawer} onOpenChange={setItemDrawer} form={itemForm} setForm={setItemForm} people={household.people} pantryItems={pantry.data} categories={categories} onSave={saveItem} error={error} />
+        <ListDrawer open={listDrawer} onOpenChange={setListDrawer} form={listForm} setForm={setListForm} onSave={saveList} error={error} submitting={submitting} canManageSharedLists={canManageSharedLists} />
+        <ItemDrawer open={itemDrawer} onOpenChange={setItemDrawer} form={itemForm} setForm={setItemForm} people={household.people} pantryItems={pantry.data} categories={categories} onSave={saveItem} error={error} submitting={submitting} />
         <Dialog open={confirm === "delete-list"} onOpenChange={() => setConfirm(null)}>
           <DialogContent onClose={() => setConfirm(null)}>
             <DialogHeader><DialogTitle>Delete shopping list?</DialogTitle><DialogDescription>This removes the list and its shopping items. Pantry stays unchanged.</DialogDescription></DialogHeader>
@@ -605,71 +617,71 @@ export function Shopping() {
         )
       )}
 
-      <ListDrawer open={listDrawer} onOpenChange={setListDrawer} form={listForm} setForm={setListForm} onSave={saveList} error={error} canManageSharedLists={canManageSharedLists} />
-      <PantryDrawer open={pantryDrawer} onOpenChange={setPantryDrawer} form={pantryForm} setForm={setPantryForm} categories={categories} onSave={savePantryItem} error={error} canManage={canManagePantry} />
+      <ListDrawer open={listDrawer} onOpenChange={setListDrawer} form={listForm} setForm={setListForm} onSave={saveList} error={error} submitting={submitting} canManageSharedLists={canManageSharedLists} />
+      <PantryDrawer open={pantryDrawer} onOpenChange={setPantryDrawer} form={pantryForm} setForm={setPantryForm} categories={categories} onSave={savePantryItem} error={error} submitting={submitting} canManage={canManagePantry} />
     </div>
   );
 }
 
-function ListDrawer({ open, onOpenChange, form, setForm, onSave, error, canManageSharedLists }) {
+function ListDrawer({ open, onOpenChange, form, setForm, onSave, error, submitting, canManageSharedLists }) {
   return (
     <OriginDrawer open={open} onOpenChange={onOpenChange} title={form.id ? "Edit Shopping List" : "Create Shopping List"} description="Keep shopping lists simple and shared where appropriate.">
       <FormSection>
         <FormGroup><Label>Name</Label><Input value={form.name || ""} onChange={event => setForm(previous => ({ ...previous, name: event.target.value }))} placeholder="Grocery list" /></FormGroup>
-        <FormGroup><Label>Description</Label><Textarea value={form.description || ""} onChange={event => setForm(previous => ({ ...previous, description: event.target.value }))} placeholder="Optional notes" /></FormGroup>
+        <NotesField label="Description" value={form.description || ""} onChange={description => setForm(previous => ({ ...previous, description }))} placeholder="Optional notes" />
         <FormGroup><Label>Category</Label><Input value={form.category || ""} onChange={event => setForm(previous => ({ ...previous, category: event.target.value }))} placeholder="Grocery, Costco, Household..." /></FormGroup>
         <FormGroup><Label>Visibility</Label><SegmentedControl value={form.visibility || (canManageSharedLists ? "household" : "personal")} options={canManageSharedLists ? LIST_VISIBILITY : [{ value: "personal", label: "Personal" }]} ariaLabel="Shopping list visibility" onValueChange={visibility => setForm(previous => ({ ...previous, visibility }))} /></FormGroup>
         <FormRow><FormGroup><Label>Icon</Label><Input value={form.icon || ""} onChange={event => setForm(previous => ({ ...previous, icon: event.target.value }))} maxLength={2} /></FormGroup><FormGroup><Label>Color</Label><Input type="color" value={form.color || COLORS.green} onChange={event => setForm(previous => ({ ...previous, color: event.target.value }))} /></FormGroup></FormRow>
-        <button type="button" className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-border bg-secondary px-3 py-3 text-left text-sm font-semibold text-secondary-foreground" onClick={() => setForm(previous => ({ ...previous, favorite: !previous.favorite }))}><span className={`flex h-5 w-5 items-center justify-center rounded-md border ${form.favorite ? "border-violet-400 bg-violet-500 text-white" : "border-muted-foreground"}`}>{form.favorite && <Check size={14} aria-hidden="true" />}</span>Favorite list</button>
-        {form.id && <button type="button" className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-border bg-secondary px-3 py-3 text-left text-sm font-semibold text-secondary-foreground" onClick={() => setForm(previous => ({ ...previous, archived: !previous.archived }))}><span className={`flex h-5 w-5 items-center justify-center rounded-md border ${form.archived ? "border-amber-400 bg-amber-500 text-white" : "border-muted-foreground"}`}>{form.archived && <Check size={14} aria-hidden="true" />}</span>Archived</button>}
-        <Button type="button" className="w-full" onClick={onSave}>{form.id ? "Save List" : "Create List"}</Button>
-        {error && <FormError>{error}</FormError>}
+        <ToggleField checked={Boolean(form.favorite)} label="Favorite list" onChange={favorite => setForm(previous => ({ ...previous, favorite }))} />
+        {form.id && <ToggleField checked={Boolean(form.archived)} label="Archived" onChange={archived => setForm(previous => ({ ...previous, archived }))} />}
+        <ValidationSummary error={error} />
+        <SaveCancelFooter saveLabel={form.id ? "Save List" : "Create List"} onSave={onSave} onCancel={() => onOpenChange(false)} submitting={submitting} />
       </FormSection>
     </OriginDrawer>
   );
 }
 
-function ItemDrawer({ open, onOpenChange, form, setForm, people, pantryItems, categories, onSave, error }) {
+function ItemDrawer({ open, onOpenChange, form, setForm, people, pantryItems, categories, onSave, error, submitting }) {
   return (
     <OriginDrawer open={open} onOpenChange={onOpenChange} title={form.id ? "Edit Item" : "Add Shopping Item"} description="Capture what is needed now; details can stay light.">
       <FormSection>
         <FormGroup><Label>Name</Label><Input value={form.name || ""} onChange={event => setForm(previous => ({ ...previous, name: event.target.value }))} placeholder="Milk" /></FormGroup>
         <FormRow>
-          <FormGroup><Label>Quantity</Label><Input type="number" min="0" step="0.5" value={form.quantity ?? ""} onChange={event => setForm(previous => ({ ...previous, quantity: event.target.value }))} /></FormGroup>
+          <NumberField label="Quantity" min="0" step="0.5" value={form.quantity ?? ""} onChange={quantity => setForm(previous => ({ ...previous, quantity }))} />
           <FormGroup><Label>Unit</Label><Input value={form.unit || ""} onChange={event => setForm(previous => ({ ...previous, unit: event.target.value }))} placeholder="ct, lb, oz" /></FormGroup>
         </FormRow>
         <FormGroup><Label>Category</Label><Select value={form.category || ""} onChange={event => setForm(previous => ({ ...previous, category: event.target.value }))}><option value="">Choose category</option>{categories.map(category => <option key={category} value={category}>{category}</option>)}</Select></FormGroup>
         <FormGroup><Label>Priority</Label><SegmentedControl value={form.priority || "med"} options={PRIORITIES.map(priority => ({ value: priority, label: labelize(priority) }))} ariaLabel="Shopping item priority" onValueChange={priority => setForm(previous => ({ ...previous, priority }))} /></FormGroup>
         <FormGroup><Label>Assigned To</Label><Select value={form.assigned_to_person_id || ""} onChange={event => setForm(previous => ({ ...previous, assigned_to_person_id: event.target.value }))}><option value="">Unassigned</option>{people.map(person => <option key={person.id} value={person.id}>{person.display_name}</option>)}</Select></FormGroup>
         <FormGroup><Label>Pantry Link</Label><Select value={form.pantry_item_id || ""} onChange={event => setForm(previous => ({ ...previous, pantry_item_id: event.target.value }))}><option value="">No pantry link</option>{pantryItems.filter(item => !item.archived).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</Select><FormHelp>Optional link for future pantry and meal planning workflows.</FormHelp></FormGroup>
-        <FormGroup><Label>Notes</Label><Textarea value={form.notes || ""} onChange={event => setForm(previous => ({ ...previous, notes: event.target.value }))} placeholder="Brand, size, store note..." /></FormGroup>
-        <button type="button" className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-border bg-secondary px-3 py-3 text-left text-sm font-semibold text-secondary-foreground" onClick={() => setForm(previous => ({ ...previous, purchased: !previous.purchased }))}><span className={`flex h-5 w-5 items-center justify-center rounded-md border ${form.purchased ? "border-emerald-400 bg-emerald-500 text-white" : "border-muted-foreground"}`}>{form.purchased && <Check size={14} aria-hidden="true" />}</span>Purchased</button>
-        <button type="button" className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-border bg-secondary px-3 py-3 text-left text-sm font-semibold text-secondary-foreground" onClick={() => setForm(previous => ({ ...previous, favorite: !previous.favorite }))}><span className={`flex h-5 w-5 items-center justify-center rounded-md border ${form.favorite ? "border-violet-400 bg-violet-500 text-white" : "border-muted-foreground"}`}>{form.favorite && <Check size={14} aria-hidden="true" />}</span>Favorite</button>
-        {form.id && <button type="button" className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-border bg-secondary px-3 py-3 text-left text-sm font-semibold text-secondary-foreground" onClick={() => setForm(previous => ({ ...previous, archived: !previous.archived }))}><span className={`flex h-5 w-5 items-center justify-center rounded-md border ${form.archived ? "border-amber-400 bg-amber-500 text-white" : "border-muted-foreground"}`}>{form.archived && <Check size={14} aria-hidden="true" />}</span>Archived</button>}
-        <Button type="button" className="w-full" onClick={onSave}>{form.id ? "Save Item" : "Add Item"}</Button>
-        {error && <FormError>{error}</FormError>}
+        <NotesField value={form.notes || ""} onChange={notes => setForm(previous => ({ ...previous, notes }))} placeholder="Brand, size, store note..." />
+        <ToggleField checked={Boolean(form.purchased)} label="Purchased" onChange={purchased => setForm(previous => ({ ...previous, purchased }))} />
+        <ToggleField checked={Boolean(form.favorite)} label="Favorite" onChange={favorite => setForm(previous => ({ ...previous, favorite }))} />
+        {form.id && <ToggleField checked={Boolean(form.archived)} label="Archived" onChange={archived => setForm(previous => ({ ...previous, archived }))} />}
+        <ValidationSummary error={error} />
+        <SaveCancelFooter saveLabel={form.id ? "Save Item" : "Add Item"} onSave={onSave} onCancel={() => onOpenChange(false)} submitting={submitting} />
       </FormSection>
     </OriginDrawer>
   );
 }
 
-function PantryDrawer({ open, onOpenChange, form, setForm, categories, onSave, error, canManage }) {
+function PantryDrawer({ open, onOpenChange, form, setForm, categories, onSave, error, submitting, canManage }) {
   return (
     <OriginDrawer open={open} onOpenChange={onOpenChange} title={form.id ? "Edit Pantry Item" : "Add Pantry Item"} description="Simple inventory for household staples.">
       <FormSection>
         <FormGroup><Label>Name</Label><Input value={form.name || ""} disabled={!canManage} onChange={event => setForm(previous => ({ ...previous, name: event.target.value }))} placeholder="Rice" /></FormGroup>
         <FormRow>
-          <FormGroup><Label>Current</Label><Input type="number" min="0" step="0.5" disabled={!canManage} value={form.current_quantity ?? ""} onChange={event => setForm(previous => ({ ...previous, current_quantity: event.target.value }))} /></FormGroup>
-          <FormGroup><Label>Minimum</Label><Input type="number" min="0" step="0.5" disabled={!canManage} value={form.minimum_quantity ?? ""} onChange={event => setForm(previous => ({ ...previous, minimum_quantity: event.target.value }))} /></FormGroup>
+          <NumberField label="Current" min="0" step="0.5" disabled={!canManage} value={form.current_quantity ?? ""} onChange={current_quantity => setForm(previous => ({ ...previous, current_quantity }))} />
+          <NumberField label="Minimum" min="0" step="0.5" disabled={!canManage} value={form.minimum_quantity ?? ""} onChange={minimum_quantity => setForm(previous => ({ ...previous, minimum_quantity }))} />
         </FormRow>
         <FormGroup><Label>Unit</Label><Input value={form.unit || ""} disabled={!canManage} onChange={event => setForm(previous => ({ ...previous, unit: event.target.value }))} placeholder="ct, lb, oz" /></FormGroup>
         <FormGroup><Label>Category</Label><Select disabled={!canManage} value={form.category || ""} onChange={event => setForm(previous => ({ ...previous, category: event.target.value }))}><option value="">Choose category</option>{categories.map(category => <option key={category} value={category}>{category}</option>)}</Select></FormGroup>
-        <FormGroup><Label>Notes</Label><Textarea value={form.notes || ""} disabled={!canManage} onChange={event => setForm(previous => ({ ...previous, notes: event.target.value }))} /></FormGroup>
-        <button type="button" disabled={!canManage} className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-border bg-secondary px-3 py-3 text-left text-sm font-semibold text-secondary-foreground disabled:opacity-60" onClick={() => setForm(previous => ({ ...previous, reorder_flag: !previous.reorder_flag }))}><span className={`flex h-5 w-5 items-center justify-center rounded-md border ${form.reorder_flag ? "border-amber-400 bg-amber-500 text-white" : "border-muted-foreground"}`}>{form.reorder_flag && <Check size={14} aria-hidden="true" />}</span>Needs reorder</button>
-        <button type="button" disabled={!canManage} className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-border bg-secondary px-3 py-3 text-left text-sm font-semibold text-secondary-foreground disabled:opacity-60" onClick={() => setForm(previous => ({ ...previous, favorite: !previous.favorite }))}><span className={`flex h-5 w-5 items-center justify-center rounded-md border ${form.favorite ? "border-violet-400 bg-violet-500 text-white" : "border-muted-foreground"}`}>{form.favorite && <Check size={14} aria-hidden="true" />}</span>Favorite</button>
-        {form.id && <button type="button" disabled={!canManage} className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-border bg-secondary px-3 py-3 text-left text-sm font-semibold text-secondary-foreground disabled:opacity-60" onClick={() => setForm(previous => ({ ...previous, archived: !previous.archived }))}><span className={`flex h-5 w-5 items-center justify-center rounded-md border ${form.archived ? "border-amber-400 bg-amber-500 text-white" : "border-muted-foreground"}`}>{form.archived && <Check size={14} aria-hidden="true" />}</span>Archived</button>}
-        {canManage ? <Button type="button" className="w-full" onClick={onSave}>{form.id ? "Save Pantry Item" : "Add Pantry Item"}</Button> : <FormHelp>Pantry is read-only for your role.</FormHelp>}
-        {error && <FormError>{error}</FormError>}
+        <NotesField value={form.notes || ""} disabled={!canManage} onChange={notes => setForm(previous => ({ ...previous, notes }))} />
+        <ToggleField disabled={!canManage} checked={Boolean(form.reorder_flag)} label="Needs reorder" onChange={reorder_flag => setForm(previous => ({ ...previous, reorder_flag }))} />
+        <ToggleField disabled={!canManage} checked={Boolean(form.favorite)} label="Favorite" onChange={favorite => setForm(previous => ({ ...previous, favorite }))} />
+        {form.id && <ToggleField disabled={!canManage} checked={Boolean(form.archived)} label="Archived" onChange={archived => setForm(previous => ({ ...previous, archived }))} />}
+        {canManage ? <SaveCancelFooter saveLabel={form.id ? "Save Pantry Item" : "Add Pantry Item"} onSave={onSave} onCancel={() => onOpenChange(false)} submitting={submitting} /> : <FormHelp>Pantry is read-only for your role.</FormHelp>}
+        <ValidationSummary error={error} />
       </FormSection>
     </OriginDrawer>
   );

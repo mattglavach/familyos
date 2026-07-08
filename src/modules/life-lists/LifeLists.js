@@ -5,13 +5,12 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { EmptyStatePanel } from "../../components/ui/empty-state";
-import { FormError, FormGroup, FormHelp, FormRow, FormSection } from "../../components/ui/form";
+import { FormGroup, FormHelp, FormRow, FormSection, NotesField, SaveCancelFooter, ToggleField, ValidationSummary } from "../../components/ui/form";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Select } from "../../components/ui/select";
 import { ChipGroup, SegmentedControl } from "../../components/ui/segmented-control";
 import { SectionHeader } from "../../components/ui/section-header";
-import { Textarea } from "../../components/ui/textarea";
 import { OriginDrawer } from "../../components/origin/drawer";
 import { useHousehold } from "../../context/HouseholdContext";
 import { useTable } from "../../hooks/useTable";
@@ -159,6 +158,7 @@ export function LifeLists() {
   const [itemSort, setItemSort] = useState("manual");
   const [tagFilter, setTagFilter] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [confirm, setConfirm] = useState(null);
 
   const visibleLists = useMemo(() => lists.data.filter(list => canViewList(list, household)), [household, lists.data]);
@@ -216,6 +216,7 @@ export function LifeLists() {
   }
 
   async function saveList() {
+    if (submitting) return;
     setError("");
     if (!listForm.name?.trim()) {
       setError("List name is required.");
@@ -239,6 +240,7 @@ export function LifeLists() {
       updated_at: new Date().toISOString(),
     };
     try {
+      setSubmitting(true);
       if (listForm.id) await lists.update(listForm.id, row);
       else {
         const created = await lists.insert(row);
@@ -247,10 +249,13 @@ export function LifeLists() {
       setListDrawer(false);
     } catch (error) {
       setError(formatUserFacingError(error, "List could not be saved right now."));
+    } finally {
+      setSubmitting(false);
     }
   }
 
   async function saveItem() {
+    if (submitting) return;
     setError("");
     if (!selectedList?.id) {
       setError("Choose a list first.");
@@ -278,12 +283,15 @@ export function LifeLists() {
       updated_at: new Date().toISOString(),
     };
     try {
+      setSubmitting(true);
       if (itemForm.id) await items.update(itemForm.id, row);
       else await items.insert(row);
       await lists.update(selectedList.id, { updated_at: new Date().toISOString() });
       setItemDrawer(false);
     } catch (error) {
       setError(formatUserFacingError(error, "List item could not be saved right now."));
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -374,7 +382,7 @@ export function LifeLists() {
             <EmptyStatePanel title="No Life Lists yet" detail="Create a flexible list for movies, books, trip ideas, gifts, memories, or any future category." action={canCreate ? "Create list" : undefined} onAction={canCreate ? () => openListForm() : undefined} className="py-9" />
           </Card>
         )}
-        <ListDrawer open={listDrawer} onOpenChange={setListDrawer} form={listForm} setForm={setListForm} onSave={saveList} error={error} canManageSharedLists={canManageSharedLists} />
+        <ListDrawer open={listDrawer} onOpenChange={setListDrawer} form={listForm} setForm={setListForm} onSave={saveList} error={error} submitting={submitting} canManageSharedLists={canManageSharedLists} />
       </div>
     );
   }
@@ -426,8 +434,8 @@ export function LifeLists() {
           </CardContent>
         </Card>
       )}
-      <ListDrawer open={listDrawer} onOpenChange={setListDrawer} form={listForm} setForm={setListForm} onSave={saveList} error={error} canManageSharedLists={canManageSharedLists} />
-      <ItemDrawer open={itemDrawer} onOpenChange={setItemDrawer} form={itemForm} setForm={setItemForm} people={household.people} onSave={saveItem} error={error} />
+      <ListDrawer open={listDrawer} onOpenChange={setListDrawer} form={listForm} setForm={setListForm} onSave={saveList} error={error} submitting={submitting} canManageSharedLists={canManageSharedLists} />
+      <ItemDrawer open={itemDrawer} onOpenChange={setItemDrawer} form={itemForm} setForm={setItemForm} people={household.people} onSave={saveItem} error={error} submitting={submitting} />
       <Dialog open={confirm === "delete-list"} onOpenChange={() => setConfirm(null)}>
         <DialogContent onClose={() => setConfirm(null)}>
           <DialogHeader><DialogTitle>Delete list?</DialogTitle><DialogDescription>This removes the list and its items from Life Lists.</DialogDescription></DialogHeader>
@@ -438,38 +446,38 @@ export function LifeLists() {
   );
 }
 
-function ListDrawer({ open, onOpenChange, form, setForm, onSave, error, canManageSharedLists }) {
+function ListDrawer({ open, onOpenChange, form, setForm, onSave, error, submitting, canManageSharedLists }) {
   return (
     <OriginDrawer open={open} onOpenChange={onOpenChange} title={form.id ? "Edit List" : "Create List"} description="Keep lists generic so future categories can fit without new code.">
       <FormSection>
         <FormGroup><Label>Name</Label><Input value={form.name || ""} onChange={event => setForm(previous => ({ ...previous, name: event.target.value }))} placeholder="Movies to watch" /></FormGroup>
-        <FormGroup><Label>Description</Label><Textarea value={form.description || ""} onChange={event => setForm(previous => ({ ...previous, description: event.target.value }))} placeholder="Optional notes about this collection" /></FormGroup>
+        <NotesField label="Description" value={form.description || ""} onChange={description => setForm(previous => ({ ...previous, description }))} placeholder="Optional notes about this collection" />
         <FormGroup><Label>Category</Label><Input value={form.category || ""} onChange={event => setForm(previous => ({ ...previous, category: event.target.value }))} placeholder="Movies, Books, Travel, Gifts..." /></FormGroup>
         <FormGroup><Label>Visibility</Label><SegmentedControl value={form.visibility || (canManageSharedLists ? "household" : "personal")} options={canManageSharedLists ? LIST_VISIBILITY : [{ value: "personal", label: "Personal" }]} ariaLabel="List visibility" onValueChange={visibility => setForm(previous => ({ ...previous, visibility }))} /></FormGroup>
         <FormRow><FormGroup><Label>Icon</Label><Input value={form.icon || ""} onChange={event => setForm(previous => ({ ...previous, icon: event.target.value }))} maxLength={2} /></FormGroup><FormGroup><Label>Color</Label><Input type="color" value={form.color || COLORS.blue} onChange={event => setForm(previous => ({ ...previous, color: event.target.value }))} /></FormGroup></FormRow>
-        <button type="button" className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-border bg-secondary px-3 py-3 text-left text-sm font-semibold text-secondary-foreground" onClick={() => setForm(previous => ({ ...previous, favorite: !previous.favorite }))}><span className={`flex h-5 w-5 items-center justify-center rounded-md border ${form.favorite ? "border-violet-400 bg-violet-500 text-white" : "border-muted-foreground"}`}>{form.favorite && <Check size={14} aria-hidden="true" />}</span>Favorite</button>
-        <Button type="button" className="w-full" onClick={onSave}>{form.id ? "Save List" : "Create List"}</Button>
-        {error && <FormError>{error}</FormError>}
+        <ToggleField checked={Boolean(form.favorite)} label="Favorite" onChange={favorite => setForm(previous => ({ ...previous, favorite }))} />
+        <ValidationSummary error={error} />
+        <SaveCancelFooter saveLabel={form.id ? "Save List" : "Create List"} onSave={onSave} onCancel={() => onOpenChange(false)} submitting={submitting} />
       </FormSection>
     </OriginDrawer>
   );
 }
 
-function ItemDrawer({ open, onOpenChange, form, setForm, people, onSave, error }) {
+function ItemDrawer({ open, onOpenChange, form, setForm, people, onSave, error, submitting }) {
   return (
     <OriginDrawer open={open} onOpenChange={onOpenChange} title={form.id ? "Edit Item" : "Quick Add Item"} description="Capture the item now; detail can be refined later.">
       <FormSection>
         <FormGroup><Label>Title</Label><Input value={form.title || ""} onChange={event => setForm(previous => ({ ...previous, title: event.target.value }))} placeholder="Add a movie, book, place, idea..." /></FormGroup>
-        <FormGroup><Label>Notes</Label><Textarea value={form.description || ""} onChange={event => setForm(previous => ({ ...previous, description: event.target.value }))} /></FormGroup>
+        <NotesField value={form.description || ""} onChange={description => setForm(previous => ({ ...previous, description }))} />
         <FormGroup><Label>Status</Label><ChipGroup value={form.status || "planned"} ariaLabel="Item status" options={ITEM_STATUSES.map(status => ({ value: status, label: labelize(status) }))} onValueChange={status => setForm(previous => ({ ...previous, status, archived: status === "archived" }))} /></FormGroup>
         <FormGroup><Label>Priority</Label><SegmentedControl value={form.priority || "med"} options={PRIORITIES.map(priority => ({ value: priority, label: labelize(priority) }))} ariaLabel="Item priority" onValueChange={priority => setForm(previous => ({ ...previous, priority }))} /></FormGroup>
         <FormGroup><Label>Assigned To</Label><Select value={form.assigned_to_person_id || ""} onChange={event => setForm(previous => ({ ...previous, assigned_to_person_id: event.target.value }))}><option value="">Unassigned</option>{people.map(person => <option key={person.id} value={person.id}>{person.display_name}</option>)}</Select></FormGroup>
         <FormGroup><Label>Tags</Label><Input value={form.tags || ""} onChange={event => setForm(previous => ({ ...previous, tags: event.target.value }))} placeholder="travel, rainy day, gifts" /><FormHelp>Separate tags with commas.</FormHelp></FormGroup>
         <FormGroup><Label>Link</Label><Input type="url" value={form.link_url || ""} onChange={event => setForm(previous => ({ ...previous, link_url: event.target.value }))} placeholder="https://..." /></FormGroup>
         <FormGroup><Label>Image URL</Label><Input value={form.image_url || ""} onChange={event => setForm(previous => ({ ...previous, image_url: event.target.value }))} placeholder="Future-ready image reference" /></FormGroup>
-        <button type="button" className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-border bg-secondary px-3 py-3 text-left text-sm font-semibold text-secondary-foreground" onClick={() => setForm(previous => ({ ...previous, favorite: !previous.favorite }))}><span className={`flex h-5 w-5 items-center justify-center rounded-md border ${form.favorite ? "border-violet-400 bg-violet-500 text-white" : "border-muted-foreground"}`}>{form.favorite && <Check size={14} aria-hidden="true" />}</span>Favorite</button>
-        <Button type="button" className="w-full" onClick={onSave}>{form.id ? "Save Item" : "Add Item"}</Button>
-        {error && <FormError>{error}</FormError>}
+        <ToggleField checked={Boolean(form.favorite)} label="Favorite" onChange={favorite => setForm(previous => ({ ...previous, favorite }))} />
+        <ValidationSummary error={error} />
+        <SaveCancelFooter saveLabel={form.id ? "Save Item" : "Add Item"} onSave={onSave} onCancel={() => onOpenChange(false)} submitting={submitting} />
       </FormSection>
     </OriginDrawer>
   );
