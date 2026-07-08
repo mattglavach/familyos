@@ -5,12 +5,12 @@ import { formatUserFacingError } from "../../lib/userFacingErrors";
 import { useHousehold } from "../../context/HouseholdContext";
 import { roleCanManage } from "../../hooks/useHouseholdCollaboration";
 import { useTable } from "../../hooks/useTable";
-import { buildPoolReadingRow, hasRainContext, poolTestFieldError, setRainContext, validatePoolTestForm } from "../pool/poolTestForm";
+import { buildPoolReadingRow, hasRainContext, POOL_TEST_ADVANCED_FIELDS, POOL_TEST_FIELD_LABELS, POOL_TEST_PRIMARY_FIELDS, poolTestFieldError, setRainContext, validatePoolTestForm } from "../pool/poolTestForm";
 import { OriginDrawer } from "../../components/origin/drawer";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { FormError, FormGroup, FormHelp, FormRow, FormSection } from "../../components/ui/form";
+import { DateTimeField, FormError, FormGroup, FormHelp, FormRow, FormSection, NotesField, NumberField, SaveCancelFooter, ToggleField, ValidationSummary } from "../../components/ui/form";
 import { ChipGroup, SegmentedControl } from "../../components/ui/segmented-control";
 import { SectionHeader } from "../../components/ui/section-header";
 // - QUICK ADD -
@@ -31,9 +31,29 @@ export function QuickAdd({onNavigate, openSignal = 0}){
   const [form,setForm] = useState({});
   const [mode,setMode] = useState(null);
   const [saveError,setSaveError] = useState(null);
+  const [submitting,setSubmitting] = useState(false);
   const [toast,setToast] = useState(null);
 
-  function close(){setOpen(false);setMode(null);setForm({});setSaveError(null);}
+  function close(){setOpen(false);setMode(null);setForm({});setSaveError(null);setSubmitting(false);}
+  function setField(key,value){setSaveError(null);setForm(p=>({...p,[key]:value}));}
+  function renderPoolNumberField(field){
+    return (
+      <NumberField
+        key={field.key}
+        label={POOL_TEST_FIELD_LABELS[field.key]}
+        aria-label={POOL_TEST_FIELD_LABELS[field.key]}
+        value={form[field.key]}
+        min={field.min}
+        max={field.max}
+        step={field.step}
+        inputMode={field.inputMode}
+        placeholder={field.key==="free_chlorine"&&form._drops?"e.g. 11 drops":field.placeholder}
+        help={field.key==="free_chlorine"&&form._drops&&form.free_chlorine?`= ${(+form.free_chlorine*0.5).toFixed(1)} ppm FC`:undefined}
+        error={poolTestFieldError(field.key, form)}
+        onChange={value=>setField(field.key,value)}
+      />
+    );
+  }
 
   const options=[
     {id:"task", icon:ClipboardList, label:"Task", status:"Ready", enabled:true, accentClass:"border-l-violet-400", iconClass:"text-violet-300"},
@@ -101,14 +121,17 @@ export function QuickAdd({onNavigate, openSignal = 0}){
     }catch(e){setSaveError(formatUserFacingError(e, "Task could not be saved right now."));}
   }
   async function savePool(){
+    if(submitting)return;
     setSaveError(null);
     const validation = validatePoolTestForm(form);
     if(!validation.valid){setSaveError(validation.message);return;}
     const row = buildPoolReadingRow(form);
     try{
+      setSubmitting(true);
       await poolReadings.insert(row);
       close();setToast({message:"Pool reading saved."});onNavigate("pool");
     }catch(e){setSaveError(formatUserFacingError(e, "Pool reading could not be saved right now."));}
+    finally{setSubmitting(false);}
   }
   async function savePoolTreatment(){
     setSaveError(null);
@@ -494,51 +517,31 @@ export function QuickAdd({onNavigate, openSignal = 0}){
 
         {mode==="pool"&&<>
           <FormSection>
-            <FormRow>
-              <FormGroup><Label>Date</Label><Input type="date" value={form.date||TODAY_STR} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/></FormGroup>
-              <FormGroup><Label>Time</Label><Input type="time" value={form.time||new Date().toTimeString().slice(0,5)} onChange={e=>setForm(p=>({...p,time:e.target.value}))}/></FormGroup>
-            </FormRow>
+            <DateTimeField date={form.date||TODAY_STR} time={form.time||new Date().toTimeString().slice(0,5)} onDateChange={date=>setField("date",date)} onTimeChange={time=>setField("time",time)} />
             <FormGroup>
               <Label>Test Source</Label>
-              <SegmentedControl value={form.test_source||"Manual"} options={[{value:"Taylor Kit",label:"Taylor Kit"},{value:"Pool Store",label:"Pool Store"},{value:"Manual",label:"Manual"}]} ariaLabel="Pool test source" onValueChange={test_source=>setForm(p=>({...p,test_source}))}/>
+              <SegmentedControl value={form.test_source||"Manual"} options={[{value:"Taylor Kit",label:"Taylor Kit"},{value:"Pool Store",label:"Pool Store"},{value:"Manual",label:"Manual"}]} ariaLabel="Pool test source" onValueChange={test_source=>setField("test_source",test_source)}/>
             </FormGroup>
-            <FormRow>
-              <FormGroup>
-                <div className="flex items-center justify-between gap-3">
-                  <Label className="mb-0">FC ppm</Label>
-                  <SegmentedControl value={form._drops?"drops":"ppm"} options={[{value:"ppm",label:"ppm"},{value:"drops",label:"K-2006"}]} ariaLabel="Free chlorine entry mode" onValueChange={v=>setForm(p=>({...p,_drops:v==="drops"}))}/>
-                </div>
-                <Input type="number" min="0" max="50" step="0.5" inputMode="decimal" aria-label="FC ppm" placeholder={form._drops?"e.g. 11 drops":"e.g. 5.5"} value={form.free_chlorine||""} onChange={e=>{setSaveError(null);setForm(p=>({...p,free_chlorine:e.target.value}));}}/>
-                {form._drops&&form.free_chlorine&&<FormHelp>= {(+form.free_chlorine*0.5).toFixed(1)} ppm FC</FormHelp>}
-                {poolTestFieldError("free_chlorine", form)&&<FormError>{poolTestFieldError("free_chlorine", form)}</FormError>}
-              </FormGroup>
-              <FormGroup><Label>CC ppm</Label><Input type="number" min="0" max="20" step="0.5" inputMode="decimal" placeholder="0" value={form.cc!==undefined?form.cc:""} onChange={e=>{setSaveError(null);setForm(p=>({...p,cc:e.target.value}));}}/>{poolTestFieldError("cc", form)&&<FormError>{poolTestFieldError("cc", form)}</FormError>}</FormGroup>
-            </FormRow>
-            <FormRow>
-              <FormGroup>
-                <Label>pH</Label>
-                <Input type="number" min="6.2" max="9" step="0.1" inputMode="decimal" aria-label="pH" value={form.ph||""} onChange={e=>{setSaveError(null);setForm(p=>({...p,ph:e.target.value}));}}/>
-                {poolTestFieldError("ph", form)&&<FormError>{poolTestFieldError("ph", form)}</FormError>}
-              </FormGroup>
-              <FormGroup><Label>TA ppm</Label><Input type="number" min="0" max="300" value={form.alkalinity||""} onChange={e=>{setSaveError(null);setForm(p=>({...p,alkalinity:e.target.value}));}}/>{poolTestFieldError("alkalinity", form)&&<FormError>{poolTestFieldError("alkalinity", form)}</FormError>}</FormGroup>
-            </FormRow>
-            <FormRow>
-              <FormGroup><Label>CYA ppm</Label><Input type="number" min="0" max="200" value={form.cya||""} onChange={e=>{setSaveError(null);setForm(p=>({...p,cya:e.target.value}));}}/>{poolTestFieldError("cya", form)&&<FormError>{poolTestFieldError("cya", form)}</FormError>}</FormGroup>
-              <FormGroup><Label>Salt ppm</Label><Input type="number" min="0" max="8000" value={form.salt||""} onChange={e=>{setSaveError(null);setForm(p=>({...p,salt:e.target.value}));}}/>{poolTestFieldError("salt", form)&&<FormError>{poolTestFieldError("salt", form)}</FormError>}</FormGroup>
-            </FormRow>
-            <FormGroup><Label>Temperature F</Label><Input type="number" min="32" max="110" value={form.water_temp||""} onChange={e=>{setSaveError(null);setForm(p=>({...p,water_temp:e.target.value}));}}/>{poolTestFieldError("water_temp", form)&&<FormError>{poolTestFieldError("water_temp", form)}</FormError>}</FormGroup>
-            <FormGroup><Label>Notes</Label><Input value={form.notes||""} onChange={e=>{setSaveError(null);setForm(p=>({...p,notes:e.target.value}));}}/></FormGroup>
+            <div className="flex items-center justify-between gap-3">
+              <Label className="mb-0">FC entry</Label>
+              <SegmentedControl value={form._drops?"drops":"ppm"} options={[{value:"ppm",label:"ppm"},{value:"drops",label:"K-2006"}]} ariaLabel="Free chlorine entry mode" onValueChange={v=>setField("_drops",v==="drops")}/>
+            </div>
+            <FormSection title="Chemistry" description="Add any tested values or context from the pool check.">
+              <FormRow>{POOL_TEST_PRIMARY_FIELDS.slice(0,2).map(renderPoolNumberField)}</FormRow>
+              <FormRow>{POOL_TEST_PRIMARY_FIELDS.slice(2,4).map(renderPoolNumberField)}</FormRow>
+              <FormRow>{POOL_TEST_PRIMARY_FIELDS.slice(4,6).map(renderPoolNumberField)}</FormRow>
+              {renderPoolNumberField(POOL_TEST_PRIMARY_FIELDS[6])}
+            </FormSection>
+            <NotesField value={form.notes||""} onChange={value=>setField("notes",value)} />
             <div className="grid grid-cols-2 gap-2">
-              <button type="button" className="flex w-full items-center gap-3 rounded-lg border border-border bg-secondary px-3 py-3 text-left text-sm font-semibold" onClick={()=>{setSaveError(null);setForm(p=>({...p,recent_heavy_usage:!p.recent_heavy_usage}));}}><span className={`h-5 w-5 rounded-md border ${form.recent_heavy_usage ? "border-primary bg-primary" : "border-muted-foreground"}`} />Party</button>
-              <button type="button" className="flex w-full items-center gap-3 rounded-lg border border-border bg-secondary px-3 py-3 text-left text-sm font-semibold" onClick={()=>{setSaveError(null);setForm(p=>({...p,recent_weather_notes:setRainContext(p,!hasRainContext(p))}));}}><span className={`h-5 w-5 rounded-md border ${hasRainContext(form) ? "border-primary bg-primary" : "border-muted-foreground"}`} />Rain</button>
+              <ToggleField checked={Boolean(form.recent_heavy_usage)} label="Party" onChange={checked=>setField("recent_heavy_usage",checked)} />
+              <ToggleField checked={hasRainContext(form)} label="Rain" onChange={checked=>setField("recent_weather_notes",setRainContext(form,checked))} />
             </div>
             <FormRow>
-              <FormGroup><Label>Filter PSI</Label><Input type="number" min="0" max="60" value={form.filter_pressure||""} onChange={e=>setForm(p=>({...p,filter_pressure:e.target.value}))}/>{poolTestFieldError("filter_pressure", form)&&<FormError>{poolTestFieldError("filter_pressure", form)}</FormError>}</FormGroup>
-              <FormGroup><Label>SWG %</Label><Input type="number" min="0" max="100" value={form.swg_setting||""} onChange={e=>setForm(p=>({...p,swg_setting:e.target.value}))}/>{poolTestFieldError("swg_setting", form)&&<FormError>{poolTestFieldError("swg_setting", form)}</FormError>}</FormGroup>
+              {POOL_TEST_ADVANCED_FIELDS.slice(0,2).map(renderPoolNumberField)}
             </FormRow>
-            <Button type="button" className="w-full" onClick={savePool}>Save Reading</Button>
-            {saveError&&<FormError>{saveError}</FormError>}
-            <Button type="button" variant="secondary" className="w-full" onClick={()=>setMode(null)}><ChevronLeft aria-hidden="true"/>Back</Button>
+            <ValidationSummary error={saveError} />
+            <SaveCancelFooter saveLabel="Save Reading" cancelLabel="Back" onSave={savePool} onCancel={()=>setMode(null)} submitting={submitting} />
           </FormSection>
         </>}
 
