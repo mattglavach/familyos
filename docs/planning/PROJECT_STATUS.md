@@ -4,7 +4,7 @@
 1.5.1 in progress
 
 ## Current State
-Release 1.0 core MVP through Release 1.5.0 Calendar Platform are complete or in validation. Release 1.5.1 Pool & Quick Add UX Polish is active on branch `release/1.5.1-pool-quickadd-ux`.
+Release 1.0 core MVP through Release 1.5.0 Calendar Platform are complete. Release 1.5.1 Pool & Quick Add UX Polish has been merged to `main`; production closeout found and fixed a final shared Button touch-target sizing issue before final production revalidation.
 
 ## Completed
 - Family OS v1 documentation workspace

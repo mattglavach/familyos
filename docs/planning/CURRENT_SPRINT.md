@@ -9,6 +9,7 @@ Complete Release 1.5.1 Pool & Quick Add UX Polish by standardizing add/edit form
 - [x] Standardize Pool Test and Quick Add Pool Test chemistry fields through shared Pool field metadata and validation helpers
 - [x] Standardize Tasks, Shopping, Meal Planning, and Life Lists drawer footers, notes, toggles, validation summaries, and duplicate-submit guards
 - [x] Run Release 1.5.1 production build validation
+- [x] Complete Release 1.5.1 production closeout follow-up for tag alignment and 44x44 Button touch-target hardening
 - [x] Begin Release 1.5.0 Calendar Platform branch
 - [x] Review Calendar/OAuth implementation and prior deferrals
 - [x] Add Calendar dashboard summary, grouped event list, detail view, and connection guidance

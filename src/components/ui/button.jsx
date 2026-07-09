@@ -37,12 +37,27 @@ const buttonVariants = cva(
   }
 );
 
+const buttonTouchTargets = {
+  xs: { minHeight: 44, minWidth: 44 },
+  sm: { minHeight: 44, minWidth: 44 },
+  default: { minHeight: 44 },
+  lg: { minHeight: 44 },
+  xl: { minHeight: 48 },
+  icon: { height: 44, minHeight: 44, minWidth: 44, width: 44 },
+  "icon-xs": { height: 44, minHeight: 44, minWidth: 44, width: 44 },
+  "icon-sm": { height: 44, minHeight: 44, minWidth: 44, width: 44 },
+  "icon-lg": { height: 44, minHeight: 44, minWidth: 44, width: 44 },
+  "icon-xl": { height: 48, minHeight: 48, minWidth: 48, width: 48 },
+};
+
 const Button = React.forwardRef(
-  ({ className, variant, size, asChild = false, loading = false, children, disabled, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, loading = false, children, disabled, style, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
+    const targetStyle = buttonTouchTargets[size || "default"];
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
+        style={{ ...style, ...targetStyle }}
         ref={ref}
         disabled={disabled || loading}
         aria-disabled={disabled || loading}
