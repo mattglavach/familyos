@@ -15,7 +15,7 @@ function SegmentedControl({ value, onValueChange, options, className, itemClassN
             role="tab"
             aria-selected={selected}
             className={cn(
-              "min-h-8 rounded-md px-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground",
+              "min-h-11 min-w-11 rounded-md px-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground",
               selected && "bg-primary text-primary-foreground shadow-sm hover:text-primary-foreground",
               itemClassName
             )}
@@ -47,7 +47,7 @@ function ChipGroup({ value, onValueChange, options, className, allowDeselect = f
             aria-pressed={selected}
             disabled={disabled}
             className={cn(
-              "min-h-8 rounded-full border border-border px-3 text-sm font-semibold text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50",
+              "min-h-11 min-w-11 rounded-full border border-border px-3 text-sm font-semibold text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50",
               selected && "border-primary bg-primary/15 text-primary",
               disabled && "hover:border-border hover:text-muted-foreground"
             )}

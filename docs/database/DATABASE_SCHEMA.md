@@ -174,7 +174,7 @@ Release 1.4.0 adds `supabase/migrations/20260703_release_1_4_pool_care_assistant
 
 `pool_readings` now includes test source, recent weather notes, recent heavy usage, and timestamps in addition to chemistry readings. Supported test sources are Taylor Kit, Pool Store, Manual, and future-only Pentair/Home Assistant values.
 
-Current app create flows require FC and pH before inserting a new Pool Test because those fields drive swim readiness and treatment safety. The database columns remain nullable for legacy readings and future import compatibility; app validation is responsible for enforcing required FC/pH on new manual entries.
+Current app create flows allow partial Pool Test logs. `pool_readings.ph` and `pool_readings.free_chlorine` remain nullable, and app validation requires at least one tested value, note, rain context, or party/heavy-use context before insert. Party context maps to `recent_heavy_usage`; Rain is stored in `recent_weather_notes`. No new migration is required for these context fields.
 
 Preview validation note: on July 6, 2026, post-deploy preview validation found the linked FamilyOS Supabase project had household foundation and Calendar schema but was missing Release 0.9 invitations and Release 1.1-1.4 module migrations. The missing migrations were applied to restore durable writes for Pool, Life Lists, Shopping, and Meal Planning. `pool_action_audits.reading_id` now matches the remote `pool_readings.id` UUID type.
 

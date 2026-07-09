@@ -4,7 +4,7 @@ import { EmptyState, Loading, Modal, SwipeCard, SwipeHint } from "../../componen
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { FormGroup, FormRow, FormSection } from "../../components/ui/form";
+import { DateTimeField, FormGroup, FormRow, FormSection, NotesField, NumberField, SaveCancelFooter, ToggleField, ValidationSummary } from "../../components/ui/form";
 import { ChipGroup, SegmentedControl } from "../../components/ui/segmented-control";
 import { roleCanManage } from "../../hooks/useHouseholdCollaboration";
 import { useHousehold } from "../../context/HouseholdContext";
@@ -14,7 +14,7 @@ import { useTable } from "../../hooks/useTable";
 import { maintColor, maintStatus, statusColor } from "../../utils/status";
 import { COLORS, S } from "../../theme";
 import { getChemRecommendations, getPoolHealth, getPoolRecommendations, POOL_RULE_CONFIG } from "./actionEngine";
-import { buildPoolReadingRow, poolTestFieldError, validatePoolTestForm } from "./poolTestForm";
+import { buildPoolReadingRow, hasRainContext, POOL_TEST_ADVANCED_FIELDS, POOL_TEST_FIELD_LABELS, POOL_TEST_PRIMARY_FIELDS, poolTestFieldError, setRainContext, validatePoolTestForm } from "./poolTestForm";
 
 export { getChemRecommendations };
 
@@ -302,6 +302,7 @@ export function Pool() {
   const [sourceMode, setSourceMode] = useState("Taylor Kit");
   const [showAdvancedTest, setShowAdvancedTest] = useState(false);
   const [testSaveError, setTestSaveError] = useState("");
+  const [testSubmitting, setTestSubmitting] = useState(false);
   const [poolActionError, setPoolActionError] = useState("");
   const [reviewRec, setReviewRec] = useState(null);
 
@@ -359,6 +360,29 @@ export function Pool() {
     return poolTestFieldError(key, form);
   }
 
+  function setTestField(key, value) {
+    setTestSaveError("");
+    setForm(previous => ({ ...previous, [key]: value }));
+  }
+
+  function renderPoolNumberField(field) {
+    return (
+      <NumberField
+        key={field.key}
+        label={POOL_TEST_FIELD_LABELS[field.key]}
+        aria-label={POOL_TEST_FIELD_LABELS[field.key]}
+        value={form[field.key]}
+        min={field.min}
+        max={field.max}
+        step={field.step}
+        inputMode={field.inputMode}
+        placeholder={field.placeholder}
+        error={fieldError(field.key)}
+        onChange={value => setTestField(field.key, value)}
+      />
+    );
+  }
+
   function showPoolMutationError(error, fallback) {
     setPoolActionError(formatUserFacingError(error, fallback));
   }
@@ -366,12 +390,13 @@ export function Pool() {
   function openTest(row = null) {
     setTestSaveError("");
     setPoolActionError("");
-    setForm(row ? { ...row, time: row.logged_at ? new Date(row.logged_at).toTimeString().slice(0, 5) : "" } : { date: TODAY_STR, test_source: "Taylor Kit", swg_setting: latest?.swg_setting ?? "", pump_hours: latest?.pump_hours ?? "" });
+    setForm(row ? { ...row, time: row.logged_at ? new Date(row.logged_at).toTimeString().slice(0, 5) : "" } : { date: TODAY_STR, test_source: "Taylor Kit" });
     setSourceMode(row?.test_source || "Taylor Kit");
     setModal("test");
   }
 
   async function saveTest() {
+    if (testSubmitting) return;
     setTestSaveError("");
     setPoolActionError("");
     const validation = validatePoolTestForm(form);
@@ -381,11 +406,14 @@ export function Pool() {
     }
     const row = buildPoolReadingRow(form, { testSource: sourceMode, time: form.time });
     try {
+      setTestSubmitting(true);
       if (form.id) await readings.update(form.id, row);
       else await readings.insert(row);
       setModal(null); setForm({});
     } catch (error) {
       setTestSaveError(formatUserFacingError(error, "Pool test could not be saved right now."));
+    } finally {
+      setTestSubmitting(false);
     }
   }
 
@@ -854,39 +882,36 @@ export function Pool() {
       {modal === "test" && (
         <Modal title={form.id ? "Edit Pool Test" : "Log Pool Test"} onClose={() => { setModal(null); setForm({}); }}>
           <FormSection>
-            <FormRow><FormGroup><Label>Date</Label><Input type="date" value={form.date || TODAY_STR} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} /></FormGroup><FormGroup><Label>Time</Label><Input type="time" value={form.time || new Date().toTimeString().slice(0, 5)} onChange={e => setForm(p => ({ ...p, time: e.target.value }))} /></FormGroup></FormRow>
+            <DateTimeField
+              date={form.date || TODAY_STR}
+              time={form.time || new Date().toTimeString().slice(0, 5)}
+              onDateChange={date => setTestField("date", date)}
+              onTimeChange={time => setTestField("time", time)}
+            />
             <FormGroup><Label>Test Source</Label><SegmentedControl value={sourceMode} options={TEST_SOURCES.map(value => ({ value, label: value }))} ariaLabel="Test source" onValueChange={setSourceMode} /></FormGroup>
-            <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: 10 }}>
-              <div style={{ fontSize: 13, color: COLORS.white, fontWeight: 900 }}>Required today</div>
-              <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 3 }}>FC and pH drive swim readiness and treatment safety.</div>
+            <FormSection title="Chemistry" description="Log any tested values. At least one result, note, rain, or party context is needed.">
+              <FormRow>{POOL_TEST_PRIMARY_FIELDS.slice(0, 2).map(renderPoolNumberField)}</FormRow>
+              <FormRow>{POOL_TEST_PRIMARY_FIELDS.slice(2, 4).map(renderPoolNumberField)}</FormRow>
+              <FormRow>{POOL_TEST_PRIMARY_FIELDS.slice(4, 6).map(renderPoolNumberField)}</FormRow>
+              {renderPoolNumberField(POOL_TEST_PRIMARY_FIELDS[6])}
+            </FormSection>
+            <NotesField label="Notes" value={form.notes || ""} placeholder="Clarity, swimmer load, dosing context..." onChange={value => setTestField("notes", value)} />
+            <div className="grid grid-cols-2 gap-2">
+              <ToggleField checked={Boolean(form.recent_heavy_usage)} label="Party" onChange={checked => setTestField("recent_heavy_usage", checked)} />
+              <ToggleField checked={hasRainContext(form)} label="Rain" onChange={checked => setTestField("recent_weather_notes", setRainContext(form, checked))} />
             </div>
-            <FormRow>
-              <FormGroup><Label>FC ppm *</Label><Input type="number" min="0" max="50" step="0.5" inputMode="decimal" aria-label="FC ppm" value={form.free_chlorine ?? ""} onChange={e => { setTestSaveError(""); setForm(p => ({ ...p, free_chlorine: e.target.value })); }} />{fieldError("free_chlorine") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("free_chlorine")}</div>}</FormGroup>
-              <FormGroup><Label>pH *</Label><Input type="number" min="6.2" max="9" step="0.1" inputMode="decimal" aria-label="pH" value={form.ph ?? ""} onChange={e => { setTestSaveError(""); setForm(p => ({ ...p, ph: e.target.value })); }} />{fieldError("ph") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("ph")}</div>}</FormGroup>
-            </FormRow>
-            <div style={{ fontSize: 13, color: COLORS.white, fontWeight: 900 }}>Optional full chemistry</div>
-            <FormRow>
-              <FormGroup><Label>CYA ppm</Label><Input type="number" min="0" max="200" inputMode="numeric" value={form.cya ?? ""} onChange={e => setForm(p => ({ ...p, cya: e.target.value }))} />{fieldError("cya") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("cya")}</div>}</FormGroup>
-              <FormGroup><Label>Salt ppm</Label><Input type="number" min="0" max="8000" inputMode="numeric" value={form.salt ?? ""} onChange={e => setForm(p => ({ ...p, salt: e.target.value }))} />{fieldError("salt") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("salt")}</div>}</FormGroup>
-            </FormRow>
-            <FormRow>
-              <FormGroup><Label>CC ppm</Label><Input type="number" min="0" max="20" step="0.5" inputMode="decimal" value={form.cc ?? ""} onChange={e => setForm(p => ({ ...p, cc: e.target.value }))} />{fieldError("cc") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("cc")}</div>}</FormGroup>
-              <FormGroup><Label>TA ppm</Label><Input type="number" min="0" max="300" inputMode="numeric" value={form.alkalinity ?? ""} onChange={e => setForm(p => ({ ...p, alkalinity: e.target.value }))} />{fieldError("alkalinity") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("alkalinity")}</div>}</FormGroup>
-            </FormRow>
             <button type="button" className="flex w-full items-center justify-between rounded-lg border border-border bg-secondary px-3 py-3 text-left text-sm font-semibold" onClick={() => setShowAdvancedTest(value => !value)}>
               <span>Advanced test details</span><span style={{ color: COLORS.slate }}>{showAdvancedTest ? "Hide" : "Show"}</span>
             </button>
             {showAdvancedTest && (
-              <>
-                <FormRow><FormGroup><Label>Water Temp F</Label><Input type="number" min="32" max="110" value={form.water_temp ?? ""} onChange={e => setForm(p => ({ ...p, water_temp: e.target.value }))} />{fieldError("water_temp") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("water_temp")}</div>}</FormGroup><FormGroup><Label>SWG %</Label><Input type="number" min="0" max="100" value={form.swg_setting ?? ""} onChange={e => setForm(p => ({ ...p, swg_setting: e.target.value }))} />{fieldError("swg_setting") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("swg_setting")}</div>}</FormGroup></FormRow>
-                <FormRow><FormGroup><Label>Pump Runtime</Label><Input type="number" min="0" max="24" value={form.pump_hours ?? ""} onChange={e => setForm(p => ({ ...p, pump_hours: e.target.value }))} />{fieldError("pump_hours") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("pump_hours")}</div>}</FormGroup><FormGroup><Label>Calcium ppm</Label><Input type="number" min="0" max="1000" value={form.calcium_hardness ?? ""} onChange={e => setForm(p => ({ ...p, calcium_hardness: e.target.value }))} />{fieldError("calcium_hardness") && <div style={{ fontSize: 12, color: COLORS.red }}>{fieldError("calcium_hardness")}</div>}</FormGroup></FormRow>
-                <FormGroup><Label>Recent Weather</Label><Input value={form.recent_weather_notes || ""} placeholder="Heat, rain, storms..." onChange={e => setForm(p => ({ ...p, recent_weather_notes: e.target.value }))} /></FormGroup>
-                <button type="button" className="flex w-full items-center gap-3 rounded-lg border border-border bg-secondary px-3 py-3 text-left text-sm font-semibold" onClick={() => setForm(p => ({ ...p, recent_heavy_usage: !p.recent_heavy_usage }))}><span className={`h-5 w-5 rounded-md border ${form.recent_heavy_usage ? "border-primary bg-primary" : "border-muted-foreground"}`} />Recent heavy usage or party</button>
-              </>
+              <FormSection>
+                <FormRow>{POOL_TEST_ADVANCED_FIELDS.slice(0, 2).map(renderPoolNumberField)}</FormRow>
+                <FormRow>{POOL_TEST_ADVANCED_FIELDS.slice(2, 4).map(renderPoolNumberField)}</FormRow>
+                <FormGroup><Label>Recent Weather</Label><Input value={form.recent_weather_notes || ""} placeholder="Heat, rain, storms..." onChange={e => setTestField("recent_weather_notes", e.target.value)} /></FormGroup>
+              </FormSection>
             )}
-            <FormGroup><Label>Notes</Label><Input value={form.notes || ""} placeholder="Clarity, swimmer load, dosing context..." onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} /></FormGroup>
-            {testSaveError && <div style={{ border: `1px solid ${COLORS.red}`, borderRadius: 8, padding: 10, color: COLORS.red, fontSize: 13 }}>{testSaveError}</div>}
-            <Button type="button" className="w-full" onClick={saveTest}>Save Test</Button>
+            <ValidationSummary error={testSaveError} />
+            <SaveCancelFooter saveLabel="Save Test" onCancel={() => setModal(null)} onSave={saveTest} submitting={testSubmitting} />
           </FormSection>
         </Modal>
       )}

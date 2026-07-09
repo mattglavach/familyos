@@ -9,7 +9,7 @@ import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { EmptyStatePanel } from "../../components/ui/empty-state";
-import { FormError, FormGroup, FormHelp, FormRow, FormSection } from "../../components/ui/form";
+import { FormGroup, FormHelp, FormRow, FormSection, NotesField, NumberField, SaveCancelFooter, ToggleField, ValidationSummary } from "../../components/ui/form";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { ChipGroup, SegmentedControl } from "../../components/ui/segmented-control";
@@ -75,17 +75,6 @@ function StatCard({ label: statLabel, value, color }) {
   );
 }
 
-function ToggleRow({ checked, label: rowLabel, onClick }) {
-  return (
-    <button type="button" className="flex w-full items-center gap-3 rounded-lg border border-border bg-secondary px-3 py-3 text-left text-sm font-semibold text-secondary-foreground" onClick={onClick}>
-      <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${checked ? "border-violet-400 bg-violet-500 text-white" : "border-muted-foreground"}`}>
-        {checked && <Check size={14} aria-hidden="true" />}
-      </span>
-      {rowLabel}
-    </button>
-  );
-}
-
 export function MealPlanning() {
   const household = useHousehold();
   const userId = household.user?.id;
@@ -109,6 +98,7 @@ export function MealPlanning() {
   const [shoppingOpen, setShoppingOpen] = useState(false);
   const [shoppingChoice, setShoppingChoice] = useState({});
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const visiblePlans = plans.data.filter(plan => filter === "archived" ? plan.archived : !plan.archived);
   const activePlan = visiblePlans.find(plan => plan.id === selectedPlanId) || visiblePlans[0] || null;
@@ -184,6 +174,7 @@ export function MealPlanning() {
   }
 
   async function saveRecipe() {
+    if (submitting) return;
     setError("");
     if (!recipeForm.title?.trim()) { setError("Recipe title is required."); return; }
     if (!canManageShared && (recipeForm.visibility || "personal") !== "personal") { setError("Your role can create personal recipes only."); return; }
@@ -207,15 +198,19 @@ export function MealPlanning() {
       updated_at: new Date().toISOString(),
     };
     try {
+      setSubmitting(true);
       if (recipeForm.id) await recipes.update(recipeForm.id, row);
       else await recipes.insert(row);
       setRecipeForm(null);
     } catch (err) {
       setError(formatUserFacingError(err, "Recipe could not be saved right now."));
+    } finally {
+      setSubmitting(false);
     }
   }
 
   async function savePlan() {
+    if (submitting) return;
     setError("");
     if (!planForm.name?.trim()) { setError("Meal plan name is required."); return; }
     if (!canManageShared && (planForm.visibility || "personal") !== "personal") { setError("Your role can create personal plans only."); return; }
@@ -233,15 +228,19 @@ export function MealPlanning() {
       updated_at: new Date().toISOString(),
     };
     try {
+      setSubmitting(true);
       const saved = planForm.id ? await plans.update(planForm.id, row) : await plans.insert(row);
       if (!planForm.id && saved?.id) setSelectedPlanId(saved.id);
       setPlanForm(null);
     } catch (err) {
       setError(formatUserFacingError(err, "Meal plan could not be saved right now."));
+    } finally {
+      setSubmitting(false);
     }
   }
 
   async function saveAssignment() {
+    if (submitting) return;
     setError("");
     if (!assignmentForm.meal_plan_id) { setError("Choose a meal plan first."); return; }
     if (!assignmentForm.recipe_id && !assignmentForm.title?.trim()) { setError("Choose a recipe or add a meal title."); return; }
@@ -260,16 +259,20 @@ export function MealPlanning() {
       updated_at: new Date().toISOString(),
     };
     try {
+      setSubmitting(true);
       if (assignmentForm.id) await assignments.update(assignmentForm.id, row);
       else await assignments.insert(row);
       await plans.update(assignmentForm.meal_plan_id, { updated_at: new Date().toISOString() });
       setAssignmentForm(null);
     } catch (err) {
       setError(formatUserFacingError(err, "Meal assignment could not be saved right now."));
+    } finally {
+      setSubmitting(false);
     }
   }
 
   async function saveIngredient() {
+    if (submitting) return;
     setError("");
     if (!ingredientForm.ingredient?.trim()) { setError("Ingredient name is required."); return; }
     const recipe = recipes.data.find(item => item.id === ingredientForm.recipe_id);
@@ -286,12 +289,15 @@ export function MealPlanning() {
       updated_at: new Date().toISOString(),
     };
     try {
+      setSubmitting(true);
       if (ingredientForm.id) await ingredients.update(ingredientForm.id, row);
       else await ingredients.insert(row);
       await recipes.update(ingredientForm.recipe_id, { updated_at: new Date().toISOString() });
       setIngredientForm(null);
     } catch (err) {
       setError(formatUserFacingError(err, "Ingredient could not be saved right now."));
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -313,9 +319,11 @@ export function MealPlanning() {
   }
 
   async function generateShoppingItems() {
+    if (submitting) return;
     setError("");
     if (!selectedPreview.length) { setError("No missing ingredients are selected."); return; }
     try {
+      setSubmitting(true);
       let targetListId = shoppingChoice.list_id;
       if (!targetListId) {
         const created = await shoppingLists.insert({
@@ -356,6 +364,8 @@ export function MealPlanning() {
       setShoppingChoice({});
     } catch (err) {
       setError(formatUserFacingError(err, "Shopping items could not be added right now."));
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -511,38 +521,38 @@ export function MealPlanning() {
         </section>
       )}
 
-      <RecipeDrawer form={recipeForm} setForm={setRecipeForm} error={error} canManageShared={canManageShared} onSave={saveRecipe} />
-      <PlanDrawer form={planForm} setForm={setPlanForm} error={error} canManageShared={canManageShared} onSave={savePlan} />
-      <AssignmentDrawer form={assignmentForm} setForm={setAssignmentForm} error={error} plans={writablePlans} recipes={recipes.data.filter(recipe => !recipe.archived)} onSave={saveAssignment} />
-      <IngredientDrawer form={ingredientForm} setForm={setIngredientForm} error={error} pantry={pantry.data.filter(item => !item.archived)} onSave={saveIngredient} />
-      <ShoppingReviewDrawer open={shoppingOpen} setOpen={setShoppingOpen} error={error} choice={shoppingChoice} setChoice={setShoppingChoice} lists={writableShoppingLists} preview={shoppingPreview} selectedCount={selectedPreview.length} onSave={generateShoppingItems} />
+      <RecipeDrawer form={recipeForm} setForm={setRecipeForm} error={error} submitting={submitting} canManageShared={canManageShared} onSave={saveRecipe} />
+      <PlanDrawer form={planForm} setForm={setPlanForm} error={error} submitting={submitting} canManageShared={canManageShared} onSave={savePlan} />
+      <AssignmentDrawer form={assignmentForm} setForm={setAssignmentForm} error={error} submitting={submitting} plans={writablePlans} recipes={recipes.data.filter(recipe => !recipe.archived)} onSave={saveAssignment} />
+      <IngredientDrawer form={ingredientForm} setForm={setIngredientForm} error={error} submitting={submitting} pantry={pantry.data.filter(item => !item.archived)} onSave={saveIngredient} />
+      <ShoppingReviewDrawer open={shoppingOpen} setOpen={setShoppingOpen} error={error} submitting={submitting} choice={shoppingChoice} setChoice={setShoppingChoice} lists={writableShoppingLists} preview={shoppingPreview} selectedCount={selectedPreview.length} onSave={generateShoppingItems} />
     </div>
   );
 }
 
-function RecipeDrawer({ form, setForm, error, canManageShared, onSave }) {
+function RecipeDrawer({ form, setForm, error, submitting, canManageShared, onSave }) {
   return (
     <OriginDrawer open={Boolean(form)} onOpenChange={open => !open && setForm(null)} title={form?.id ? "Edit Recipe" : "Create Recipe"} description="Recipes stay simple and can feed shopping review later.">
       {form && <FormSection>
         <FormGroup><Label>Title</Label><Input value={form.title || ""} onChange={event => setForm(prev => ({ ...prev, title: event.target.value }))} /></FormGroup>
         <FormGroup><Label>Description</Label><Input value={form.description || ""} onChange={event => setForm(prev => ({ ...prev, description: event.target.value }))} /></FormGroup>
         <FormRow><FormGroup><Label>Category</Label><Input placeholder="Pasta, Grill, Family" value={form.category || ""} onChange={event => setForm(prev => ({ ...prev, category: event.target.value }))} /></FormGroup><FormGroup><Label>Meal</Label><ChipGroup value={form.meal_type || "dinner"} options={RECIPE_MEAL_TYPES} ariaLabel="Recipe meal type" onValueChange={meal_type => setForm(prev => ({ ...prev, meal_type }))} /></FormGroup></FormRow>
-        <FormRow><FormGroup><Label>Prep</Label><Input type="number" min="0" value={form.prep_time_minutes || ""} onChange={event => setForm(prev => ({ ...prev, prep_time_minutes: event.target.value }))} /></FormGroup><FormGroup><Label>Cook</Label><Input type="number" min="0" value={form.cook_time_minutes || ""} onChange={event => setForm(prev => ({ ...prev, cook_time_minutes: event.target.value }))} /></FormGroup></FormRow>
-        <FormRow><FormGroup><Label>Servings</Label><Input type="number" min="0" step="0.5" value={form.servings || ""} onChange={event => setForm(prev => ({ ...prev, servings: event.target.value }))} /></FormGroup><FormGroup><Label>Difficulty</Label><ChipGroup value={form.difficulty || "easy"} options={DIFFICULTY} ariaLabel="Recipe difficulty" onValueChange={difficulty => setForm(prev => ({ ...prev, difficulty }))} /></FormGroup></FormRow>
+        <FormRow><NumberField label="Prep" min="0" value={form.prep_time_minutes || ""} onChange={prep_time_minutes => setForm(prev => ({ ...prev, prep_time_minutes }))} /><NumberField label="Cook" min="0" value={form.cook_time_minutes || ""} onChange={cook_time_minutes => setForm(prev => ({ ...prev, cook_time_minutes }))} /></FormRow>
+        <FormRow><NumberField label="Servings" min="0" step="0.5" value={form.servings || ""} onChange={servings => setForm(prev => ({ ...prev, servings }))} /><FormGroup><Label>Difficulty</Label><ChipGroup value={form.difficulty || "easy"} options={DIFFICULTY} ariaLabel="Recipe difficulty" onValueChange={difficulty => setForm(prev => ({ ...prev, difficulty }))} /></FormGroup></FormRow>
         <FormGroup><Label>Visibility</Label><SegmentedControl value={form.visibility || (canManageShared ? "household" : "personal")} options={canManageShared ? VISIBILITY : [{ value: "personal", label: "Personal" }]} ariaLabel="Recipe visibility" onValueChange={visibility => setForm(prev => ({ ...prev, visibility }))} /></FormGroup>
         <FormGroup><Label>Tags</Label><Input placeholder="weeknight, family" value={form.tagsText || ""} onChange={event => setForm(prev => ({ ...prev, tagsText: event.target.value }))} /></FormGroup>
         <FormGroup><Label>Instructions</Label><textarea className="min-h-28 w-full rounded-md border border-input bg-secondary px-3 py-2 text-sm text-foreground" value={form.instructions || ""} onChange={event => setForm(prev => ({ ...prev, instructions: event.target.value }))} /></FormGroup>
-        <FormGroup><Label>Notes</Label><Input value={form.notes || ""} onChange={event => setForm(prev => ({ ...prev, notes: event.target.value }))} /></FormGroup>
-        <ToggleRow checked={form.favorite} label="Favorite recipe" onClick={() => setForm(prev => ({ ...prev, favorite: !prev.favorite }))} />
-        {form.id && <ToggleRow checked={form.archived} label={form.archived ? "Archived" : "Archive recipe"} onClick={() => setForm(prev => ({ ...prev, archived: !prev.archived }))} />}
-        <Button type="button" className="w-full" onClick={onSave}>Save Recipe</Button>
-        {error && <FormError>{error}</FormError>}
+        <NotesField value={form.notes || ""} onChange={notes => setForm(prev => ({ ...prev, notes }))} />
+        <ToggleField checked={Boolean(form.favorite)} label="Favorite recipe" onChange={favorite => setForm(prev => ({ ...prev, favorite }))} />
+        {form.id && <ToggleField checked={Boolean(form.archived)} label={form.archived ? "Archived" : "Archive recipe"} onChange={archived => setForm(prev => ({ ...prev, archived }))} />}
+        <ValidationSummary error={error} />
+        <SaveCancelFooter saveLabel="Save Recipe" onSave={onSave} onCancel={() => setForm(null)} submitting={submitting} />
       </FormSection>}
     </OriginDrawer>
   );
 }
 
-function PlanDrawer({ form, setForm, error, canManageShared, onSave }) {
+function PlanDrawer({ form, setForm, error, submitting, canManageShared, onSave }) {
   return (
     <OriginDrawer open={Boolean(form)} onOpenChange={open => !open && setForm(null)} title={form?.id ? "Edit Meal Plan" : "Create Meal Plan"} description="Plans organize the week and control assignment permissions.">
       {form && <FormSection>
@@ -551,17 +561,17 @@ function PlanDrawer({ form, setForm, error, canManageShared, onSave }) {
         <FormGroup><Label>Type</Label><SegmentedControl value={form.plan_type || "weekly"} options={[{ value: "weekly", label: "Weekly" }, { value: "monthly", label: "Monthly" }, { value: "custom", label: "Custom" }]} ariaLabel="Meal plan type" onValueChange={plan_type => setForm(prev => ({ ...prev, plan_type }))} /></FormGroup>
         <FormRow><FormGroup><Label>Start</Label><Input type="date" value={form.start_date || ""} onChange={event => setForm(prev => ({ ...prev, start_date: event.target.value }))} /></FormGroup><FormGroup><Label>End</Label><Input type="date" value={form.end_date || ""} onChange={event => setForm(prev => ({ ...prev, end_date: event.target.value }))} /></FormGroup></FormRow>
         <FormGroup><Label>Visibility</Label><SegmentedControl value={form.visibility || (canManageShared ? "household" : "personal")} options={canManageShared ? VISIBILITY : [{ value: "personal", label: "Personal" }]} ariaLabel="Meal plan visibility" onValueChange={visibility => setForm(prev => ({ ...prev, visibility }))} /></FormGroup>
-        <FormGroup><Label>Notes</Label><Input value={form.notes || ""} onChange={event => setForm(prev => ({ ...prev, notes: event.target.value }))} /></FormGroup>
-        <ToggleRow checked={form.favorite} label="Favorite plan" onClick={() => setForm(prev => ({ ...prev, favorite: !prev.favorite }))} />
-        {form.id && <ToggleRow checked={form.archived} label={form.archived ? "Archived" : "Archive plan"} onClick={() => setForm(prev => ({ ...prev, archived: !prev.archived }))} />}
-        <Button type="button" className="w-full" onClick={onSave}>Save Meal Plan</Button>
-        {error && <FormError>{error}</FormError>}
+        <NotesField value={form.notes || ""} onChange={notes => setForm(prev => ({ ...prev, notes }))} />
+        <ToggleField checked={Boolean(form.favorite)} label="Favorite plan" onChange={favorite => setForm(prev => ({ ...prev, favorite }))} />
+        {form.id && <ToggleField checked={Boolean(form.archived)} label={form.archived ? "Archived" : "Archive plan"} onChange={archived => setForm(prev => ({ ...prev, archived }))} />}
+        <ValidationSummary error={error} />
+        <SaveCancelFooter saveLabel="Save Meal Plan" onSave={onSave} onCancel={() => setForm(null)} submitting={submitting} />
       </FormSection>}
     </OriginDrawer>
   );
 }
 
-function AssignmentDrawer({ form, setForm, error, plans, recipes, onSave }) {
+function AssignmentDrawer({ form, setForm, error, submitting, plans, recipes, onSave }) {
   return (
     <OriginDrawer open={Boolean(form)} onOpenChange={open => !open && setForm(null)} title={form?.id ? "Edit Meal" : "Assign Meal"} description="Choose a recipe or add a simple meal title.">
       {form && <FormSection>
@@ -569,31 +579,31 @@ function AssignmentDrawer({ form, setForm, error, plans, recipes, onSave }) {
         <FormRow><FormGroup><Label>Date</Label><Input type="date" value={form.meal_date || todayIso()} onChange={event => setForm(prev => ({ ...prev, meal_date: event.target.value }))} /></FormGroup><FormGroup><Label>Meal</Label><ChipGroup value={form.meal_type || "dinner"} options={MEAL_TYPES} ariaLabel="Meal type" onValueChange={meal_type => setForm(prev => ({ ...prev, meal_type }))} /></FormGroup></FormRow>
         <FormGroup><Label>Recipe</Label><select className="flex h-11 w-full rounded-md border border-input bg-secondary px-3 py-2 text-sm text-foreground" value={form.recipe_id || ""} onChange={event => { const recipe = recipes.find(item => item.id === event.target.value); setForm(prev => ({ ...prev, recipe_id: event.target.value, title: recipe?.title || prev.title })); }}><option value="">No recipe</option>{recipes.map(recipe => <option key={recipe.id} value={recipe.id}>{recipe.title}</option>)}</select></FormGroup>
         <FormGroup><Label>Title</Label><Input value={form.title || ""} onChange={event => setForm(prev => ({ ...prev, title: event.target.value }))} /></FormGroup>
-        <FormGroup><Label>Notes</Label><Input value={form.notes || ""} onChange={event => setForm(prev => ({ ...prev, notes: event.target.value }))} /></FormGroup>
-        <Button type="button" className="w-full" onClick={onSave}>Save Meal</Button>
-        {error && <FormError>{error}</FormError>}
+        <NotesField value={form.notes || ""} onChange={notes => setForm(prev => ({ ...prev, notes }))} />
+        <ValidationSummary error={error} />
+        <SaveCancelFooter saveLabel="Save Meal" onSave={onSave} onCancel={() => setForm(null)} submitting={submitting} />
       </FormSection>}
     </OriginDrawer>
   );
 }
 
-function IngredientDrawer({ form, setForm, error, pantry, onSave }) {
+function IngredientDrawer({ form, setForm, error, submitting, pantry, onSave }) {
   return (
     <OriginDrawer open={Boolean(form)} onOpenChange={open => !open && setForm(null)} title={form?.id ? "Edit Ingredient" : "Add Ingredient"} description="Link pantry items when the household already keeps this on hand.">
       {form && <FormSection>
         <FormGroup><Label>Name</Label><Input value={form.ingredient || ""} onChange={event => setForm(prev => ({ ...prev, ingredient: event.target.value }))} /></FormGroup>
-        <FormRow><FormGroup><Label>Quantity</Label><Input type="number" min="0" step="0.25" value={form.quantity || ""} onChange={event => setForm(prev => ({ ...prev, quantity: event.target.value }))} /></FormGroup><FormGroup><Label>Unit</Label><Input value={form.unit || ""} onChange={event => setForm(prev => ({ ...prev, unit: event.target.value }))} /></FormGroup></FormRow>
+        <FormRow><NumberField label="Quantity" min="0" step="0.25" value={form.quantity || ""} onChange={quantity => setForm(prev => ({ ...prev, quantity }))} /><FormGroup><Label>Unit</Label><Input value={form.unit || ""} onChange={event => setForm(prev => ({ ...prev, unit: event.target.value }))} /></FormGroup></FormRow>
         <FormGroup><Label>Pantry Link</Label><select className="flex h-11 w-full rounded-md border border-input bg-secondary px-3 py-2 text-sm text-foreground" value={form.pantry_item_id || ""} onChange={event => setForm(prev => ({ ...prev, pantry_item_id: event.target.value }))}><option value="">No pantry link</option>{pantry.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></FormGroup>
-        <ToggleRow checked={form.optional} label="Optional ingredient" onClick={() => setForm(prev => ({ ...prev, optional: !prev.optional }))} />
-        <FormGroup><Label>Notes</Label><Input value={form.notes || ""} onChange={event => setForm(prev => ({ ...prev, notes: event.target.value }))} /></FormGroup>
-        <Button type="button" className="w-full" onClick={onSave}>Save Ingredient</Button>
-        {error && <FormError>{error}</FormError>}
+        <ToggleField checked={Boolean(form.optional)} label="Optional ingredient" onChange={optional => setForm(prev => ({ ...prev, optional }))} />
+        <NotesField value={form.notes || ""} onChange={notes => setForm(prev => ({ ...prev, notes }))} />
+        <ValidationSummary error={error} />
+        <SaveCancelFooter saveLabel="Save Ingredient" onSave={onSave} onCancel={() => setForm(null)} submitting={submitting} />
       </FormSection>}
     </OriginDrawer>
   );
 }
 
-function ShoppingReviewDrawer({ open, setOpen, error, choice, setChoice, lists, preview, selectedCount, onSave }) {
+function ShoppingReviewDrawer({ open, setOpen, error, submitting, choice, setChoice, lists, preview, selectedCount, onSave }) {
   return (
     <OriginDrawer open={open} onOpenChange={setOpen} title="Review Shopping Items" description="Confirm missing ingredients before anything is added to Shopping.">
       <FormSection>
@@ -607,8 +617,8 @@ function ShoppingReviewDrawer({ open, setOpen, error, choice, setChoice, lists, 
             </button>
           )) : <FormHelp>No missing ingredients for this week.</FormHelp>}
         </div>
-        <Button type="button" className="w-full" disabled={!selectedCount} onClick={onSave}>Add {selectedCount} Item{selectedCount === 1 ? "" : "s"}</Button>
-        {error && <FormError>{error}</FormError>}
+        <ValidationSummary error={error} />
+        <SaveCancelFooter saveLabel={`Add ${selectedCount} Item${selectedCount === 1 ? "" : "s"}`} onSave={onSave} onCancel={() => setOpen(false)} disabled={!selectedCount} submitting={submitting} />
       </FormSection>
     </OriginDrawer>
   );
