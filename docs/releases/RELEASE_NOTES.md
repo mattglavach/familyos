@@ -1,5 +1,115 @@
 # Release Notes
 
+## Release 1.6
+
+### Version
+1.6
+
+### Date
+2026-07-10
+
+### Summary
+Release 1.6 hardens the core operating loop without adding a new module or database schema. It defines app-level integration contracts, improves cross-surface handoffs from Home, Search, and Notifications into Tasks, Calendar, and Life Lists, tightens Tasks filter reset behavior, and clarifies Calendar refresh/status behavior.
+
+### Features And Fixes
+- Added `docs/platform/08_integration_contracts.md` for Calendar, Search, Notifications, Quick Add, Home, and module navigation handoffs.
+- Added lightweight navigation payloads so Search, Notifications, and Home can open Tasks with useful filter/search context.
+- Added best-effort Calendar event selection from Search and Notifications.
+- Added best-effort Life Lists list/item handoff from Search.
+- Renamed the primary Tasks all-items filter to Show All and added Clear All to reset search, filters, and sort.
+- Refreshed server Calendar connection status when the browser returns to focus or visibility.
+- Changed Calendar top refresh copy to distinguish Refresh Events from Refresh Status.
+- Fixed shared `Button asChild` rendering so connected Calendar event links do not crash the Calendar screen when events load.
+
+### Database Changes
+- None.
+
+### Deferred
+- Legacy browser Calendar fallback removal remains deferred until deployed server OAuth connect, reconnect, disconnect, and event-refresh smoke validation passes on the production or staging origin.
+- URL-based deep links, durable notification records/preferences, shared Search registry, Quick Add registry implementation, Context Engine runtime, Home Platform, Financial Planning, and Calendar event creation/editing remain deferred.
+
+### Validation Status
+- `pnpm run lint`: passed.
+- `pnpm run build`: passed. CRA emitted the existing Node `fs.F_OK` deprecation warning after a successful compile.
+- `pnpm test`: passed, 3 suites and 20 tests.
+- `git diff --check`: passed with line-ending normalization warnings only.
+- Authenticated RC1 preview connected to Google Calendar and loaded 50 events after the preview origin was authorized; validation exposed and fixed a shared Radix Slot child-structure crash in connected Calendar rendering. Connected-state browser smoke must be rerun on the amended preview deployment.
+- Local browser smoke: blocked before authenticated app rendering because `.env.local` points Supabase to `http://127.0.0.1:54321`, that auth endpoint refuses local connections, and Docker Desktop is not running in this workspace. This is a local environment blocker, not a Release 1.6 auth regression.
+- Deployed Calendar OAuth connect/reconnect/disconnect smoke: not run in this workspace because it requires authenticated production or staging Google OAuth access.
+
+### Recommendation
+Implementation complete, but not ready to remove the legacy browser Calendar fallback until deployed server OAuth validation passes.
+
+## Planning Sprint - 2026-07-10
+
+### Summary
+Completed the FamilyOS implementation planning sprint in `docs/planning/IMPLEMENTATION_PLAN_2026_07_10.md`.
+
+### Scope
+- Repository architecture summary.
+- Feature inventory.
+- Platform services assessment.
+- Technical debt assessment.
+- Module readiness assessment.
+- Release 1.6 through 2.0 planning.
+- Context Engine roadmap.
+- Design system gap analysis.
+- Recommended Release 1.6 scope.
+
+### Database Changes
+- None.
+
+### Recommendation
+Execute Release 1.6 Core Operating Loop Hardening next.
+
+## Release 1.5.1
+
+### Version
+1.5.1
+
+### Date
+2026-07-10
+
+### Summary
+Release 1.5.1 completes Pool & Quick Add UX polish across shared drawer forms. It standardizes compact form sections, numeric fields, validation placement, notes/context controls, save/cancel footers, duplicate-submit guards, and accessible touch-target sizing for Pool Test, Quick Add Pool Test, Tasks, Shopping, Meal Planning, and Life Lists without database schema changes.
+
+### Fixes
+- Added shared form controls for section grouping, rows, numeric fields, toggles, notes, date/time entry, validation summaries, drawer footers, and delete actions.
+- Standardized Pool Test and Quick Add Pool Test around shared chemistry metadata and validation helpers.
+- Kept partial Pool Test logging valid while preserving numeric range checks for entered values.
+- Hardened shared Button sizing so representative production buttons remain at least 44x44 CSS pixels on mobile.
+
+### Database Changes
+- None.
+
+### Production Closeout
+- Main merge commit: `9196bfa3a617af70d2f546a56062da5a27e6ebb2`.
+- Final tagged production commit: `fffe50c250d01ee6c42f3f5a0607044ac98ca81a`.
+- `v1.5.1` tag: annotated tag object `936ca0f31d9b6e3c7f0b441e97c23f672f8e1fc5`, peeled commit `fffe50c250d01ee6c42f3f5a0607044ac98ca81a`.
+- Production URL: `https://familyos-glavach.vercel.app/`.
+- Vercel deployment: Ready, Current, Production for commit `fffe50c250d01ee6c42f3f5a0607044ac98ca81a`; deployment URL `https://familyos-quwjy7nn3-glavach.vercel.app/`.
+
+### Production Smoke
+- App load: passed.
+- Authentication: passed using existing authenticated production session.
+- Pool Test partial save: passed with a CYA-only partial smoke record and no visible save error.
+- Quick Add Pool Test open/close: passed.
+- Tasks list: passed.
+- Shopping module: passed.
+- Meal Planning module: passed.
+- Life Lists module: passed.
+- Mobile 390px horizontal overflow: passed on Home and Tasks.
+- Representative 44x44 buttons: passed on desktop, mobile Home, and mobile Tasks.
+- Browser console: no production-app warning/error entries captured; an earlier Vercel dashboard console error was excluded as non-app noise.
+- User-visible save errors: none observed.
+
+### Deferred
+- Calendar OAuth deployed validation and legacy browser fallback removal remain separate follow-up work.
+- Deeper form-state architecture and broader legacy UI migration remain future work.
+
+### Recommendation
+Released as v1.5.1.
+
 ## Release 1.5.0
 
 ### Version

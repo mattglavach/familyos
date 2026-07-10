@@ -52,10 +52,25 @@ const buttonTouchTargets = {
 
 const Button = React.forwardRef(
   ({ className, variant, size, asChild = false, loading = false, children, disabled, style, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button";
     const targetStyle = buttonTouchTargets[size || "default"];
+
+    if (asChild) {
+      return (
+        <Slot
+          className={cn(buttonVariants({ variant, size, className }))}
+          style={{ ...style, ...targetStyle }}
+          ref={ref}
+          aria-disabled={disabled || loading}
+          data-loading={loading ? "" : undefined}
+          {...props}
+        >
+          {children}
+        </Slot>
+      );
+    }
+
     return (
-      <Comp
+      <button
         className={cn(buttonVariants({ variant, size, className }))}
         style={{ ...style, ...targetStyle }}
         ref={ref}
@@ -66,7 +81,7 @@ const Button = React.forwardRef(
       >
         {loading && <Loader2 className="animate-spin" aria-hidden="true" />}
         <span className={cn(loading && "opacity-0")}>{children}</span>
-      </Comp>
+      </button>
     );
   }
 );

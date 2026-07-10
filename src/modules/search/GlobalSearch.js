@@ -87,11 +87,11 @@ export function GlobalSearch({ open, onOpenChange, calendarEvents, onNavigate })
     const taskResults = taskTable.data
       .filter(task => includesQuery(`${task.title} ${task.category} ${task.notes} ${task.priority}`, normalizedQuery))
       .slice(0, 6)
-      .map(task => ({ type: "Tasks", label: task.title || "Untitled task", detail: `${task.category || "Task"}${task.due_date ? ` - due ${task.due_date}` : ""}`, nav: "tasks" }));
+      .map(task => ({ type: "Tasks", label: task.title || "Untitled task", detail: `${task.category || "Task"}${task.due_date ? ` - due ${task.due_date}` : ""}`, nav: { tab: "tasks", search: task.title || "" } }));
     const eventResults = (calendarEvents || [])
       .filter(event => includesQuery(`${event.title} ${event.location} ${event.member} ${event.source}`, normalizedQuery))
       .slice(0, 6)
-      .map(event => ({ type: "Calendar", label: event.title || "Untitled event", detail: `${event.date || "No date"} ${event.time || ""}`.trim(), nav: "calendar" }));
+      .map(event => ({ type: "Calendar", label: event.title || "Untitled event", detail: `${event.date || "No date"} ${event.time || ""}`.trim(), nav: { tab: "calendar", eventId: event.id } }));
     const memberResults = family.members
       .filter(member => includesQuery(`${member.name} ${member.role} ${member.status}`, normalizedQuery))
       .slice(0, 6)
@@ -99,11 +99,11 @@ export function GlobalSearch({ open, onOpenChange, calendarEvents, onNavigate })
     const listResults = listTable.data
       .filter(list => !list.archived && includesQuery(`${list.name} ${list.description} ${list.category} ${list.visibility}`, normalizedQuery))
       .slice(0, 6)
-      .map(list => ({ type: "Life Lists", label: list.name || "Untitled list", detail: `${list.category || "List"} - ${list.visibility || "household"}`, nav: "life-lists" }));
+      .map(list => ({ type: "Life Lists", label: list.name || "Untitled list", detail: `${list.category || "List"} - ${list.visibility || "household"}`, nav: { tab: "life-lists", listId: list.id } }));
     const itemResults = itemTable.data
       .filter(item => !item.archived && item.status !== "archived" && includesQuery(`${item.title} ${item.description} ${(item.tags || []).join?.(" ") || item.tags} ${item.link_url}`, normalizedQuery))
       .slice(0, 6)
-      .map(item => ({ type: "Life Lists", label: item.title || "Untitled item", detail: `${item.status || "planned"} item`, nav: "life-lists" }));
+      .map(item => ({ type: "Life Lists", label: item.title || "Untitled item", detail: `${item.status || "planned"} item`, nav: { tab: "life-lists", listId: item.list_id, search: item.title || "" } }));
     const shoppingListResults = shoppingListTable.data
       .filter(list => !list.archived && includesQuery(`${list.name} ${list.description} ${list.category} ${list.visibility}`, normalizedQuery))
       .slice(0, 6)

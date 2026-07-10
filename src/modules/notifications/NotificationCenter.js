@@ -49,13 +49,13 @@ function buildNotifications(tasks, calendarEvents, household, calendar) {
     if (task.completed) return;
     const days = daysUntil(task.due_date);
     if (days !== null && days < 0) {
-      notifications.push({ id: `task-overdue-${task.id}`, kind: "task", tone: "urgent", title: task.title || "Task overdue", detail: `${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"} overdue`, nav: "tasks" });
+      notifications.push({ id: `task-overdue-${task.id}`, kind: "task", tone: "urgent", title: task.title || "Task overdue", detail: `${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"} overdue`, nav: { tab: "tasks", filter: "overdue", search: task.title || "" } });
     } else if (days === 0 || task.is_important) {
-      notifications.push({ id: `task-due-${task.id}`, kind: "task", tone: task.is_important ? "important" : "warning", title: task.title || "Task due", detail: days === 0 ? "Due today" : "Marked important", nav: "tasks" });
+      notifications.push({ id: `task-due-${task.id}`, kind: "task", tone: task.is_important ? "important" : "warning", title: task.title || "Task due", detail: days === 0 ? "Due today" : "Marked important", nav: { tab: "tasks", filter: days === 0 ? "today" : "all", search: task.title || "" } });
     }
   });
   (calendarEvents || []).filter(event => daysUntil(event.date) === 0).slice(0, 5).forEach(event => {
-    notifications.push({ id: `event-today-${event.id || event.title}`, kind: "calendar", tone: "info", title: event.title || "Calendar event", detail: `${event.time || "All day"} today`, nav: "calendar" });
+    notifications.push({ id: `event-today-${event.id || event.title}`, kind: "calendar", tone: "info", title: event.title || "Calendar event", detail: `${event.time || "All day"} today`, nav: { tab: "calendar", eventId: event.id } });
   });
   if (calendar.error) {
     notifications.push({ id: "calendar-error", kind: "calendar", tone: "warning", title: "Calendar needs attention", detail: "Open Calendar to reconnect or check status.", nav: "calendar" });

@@ -132,6 +132,19 @@ export function useCalendarConnections(householdId) {
   }, [refresh]);
 
   useEffect(() => {
+    if (!householdId || typeof window === "undefined") return undefined;
+    const refreshVisibleCalendar = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refreshVisibleCalendar);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refreshVisibleCalendar);
+    };
+  }, [householdId, refresh]);
+
+  useEffect(() => {
     if (!state.connected || state.events.length || state.loading || state.lastFetchedAt) return;
     fetchEvents();
   }, [fetchEvents, state.connected, state.events.length, state.lastFetchedAt, state.loading]);

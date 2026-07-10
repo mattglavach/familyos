@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CalendarCheck, CalendarClock, CalendarDays, CalendarX, Clock, ExternalLink, MapPin, RefreshCw, Users } from "lucide-react";
 import { Badge, StatusBadge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
@@ -235,7 +235,7 @@ function EventDetails({ event, todayString, formatDateFull }) {
   );
 }
 
-export function Calendar({ calendar = {}, deps = {} }) {
+export function Calendar({ calendar = {}, deps = {}, initialView }) {
   const { TODAY_STR = new Date().toISOString().split("T")[0], formatDateFull } = deps;
   const [selectedEventId, setSelectedEventId] = useState("");
   const safeCalendar = {
@@ -266,6 +266,10 @@ export function Calendar({ calendar = {}, deps = {} }) {
     safeCalendar.connect?.();
   };
 
+  useEffect(() => {
+    if (initialView?.eventId) setSelectedEventId(initialView.eventId);
+  }, [initialView]);
+
   return (
     <div style={S.screen} className="space-y-5">
       <div className="flex items-start justify-between gap-3">
@@ -276,9 +280,9 @@ export function Calendar({ calendar = {}, deps = {} }) {
           </div>
           <div className="mt-1 text-2xl font-extrabold text-foreground">Today & Upcoming</div>
         </div>
-        <Button type="button" variant="secondary" size="sm" onClick={safeCalendar.refresh} loading={safeCalendar.loading} disabled={safeCalendar.loading}>
+        <Button type="button" variant="secondary" size="sm" onClick={safeCalendar.connected ? safeCalendar.refresh : safeCalendar.checkConnection} loading={safeCalendar.loading} disabled={safeCalendar.loading}>
           <RefreshCw className="h-4 w-4" aria-hidden="true" />
-          Refresh Status
+          {safeCalendar.connected ? "Refresh Events" : "Refresh Status"}
         </Button>
       </div>
 

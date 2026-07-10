@@ -42,7 +42,7 @@ const DUE_FILTERS = [
   { value: "upcoming", label: "Upcoming" },
 ];
 const WORKSPACE_FILTERS = [
-  { value: "all", label: "All" },
+  { value: "all", label: "Show All" },
   { value: "mine", label: "My Tasks" },
   { value: "today", label: "Today" },
   { value: "upcoming", label: "Upcoming" },
@@ -50,7 +50,7 @@ const WORKSPACE_FILTERS = [
   { value: "completed", label: "Completed" },
 ];
 const PRIMARY_WORKSPACE_FILTERS = [
-  { value: "all", label: "All" },
+  { value: "all", label: "Show All" },
   { value: "mine", label: "My Tasks" },
   { value: "today", label: "Today" },
   { value: "overdue", label: "Overdue" },
@@ -439,7 +439,7 @@ function TaskDrawer({ open, mode, form, setForm, members, error, onClose, onSave
   );
 }
 
-export function Tasks({ deps }) {
+export function Tasks({ deps, initialView }) {
   const {
     TODAY_DATE, TODAY_STR, daysBetween, nextDueDate, formatDate,
     useTable,
@@ -491,6 +491,32 @@ export function Tasks({ deps }) {
   }, [activeMembers, family.members, household.userPreferences?.default_person_id]);
   const openTaskCount = tasks.filter(task => task.status !== "Completed").length;
   const activeFilterLabel = WORKSPACE_FILTERS.find(option => option.value === activeFilter)?.label || "Tasks";
+
+  function clearFilters() {
+    setSearchTerm("");
+    setActiveFilter("all");
+    setMemberFilter("All");
+    setStatusFilter("All");
+    setPriorityFilter("All");
+    setCategoryFilter("All");
+    setDueFilter("all");
+    setSortBy("due");
+    setShowMoreFilters(false);
+  }
+
+  useEffect(() => {
+    if (!initialView?.ts) return;
+    if (initialView.filter) setActiveFilter(initialView.filter);
+    if (initialView.search) setSearchTerm(initialView.search);
+    if (initialView.due) {
+      setDueFilter(initialView.due);
+      setShowMoreFilters(true);
+    }
+    if (initialView.status) {
+      setStatusFilter(initialView.status);
+      setShowMoreFilters(true);
+    }
+  }, [initialView]);
 
   const filteredTasks = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
@@ -703,6 +729,7 @@ export function Tasks({ deps }) {
 
   const loading = taskTable.loading || family.loading;
   const hasAdvancedFilters = memberFilter !== "All" || statusFilter !== "All" || priorityFilter !== "All" || categoryFilter !== "All" || dueFilter !== "all" || sortBy !== "due" || SECONDARY_WORKSPACE_FILTERS.some(option => option.value === activeFilter);
+  const hasAnyFilter = Boolean(searchTerm.trim()) || activeFilter !== "all" || hasAdvancedFilters;
   const filterHelp = activeFilter === "all"
     ? "Showing every open task by due date so new tasks are easy to find."
     : `Showing ${activeFilterLabel.toLowerCase()}.`;
@@ -745,9 +772,12 @@ export function Tasks({ deps }) {
               <ChipGroup value={activeFilter} options={PRIMARY_WORKSPACE_FILTERS} ariaLabel="Task filters" onValueChange={setActiveFilter} />
               <div className="flex items-center justify-between gap-3">
                 <FormHelp>{filterHelp}</FormHelp>
-                <Button type="button" variant="secondary" size="xs" onClick={() => setShowMoreFilters(value => !value)}>
-                  {showMoreFilters ? "Hide Filters" : hasAdvancedFilters ? "More Filters On" : "More Filters"}
-                </Button>
+                <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                  {hasAnyFilter && <Button type="button" variant="ghost" size="xs" onClick={clearFilters}>Clear All</Button>}
+                  <Button type="button" variant="secondary" size="xs" onClick={() => setShowMoreFilters(value => !value)}>
+                    {showMoreFilters ? "Hide Filters" : hasAdvancedFilters ? "More Filters On" : "More Filters"}
+                  </Button>
+                </div>
               </div>
               {showMoreFilters && (
                 <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">

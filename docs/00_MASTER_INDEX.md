@@ -15,6 +15,7 @@ This folder is the operating manual for Family OS.
 ### Planning
 - docs/planning/ROADMAP.md
 - docs/planning/CURRENT_SPRINT.md
+- docs/planning/IMPLEMENTATION_PLAN_2026_07_10.md
 - docs/planning/RELEASE_1_0_SPEC.md
 - docs/planning/RELEASE_0_9_PLAN.md
 - docs/planning/PROJECT_STATUS.md
@@ -60,6 +61,7 @@ This folder is the operating manual for Family OS.
 - docs/platform/05_ai_context.md
 - docs/platform/06_api_contracts.md
 - docs/platform/07_command_center.md
+- docs/platform/08_integration_contracts.md
 
 ### Database
 - docs/database/DATABASE_SCHEMA.md

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Archive, Check, ChevronLeft, ChevronRight, Heart, Link as LinkIcon, ListChecks, Plus, Search, Star, Trash2 } from "lucide-react";
 import { Badge, StatusBadge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
@@ -143,7 +143,7 @@ function ItemRow({ item, canEdit, assigneeName, onEdit, onToggleComplete, onTogg
   );
 }
 
-export function LifeLists() {
+export function LifeLists({ initialView }) {
   const household = useHousehold();
   const lists = useTable("life_lists", "sort_order", true);
   const items = useTable("life_list_items", "sort_order", true);
@@ -165,6 +165,12 @@ export function LifeLists() {
   const selectedList = visibleLists.find(list => list.id === selectedId) || null;
   const editable = canEditList(selectedList, household);
   const canManageSharedLists = roleCanManage(household.membership?.role);
+
+  useEffect(() => {
+    if (!initialView?.ts) return;
+    if (initialView.listId) setSelectedId(initialView.listId);
+    if (initialView.search) setQuery(initialView.search);
+  }, [initialView]);
   const canCreate = Boolean(household.user?.id);
   const normalizedQuery = query.trim().toLowerCase();
   const allItems = items.data.filter(item => item.list_id === selectedList?.id);

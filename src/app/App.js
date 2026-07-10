@@ -342,6 +342,7 @@ export default function App(){
 
 function AuthenticatedApp({ auth }) {
   const [tab,setTab] = useState("home");
+  const [navigationContext, setNavigationContext] = useState(null);
   const [quickAddSignal, setQuickAddSignal] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -350,12 +351,15 @@ function AuthenticatedApp({ auth }) {
   const household = useHousehold();
   const secureCalendar = useCalendarConnections(household.householdId);
 
-  function switchTab(t){
-    if (t === "quick-add") {
+  function switchTab(target){
+    const nextTab = typeof target === "string" ? target : target?.tab;
+    if (nextTab === "quick-add") {
       setQuickAddSignal(value => value + 1);
       return;
     }
-    setTab(t);
+    if (!nextTab) return;
+    setNavigationContext(typeof target === "string" ? null : { ...target, ts: Date.now() });
+    setTab(nextTab);
     window.scrollTo({top:0,behavior:"auto"});
   }
 
@@ -424,19 +428,19 @@ function AuthenticatedApp({ auth }) {
       }}/>} 
       {tab==="calendar"&&(
         <CalendarErrorBoundary resetKey={`${headerCalendar.status}-${headerCalendar.connected}-${headerCalendar.loading}`} onRetry={() => switchTab("calendar")} onSettings={() => switchTab("calendar")}>
-          <Calendar calendar={headerCalendar} onNavigate={switchTab} deps={{
+          <Calendar calendar={headerCalendar} initialView={navigationContext?.tab === "calendar" ? navigationContext : null} onNavigate={switchTab} deps={{
             TODAY_STR,formatDateFull,
           }}/>
         </CalendarErrorBoundary>
       )}
       {tab==="college"&&<College/>}
-      {tab==="tasks"&&<Tasks deps={{
+      {tab==="tasks"&&<Tasks initialView={navigationContext?.tab === "tasks" ? navigationContext : null} deps={{
         TODAY_DATE,TODAY_STR,daysBetween,nextDueDate,formatDate,
         maintStatus,maintColor,useTable,
       }}/>} 
       {tab==="pool"&&<Pool/>}
       {tab==="finance"&&<Finance/>}
-      {tab==="life-lists"&&<LifeLists/>}
+      {tab==="life-lists"&&<LifeLists initialView={navigationContext?.tab === "life-lists" ? navigationContext : null}/>}
       {tab==="shopping"&&<Shopping/>}
       {tab==="meal-planning"&&<MealPlanning/>}
       {tab==="more"&&<More onNavigate={switchTab}/>}

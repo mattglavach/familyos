@@ -1,10 +1,10 @@
 # Project Status
 
 ## Current Version
-1.5.1 in progress
+1.6 implementation complete; local command validation passed
 
 ## Current State
-Release 1.0 core MVP through Release 1.5.0 Calendar Platform are complete. Release 1.5.1 Pool & Quick Add UX Polish has been merged to `main`; production closeout found and fixed a final shared Button touch-target sizing issue before final production revalidation.
+Release 1.0 core MVP through Release 1.5.1 Pool & Quick Add UX Polish are complete. Release 1.6 Core Operating Loop Hardening has an implementation pass complete with app integration contracts, lightweight cross-surface handoff context, Tasks filter reset polish, and Calendar refresh/status clarity. Local lint, build, unit tests, and diff-check passed; authenticated browser smoke remains blocked because `.env.local` points Supabase to `http://127.0.0.1:54321`, that auth endpoint refuses local connections, and Docker Desktop is not running in this workspace; deployed Calendar OAuth validation remains environment-dependent. Release 1.5.1 was merged to `main`, tagged, deployed to production, and production-smoke validated after the post-merge shared Button touch-target hardening commit. The July 10, 2026 implementation planning sprint is documented in `docs/planning/IMPLEMENTATION_PLAN_2026_07_10.md`.
 
 ## Completed
 - Family OS v1 documentation workspace
@@ -81,12 +81,16 @@ Release 1.0 core MVP through Release 1.5.0 Calendar Platform are complete. Relea
 - Preview-wide Supabase write failure fixed: the linked FamilyOS Supabase project was missing Release 0.9 and Release 1.1-1.4 database migrations, so module reads were falling back to seed data and writes failed across Pool, Tasks, Life Lists, Shopping, and Meal Planning. Missing migrations were applied remotely, Pool action audit `reading_id` was aligned to UUID Pool reading IDs, and Tasks now lets the database generate UUID IDs on create.
 - Release 1.5.0 adds the Calendar Platform foundation with a Calendar schedule summary, Today/Tomorrow/This Week/Upcoming groups, event details, connection/reconnect guidance, safer OAuth/setup/permission messaging, Home next-event/upcoming schedule awareness, and custom-domain Calendar API origin handling
 - Release 1.5.1 adds shared form controls and standardizes Pool Test, Quick Add Pool Test, Tasks, Shopping, Meal Planning, and Life Lists drawer form layouts, inline validation placement, compact notes/number/toggle controls, save/cancel footers, and duplicate-submit guards without database schema changes
+- Release 1.5.1 production closeout passed on `https://familyos-glavach.vercel.app/`: main merge commit `9196bfa3a617af70d2f546a56062da5a27e6ebb2`, final tagged production commit `fffe50c250d01ee6c42f3f5a0607044ac98ca81a`, Vercel Ready/Current Production deployment, authenticated Pool Test partial save, Quick Add Pool Test open/close, Tasks, Shopping, Meal Planning, Life Lists, 390px no-overflow checks, 44x44 representative button checks, and clean production-app console checks.
+- July 10, 2026 implementation planning sprint completed repository architecture, feature inventory, platform service, technical debt, module readiness, release backlog, Context Engine, design-system, risk, and Release 1.6 scope assessment without app-code or database changes.
+- Release 1.6 adds `docs/platform/08_integration_contracts.md`, best-effort navigation payloads from Home/Search/Notifications into Tasks, Calendar, and Life Lists, Tasks Show All/Clear All filter polish, Calendar focus-return status refresh, and clearer Calendar refresh button copy without database schema changes.
 
 ## In Progress
-- Release 1.5.1 Pool & Quick Add UX Polish validation. Production build passes; authenticated Pool Test, Quick Add Pool Test, Tasks, Shopping, Meal Planning, and Life Lists create/edit/delete smoke validation still needs a reachable Supabase-backed environment.
+- Release 1.6 browser/deployed OAuth validation closeout when authenticated local, staging, or production access is available.
 
 ## Next
-- Merge-review Release 1.5.1 after code review and authenticated smoke validation for Pool, Quick Add, Tasks, Shopping, Meal Planning, and Life Lists.
+- Complete Release 1.6 lint, build, git diff check, and available browser smoke validation.
+- Complete deployed Calendar OAuth validation, legacy browser Calendar fallback removal readiness, and the next highest-value household workflow polish when authenticated production or staging OAuth access is available.
 - Configure Release 0.8 server OAuth environment values in Vercel before removing the legacy calendar fallback.
 - Decide whether to remove the legacy browser calendar fallback after deployed validation.
 - Keep household migration work separate from Release 0.6B UI milestones unless explicitly requested
@@ -146,4 +150,4 @@ Release 1.0 core MVP through Release 1.5.0 Calendar Platform are complete. Relea
 - Release 1.5.1 intentionally adds no new modules, schema changes, or new product workflows. It centralizes shared form UI and leaves deeper form-state architecture for a future broader UI migration.
 
 ## Last Updated
-July 8, 2026
+July 10, 2026
