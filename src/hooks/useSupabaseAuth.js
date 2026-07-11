@@ -65,8 +65,20 @@ export function useSupabaseAuth() {
 
   useEffect(()=>{
     let mounted = true;
-    supabase.auth.getSession().then(({data})=>{
+    supabase.auth.getSession().then(async ({data})=>{
       if (!mounted) return;
+      if (!data.session && process.env.NODE_ENV === "development") {
+        // Webpack removes this branch and its non-static development module from production builds.
+        const { tryDevelopmentDemoLogin } = require("../development/demoAutoLogin");
+        const demoResult = await tryDevelopmentDemoLogin(supabase, window.location);
+        if (!mounted) return;
+        if (demoResult.attempted) {
+          if (demoResult.error) setError(demoResult.error);
+          setSession(demoResult.session);
+          setLoading(false);
+          return;
+        }
+      }
       setSession(data.session);
       setLoading(false);
     });

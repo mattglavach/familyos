@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { formatCalendarError } from "../lib/userFacingErrors";
+import { normalizeCalendarEvent } from "../lib/calendarTime";
 
 function initialState() {
   return {
@@ -105,22 +106,22 @@ export function useCalendarConnections(householdId) {
         setState(previous => ({
           ...previous,
           ...data,
-          events: data.events || [],
+          events: (data.events || []).map(normalizeCalendarEvent),
           loading: false,
           error: formatCalendarError(data.error),
           lastFetchedAt: new Date().toISOString(),
         }));
-        return data.events || [];
+        return (data.events || []).map(normalizeCalendarEvent);
       }
       setState(previous => ({
         ...previous,
         ...data,
-        events: data.events || [],
+        events: (data.events || []).map(normalizeCalendarEvent),
         lastFetchedAt: new Date().toISOString(),
         loading: false,
         error: "",
       }));
-      return data.events || [];
+      return (data.events || []).map(normalizeCalendarEvent);
     } catch (error) {
       setState(previous => ({ ...previous, loading: false, error: formatCalendarError(error) }));
       return [];

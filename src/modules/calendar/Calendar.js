@@ -8,6 +8,7 @@ import { SectionHeader } from "../../components/ui/section-header";
 import { Skeleton } from "../../components/ui/skeleton";
 import { COLORS, S } from "../../theme";
 import { normalizeCalendarStatus } from "../../lib/calendarStatus";
+import { formatCalendarEventTime, normalizeCalendarEvent } from "../../lib/calendarTime";
 
 function dateKey(value) {
   if (!value) return "";
@@ -61,19 +62,20 @@ function formatSyncTime(value) {
   return date.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
-function eventMetaLine(event, todayString, formatDateFull) {
-  return `${eventDateLabel(event.date, todayString, formatDateFull)} - ${event.time || "All day"}`;
+export function eventMetaLine(event, todayString, formatDateFull) {
+  return `${eventDateLabel(event.date, todayString, formatDateFull)} - ${formatCalendarEventTime(event)}`;
 }
 
-function normalizeEvent(event, index, sourceLabel) {
+export function normalizeEvent(event, index, sourceLabel) {
+  const calendarEvent = normalizeCalendarEvent(event);
   return {
-    ...event,
-    id: event.id || `${event.date || "event"}-${index}`,
-    title: event.title || "Untitled event",
-    member: event.member || event.owner || "Family",
-    source: event.source || event.calendar || sourceLabel || "Calendar",
-    attendees: Array.isArray(event.attendees) ? event.attendees : [],
-    notes: event.notes || event.description || "",
+    ...calendarEvent,
+    id: calendarEvent.id || `${calendarEvent.date || "event"}-${index}`,
+    title: calendarEvent.title || "Untitled event",
+    member: calendarEvent.member || calendarEvent.owner || "Family",
+    source: calendarEvent.source || calendarEvent.calendar || sourceLabel || "Calendar",
+    attendees: Array.isArray(calendarEvent.attendees) ? calendarEvent.attendees : [],
+    notes: calendarEvent.notes || calendarEvent.description || "",
   };
 }
 

@@ -1,4 +1,4 @@
-import { CalendarDays, ChevronRight, DollarSign, HeartPulse, Home, ListChecks, NotebookTabs, Settings, ShoppingCart, Sparkles, Users, Utensils, Waves } from "lucide-react";
+import { CalendarDays, ChevronRight, DollarSign, Home, ListChecks, NotebookTabs, Settings, ShoppingCart, Sparkles, Utensils, Waves } from "lucide-react";
 import { Badge } from "../../components/ui/badge";
 import { Card, CardContent } from "../../components/ui/card";
 import { EmptyStatePanel } from "../../components/ui/empty-state";
@@ -7,23 +7,11 @@ import { S } from "../../theme";
 
 const platformGroups = [
   {
-    title: "Household",
-    items: [
-      { id: "settings", label: "Household", detail: "Members, invites, defaults, and active household.", icon: Users, badge: "Core", enabled: true },
-    ],
-  },
-  {
     title: "Home",
     items: [
       { id: "pool", label: "Pool", detail: "Existing pool care workspace.", icon: Waves, badge: "Existing", enabled: true },
       { label: "Maintenance", detail: "Future home maintenance workspace.", icon: Home, badge: "Future", enabled: false },
       { label: "Smart Home", detail: "Future integrations area.", icon: Sparkles, badge: "Future", enabled: false },
-    ],
-  },
-  {
-    title: "Health",
-    items: [
-      { label: "Health", detail: "Future household health tracking.", icon: HeartPulse, badge: "Future", enabled: false },
     ],
   },
   {

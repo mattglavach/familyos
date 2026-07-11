@@ -77,7 +77,7 @@ Life owns lists, shopping-related records, recurring household administration, a
 
 ### Home
 
-Home owns property, maintenance, vendors, projects, pool, yard, appliances, equipment, service history, repairs, and related documents. In the target architecture, Home is the physical-home workspace, distinct from the current Home dashboard label.
+Home manages recurring household operational systems that benefit from structured measurements, history, treatments, maintenance workflows, and ChatGPT context. Current roadmap scope is Pool, Garden, operational settings, histories, linked Tasks, and ChatGPT context. Broad asset tracking, vehicles, appliances, tools, inventory, warranties, projects, and document management are excluded.
 
 ### Financial Planning
 
@@ -199,8 +199,12 @@ A feature or release is complete only when applicable criteria are satisfied:
 - Database migrations and RLS are validated in an approved non-production environment when affected.
 - Documentation, changelog, release notes, status, and roadmap are current as applicable.
 - No known regression or unresolved release blocker remains.
+- Authenticated UI releases use the permanent non-production demo seed and Playwright smoke/regression framework when the required test environment is available.
 - Git diff and status are reviewed.
 - The result is ready for product validation or the next explicitly approved release action.
+
+Development demo accounts, seeded data, test credentials, and auto-login must remain confined to local or explicitly designated non-production environments. Auto-login must fail closed outside localhost development builds. Detailed controls are maintained in `docs/process/DEVELOPMENT_TESTING_INFRASTRUCTURE.md`.
+Demo seeding must verify an exact expected target before creating an administrative client or mutating data, and may delete only the deterministically identified demo household after ownership and membership checks pass. Production builds must compile out development auto-login and pass the bundle marker scan.
 
 ## Documentation Governance
 

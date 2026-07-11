@@ -47,6 +47,8 @@ create table if not exists public.pool_readings (
   test_source text not null default 'Manual',
   recent_weather_notes text not null default '',
   recent_heavy_usage boolean not null default false,
+  test_context text not null default 'Routine',
+  water_appearance text not null default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   notes text default ''
@@ -84,6 +86,17 @@ create table if not exists public.pool_treatments (
   cleaned_cell boolean not null default false,
   checked_flow boolean not null default false,
   water_clarity text not null default '',
+  treatment text not null default '',
+  amount numeric,
+  unit text not null default '',
+  product_concentration text not null default '',
+  reason text not null default '',
+  related_reading_id text references public.pool_readings(id) on delete set null,
+  pump_status text not null default '',
+  pump_speed_rpm integer,
+  expected_result text not null default '',
+  retest_at timestamptz,
+  follow_up_result text not null default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   notes text default ''
@@ -104,6 +117,22 @@ create table if not exists public.pool_schedule (
 create table if not exists public.pool_settings (
   id text primary key default gen_random_uuid()::text,
   filter_clean_baseline_psi numeric
+);
+
+create table if not exists public.pool_profiles (
+  id uuid primary key default gen_random_uuid(),
+  household_id uuid not null,
+  user_id uuid default auth.uid(),
+  name text not null default 'Pool',
+  volume_gallons integer not null check (volume_gallons > 0),
+  surface_type text not null,
+  sanitizer_type text not null,
+  saltwater boolean not null default false,
+  automation_system text not null default '', pump text not null default '', filter text not null default '', heater text not null default '', salt_cell text not null default '',
+  spa_relationship text not null default '', normal_pump_runtime_hours numeric, normal_pump_speed_rpm integer, minimum_salt_cell_rpm integer, swg_output_percent numeric,
+  preferred_products jsonb not null default '[]'::jsonb, chemical_concentrations jsonb not null default '{}'::jsonb, target_ranges jsonb not null default '{}'::jsonb,
+  seasonal_notes text not null default '', notes text not null default '', created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
+  unique (household_id, name)
 );
 
 create table if not exists public.pool_equipment (

@@ -1,6 +1,6 @@
 {
   "name": "familyos",
-  "version": "1.6.0",
+  "version": "1.8.0",
   "private": true,
   "packageManager": "pnpm@11.7.0",
   "dependencies": {
@@ -23,7 +23,13 @@
     "build": "react-scripts build",
     "lint": "eslint src --ext .js,.jsx",
     "test": "react-scripts test --watchAll=false",
-    "check": "pnpm run lint && pnpm run build"
+    "check": "pnpm run lint && pnpm run test && pnpm run test:seed-guards && pnpm run build && pnpm run test:bundle-safety",
+    "test:seed-guards": "node --test scripts/lib/demoSeedSafety.test.mjs",
+    "test:bundle-safety": "node scripts/check-production-bundle.mjs",
+    "seed:demo": "node scripts/seed-demo.mjs",
+    "test:smoke": "playwright test --project=chromium tests/e2e/smoke.spec.js",
+    "test:regression": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "eslintConfig": {
     "extends": [
@@ -41,6 +47,8 @@
     ]
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "dotenv": "^17.4.2",
     "eslint": "8.57.1"
   }
 }

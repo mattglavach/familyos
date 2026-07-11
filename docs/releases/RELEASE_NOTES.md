@@ -1,5 +1,28 @@
 # Release Notes
 
+## Release 1.8.0
+
+### Calendar timezone blocker
+Timed Calendar rendering now treats the preserved provider timestamp as authoritative and formats it explicitly in `America/New_York`. A July instant of `2026-07-11T18:00:00Z` displays as `2:00 PM`, not `6:00 PM`. The correction applies to recurring and non-recurring events across Calendar cards, details, Dashboard, Search, Notifications, server sync, and browser fallback. All-day dates remain date-only. Calendar events are not stored in Supabase, so no record repair or migration is required.
+
+### Summary
+FamilyOS now builds a normalized, household-scoped context contract and uses it to make Home an attention-focused command center. Pool Operations adds observed trend, demand, retest, maintenance, and completeness intelligence without predictive claims or automatic control.
+
+### Safety and boundaries
+- Deterministic application rules only. No ChatGPT or AI-provider call is made.
+- Every Pool action requires human review and confirmation.
+- No automatic dosing, SWG adjustment, equipment control, external notification delivery, or AI database update exists.
+- Gardening is explicitly unavailable and scheduled for Release 1.9.
+
+### Database
+No Release 1.8 migration is required. Existing Release 1.7 traceability fields support follow-up outcomes. No migration was applied.
+
+### Validation
+Lint, 40 automated tests, seed safeguards, production build, and bundle-safety validation passed. Authenticated desktop and 390px browser smoke could not run because local Supabase was unavailable and the separate `agent-browser` executable was not installed. No remote test target, remote Git action, or production action was used.
+
+## Release 1.7.0: Stabilization and Pool Operations
+Status: local release candidate, not deployed. This release fixes Calendar timezone normalization, removes Household/Health from More, and makes Pool the first focused Home operations workspace. The additive `20260711_release_1_7_pool_operations.sql` migration requires approval before application and does not rewrite existing records. Advanced trends, Gardening, cross-module context, live integrations, automatic control, and broad Home asset management remain deferred.
+
 ## Release 1.6
 
 ### Version

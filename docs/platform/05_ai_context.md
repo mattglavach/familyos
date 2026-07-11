@@ -1,5 +1,9 @@
 # Platform AI Context
 
+## Release 1.8 implementation boundary
+
+The broader Context Engine remains an architectural pattern. The Household Context Service is the first reusable implementation and emits `familyos.household-context` version 1.0. It is deterministic and does not call ChatGPT. Future ChatGPT reasoning may consume the structured output, but recommendations remain proposals requiring human review and acceptance.
+
 > Canonical AI and data ownership are defined in `docs/governance/FamilyOS_Project_Instructions.md`. This document provides specialized AI-context architecture detail.
 
 ## Purpose

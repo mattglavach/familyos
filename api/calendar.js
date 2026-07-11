@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { normalizeCalendarEventTime } from "../src/lib/calendarTime";
 
 const DEFAULT_ALLOWED_ORIGINS = [
   "http://localhost:3000",
@@ -188,24 +189,25 @@ function normalizedStatus(rows) {
   };
 }
 
-function normalizeGoogleEvent(event, index, source) {
+export function normalizeGoogleEvent(event, index, source) {
   const start = event.start?.dateTime || event.start?.date || "";
   if (!start) return null;
-  const allDay = !event.start?.dateTime;
-  const date = start.split("T")[0];
-  const startDate = new Date(start);
+  const normalized = normalizeCalendarEventTime(event.start || {});
   const end = event.end?.dateTime || event.end?.date || "";
-  const time = allDay || Number.isNaN(startDate.getTime())
-    ? "All day"
-    : startDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  if (!normalized.date) return null;
   return {
     id: event.id || String(index),
     title: event.summary || "(No title)",
-    date,
-    start,
+    date: normalized.date,
+    start: normalized.start,
+    providerStart: start,
     end,
-    time,
-    allDay,
+    time: normalized.time,
+    allDay: normalized.allDay,
+    sourceTimeZone: normalized.sourceTimeZone,
+    providerTimeZone: event.start?.timeZone || normalized.sourceTimeZone,
+    originalStartTime: event.originalStartTime || null,
+    recurringEventId: event.recurringEventId || "",
     location: event.location || "",
     description: event.description || "",
     notes: event.description || "",

@@ -6,6 +6,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { OriginDrawer } from "../../components/origin/drawer";
 import { useTable } from "../../hooks/useTable";
 import { useFamilyMembers } from "../dashboard/useFamilyMembers";
+import { formatCalendarEventTime, normalizeCalendarEvent } from "../../lib/calendarTime";
 
 const navigationTargets = [
   { label: "Home dashboard", detail: "Morning briefing and household priorities", nav: "home", type: "Navigation" },
@@ -32,6 +33,11 @@ function resultIcon(type) {
   if (type === "Calendar") return <CalendarDays className="h-4 w-4 text-primary" aria-hidden="true" />;
   if (type === "Household") return <UserRound className="h-4 w-4 text-primary" aria-hidden="true" />;
   return <Settings className="h-4 w-4 text-primary" aria-hidden="true" />;
+}
+
+export function buildCalendarSearchResult(event) {
+  const normalized = normalizeCalendarEvent(event);
+  return { type: "Calendar", label: normalized.title || "Untitled event", detail: `${normalized.date || "No date"} ${formatCalendarEventTime(normalized)}`.trim(), nav: { tab: "calendar", eventId: normalized.id } };
 }
 
 export function GlobalSearch({ open, onOpenChange, calendarEvents, onNavigate }) {
@@ -91,7 +97,7 @@ export function GlobalSearch({ open, onOpenChange, calendarEvents, onNavigate })
     const eventResults = (calendarEvents || [])
       .filter(event => includesQuery(`${event.title} ${event.location} ${event.member} ${event.source}`, normalizedQuery))
       .slice(0, 6)
-      .map(event => ({ type: "Calendar", label: event.title || "Untitled event", detail: `${event.date || "No date"} ${event.time || ""}`.trim(), nav: { tab: "calendar", eventId: event.id } }));
+      .map(buildCalendarSearchResult);
     const memberResults = family.members
       .filter(member => includesQuery(`${member.name} ${member.role} ${member.status}`, normalizedQuery))
       .slice(0, 6)

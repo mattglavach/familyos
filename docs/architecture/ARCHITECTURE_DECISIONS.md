@@ -1,5 +1,22 @@
 # Architecture Decisions
 
+## 2026-07-11: Provider timestamp is authoritative for Calendar display
+
+Every timed Calendar surface must derive its display date and time from the preserved provider instant using the shared formatter with `timeZone: America/New_York`. Precomputed display strings are compatibility fields only and cannot override the timestamp. Provider offset, timezone, recurrence, and original-start metadata are retained. All-day dates remain date-only.
+
+## 2026-07-11: Derive attention items and aggregate module context
+
+Release 1.8 uses module-owned deterministic outputs aggregated by the Household Context Service. Attention items are derived because their validity follows source records and no external delivery channel requires a durable queue. This avoids duplicate state and a migration while leaving the contract compatible with future persistence. Human confirmation remains mandatory.
+
+## 2026-07-11: Use service-role demo seeding and Playwright browser validation
+
+FamilyOS uses a deterministic Supabase admin seed for one non-production demo identity and Playwright for authenticated browser smoke/regression coverage. The seed fails closed unless `FAMILYOS_ENV=test`, the exact target is configured, and remote use is separately authorized. Development auto-login is allowed only in CRA development mode on loopback hosts. Browser tests intentionally disable auto-login so real authentication remains covered. External Google Calendar data is not mutated by the seed.
+
+Review hardening replaces membership-discovered deletion with a fixed demo household UUID and internal key, requires exact Supabase project-ref or URL authorization before admin-client creation, and compiles the dedicated development auto-login module out of optimized production bundles. `FAMILYOS_ENV=test` is now mandatory for every demo reset.
+
+## 2026-07-11: Focus Home and use a hybrid Pool architecture
+Home is limited to recurring operational systems, with Pool first and Garden next. FamilyOS owns persistent facts and deterministic rules; ChatGPT owns explanation and analysis through a versioned context object. Chemical calculations, compatibility, and swim-safety rules remain deterministic and human-reviewed. Pool uses Tasks as the single execution system. Broad Home asset management is excluded.
+
 Record decisions that shape the product.
 
 ## Template

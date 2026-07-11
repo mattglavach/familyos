@@ -6,6 +6,8 @@ import { EmptyStatePanel } from "../../components/ui/empty-state";
 import { OriginDrawer } from "../../components/origin/drawer";
 import { ChipGroup } from "../../components/ui/segmented-control";
 import { useTable } from "../../hooks/useTable";
+import { buildPoolContext } from "../pool/domainService";
+import { formatCalendarEventTime, normalizeCalendarEvent } from "../../lib/calendarTime";
 
 const STORAGE_KEY = "familyos_notification_read_ids_v1";
 const NOTIFICATION_VIEWS = [
@@ -43,7 +45,7 @@ function iconFor(kind) {
   return <TriangleAlert className="h-4 w-4 text-amber-300" aria-hidden="true" />;
 }
 
-function buildNotifications(tasks, calendarEvents, household, calendar) {
+export function buildNotifications(tasks, calendarEvents, household, calendar, poolContext = null) {
   const notifications = [];
   tasks.forEach(task => {
     if (task.completed) return;
@@ -55,7 +57,8 @@ function buildNotifications(tasks, calendarEvents, household, calendar) {
     }
   });
   (calendarEvents || []).filter(event => daysUntil(event.date) === 0).slice(0, 5).forEach(event => {
-    notifications.push({ id: `event-today-${event.id || event.title}`, kind: "calendar", tone: "info", title: event.title || "Calendar event", detail: `${event.time || "All day"} today`, nav: { tab: "calendar", eventId: event.id } });
+    const normalized = normalizeCalendarEvent(event);
+    notifications.push({ id: `event-today-${normalized.id || normalized.title}`, kind: "calendar", tone: "info", title: normalized.title || "Calendar event", detail: `${formatCalendarEventTime(normalized)} today`, nav: { tab: "calendar", eventId: normalized.id } });
   });
   if (calendar.error) {
     notifications.push({ id: "calendar-error", kind: "calendar", tone: "warning", title: "Calendar needs attention", detail: "Open Calendar to reconnect or check status.", nav: "calendar" });
@@ -65,19 +68,34 @@ function buildNotifications(tasks, calendarEvents, household, calendar) {
   if (household.error) {
     notifications.push({ id: "household-error", kind: "security", tone: "warning", title: "Household needs attention", detail: "Open Settings to choose or refresh your household.", nav: "settings" });
   }
-  if (!notifications.length) {
-    notifications.push({ id: "all-clear", kind: "success", tone: "success", title: "All clear", detail: "No urgent household notifications right now.", nav: "home" });
+  (poolContext?.attentionItems || []).forEach(item => notifications.push({
+    id: item.identifier,
+    kind: "pool",
+    tone: item.severity === "Critical" || item.severity === "High" ? "urgent" : "warning",
+    title: item.title,
+    detail: item.message,
+    nav: item.navigationDestination || "pool",
+  }));
+  const deduplicated = [...new Map(notifications.map(item => [item.id, item])).values()];
+  if (!deduplicated.length) {
+    deduplicated.push({ id: "all-clear", kind: "success", tone: "success", title: "All clear", detail: "No urgent household notifications right now.", nav: "home" });
   }
-  return notifications.slice(0, 20);
+  return deduplicated.slice(0, 20);
 }
 
 export function NotificationCenter({ open, onOpenChange, calendarEvents, household, calendar, onNavigate, onUnreadChange }) {
   const taskTable = useTable("tasks", "due_date", true);
+  const readings = useTable("pool_readings", "logged_at");
+  const treatments = useTable("pool_treatments", "logged_at");
+  const profiles = useTable("pool_profiles", "created_at");
+  const equipment = useTable("pool_equipment", "updated_at");
+  const schedule = useTable("pool_schedule", "last_completed");
+  const poolContext = useMemo(() => buildPoolContext({ householdIdentifier: household.householdId, profile: profiles.data[0] || null, readings: readings.data, treatments: treatments.data, equipment: equipment.data, schedule: schedule.data, tasks: taskTable.data }), [equipment.data, household.householdId, profiles.data, readings.data, schedule.data, taskTable.data, treatments.data]);
   const [readIds, setReadIds] = useState(() => readStoredIds());
   const [view, setView] = useState("unread");
   const notifications = useMemo(
-    () => buildNotifications(taskTable.data, calendarEvents, household, calendar),
-    [calendar, calendarEvents, household, taskTable.data]
+    () => buildNotifications(taskTable.data, calendarEvents, household, calendar, poolContext),
+    [calendar, calendarEvents, household, poolContext, taskTable.data]
   );
   const unreadCount = notifications.filter(item => !readIds.includes(item.id) && item.id !== "all-clear").length;
   const visibleNotifications = notifications.filter(item => {

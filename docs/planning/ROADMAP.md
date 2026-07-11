@@ -1,5 +1,23 @@
 # Roadmap
 
+## Release 1.8.0: Household Context, Dashboard Intelligence, and Pool Optimization
+- [x] Implement the versioned Household Context Service and deterministic cross-module attention framework.
+- [x] Refocus Dashboard on household attention, today, upcoming, Tasks, Calendar, Pool, and maintenance.
+- [x] Expand Pool observed trends, chlorine-demand and pH-rise summaries, retest workflow, maintenance status, data gaps, timeline, and context contract.
+- [x] Preserve household-scoped Global Search after core scope remained stable.
+- [x] Stabilize responsive card grids, wrapping, and overflow behavior using the existing mobile-first system.
+- [ ] Complete authenticated desktop/mobile smoke in an approved non-production environment.
+
+Release 1.9 is Gardening Operations. Later releases include Financial Planning and ChatGPT reasoning over the Context Engine.
+
+## Release 1.7.0: Stabilization and Pool Operations
+- [x] Normalize Calendar events to `America/New_York` while preserving provider timestamps and all-day dates.
+- [x] Remove Household and Health from More.
+- [x] Add Pool profile, richer operations records, deterministic safety rules, linked Tasks context, and a versioned ChatGPT context contract.
+- [ ] Apply the migration and complete authenticated desktop/mobile smoke after approval.
+
+Next is Pool optimization and trend refinement. The following release is Gardening Operations. Later releases are Financial Planning, Cross-module Context Engine, and family-level AI orchestration. Broad Home asset management remains excluded.
+
 ## Phase 0 - Foundation
 - [x] Documentation system
 - [x] AGENTS.md
