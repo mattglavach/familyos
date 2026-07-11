@@ -1,10 +1,10 @@
 # Project Status
 
 ## Current Version
-1.6 implementation complete; local command validation passed
+1.6 RC1 validation follow-up in progress
 
 ## Current State
-Release 1.0 core MVP through Release 1.5.1 Pool & Quick Add UX Polish are complete. Release 1.6 Core Operating Loop Hardening has an implementation pass complete with app integration contracts, lightweight cross-surface handoff context, Tasks filter reset polish, and Calendar refresh/status clarity. Local lint, build, unit tests, and diff-check passed; authenticated browser smoke remains blocked because `.env.local` points Supabase to `http://127.0.0.1:54321`, that auth endpoint refuses local connections, and Docker Desktop is not running in this workspace; deployed Calendar OAuth validation remains environment-dependent. Release 1.5.1 was merged to `main`, tagged, deployed to production, and production-smoke validated after the post-merge shared Button touch-target hardening commit. The July 10, 2026 implementation planning sprint is documented in `docs/planning/IMPLEMENTATION_PLAN_2026_07_10.md`.
+Release 1.0 core MVP through Release 1.5.1 Pool & Quick Add UX Polish are complete. Release 1.6 Core Operating Loop Hardening has an implementation pass complete with app integration contracts, lightweight cross-surface handoff context, Tasks filter reset polish, and Calendar refresh/status clarity. RC1 deployed smoke confirmed device Google OAuth works after registering the preview origin, then found confusing Settings hierarchy between the active device connection and the unavailable shared household integration. A focused presentation fix is in validation. Release 1.5.1 was merged to `main`, tagged, deployed to production, and production-smoke validated after the post-merge shared Button touch-target hardening commit. The July 10, 2026 implementation planning sprint is documented in `docs/planning/IMPLEMENTATION_PLAN_2026_07_10.md`.
 
 ## Completed
 - Family OS v1 documentation workspace

@@ -542,11 +542,41 @@ export function Settings({ auth, gc, secureCalendar }) {
         <CardHeader className="p-4 pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <CalendarCheck className="h-4 w-4 text-primary" aria-hidden="true" />
-            Google Calendar
+            Calendar connections
           </CardTitle>
-          <CardDescription>Connect Google Calendar to see your family schedule in one place.</CardDescription>
+          <CardDescription>Manage the calendar connection used on this device and the optional shared household connection.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 px-4 pb-4 pt-0">
+          <div className="rounded-lg border border-border bg-muted/20 p-3">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <CalendarCheck className="h-4 w-4 text-primary" aria-hidden="true" />
+              <StatusBadge status={calendarTone(gc)}>{calendarLabel(gc)}</StatusBadge>
+              <Badge variant="blue">This device</Badge>
+            </div>
+            <SettingRow label="Provider" value="Google Calendar" />
+            <SettingRow label="Google User" value={gc.userName || "Not connected"} />
+            <SettingRow label="Last Sync" value={formatDateTime(gc.lastSyncedAt)} />
+            {gc.error && <FormError>{gc.error}</FormError>}
+            <FormHelp>
+              {gc.token
+                ? "Connected on this device. Calendar events can appear on Home and Calendar here."
+                : "Connect from Calendar to show Google events on this device."}
+            </FormHelp>
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              <Button type="button" variant="secondary" onClick={gc.refresh} loading={gc.loading} disabled={!gc.token}>
+                <RefreshCw className="h-4 w-4" aria-hidden="true" />
+                Refresh
+              </Button>
+              <Button type="button" onClick={reconnectCalendar} loading={gc.status === "connecting" || gc.status === "script-loading"} disabled={!gc.canConnect}>
+                {gc.canConnect ? "Reconnect" : "Device setup needed"}
+              </Button>
+              <Button type="button" variant="destructive-outline" onClick={() => requestConfirmation({ type: "forgetDeviceCalendar", title: "Forget this device connection?", description: "This device will stop using its saved Google Calendar connection. You can reconnect later.", confirmLabel: "Forget connection" })} disabled={!gc.token}>
+                Forget Connection
+              </Button>
+            </div>
+          </div>
+
+          <div className="pt-1 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Shared household connection</div>
           <div className="rounded-lg border border-border bg-muted/20 p-3">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-primary" aria-hidden="true" />
@@ -556,7 +586,11 @@ export function Settings({ auth, gc, secureCalendar }) {
             <SettingRow label="Provider" value="Google Calendar" />
             <SettingRow label="Account" value={secureCalendar.connection?.provider_account_email || "Not connected"} />
             <SettingRow label="Last Sync" value={formatDateTime(secureCalendar.connection?.last_sync_at)} />
-            {secureCalendarStatus.needsAttention && <FormError>{secureCalendarStatus.detail}</FormError>}
+            {secureCalendarStatus.needsAttention && (
+              gc.token
+                ? <FormHelp>The shared household connection is not configured yet. Your device connection above remains active.</FormHelp>
+                : <FormError>{secureCalendarStatus.detail}</FormError>
+            )}
             {secureCalendar.note && <FormHelp>{secureCalendar.note}</FormHelp>}
             <FormHelp>
               {canManageCalendar
@@ -581,30 +615,6 @@ export function Settings({ auth, gc, secureCalendar }) {
                 Disconnect
               </Button>
             </div>
-          </div>
-
-          <div className="pt-1 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Device calendar connection</div>
-          <FormHelp>
-            This older connection only works on this device. Use the Google Calendar connection above when it is available.
-          </FormHelp>
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge status={calendarTone(gc)}>{calendarLabel(gc)}</StatusBadge>
-            <Badge variant="slate" className="max-w-full truncate">{gc.sourceLabel || "Google Calendar"}</Badge>
-          </div>
-          <SettingRow label="Google User" value={gc.userName || "Not connected"} />
-          <SettingRow label="Last Sync" value={formatDateTime(gc.lastSyncedAt)} />
-          {gc.error && <FormError>{gc.error}</FormError>}
-          <div className="grid gap-2 sm:grid-cols-3">
-            <Button type="button" variant="secondary" onClick={gc.refresh} loading={gc.loading} disabled={!gc.token}>
-              <RefreshCw className="h-4 w-4" aria-hidden="true" />
-              Refresh
-            </Button>
-            <Button type="button" onClick={reconnectCalendar} loading={gc.status === "connecting" || gc.status === "script-loading"} disabled={!gc.canConnect}>
-              {gc.canConnect ? "Reconnect" : "Device setup needed"}
-            </Button>
-            <Button type="button" variant="destructive-outline" onClick={() => requestConfirmation({ type: "forgetDeviceCalendar", title: "Forget this device connection?", description: "This device will stop using its saved Google Calendar connection. You can reconnect later.", confirmLabel: "Forget connection" })} disabled={!gc.token}>
-              Forget Connection
-            </Button>
           </div>
         </CardContent>
       </Card>

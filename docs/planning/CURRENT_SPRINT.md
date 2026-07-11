@@ -11,6 +11,8 @@ Complete the post-Release 1.5.1 implementation planning sprint by connecting the
 - [x] Add lightweight Search, Notification, Home, Tasks, Calendar, and Life Lists handoff context
 - [x] Add Tasks Show All and Clear All filter reset polish
 - [x] Improve Calendar refresh/status clarity and focus-return status refresh
+- [x] Clarify Settings Calendar connection hierarchy after deployed device OAuth validation
+- [ ] Revalidate the updated Settings Calendar state on the deployed RC1 preview
 - [x] Run Release 1.6 lint, build, unit test, and git diff validation
 - [x] Keep Home platform, Financial Planning, and Context Engine implementation deferred
 - [x] Begin Release 1.5.1 Pool & Quick Add UX Polish branch
