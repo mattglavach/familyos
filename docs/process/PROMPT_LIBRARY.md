@@ -1,6 +1,6 @@
 # Process Prompt Library
 
-These templates support complete Codex engineering workstreams under `docs/governance/FamilyOS_Project_Instructions.md`. ChatGPT should fill in release or feature specifics before handoff, and prompts must preserve canonical approval checkpoints.
+These templates support complete Codex engineering workstreams under `docs/governance/FamilyOS_Project_Instructions.md`. ChatGPT should fill in release or feature specifics before handoff, and prompts must preserve canonical autonomous-execution and safety boundaries.
 
 ## Full Release
 ```text

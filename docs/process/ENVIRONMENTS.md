@@ -8,7 +8,7 @@ It provides specialized environment and deployment detail under `docs/governance
 - Used for development, lint/build validation, and browser smoke tests.
 - `.env.local` is untracked.
 - Local Supabase or disposable databases should be used for migration/RLS validation.
-- Do not connect local validation scripts to production unless explicitly approved.
+- Do not connect local validation scripts to production unless production validation is required by the requested outcome and the target is verified.
 - Required browser config: `REACT_APP_SUPABASE_URL` and `REACT_APP_SUPABASE_ANON_KEY`.
 - Optional Calendar config can be omitted; the app should show a disconnected setup state instead of blocking local work.
 
@@ -26,7 +26,7 @@ It provides specialized environment and deployment detail under `docs/governance
 
 ## Production
 - Main branch deploy target.
-- Production Supabase changes require target verification, backup/rollback plan, explicit approval, validation SQL, and post-change smoke tests.
+- Production Supabase changes require target verification, a backup/rollback plan, validation SQL, and post-change smoke tests.
 - Public sign-up remains disabled unless a release changes that policy.
 - Calendar is optional, but if enabled production must include the server-side OAuth, encryption, redirect, and Supabase service-role settings documented in `docs/setup/google-calendar-oauth.md`.
 

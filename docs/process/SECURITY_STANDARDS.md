@@ -40,6 +40,6 @@ This document provides specialized security detail under `docs/governance/Family
 - Revoke external tokens when disconnecting integrations where supported.
 
 ## Production Data
-- Production mutations require explicit approval unless they are part of an already approved deploy flow.
+- Production mutations require a clear product outcome, verified target, bounded scope, recoverability, and post-change validation.
 - Validate target project/ref before production database work.
 - Capture backup/rollback notes before migrations.

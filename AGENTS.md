@@ -82,8 +82,9 @@ Before finishing a change:
 - Prefer concise commits that describe the user-visible or developer-visible behavior changed.
 - GitHub remains the repository source of truth.
 - Review `git status`, `git diff`, and `git diff --check` before completion.
-- Do not commit, push, merge, tag, migrate a database, release, or deploy without explicit product-owner approval.
-- Pause before destructive actions, data deletion, major dependency upgrades, security-sensitive changes, authentication or authorization changes, secrets or environment changes, or actions that could cause data loss or service interruption.
+- Treat a clear product-owner request as authorization to complete the practical engineering and release lifecycle end to end, including scoped commits, pushes, pull requests, merges, tags, migrations, and deployments when they are required by the requested outcome.
+- Do not split routine implementation, validation, publication, and deployment into separate approval checkpoints. Continue through recoverable failures and use target verification, backups, rollback plans, validation, and post-change checks for high-impact work.
+- Stop only for a genuine external blocker, missing authority or credentials, organization-managed policy, third-party outage, or an irreversible ambiguity where every reasonable option risks substantial data loss.
 - Do not pause for routine inspection, local file changes, refactoring, documentation, tests, linting, builds, Git inspection, or non-destructive validation within scope.
 
 ## Family OS v1 Operating Manual

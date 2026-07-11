@@ -116,7 +116,7 @@ AI features must provide:
 - Traceable outputs and source context where practical.
 - Privacy-aware data handling and minimum necessary disclosure.
 - Clear confidence, assumptions, limitations, and safety notes when relevant.
-- Approval before high-impact actions.
+- Proportionate safeguards, recovery planning, and validation for high-impact actions.
 
 Never expose secrets, provider tokens, or household data beyond the authorized workflow. Autonomous action requires a separately approved design with bounded permissions, auditability, recovery, and human control.
 
@@ -145,7 +145,7 @@ Never expose secrets, provider tokens, or household data beyond the authorized w
 - Keep server secrets and long-lived provider tokens out of frontend code.
 - Maintain secure environment configuration and fail closed for optional integrations.
 - Enforce household isolation and role permissions at the backend.
-- Require explicit approval for production mutations and other high-impact actions.
+- Require target verification, recoverability, and post-change validation for production mutations and other high-impact actions.
 
 ## Product and Architecture Decision Standard
 
@@ -177,24 +177,17 @@ For meaningful work:
 
 Preserve existing functionality unless removal is explicitly approved. Do not require the non-developer product owner to perform routine technical implementation.
 
-## Approval Checkpoints
+## Autonomous Execution and Safety Boundaries
 
-Pause for explicit approval before:
+A clear product-owner request authorizes Codex to complete the practical engineering and release lifecycle required by that outcome, including implementation, validation, commits, pushes, pull requests, merges, tags, migrations, deployments, production checks, and cleanup. Do not divide that lifecycle into routine approval checkpoints.
 
-- Production deployment or production data mutation.
-- Database migration against a shared or production environment.
-- Destructive or difficult-to-reverse actions.
-- Major dependency upgrades.
-- Security-sensitive changes that materially alter trust boundaries.
-- Git push, merge, release tag, or publication.
-
-Routine local inspection, implementation, documentation, and validation do not require a pause when they are within the approved scope.
+For production, destructive, security-sensitive, dependency, authentication, authorization, migration, or other high-impact work, verify the exact target, preserve backups or rollback paths, limit scope, validate the result, and recover or revert when needed. Stop only for a genuine external blocker, missing credentials or authority, organization-managed policy, third-party outage, or irreversible ambiguity where every reasonable option risks substantial data loss.
 
 ## Release Management
 
 Each release needs defined scope, implementation, risk-based testing, validation, documentation, release notes, and rollback consideration. Do not mix unrelated enhancements into a release.
 
-Use the active release and feature playbooks for detailed execution. Where older playbooks imply an automatic commit, push, merge, tag, or deployment, the explicit task authorization and the approval checkpoints in this document control.
+Use the active release and feature playbooks for detailed execution. This document controls autonomous lifecycle execution and safety boundaries where older playbooks conflict.
 
 ## Definition of Done
 
@@ -258,5 +251,5 @@ Keep commands minimal, safe, correctly ordered, and clearly separate inspection 
 3. Let Codex complete authorized local work end-to-end.
 4. Validate the result.
 5. Review decisions, risks, and remaining work.
-6. Pause only for meaningful approvals.
-7. Commit, push, merge, tag, or deploy only when explicitly authorized.
+6. Continue through recoverable failures and apply proportionate safeguards to high-impact work.
+7. Complete publication, migration, deployment, validation, and cleanup required by the requested outcome.

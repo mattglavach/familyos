@@ -1,6 +1,6 @@
 ---
 name: familyos-end-to-end
-description: Complete FamilyOS work end to end using repository governance, established architecture, risk-based validation, documentation, and approval checkpoints. Use automatically for FamilyOS implementation, releases, documentation, architecture, navigation, modules, bug fixes, testing, and repository maintenance.
+description: Complete FamilyOS work end to end using repository governance, established architecture, risk-based validation, documentation, publication, deployment, and recovery. Use automatically for FamilyOS implementation, releases, documentation, architecture, navigation, modules, bug fixes, testing, and repository maintenance.
 ---
 
 # FamilyOS End-to-End
@@ -15,7 +15,7 @@ description: Complete FamilyOS work end to end using repository governance, esta
 
 ## Clarification Standard
 
-Ask only when a material product decision is unresolved, plausible interpretations would create substantially different user outcomes, required information cannot be found in the repository, or the next action crosses an approval checkpoint.
+Ask only when a material product decision is unresolved, plausible interpretations would create substantially different user outcomes, required information cannot be found in the repository, or a genuine external blocker prevents safe progress.
 
 Otherwise, choose the most reasonable option consistent with existing product guidance and disclose the assumption in the completion summary.
 
@@ -39,9 +39,10 @@ If a check cannot run, explain why and identify the remaining validation gap. Ap
 
 - Inspect Git status before editing and review the final diff.
 - Do not overwrite unrelated work.
-- Stage only when explicitly requested or when asked to prepare changes for commit.
+- Stage task-related changes when needed to complete the requested lifecycle.
 - When staging, use explicit intended paths. Avoid `git add .` when unrelated changes may exist.
-- Stop before commit, push, merge, tag, deployment, release, database migration, or destructive action unless explicitly approved.
+- Complete scoped commit, push, pull-request, merge, tag, deployment, release, and database-migration work when required by a clear product-owner request.
+- For high-impact actions, verify the target, preserve recoverability, validate afterward, and stop only for a genuine external blocker or irreversible ambiguity with substantial data-loss risk.
 
 ## Completion
 

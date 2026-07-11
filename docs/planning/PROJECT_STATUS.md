@@ -4,6 +4,8 @@
 1.6 RC1 validation complete; merge approved
 
 ## Current State
+Codex autonomy configuration and FamilyOS governance are aligned for complete scoped implementation and release execution. High-impact work retains target verification, recoverability, bounded scope, and post-change validation without routine approval checkpoints.
+
 FamilyOS now has one canonical cross-domain governance source at `docs/governance/FamilyOS_Project_Instructions.md` plus a reusable maintenance prompt. Active product and navigation guidance distinguishes the implemented Home, Tasks, Calendar, Quick Add, and More shell from the approved long-term Dashboard, Calendar, Tasks, Life, Home, and Financial Planning architecture. Historical records remain preserved.
 
 Post-release Calendar layout hardening constrains event and detail content to the app-shell width and safely wraps long provider text without changing Calendar data or behavior.

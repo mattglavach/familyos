@@ -4,6 +4,7 @@
 Complete the post-Release 1.5.1 implementation planning sprint by connecting the product vision, engineering principles, design system, architecture decisions, data model, and release strategy to the current codebase without implementing large new features.
 
 ## Active Items
+- [x] Align global Codex configuration and FamilyOS governance for autonomous end-to-end software-development and release execution
 - [x] Consolidate FamilyOS cross-domain governance into `docs/governance/FamilyOS_Project_Instructions.md` and add its reusable maintenance prompt
 - [x] Reconcile current Home/Tasks/Calendar/Quick Add/More implementation with the approved Dashboard/Calendar/Tasks/Life/Home/Financial Planning target architecture
 - [x] Preserve historical release, audit, decision, implementation, and archived documentation while updating active entry points and conflicting guidance

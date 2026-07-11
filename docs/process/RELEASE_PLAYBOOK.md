@@ -2,13 +2,13 @@
 
 This playbook governs Family OS release execution and is the primary checklist for Codex-run release workstreams. The older development release-process baseline is archived under `docs/archive/development-baseline/`.
 
-It is subordinate to `docs/governance/FamilyOS_Project_Instructions.md`. Explicit task authorization and canonical approval checkpoints control commits, pushes, merges, tags, deployments, production mutations, and database migrations.
+It is subordinate to `docs/governance/FamilyOS_Project_Instructions.md`. A clear product-owner request authorizes the complete scoped lifecycle; canonical safety boundaries control production mutations, destructive work, and database migrations.
 
 ## Operating Model
 - ChatGPT owns product management, architecture direction, release planning, technical review, QA review, risk assessment, and roadmap decisions.
 - Codex owns engineering execution: implementation, validation, documentation updates, cleanup, and commits.
 - A release should begin with a release specification and one comprehensive Codex prompt.
-- Codex should continue through the complete release workstream unless a production approval, secret, destructive action, or major scope decision is required.
+- Codex should continue through the complete release workstream, diagnosing and recovering from failures, unless a genuine external blocker or irreversible ambiguity with substantial data-loss risk prevents progress.
 
 ## Lifecycle
 1. Plan: read the release spec, `AGENTS.md`, this playbook, `docs/process/FAMILY_OS_PRINCIPLES.md`, status docs, roadmap docs, architecture docs, database docs, and relevant module docs.

@@ -44,7 +44,7 @@ It provides specialized architecture detail under `docs/governance/FamilyOS_Proj
 
 ## Migration Strategy
 - Migrations must be ordered, repeatable where intended, and validated against disposable/local/staging databases.
-- Production database changes require target verification, backup/rollback plan, validation SQL, and explicit approval.
+- Production database changes require target verification, a backup/rollback plan, validation SQL, and post-change verification.
 - Baseline-alignment migrations are allowed when production differs from repository assumptions.
 
 ## State Management

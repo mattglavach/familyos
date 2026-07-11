@@ -37,7 +37,7 @@ Update docs when work changes:
 - Do not leave deferred work only in chat.
 
 ## Known Risks
-- Document validation gaps, deployment dependencies, production approval needs, and security limitations.
+- Document validation gaps, deployment dependencies, production safeguards, and security limitations.
 
 ## Master Index
 - Add new durable docs to `docs/00_MASTER_INDEX.md`.

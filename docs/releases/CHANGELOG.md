@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Configured the user-level Codex runtime for `approval_policy = "never"`, `sandbox_mode = "danger-full-access"`, and elevated Windows sandboxing; aligned global and FamilyOS instructions around autonomous end-to-end engineering, publication, migration, deployment, recovery, and genuine-blocker-only escalation.
 - Consolidated FamilyOS product, architecture, AI, UX, security, delivery, and governance rules into one canonical project-instructions document; added a reusable governance-maintenance prompt; reconciled current navigation with the approved long-term module architecture; and preserved historical release, audit, decision, implementation, and archive records.
 - Fixed Calendar event and detail cards exceeding the normal page width by constraining nested grid columns and safely wrapping long event locations, metadata, titles, and notes.
 - Clarified Settings Calendar status after successful device OAuth: the active device connection now appears first with its account and sync state, while the optional shared household connection is labeled separately and no longer makes a working device connection look disconnected.
