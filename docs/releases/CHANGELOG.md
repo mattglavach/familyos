@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.8.1 - 2026-07-11
+
+- Fixed Tasks Show All so it clears search, status, priority, owner, due-date, workspace, and sort state; successful task creation now returns to the unfiltered active household task list immediately.
+- Replaced the oversized Tasks filter panel with a compact desktop toolbar and a two-row mobile layout.
+- Reduced task rows to title, status checkbox, due date, priority, and optional owner; notes and secondary metadata remain in the task drawer.
+- Replaced the healthy Google Calendar connection panel with a compact status row and reduced event rows to time, title, and optional location.
+- Increased information density on Dashboard and across shared screen and section spacing without changing navigation, module ownership, Household Context, Calendar timezone behavior, or Pool architecture.
+- No database, migration, dependency, environment, remote Git, deployment, tag, or production changes.
+
 ## 1.8.0 - 2026-07-11
 
 - Fixed the release-blocking Calendar defect where preserved UTC instants could be rendered using a stale UTC-clock display string. Calendar, event details, Dashboard, Search, Notifications, and Household Context now reformat the provider instant explicitly in `America/New_York`.

@@ -1,5 +1,17 @@
 # Current Sprint
 
+## Release 1.8.1 local release candidate
+
+- [x] Correct Tasks Show All and post-create filter reset behavior.
+- [x] Compact Tasks filters and task rows.
+- [x] Compact connected Calendar status and event rows.
+- [x] Tighten Dashboard and shared application spacing.
+- [x] Preserve Release 1.8 architecture, Household Context, Calendar timezone, Pool, and database contracts.
+- [x] Complete automated lint, unit/regression tests, seed safeguards, production build, bundle safety, and diff checks.
+- [ ] Local browser screenshots remain unavailable because the required `agent-browser` executable is not installed; no remote target was used.
+
+No push, merge, commit, tag, deployment, production mutation, or migration application is authorized for this sprint.
+
 ## Release 1.8.0 local release candidate
 
 - [x] Household Context Service contract and test coverage.

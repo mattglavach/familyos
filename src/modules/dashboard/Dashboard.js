@@ -16,16 +16,16 @@ const severityTone = { Critical: "urgent", High: "urgent", Medium: "warning", In
 const severityColor = { Critical: COLORS.red, High: COLORS.red, Medium: COLORS.amber, Informational: COLORS.blue };
 
 function AttentionCard({ item, onNavigate }) {
-  return <button type="button" onClick={() => onNavigate(item.navigationDestination)} className="flex min-h-16 w-full items-start gap-3 border-b border-border py-3 text-left last:border-0">
+  return <button type="button" onClick={() => onNavigate(item.navigationDestination)} className="flex min-h-12 w-full items-start gap-2.5 border-b border-border py-2 text-left last:border-0">
     <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: severityColor[item.severity] }} />
     <span className="min-w-0 flex-1"><span className="flex flex-wrap items-center gap-2"><span className="text-sm font-bold text-foreground">{item.title}</span><StatusBadge status={severityTone[item.severity]}>{item.severity}</StatusBadge></span><span className="mt-1 block text-xs leading-5 text-muted-foreground">{item.message}</span></span>
     <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
   </button>;
 }
 function SummaryCard({ icon: Icon, title, value, detail, onClick, color = COLORS.blue }) {
-  return <button type="button" onClick={onClick} className="min-h-[116px] rounded-lg border border-border bg-card p-3.5 text-left shadow-soft" style={{ borderLeft: `3px solid ${color}` }}>
+  return <button type="button" onClick={onClick} className="min-h-[88px] rounded-lg border border-border bg-card p-3 text-left shadow-soft" style={{ borderLeft: `3px solid ${color}` }}>
     <span className="flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground"><Icon className="h-4 w-4" />{title}</span><ChevronRight className="h-4 w-4 text-muted-foreground" /></span>
-    <span className="mt-3 block text-lg font-extrabold" style={{ color }}>{value}</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">{detail}</span>
+    <span className="mt-2 block text-base font-extrabold" style={{ color }}>{value}</span><span className="mt-0.5 block text-[11px] leading-4 text-muted-foreground">{detail}</span>
   </button>;
 }
 
@@ -53,7 +53,7 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
   const pool = context.poolSummary;
   const maintenanceDue = context.maintenanceSummary.due;
 
-  return <div style={S.screen} className="space-y-5 overflow-x-hidden">
+  return <div style={S.screen} className="space-y-3.5 overflow-x-hidden">
     <section><SectionHeader title="Attention Needed" count={context.attentionItems.length} tone={context.attentionItems.some(item => ["Critical", "High"].includes(item.severity)) ? "red" : "amber"} />
       <Card><CardContent className="px-4 py-1">{loading ? <div className="space-y-3 py-4"><Skeleton className="h-4 w-4/5" /><Skeleton className="h-4 w-3/5" /></div> : context.attentionItems.length ? context.attentionItems.slice(0, 8).map(item => <AttentionCard key={item.deduplicationKey} item={item} onNavigate={onNavigate} />) : <EmptyStatePanel title="Nothing needs attention today" detail="Tasks, Calendar, Pool, and maintenance are clear based on available data." className="py-8" />}</CardContent></Card>
     </section>
