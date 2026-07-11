@@ -1,5 +1,13 @@
 # Roadmap
 
+## Release 1.7.0: Stabilization and Pool Operations
+- [x] Normalize Calendar events to `America/New_York` while preserving provider timestamps and all-day dates.
+- [x] Remove Household and Health from More.
+- [x] Add Pool profile, richer operations records, deterministic safety rules, linked Tasks context, and a versioned ChatGPT context contract.
+- [ ] Apply the migration and complete authenticated desktop/mobile smoke after approval.
+
+Next is Pool optimization and trend refinement. The following release is Gardening Operations. Later releases are Financial Planning, Cross-module Context Engine, and family-level AI orchestration. Broad Home asset management remains excluded.
+
 ## Phase 0 - Foundation
 - [x] Documentation system
 - [x] AGENTS.md

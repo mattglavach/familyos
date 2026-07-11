@@ -77,7 +77,7 @@ Life owns lists, shopping-related records, recurring household administration, a
 
 ### Home
 
-Home owns property, maintenance, vendors, projects, pool, yard, appliances, equipment, service history, repairs, and related documents. In the target architecture, Home is the physical-home workspace, distinct from the current Home dashboard label.
+Home manages recurring household operational systems that benefit from structured measurements, history, treatments, maintenance workflows, and ChatGPT context. Current roadmap scope is Pool, Garden, operational settings, histories, linked Tasks, and ChatGPT context. Broad asset tracking, vehicles, appliances, tools, inventory, warranties, projects, and document management are excluded.
 
 ### Financial Planning
 

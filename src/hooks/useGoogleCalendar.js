@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { APP_CONFIG } from "../config";
+import { normalizeCalendarEventTime } from "../lib/calendarTime";
 
 const GOOGLE_CLIENT_ID  = APP_CONFIG.googleClientId;
 const GOOGLE_SCOPES     = "https://www.googleapis.com/auth/calendar.readonly";
@@ -30,11 +31,6 @@ function formatGoogleApiError(status, message) {
   if (status === 403) return "Google Calendar permission is missing or was revoked. Connect again and approve calendar read access.";
   if (status === 404) return "Google Calendar could not find this household calendar. Ask the household owner to check the calendar connection.";
   return message || `Google Calendar sync failed with status ${status}.`;
-}
-
-function formatEventTime(start) {
-  if (!start) return "";
-  return new Date(start).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 }
 
 function sourceLabel() {
@@ -169,19 +165,17 @@ export function useGoogleCalendar() {
       }
       const syncedAt=new Date().toISOString();
       const mapped=(data.items||[]).map((e,i)=>{
-        const start=e.start?.dateTime||e.start?.date||"";
-        if(!start)return null;
-        const allDay=!e.start?.dateTime;
-        const dateStr=start.split("T")[0];
-        const timeStr=allDay?"All day":formatEventTime(start);
+        const normalized=normalizeCalendarEventTime(e.start||{});
+        if(!normalized.start)return null;
         return{
           id:e.id||i,
           title:e.summary||"(No title)",
-          date:dateStr,
-          start,
+          date:normalized.date,
+          start:normalized.start,
           end:e.end?.dateTime||e.end?.date||"",
-          time:timeStr,
-          allDay,
+          time:normalized.time,
+          allDay:normalized.allDay,
+          sourceTimeZone:normalized.sourceTimeZone,
           member:assignMember(e.summary,e.description),
           location:e.location||"",
           description:e.description||"",

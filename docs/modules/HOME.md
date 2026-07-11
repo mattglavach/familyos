@@ -1,5 +1,7 @@
 # Home
 
+Home manages recurring household operational systems that benefit from structured measurements, history, treatments, maintenance workflows, and ChatGPT context. Current roadmap ownership is limited to Pool, Garden, operational settings, histories, linked Tasks, and ChatGPT context. Vehicles, appliances, tools, inventory, warranties, projects, documents, and broad asset tracking are excluded.
+
 ## Purpose
 The Home module tracks maintenance, equipment, warranties, projects, vendors, seasonal tasks, and household systems.
 

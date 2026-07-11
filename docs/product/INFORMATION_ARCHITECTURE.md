@@ -53,7 +53,7 @@ Household contains family members, invitations, roles, active household switchin
 It belongs inside More because membership management is important but less frequent than daily dashboard and task use. Owner workflows can be surfaced in Settings until a dedicated Household module exists.
 
 ## Home Module
-The Home module covers the physical home: maintenance, systems, appliances, projects, yard, and future smart home status.
+Home manages recurring household operational systems that benefit from structured measurements, history, treatments, maintenance workflows, and ChatGPT context. Current scope is Pool, Garden, operational settings, histories, linked Tasks, and structured ChatGPT context. Broad asset tracking is out of the current roadmap.
 
 It belongs inside More because it is important but not always a daily workflow.
 
@@ -103,7 +103,7 @@ The approved target module architecture is Dashboard, Calendar, Tasks, Life, Hom
 
 - Dashboard replaces the current Home label for the awareness layer.
 - Life becomes the owner of lists, shopping, recurring household administration, and family reference information.
-- Home becomes the physical-home workspace for property, maintenance, vendors, projects, pool, yard, appliances, equipment, repairs, service history, and documents.
+- Home becomes a focused operations workspace, beginning with Pool and followed by Garden. It does not become a general asset-management system.
 - Financial Planning owns retirement, college planning, goals, assumptions, accounts, financial history, and scenarios.
 - Quick Add remains a cross-module capture capability.
 - More, Settings, and Household remain current navigation or management constructs until an approved release changes the shell.

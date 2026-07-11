@@ -1,5 +1,8 @@
 # Architecture Decisions
 
+## 2026-07-11: Focus Home and use a hybrid Pool architecture
+Home is limited to recurring operational systems, with Pool first and Garden next. FamilyOS owns persistent facts and deterministic rules; ChatGPT owns explanation and analysis through a versioned context object. Chemical calculations, compatibility, and swim-safety rules remain deterministic and human-reviewed. Pool uses Tasks as the single execution system. Broad Home asset management is excluded.
+
 Record decisions that shape the product.
 
 ## Template

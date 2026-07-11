@@ -1,5 +1,8 @@
 # Pool
 
+## Release 1.7 Operations Contract
+FamilyOS owns the Pool profile, measurements, treatment/equipment history, targets, deterministic calculations, safety constraints, timing rules, status, trends, linked Tasks, and structured context. ChatGPT may explain, interpret, plan, diagnose, and optimize, but is not the source of dosage, compatibility, or swim-safety rules. The `familyos.pool-context` v1.0 contract supplies scoped profile, history, equipment, open Tasks, warnings, recommendations, and data-quality context.
+
 ## Purpose
 The Pool module is the Pool Care Assistant. It tracks water tests, treatments, equipment, maintenance, notes, parties, weather context, and action history so the household can answer: what does the pool need, why does it matter, and what should happen next?
 

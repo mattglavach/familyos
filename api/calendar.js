@@ -12,6 +12,7 @@ const GOOGLE_SCOPES = [
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 const TOKEN_REFRESH_SKEW_MS = 5 * 60 * 1000;
 const CALENDAR_SETUP_ERROR = "Google Calendar is not configured for this environment.";
+const FAMILYOS_TIME_ZONE = "America/New_York";
 
 function getSupabaseUrl() {
   return process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL || "";
@@ -192,12 +193,14 @@ function normalizeGoogleEvent(event, index, source) {
   const start = event.start?.dateTime || event.start?.date || "";
   if (!start) return null;
   const allDay = !event.start?.dateTime;
-  const date = start.split("T")[0];
   const startDate = new Date(start);
   const end = event.end?.dateTime || event.end?.date || "";
-  const time = allDay || Number.isNaN(startDate.getTime())
+  if (!allDay && Number.isNaN(startDate.getTime())) return null;
+  const dateParts = allDay ? null : Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: FAMILYOS_TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(startDate).map(part => [part.type, part.value]));
+  const date = allDay ? event.start.date : `${dateParts.year}-${dateParts.month}-${dateParts.day}`;
+  const time = allDay
     ? "All day"
-    : startDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    : startDate.toLocaleTimeString("en-US", { timeZone: FAMILYOS_TIME_ZONE, hour: "numeric", minute: "2-digit" });
   return {
     id: event.id || String(index),
     title: event.summary || "(No title)",
@@ -206,6 +209,7 @@ function normalizeGoogleEvent(event, index, source) {
     end,
     time,
     allDay,
+    sourceTimeZone: event.start?.timeZone || (allDay ? "date-only" : ""),
     location: event.location || "",
     description: event.description || "",
     notes: event.description || "",

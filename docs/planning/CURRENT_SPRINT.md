@@ -1,5 +1,11 @@
 # Current Sprint
 
+## Release 1.7.0 Stabilization and Pool Operations
+- [x] Select 1.7.0 from version/tag state.
+- [x] Correct Calendar timezone normalization and More navigation.
+- [x] Add Pool profile, richer tests/treatments, safety service, Tasks context, migration, and tests.
+- [ ] Complete authenticated desktop/390px smoke and production lifecycle after approval.
+
 ## Sprint Goal
 Complete the post-Release 1.5.1 implementation planning sprint by connecting the product vision, engineering principles, design system, architecture decisions, data model, and release strategy to the current codebase without implementing large new features.
 

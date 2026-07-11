@@ -14,7 +14,8 @@ import { useTable } from "../../hooks/useTable";
 import { maintColor, maintStatus, statusColor } from "../../utils/status";
 import { COLORS, S } from "../../theme";
 import { getChemRecommendations, getPoolHealth, getPoolRecommendations, POOL_RULE_CONFIG } from "./actionEngine";
-import { buildPoolReadingRow, hasRainContext, POOL_TEST_ADVANCED_FIELDS, POOL_TEST_FIELD_LABELS, POOL_TEST_PRIMARY_FIELDS, poolTestFieldError, setRainContext, validatePoolTestForm } from "./poolTestForm";
+import { buildPoolReadingRow, hasRainContext, POOL_TEST_ADVANCED_FIELDS, POOL_TEST_CONTEXTS, POOL_TEST_FIELD_LABELS, POOL_TEST_PRIMARY_FIELDS, poolTestFieldError, setRainContext, validatePoolTestForm } from "./poolTestForm";
+import { buildPoolContext } from "./domainService";
 
 export { getChemRecommendations };
 
@@ -292,6 +293,8 @@ export function Pool() {
   const schedule = useTable("pool_schedule", "title", true);
   const equipment = useTable("pool_equipment", "type", true);
   const audits = useTable("pool_action_audits", "created_at");
+  const profiles = useTable("pool_profiles", "name", true);
+  const tasks = useTable("tasks", "due_date");
   const household = useHousehold();
   const editable = roleCanManage(household.membership?.role);
   const [tab, setTab] = useState("dashboard");
@@ -315,6 +318,7 @@ export function Pool() {
     }),
     [latest, maintenance.data, readings.data, schedule.data, treatments.data]
   );
+  const poolContext = useMemo(() => buildPoolContext({ profile: profiles.data[0] || null, readings: readings.data, treatments: treatments.data, equipment: equipment.data, tasks: tasks.data, recommendations }), [equipment.data, profiles.data, readings.data, recommendations, tasks.data, treatments.data]);
   const health = getPoolHealth(latest, recommendations);
   const nextAction = recommendations[0];
   const readiness = swimReadiness(latest, recommendations);
@@ -470,6 +474,17 @@ export function Pool() {
       cleaned_cell: Boolean(form.cleaned_cell),
       checked_flow: Boolean(form.checked_flow),
       water_clarity: form.water_clarity || "",
+      treatment: form.treatment || "",
+      amount: num(form.amount),
+      unit: form.unit || "",
+      product_concentration: form.product_concentration || "",
+      reason: form.reason || "",
+      related_reading_id: form.related_reading_id || latest?.id || null,
+      pump_status: form.pump_status || "",
+      pump_speed_rpm: num(form.pump_speed_rpm),
+      expected_result: form.expected_result || "",
+      retest_at: form.retest_at ? new Date(form.retest_at).toISOString() : null,
+      follow_up_result: form.follow_up_result || "",
       notes: form.notes || "",
     };
     setPoolActionError("");
@@ -480,6 +495,21 @@ export function Pool() {
     } catch (error) {
       showPoolMutationError(error, "Pool treatment could not be saved right now.");
     }
+  }
+
+  async function saveProfile() {
+    const row = {
+      name: form.name || "Pool",
+      volume_gallons: Number(form.volume_gallons),
+      surface_type: form.surface_type || "",
+      sanitizer_type: form.sanitizer_type || "",
+      saltwater: Boolean(form.saltwater),
+      automation_system: form.automation_system || "", pump: form.pump || "", filter: form.filter || "", heater: form.heater || "", salt_cell: form.salt_cell || "",
+      spa_relationship: form.spa_relationship || "", normal_pump_runtime_hours: num(form.normal_pump_runtime_hours), normal_pump_speed_rpm: num(form.normal_pump_speed_rpm), minimum_salt_cell_rpm: num(form.minimum_salt_cell_rpm), swg_output_percent: num(form.swg_output_percent),
+      seasonal_notes: form.seasonal_notes || "", notes: form.notes || "",
+    };
+    if (!row.volume_gallons || !row.surface_type || !row.sanitizer_type) { setPoolActionError("Pool volume, surface type, and sanitizer type are required."); return; }
+    try { if (form.id) await profiles.update(form.id, row); else await profiles.insert(row); setModal(null); setForm({}); } catch (error) { showPoolMutationError(error, "Pool profile could not be saved right now."); }
   }
 
   async function saveMaintenance() {
@@ -553,7 +583,7 @@ export function Pool() {
     }
   }
 
-  const loading = readings.loading || treatments.loading || maintenance.loading || schedule.loading || equipment.loading || audits.loading;
+  const loading = readings.loading || treatments.loading || maintenance.loading || schedule.loading || equipment.loading || audits.loading || profiles.loading || tasks.loading;
 
   return (
     <div style={S.screen}>
@@ -586,6 +616,8 @@ export function Pool() {
           ))}
         </div>
         <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 10 }}>Recent chemical: {latestChemicalText(recentTreatment)}{recentTreatment?.date ? ` on ${formatDate(recentTreatment.date)}` : ""}</div>
+        <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 5 }}>Open Pool tasks: {poolContext.openTasks.length} | Context confidence: {poolContext.dataQuality.confidence}</div>
+        <Button type="button" variant="secondary" size="sm" className="mt-3" disabled={!editable} onClick={() => { setForm(profiles.data[0] || { saltwater: true }); setModal("profile"); }}>Pool Profile</Button>
       </div>
 
       <div style={{ ...S.statusCard(nextAction?.color || COLORS.blue), marginBottom: 14 }}>
@@ -889,6 +921,7 @@ export function Pool() {
               onTimeChange={time => setTestField("time", time)}
             />
             <FormGroup><Label>Test Source</Label><SegmentedControl value={sourceMode} options={TEST_SOURCES.map(value => ({ value, label: value }))} ariaLabel="Test source" onValueChange={setSourceMode} /></FormGroup>
+            <FormGroup><Label>Test Context</Label><select className="flex h-11 w-full rounded-md border border-input bg-secondary px-3 py-2 text-sm text-foreground" value={form.test_context || "Routine"} onChange={e => setTestField("test_context", e.target.value)}>{POOL_TEST_CONTEXTS.map(value => <option key={value}>{value}</option>)}</select></FormGroup>
             <FormSection title="Chemistry" description="Log any tested values. At least one result, note, rain, or party context is needed.">
               <FormRow>{POOL_TEST_PRIMARY_FIELDS.slice(0, 2).map(renderPoolNumberField)}</FormRow>
               <FormRow>{POOL_TEST_PRIMARY_FIELDS.slice(2, 4).map(renderPoolNumberField)}</FormRow>
@@ -896,6 +929,7 @@ export function Pool() {
               {renderPoolNumberField(POOL_TEST_PRIMARY_FIELDS[6])}
             </FormSection>
             <NotesField label="Notes" value={form.notes || ""} placeholder="Clarity, swimmer load, dosing context..." onChange={value => setTestField("notes", value)} />
+            <FormGroup><Label>Water Appearance</Label><Input value={form.water_appearance || ""} placeholder="Clear, cloudy, green tint..." onChange={e => setTestField("water_appearance", e.target.value)} /></FormGroup>
             <div className="grid grid-cols-2 gap-2">
               <ToggleField checked={Boolean(form.recent_heavy_usage)} label="Party" onChange={checked => setTestField("recent_heavy_usage", checked)} />
               <ToggleField checked={hasRainContext(form)} label="Rain" onChange={checked => setTestField("recent_weather_notes", setRainContext(form, checked))} />
@@ -919,13 +953,34 @@ export function Pool() {
       {modal === "treatment" && (
         <Modal title="Chemical Added" onClose={() => { setModal(null); setForm({}); }}>
           <FormSection>
+            <FormRow><FormGroup><Label>Treatment</Label><Input value={form.treatment || ""} placeholder="Liquid chlorine" onChange={e => setForm(p => ({ ...p, treatment: e.target.value }))} /></FormGroup><FormGroup><Label>Reason</Label><Input value={form.reason || ""} onChange={e => setForm(p => ({ ...p, reason: e.target.value }))} /></FormGroup></FormRow>
+            <FormRow><FormGroup><Label>Amount</Label><Input type="number" value={form.amount || ""} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} /></FormGroup><FormGroup><Label>Unit / Concentration</Label><Input value={form.unit || ""} placeholder="oz at 10%" onChange={e => setForm(p => ({ ...p, unit: e.target.value }))} /></FormGroup></FormRow>
             <FormRow><FormGroup><Label>Date</Label><Input type="date" value={form.date || TODAY_STR} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} /></FormGroup><FormGroup><Label>Time</Label><Input type="time" value={form.time || new Date().toTimeString().slice(0, 5)} onChange={e => setForm(p => ({ ...p, time: e.target.value }))} /></FormGroup></FormRow>
             <FormRow><FormGroup><Label>Muriatic Acid (oz)</Label><Input type="number" value={form.muriatic_acid_oz || ""} onChange={e => setForm(p => ({ ...p, muriatic_acid_oz: e.target.value }))} /></FormGroup><FormGroup><Label>Salt (lb)</Label><Input type="number" value={form.salt_lbs || ""} onChange={e => setForm(p => ({ ...p, salt_lbs: e.target.value }))} /></FormGroup></FormRow>
             <FormRow><FormGroup><Label>CYA (oz)</Label><Input type="number" value={form.cya_oz || ""} onChange={e => setForm(p => ({ ...p, cya_oz: e.target.value }))} /></FormGroup><FormGroup><Label>Chlorine (oz)</Label><Input type="number" value={form.liquid_chlorine_oz || ""} onChange={e => setForm(p => ({ ...p, liquid_chlorine_oz: e.target.value }))} /></FormGroup></FormRow>
             <FormRow><FormGroup><Label>SWG Before</Label><Input type="number" value={form.swg_pct_before || ""} onChange={e => setForm(p => ({ ...p, swg_pct_before: e.target.value }))} /></FormGroup><FormGroup><Label>SWG After</Label><Input type="number" value={form.swg_pct_after || ""} onChange={e => setForm(p => ({ ...p, swg_pct_after: e.target.value }))} /></FormGroup></FormRow>
             <FormGroup><Label>Water Clarity</Label><Input value={form.water_clarity || ""} placeholder="Clear, cloudy, green tint..." onChange={e => setForm(p => ({ ...p, water_clarity: e.target.value }))} /></FormGroup>
+            <FormRow><FormGroup><Label>Pump Speed RPM</Label><Input type="number" value={form.pump_speed_rpm || ""} onChange={e => setForm(p => ({ ...p, pump_speed_rpm: e.target.value }))} /></FormGroup><FormGroup><Label>Retest At</Label><Input type="datetime-local" value={form.retest_at || ""} onChange={e => setForm(p => ({ ...p, retest_at: e.target.value }))} /></FormGroup></FormRow>
+            <FormGroup><Label>Expected Result</Label><Input value={form.expected_result || ""} onChange={e => setForm(p => ({ ...p, expected_result: e.target.value }))} /></FormGroup>
             <FormGroup><Label>Notes</Label><Input value={form.notes || ""} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} /></FormGroup>
             <Button type="button" className="w-full" onClick={saveTreatment}>Save Chemical Entry</Button>
+          </FormSection>
+        </Modal>
+      )}
+
+      {modal === "profile" && (
+        <Modal title="Pool Profile" onClose={() => { setModal(null); setForm({}); }}>
+          <FormSection>
+            <FormGroup><Label>Pool Name</Label><Input value={form.name || ""} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} /></FormGroup>
+            <FormRow><FormGroup><Label>Volume (gallons)</Label><Input type="number" value={form.volume_gallons || ""} onChange={e => setForm(p => ({ ...p, volume_gallons: e.target.value }))} /></FormGroup><FormGroup><Label>Surface Type</Label><Input value={form.surface_type || ""} onChange={e => setForm(p => ({ ...p, surface_type: e.target.value }))} /></FormGroup></FormRow>
+            <FormGroup><Label>Sanitizer Type</Label><Input value={form.sanitizer_type || ""} placeholder="Saltwater chlorine generator" onChange={e => setForm(p => ({ ...p, sanitizer_type: e.target.value }))} /></FormGroup>
+            <ToggleField checked={Boolean(form.saltwater)} label="Saltwater pool" onChange={saltwater => setForm(p => ({ ...p, saltwater }))} />
+            <FormRow><FormGroup><Label>Automation System</Label><Input value={form.automation_system || ""} onChange={e => setForm(p => ({ ...p, automation_system: e.target.value }))} /></FormGroup><FormGroup><Label>Salt Cell</Label><Input value={form.salt_cell || ""} onChange={e => setForm(p => ({ ...p, salt_cell: e.target.value }))} /></FormGroup></FormRow>
+            <FormRow><FormGroup><Label>Pump</Label><Input value={form.pump || ""} onChange={e => setForm(p => ({ ...p, pump: e.target.value }))} /></FormGroup><FormGroup><Label>Filter</Label><Input value={form.filter || ""} onChange={e => setForm(p => ({ ...p, filter: e.target.value }))} /></FormGroup></FormRow>
+            <FormRow><FormGroup><Label>Normal Pump Runtime</Label><Input type="number" value={form.normal_pump_runtime_hours || ""} onChange={e => setForm(p => ({ ...p, normal_pump_runtime_hours: e.target.value }))} /></FormGroup><FormGroup><Label>Minimum SWG RPM</Label><Input type="number" value={form.minimum_salt_cell_rpm || ""} onChange={e => setForm(p => ({ ...p, minimum_salt_cell_rpm: e.target.value }))} /></FormGroup></FormRow>
+            <NotesField label="Seasonal Notes" value={form.seasonal_notes || ""} onChange={seasonal_notes => setForm(p => ({ ...p, seasonal_notes }))} />
+            <NotesField label="General Notes" value={form.notes || ""} onChange={notes => setForm(p => ({ ...p, notes }))} />
+            <Button type="button" className="w-full" onClick={saveProfile}>Save Profile</Button>
           </FormSection>
         </Modal>
       )}

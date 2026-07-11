@@ -1,5 +1,8 @@
 # Release Notes
 
+## Release 1.7.0: Stabilization and Pool Operations
+Status: local release candidate, not deployed. This release fixes Calendar timezone normalization, removes Household/Health from More, and makes Pool the first focused Home operations workspace. The additive `20260711_release_1_7_pool_operations.sql` migration requires approval before application and does not rewrite existing records. Advanced trends, Gardening, cross-module context, live integrations, automatic control, and broad Home asset management remain deferred.
+
 ## Release 1.6
 
 ### Version

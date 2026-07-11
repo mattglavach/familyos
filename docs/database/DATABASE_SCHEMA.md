@@ -1,5 +1,8 @@
 # Database Schema
 
+## Release 1.7 Pool Operations
+Migration `20260711_release_1_7_pool_operations.sql` adds household-scoped `pool_profiles` with member-read and owner/adult-write RLS. It adds test context/water appearance and richer treatment traceability. It is additive and does not rewrite production history.
+
 ## Release 0.6C Data Foundation
 
 Release 0.6C starts the migration from Release 0.6B browser-local metadata to durable Supabase-backed household data. See `docs/database/RELEASE_0_6C_DATA_FOUNDATION_PLAN.md` for the Milestone 1 audit, current gaps, and proposed schema direction.

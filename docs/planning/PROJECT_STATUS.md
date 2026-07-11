@@ -1,7 +1,9 @@
 # Project Status
 
+Release 1.7.0 is a local release candidate covering Calendar timezone stabilization, More cleanup, and the Pool Operations foundation. No production data, deployment, push, merge, tag, or release action has been performed.
+
 ## Current Version
-1.6 RC1 validation complete; merge approved
+Release 1.7.0 local release candidate; production actions awaiting approval
 
 ## Current State
 Codex autonomy configuration and FamilyOS governance are aligned for complete scoped implementation and release execution. High-impact work retains target verification, recoverability, bounded scope, and post-change validation without routine approval checkpoints.

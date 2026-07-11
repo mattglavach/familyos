@@ -3,6 +3,7 @@ import { TODAY_STR } from "../../lib/dates";
 export const POOL_TEST_CONTEXT_OPTIONS = {
   rain: "Rain",
 };
+export const POOL_TEST_CONTEXTS = ["Routine", "After rain", "Before party", "After party", "Vacation", "Equipment issue", "Algae concern", "Spa use", "Other"];
 
 export const POOL_TEST_FIELD_LABELS = {
   free_chlorine: "FC ppm",
@@ -151,6 +152,8 @@ export function buildPoolReadingRow(form, options = {}) {
     pump_hours: poolTestNumber(form.pump_hours),
     recent_weather_notes: form.recent_weather_notes || "",
     recent_heavy_usage: Boolean(form.recent_heavy_usage),
+    test_context: form.test_context || "Routine",
+    water_appearance: form.water_appearance || "",
     notes: form.notes || "",
   };
 }
