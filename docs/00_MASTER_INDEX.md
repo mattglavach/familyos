@@ -20,6 +20,8 @@ This folder is the operating manual for Family OS.
 ### Governance
 - docs/governance/FamilyOS_Project_Instructions.md
 - docs/prompts/canonical_project_instructions.md
+- .agents/skills/familyos-end-to-end/SKILL.md
+- docs/prompts/familyos_standard_implementation.md
 
 ### Planning
 - docs/planning/ROADMAP.md

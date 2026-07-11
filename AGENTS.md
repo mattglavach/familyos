@@ -1,6 +1,14 @@
 # AGENTS.md
 
-Guidance for coding agents working in this repository.
+Concise guidance for agents working in this repository.
+
+## Canonical Governance
+
+`docs/governance/FamilyOS_Project_Instructions.md` is the canonical FamilyOS governance source. This file is the concise repository entry point. Use specialized documents for current implementation detail and historical records.
+
+Before work, inspect the repository, branch, working tree, and affected dependencies. Read the canonical instructions and relevant product, architecture, integration-contract, release, status, roadmap, and module documentation. Keep current implementation distinct from approved long-term direction.
+
+Use `.agents/skills/familyos-end-to-end/SKILL.md` for FamilyOS implementation, release, documentation, architecture, navigation, module, bug-fix, testing, and repository-maintenance work.
 
 ## Project Overview
 
@@ -72,6 +80,11 @@ Before finishing a change:
 - The worktree may contain user changes. Do not revert unrelated files.
 - Keep generated dependency folders such as `node_modules/` untouched.
 - Prefer concise commits that describe the user-visible or developer-visible behavior changed.
+- GitHub remains the repository source of truth.
+- Review `git status`, `git diff`, and `git diff --check` before completion.
+- Do not commit, push, merge, tag, migrate a database, release, or deploy without explicit product-owner approval.
+- Pause before destructive actions, data deletion, major dependency upgrades, security-sensitive changes, authentication or authorization changes, secrets or environment changes, or actions that could cause data loss or service interruption.
+- Do not pause for routine inspection, local file changes, refactoring, documentation, tests, linting, builds, Git inspection, or non-destructive validation within scope.
 
 ## Family OS v1 Operating Manual
 
@@ -116,6 +129,9 @@ Before making code, database, UI, or architecture changes, read:
 - Update documentation after meaningful changes.
 - Follow the process playbooks for release, feature, validation, security, documentation, git, and review work.
 - Complete full milestones/workstreams when asked; do not stop after implementation if validation, documentation, cleanup, and commit are still required.
+- Complete each release or major feature in one comprehensive implementation pass whenever practical, including code, configuration, tests, validation, and documentation.
+- Apply testing and validation proportional to risk.
+- Do not make unrelated changes.
 - Leave the repository releasable: branch clean, validation run or blocker documented, docs current, and risks explicit.
 
 ### Required Updates After Work

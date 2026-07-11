@@ -1,0 +1,4 @@
+interface:
+  display_name: "FamilyOS End-to-End"
+  short_description: "Complete FamilyOS repository work end to end"
+  default_prompt: "Use $familyos-end-to-end to complete this FamilyOS task end to end, including validation and documentation."

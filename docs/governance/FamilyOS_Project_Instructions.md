@@ -6,7 +6,7 @@ This document is the canonical source of truth for FamilyOS-specific product, ar
 
 Use specialized documents for implementation detail, such as schemas, integration contracts, environment setup, release records, and module specifications. If active FamilyOS guidance conflicts, this document takes precedence. Historical release notes, dated audits, archived plans, and architecture decision records remain valid records of their time and must not be rewritten to match current direction.
 
-The reusable maintenance prompt for this document is `docs/prompts/canonical_project_instructions.md`.
+The reusable maintenance prompt for this document is `docs/prompts/canonical_project_instructions.md`. The standard task template is `docs/prompts/familyos_standard_implementation.md`, and the reusable execution workflow is `.agents/skills/familyos-end-to-end/SKILL.md`.
 
 ## Product Purpose
 
