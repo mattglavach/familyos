@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Fixed Calendar event and detail cards exceeding the normal page width by constraining nested grid columns and safely wrapping long event locations, metadata, titles, and notes.
 - Clarified Settings Calendar status after successful device OAuth: the active device connection now appears first with its account and sync state, while the optional shared household connection is labeled separately and no longer makes a working device connection look disconnected.
 - Implemented Release 1.6 Core Operating Loop Hardening: added app integration contracts for Calendar/Search/Notifications/Quick Add/Home handoffs, best-effort Search/Notification/Home context into Tasks, Calendar, and Life Lists, Tasks Show All/Clear All filter polish, Calendar focus-return status refresh, clearer Calendar refresh copy, and a shared `Button asChild` fix that prevents connected Calendar event links from crashing the screen without schema changes or new modules.
 - Completed the July 10, 2026 FamilyOS implementation planning sprint in `docs/planning/IMPLEMENTATION_PLAN_2026_07_10.md`, covering architecture summary, feature inventory, platform service assessment, technical debt, module readiness, Release 1.6-2.0 sequencing, Context Engine roadmap, design-system gaps, and the recommended Release 1.6 scope without app-code or database changes.

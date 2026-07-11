@@ -94,8 +94,8 @@ function SummaryTile({ label, value, detail, tone = COLORS.blue, icon }) {
 
 function EventCard({ event, todayString, formatDateFull, selected, onSelect }) {
   return (
-    <Card className={selected ? "border-primary" : ""} style={{ borderLeft: `3px solid ${COLORS.blue}` }}>
-      <CardContent className="p-0">
+    <Card className={`min-w-0 max-w-full overflow-hidden ${selected ? "border-primary" : ""}`} style={{ borderLeft: `3px solid ${COLORS.blue}` }}>
+      <CardContent className="min-w-0 p-0">
         <button type="button" onClick={() => onSelect(event.id)} className="block min-h-16 w-full p-4 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -103,7 +103,7 @@ function EventCard({ event, todayString, formatDateFull, selected, onSelect }) {
               <div className="mt-1 text-sm text-muted-foreground">
                 {eventMetaLine(event, todayString, formatDateFull)}
               </div>
-              {event.location && <div className="mt-1 flex items-center gap-1 text-xs leading-5 text-muted-foreground"><MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />{event.location}</div>}
+              {event.location && <div className="mt-1 flex min-w-0 items-start gap-1 text-xs leading-5 text-muted-foreground"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" /><span className="min-w-0 break-words">{event.location}</span></div>}
             </div>
             <Badge variant="blue" className="shrink-0">{event.member || "Family"}</Badge>
           </div>
@@ -127,10 +127,10 @@ function EventCard({ event, todayString, formatDateFull, selected, onSelect }) {
 
 function EventSection({ title, events, emptyTitle, emptyDetail, todayString, formatDateFull, selectedId, onSelect }) {
   return (
-    <section>
+    <section className="min-w-0 max-w-full">
       <SectionHeader title={title} count={events.length} tone={title === "Today" ? "blue" : "neutral"} />
       {events.length ? (
-        <div className="space-y-3">
+        <div className="min-w-0 max-w-full space-y-3">
           {events.map((event, index) => (
             <EventCard
               key={event.id || `${title}-${index}`}
@@ -174,16 +174,16 @@ function EventDetails({ event, todayString, formatDateFull }) {
   ];
 
   return (
-    <Card style={{ borderLeft: `3px solid ${COLORS.blue}` }}>
+    <Card className="min-w-0 max-w-full overflow-hidden" style={{ borderLeft: `3px solid ${COLORS.blue}` }}>
       <CardHeader className="p-4 pb-2">
         <CardTitle className="flex items-center gap-2 text-base">
           <CalendarDays className="h-4 w-4 text-primary" aria-hidden="true" />
           Event Details
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4 px-4 pb-4 pt-0">
+      <CardContent className="min-w-0 space-y-4 px-4 pb-4 pt-0">
         <div>
-          <div className="text-lg font-extrabold leading-tight text-foreground">{event.title}</div>
+          <div className="break-words text-lg font-extrabold leading-tight text-foreground">{event.title}</div>
           <div className="mt-2 flex flex-wrap gap-2">
             <Badge variant="blue">{event.member || "Family"}</Badge>
             <Badge variant="slate">{event.source || "Calendar"}</Badge>
@@ -194,7 +194,7 @@ function EventDetails({ event, todayString, formatDateFull }) {
           {detailRows.map(row => (
             <div key={row.label} className="rounded-lg border border-border bg-secondary/30 p-3">
               <div className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">{row.label}</div>
-              <div className="mt-1 text-sm leading-5 text-foreground">{row.value}</div>
+              <div className="mt-1 break-words text-sm leading-5 text-foreground">{row.value}</div>
             </div>
           ))}
         </div>
@@ -218,7 +218,7 @@ function EventDetails({ event, todayString, formatDateFull }) {
         </div>
         <div>
           <div className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Notes</div>
-          <div className="mt-2 whitespace-pre-wrap rounded-lg border border-border bg-secondary/30 p-3 text-sm leading-6 text-muted-foreground">
+          <div className="mt-2 whitespace-pre-wrap break-words rounded-lg border border-border bg-secondary/30 p-3 text-sm leading-6 text-muted-foreground">
             {event.notes || "No notes listed."}
           </div>
         </div>
@@ -271,7 +271,7 @@ export function Calendar({ calendar = {}, deps = {}, initialView }) {
   }, [initialView]);
 
   return (
-    <div style={S.screen} className="space-y-5">
+    <div style={S.screen} className="min-w-0 max-w-full space-y-5 overflow-x-hidden">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
@@ -368,14 +368,14 @@ export function Calendar({ calendar = {}, deps = {}, initialView }) {
         </Card>
       ) : safeCalendar.connected ? (
         visibleGroupCount ? (
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-            <div className="space-y-5">
+          <div className="grid min-w-0 max-w-full gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+            <div className="min-w-0 space-y-5">
               <EventSection title="Today" events={grouped.today} emptyTitle="Nothing scheduled today" emptyDetail="Connected calendar events for today will appear here." selectedId={selectedEvent?.id} onSelect={setSelectedEventId} todayString={TODAY_STR} formatDateFull={formatDateFull} />
               <EventSection title="Tomorrow" events={grouped.tomorrow} emptyTitle="Nothing scheduled tomorrow" emptyDetail="Tomorrow is clear in the current calendar window." selectedId={selectedEvent?.id} onSelect={setSelectedEventId} todayString={TODAY_STR} formatDateFull={formatDateFull} />
               <EventSection title="This Week" events={grouped.thisWeek} emptyTitle="No other events this week" emptyDetail="Events later this week will appear here." selectedId={selectedEvent?.id} onSelect={setSelectedEventId} todayString={TODAY_STR} formatDateFull={formatDateFull} />
               <EventSection title="Upcoming" events={grouped.upcoming} emptyTitle="No later events" emptyDetail="Events beyond this week will appear here after sync." selectedId={selectedEvent?.id} onSelect={setSelectedEventId} todayString={TODAY_STR} formatDateFull={formatDateFull} />
             </div>
-            <div className="lg:sticky lg:top-24 lg:self-start">
+            <div className="min-w-0 lg:sticky lg:top-24 lg:self-start">
               <EventDetails event={selectedEvent} todayString={TODAY_STR} formatDateFull={formatDateFull} />
             </div>
           </div>
