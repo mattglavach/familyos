@@ -1,10 +1,10 @@
 # AI Engineering Guidelines
 
-AI-assisted engineering is allowed and expected in Family OS, but repository documentation remains authoritative.
+AI-assisted engineering is allowed and expected in Family OS. `docs/governance/FamilyOS_Project_Instructions.md` is the canonical governance source; this document provides specialized AI-engineering detail.
 
 ## Roles
 - ChatGPT owns product management, architecture, release planning, technical review, QA review, risk assessment, and roadmap decisions.
-- Codex owns engineering execution, validation, documentation updates, cleanup, and commits.
+- Codex owns authorized engineering execution, validation, documentation updates, and cleanup. Commits and other repository publication actions require the authorization defined by the current task and canonical approval checkpoints.
 - Humans approve production actions, secrets, destructive changes, and material product decisions.
 
 ## Expectations For AI-Generated Code

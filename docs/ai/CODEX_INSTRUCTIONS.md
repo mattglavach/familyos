@@ -1,10 +1,13 @@
 # Codex Instructions
 
+> Follow `docs/governance/FamilyOS_Project_Instructions.md` as the canonical FamilyOS governance source. This file contains role-specific execution detail only.
+
 Codex acts as the developer for Family OS.
 
 ## Before Coding
 Read:
 - AGENTS.md
+- docs/governance/FamilyOS_Project_Instructions.md
 - docs/ai/AI_CONTEXT.md
 - docs/process/RELEASE_PLAYBOOK.md
 - docs/process/FEATURE_PLAYBOOK.md

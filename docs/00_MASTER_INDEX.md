@@ -3,6 +3,11 @@
 ## Purpose
 This folder is the operating manual for Family OS.
 
+## Canonical Governance
+- `docs/governance/FamilyOS_Project_Instructions.md` is the single canonical source for FamilyOS-specific cross-domain governance.
+- `docs/prompts/canonical_project_instructions.md` is the reusable prompt for maintaining and auditing that governance.
+- Documents below provide specialized implementation detail or historical records. If active guidance conflicts, the canonical governance document controls.
+
 ## Key Documents
 
 ### AI
@@ -11,6 +16,10 @@ This folder is the operating manual for Family OS.
 - docs/ai/CODEX_INSTRUCTIONS.md
 - docs/ai/CLAUDE_INSTRUCTIONS.md
 - docs/ai/PROMPT_LIBRARY.md
+
+### Governance
+- docs/governance/FamilyOS_Project_Instructions.md
+- docs/prompts/canonical_project_instructions.md
 
 ### Planning
 - docs/planning/ROADMAP.md

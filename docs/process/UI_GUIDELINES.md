@@ -2,6 +2,8 @@
 
 This document summarizes execution rules for UI work. `docs/ui/DESIGN_SYSTEM.md` remains the detailed visual source of truth.
 
+It provides specialized UI detail under `docs/governance/FamilyOS_Project_Instructions.md`, including the distinction between the current app shell and approved long-term module architecture.
+
 ## Product UX Rules
 - Apply the Product Owner UX Standards in `docs/product/UX_GUIDELINES.md` to every UI change.
 - Home must remain an awareness layer.

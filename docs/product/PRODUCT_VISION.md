@@ -1,5 +1,7 @@
 # Product Vision
 
+> Canonical governance, AI/data ownership, and current-versus-long-term module direction are defined in `docs/governance/FamilyOS_Project_Instructions.md`. This document provides specialized product vision.
+
 ## Mission
 Family OS helps one household manage daily life, shared responsibilities, home operations, planning, and long-term decisions from one trusted place.
 
@@ -66,6 +68,8 @@ Family OS should grow into a durable household command center:
 Family OS is not only a family calendar, to-do app, or home inventory. It combines household context, shared operating workflows, long-term planning, private data, and future automation in one controlled system.
 
 Existing family organizer apps tend to focus on calendars, chores, shopping, or messaging. Family OS is designed as a modular household operating system where each module shares the same household identity, permissions, design language, and daily dashboard.
+
+FamilyOS is the family's system of record. ChatGPT is the reasoning engine for planning, recommendations, prioritization, summaries, scenarios, and decision support. Recommendations become durable FamilyOS records only after explicit acceptance.
 
 ## Release 1.0 Alignment
 Release 1.0 should focus only on the core operating loop:

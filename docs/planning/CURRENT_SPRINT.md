@@ -4,6 +4,9 @@
 Complete the post-Release 1.5.1 implementation planning sprint by connecting the product vision, engineering principles, design system, architecture decisions, data model, and release strategy to the current codebase without implementing large new features.
 
 ## Active Items
+- [x] Consolidate FamilyOS cross-domain governance into `docs/governance/FamilyOS_Project_Instructions.md` and add its reusable maintenance prompt
+- [x] Reconcile current Home/Tasks/Calendar/Quick Add/More implementation with the approved Dashboard/Calendar/Tasks/Life/Home/Financial Planning target architecture
+- [x] Preserve historical release, audit, decision, implementation, and archived documentation while updating active entry points and conflicting guidance
 - [x] Constrain Calendar event and detail cards to the app-shell width on mobile and desktop
 - [x] Complete FamilyOS implementation planning assessment in `docs/planning/IMPLEMENTATION_PLAN_2026_07_10.md`
 - [x] Define recommended Release 1.6 Core Operating Loop Hardening scope

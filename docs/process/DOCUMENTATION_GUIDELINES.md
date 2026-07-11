@@ -1,6 +1,6 @@
 # Documentation Guidelines
 
-Repository documentation is the single source of truth for Family OS engineering.
+`docs/governance/FamilyOS_Project_Instructions.md` is the single canonical source for FamilyOS cross-domain governance. This document contains specialized documentation-maintenance rules. Other specialized repository documents remain authoritative for their owned implementation details when they do not conflict with canonical governance.
 
 ## When Docs Are Required
 Update docs when work changes:

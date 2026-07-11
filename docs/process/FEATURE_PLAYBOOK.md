@@ -2,6 +2,8 @@
 
 Use this playbook for every feature, module addition, or meaningful user-facing change. It complements the release playbook and keeps feature work scoped before Codex executes.
 
+It provides specialized execution detail under `docs/governance/FamilyOS_Project_Instructions.md`, which controls cross-domain governance and approval checkpoints.
+
 ## Required Feature Brief
 - Problem: what user or operational problem is being solved.
 - Requirements: concrete behavior the feature must provide.

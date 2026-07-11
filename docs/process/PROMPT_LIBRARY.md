@@ -1,13 +1,13 @@
 # Process Prompt Library
 
-These templates assume Codex owns the complete engineering workstream. ChatGPT should fill in release or feature specifics before handing off.
+These templates support complete Codex engineering workstreams under `docs/governance/FamilyOS_Project_Instructions.md`. ChatGPT should fill in release or feature specifics before handoff, and prompts must preserve canonical approval checkpoints.
 
 ## Full Release
 ```text
 You are the lead engineer for Family OS.
 Branch: [branch]
 Mission: complete [release] from specification through validation, docs, and commit.
-Read AGENTS.md, docs/process/FAMILY_OS_PRINCIPLES.md, docs/process/RELEASE_PLAYBOOK.md, and docs/templates/RELEASE_SPEC.md first. Do not add unrelated scope.
+Read AGENTS.md, docs/governance/FamilyOS_Project_Instructions.md, docs/process/RELEASE_PLAYBOOK.md, and docs/templates/RELEASE_SPEC.md first. Do not add unrelated scope.
 Required validation: pnpm run lint, pnpm run build, git diff --check, plus release-specific SQL/RLS/browser checks.
 Deliver: summary, files changed, validation, risks, commit hashes, recommendation.
 ```

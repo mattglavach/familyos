@@ -1,5 +1,7 @@
 # AI Context
 
+> Governance authority: `docs/governance/FamilyOS_Project_Instructions.md`. This file provides the concise AI-role context and must not be treated as a second governance source.
+
 Family OS is a long-term AI-assisted family management application.
 
 ## Tool Roles
@@ -9,7 +11,7 @@ Family OS is a long-term AI-assisted family management application.
 - GitHub: shared source of truth
 
 ## Source of Truth
-The repository documentation is the source of truth. Use docs before assumptions. Process docs in `docs/process/` govern release, feature, validation, review, git, and documentation workflows.
+`docs/governance/FamilyOS_Project_Instructions.md` is the canonical FamilyOS governance source. Use specialized repository docs for current implementation detail and historical records. If active guidance conflicts, follow the canonical document and correct the subordinate reference.
 
 ## Development Expectations
 - Ask for clarification only when needed.

@@ -2,6 +2,8 @@
 
 This document defines environment expectations for Family OS.
 
+It provides specialized environment and deployment detail under `docs/governance/FamilyOS_Project_Instructions.md`.
+
 ## Local
 - Used for development, lint/build validation, and browser smoke tests.
 - `.env.local` is untracked.

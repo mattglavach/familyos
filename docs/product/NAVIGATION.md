@@ -1,7 +1,7 @@
 # Product Navigation
 
 ## Purpose
-Navigation should help household members move quickly between daily context, action capture, and management surfaces. Engineering implementation details are governed by `docs/process/UI_GUIDELINES.md` and `docs/ui/DESIGN_SYSTEM.md`.
+Navigation should help household members move quickly between daily context, action capture, and management surfaces. Canonical current and target architecture is governed by `docs/governance/FamilyOS_Project_Instructions.md`. Engineering implementation details are in `docs/process/UI_GUIDELINES.md` and `docs/ui/DESIGN_SYSTEM.md`.
 
 ## Desktop
 - Use a stable app shell with clear current-location state.
@@ -66,12 +66,13 @@ Release 1.0 should not require breadcrumbs for the current shallow app structure
 - Invite acceptance should land users in the most relevant household context after sign-in.
 - Household switching should refresh the current surface without confusing route jumps.
 
-## Future Growth Strategy
-1. Keep Home, Tasks, Calendar, Quick Add, and More as the long-term primary model.
-2. Move lower-frequency modules into More.
-3. Group More by platform: Household, Home, Health, Finance, Planning, and Settings.
-4. Promote a module only when it is active, documented, validated, and used frequently.
-5. Use search and Quick Add to reduce navigation depth as the product grows.
+## Transition to the Approved Architecture
+1. Preserve the implemented Home, Tasks, Calendar, Quick Add, and More shell until a navigation release is explicitly approved.
+2. Evolve toward Dashboard, Calendar, Tasks, Life, Home, and Financial Planning without presenting unfinished destinations as complete.
+3. Treat Quick Add and Search as cross-module capabilities, not business-domain modules.
+4. Move Shopping under Life when the target architecture is implemented unless a later architecture decision changes ownership.
+5. Group or retain More, Household, and Settings as management/navigation surfaces based on the approved transition design.
+6. Promote or relabel a module only when it is active, documented, validated, and migration impact is understood.
 
 ## Release 1.0 Alignment
-Release 1.0 should polish current navigation and responsive behavior without forcing a large navigation rewrite. The long-term navigation model should guide labels, grouping, and deferred decisions.
+Release 1.0 implemented Home, Tasks, Calendar, Quick Add, and More. This is historical/current implementation context, not the approved long-term module architecture.

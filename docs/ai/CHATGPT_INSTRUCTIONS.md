@@ -1,5 +1,7 @@
 # ChatGPT Instructions
 
+> Follow `docs/governance/FamilyOS_Project_Instructions.md` as the canonical FamilyOS governance source. This file contains role-specific operating detail only.
+
 ChatGPT acts as Product Manager, Solution Architect, QA Lead, and Documentation Lead for Family OS.
 
 ## Responsibilities

@@ -1,10 +1,10 @@
 # Information Architecture
 
 ## Purpose
-This document defines the product structure of Family OS. It describes where users should find household capabilities. Engineering folder structure is governed by `docs/process/PROJECT_STRUCTURE.md` and `docs/architecture/FOLDER_STRUCTURE.md`.
+This document describes current and target product structure. Canonical module ownership and the current-versus-future distinction are governed by `docs/governance/FamilyOS_Project_Instructions.md`. Engineering folder structure is detailed in `docs/process/PROJECT_STRUCTURE.md` and `docs/architecture/FOLDER_STRUCTURE.md`.
 
-## Primary Navigation
-The long-term product navigation should emphasize daily use first:
+## Current Primary Navigation
+The implemented app shell emphasizes daily use through:
 
 - Home
 - Tasks
@@ -12,10 +12,10 @@ The long-term product navigation should emphasize daily use first:
 - Quick Add
 - More
 
-## Home
-Home is the daily command center and morning briefing. It should show priorities, schedule, task load, family activity, quick actions, and household insights.
+## Current Home Dashboard
+The current Home tab is the daily dashboard and morning briefing. It should show priorities, schedule, task load, family activity, quick actions, and household insights.
 
-Home belongs first because every user should be able to open Family OS and understand the day without navigating.
+It belongs first in the current shell because every user should be able to open Family OS and understand the day without navigating. In the approved target architecture this awareness layer is named Dashboard, while Home means the physical-home workspace.
 
 ## Tasks
 Tasks is the shared action system for chores, reminders, responsibilities, and follow-up work.
@@ -30,7 +30,7 @@ Calendar belongs in primary navigation because time conflicts and schedule visib
 ## Quick Add
 Quick Add is the universal capture action for tasks, notes, reminders, events, shopping items, and future module records.
 
-Quick Add belongs in primary navigation or a persistent action location because capture must be fast and available from anywhere.
+Quick Add is a current primary action because capture must be fast and available from anywhere. Long term it remains a cross-module capability rather than a business-domain module.
 
 ## More
 More contains important modules that do not need constant one-tap access for every daily session or are not yet mature enough for primary navigation.
@@ -97,5 +97,15 @@ Settings contains profile, app preferences, household defaults, calendar connect
 
 Settings belongs inside More long-term because it is a management surface, not a daily operating workflow. During Release 1.0, Settings may remain a primary tab if that is the existing validated implementation.
 
-## Release 1.0 IA Position
-Release 1.0 should not force the full long-term IA if implementation risk is high. It should align labels and behavior with this model while preserving existing functionality.
+## Approved Long-Term Architecture
+
+The approved target module architecture is Dashboard, Calendar, Tasks, Life, Home, and Financial Planning. It is not fully implemented.
+
+- Dashboard replaces the current Home label for the awareness layer.
+- Life becomes the owner of lists, shopping, recurring household administration, and family reference information.
+- Home becomes the physical-home workspace for property, maintenance, vendors, projects, pool, yard, appliances, equipment, repairs, service history, and documents.
+- Financial Planning owns retirement, college planning, goals, assumptions, accounts, financial history, and scenarios.
+- Quick Add remains a cross-module capture capability.
+- More, Settings, and Household remain current navigation or management constructs until an approved release changes the shell.
+
+Do not expose this target as implemented or rewrite historical release documentation to match it.

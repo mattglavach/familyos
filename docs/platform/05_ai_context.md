@@ -1,5 +1,7 @@
 # Platform AI Context
 
+> Canonical AI and data ownership are defined in `docs/governance/FamilyOS_Project_Instructions.md`. This document provides specialized AI-context architecture detail.
+
 ## Purpose
 Define how Family OS prepares structured context for AI assistance.
 

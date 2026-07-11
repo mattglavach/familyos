@@ -1,6 +1,6 @@
 # Roadmap Process
 
-This document governs how roadmap changes are proposed, reviewed, and recorded.
+This document provides the specialized process for proposing, reviewing, and recording roadmap changes under `docs/governance/FamilyOS_Project_Instructions.md`.
 
 ## Roles
 - ChatGPT owns product management, roadmap sequencing, architecture review, QA review, and risk assessment.

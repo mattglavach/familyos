@@ -2,6 +2,8 @@
 
 This document is the active coding standard for future Codex work. The older development baseline is archived under `docs/archive/development-baseline/`.
 
+It provides specialized coding detail under `docs/governance/FamilyOS_Project_Instructions.md`.
+
 ## Naming
 - Use descriptive names tied to domain behavior, not implementation accidents.
 - Keep Supabase table, column, RPC, and policy names aligned with database docs.

@@ -2,6 +2,8 @@
 
 This document is the active testing and validation guide. The older development baseline is archived under `docs/archive/development-baseline/`.
 
+It provides specialized validation detail under `docs/governance/FamilyOS_Project_Instructions.md`.
+
 ## Standard Commands
 - Run `pnpm run lint` for code changes.
 - Run `pnpm run build` for frontend/shared changes.

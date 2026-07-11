@@ -1,7 +1,7 @@
 # Engineering Index
 
 ## Purpose
-This index is the entry point for Family OS engineering process documentation. Repository documentation is authoritative; when process guidance conflicts with chat history, follow and update the repository docs.
+This index routes to specialized Family OS engineering process documentation. `docs/governance/FamilyOS_Project_Instructions.md` is the canonical cross-domain governance source. When a process document conflicts with it, follow the canonical document and update the subordinate process reference.
 
 ## Core Operating Docs
 - `docs/process/FAMILY_OS_PRINCIPLES.md`

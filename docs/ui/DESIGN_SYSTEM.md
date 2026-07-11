@@ -39,7 +39,7 @@ Family OS is a mobile-first household operations app. The interface should feel 
 
 ## Navigation Patterns
 - Use bottom tab navigation for primary modules on mobile.
-- Keep primary module labels short: Home, Finance, Pool, Tasks, College.
+- Keep current primary action labels short: Home, Tasks, Calendar, Quick Add, More. Do not treat these current labels as the approved long-term module architecture; see `docs/governance/FamilyOS_Project_Instructions.md`.
 - Use sticky headers for current module context and important global actions.
 - Use tabs or segmented controls for local module views.
 - Use drawers for quick-create and edit workflows that should not navigate away.

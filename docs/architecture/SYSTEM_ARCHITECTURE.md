@@ -1,5 +1,7 @@
 # System Architecture
 
+> Canonical FamilyOS governance and module ownership are defined in `docs/governance/FamilyOS_Project_Instructions.md`. This document provides specialized current-system architecture detail.
+
 ## Current Target Stack
 - React
 - TypeScript

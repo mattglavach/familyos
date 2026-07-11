@@ -2,6 +2,8 @@
 
 Security is a release gate for Family OS.
 
+This document provides specialized security detail under `docs/governance/FamilyOS_Project_Instructions.md`.
+
 ## Authentication
 - Supabase email/password is the primary login path.
 - Magic links are fallback only.

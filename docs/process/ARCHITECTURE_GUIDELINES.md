@@ -2,6 +2,8 @@
 
 This document defines the durable architecture guardrails for Family OS. It complements `docs/architecture/SYSTEM_ARCHITECTURE.md`, `docs/architecture/FOLDER_STRUCTURE.md`, and database documentation.
 
+It provides specialized architecture detail under `docs/governance/FamilyOS_Project_Instructions.md`. The canonical document controls product/module ownership and cross-domain governance.
+
 ## Supabase
 - Supabase is the durable system of record for household data.
 - Browser-visible Supabase anon keys are acceptable only with correct RLS.
