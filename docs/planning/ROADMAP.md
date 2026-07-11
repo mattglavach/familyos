@@ -77,6 +77,8 @@
 - [x] Use Product Handbook and Engineering Handbook together for Release 1.0 implementation planning.
 
 ## Next Release
+- [x] Complete July 10, 2026 implementation planning sprint in `docs/planning/IMPLEMENTATION_PLAN_2026_07_10.md`.
+- [x] Execute Release 1.6 Core Operating Loop Hardening: app-level contracts for Calendar, Search, Notifications, Quick Add, and Home handoffs, lightweight handoff payloads for Search/Notifications/Home, Tasks filter reset polish, Calendar refresh/status clarity, and documented legacy browser Calendar fallback readiness.
 - [x] Release 1.0 planning with `docs/templates/RELEASE_SPEC.md`.
 - [x] Implement Release 1.0 from `docs/planning/RELEASE_1_0_SPEC.md`.
 - [x] Complete Release 1.0 authenticated local/staging smoke validation.
@@ -105,6 +107,15 @@
 - [x] Add Home dashboard Calendar awareness for next event and upcoming schedule rows with direct Calendar navigation.
 - [x] Keep Pool recommendation logic, Finance, Health, Home Assistant, AI Assistant, database schema, and Vercel configuration unchanged.
 - [ ] Complete lint, build, diff-check, desktop authenticated Calendar smoke, 390px authenticated Calendar smoke, Calendar connect/reconnect smoke, Home Calendar card smoke, and error/empty-state smoke before merge readiness.
+
+## Release 1.6 Scope
+- [x] Add `docs/platform/08_integration_contracts.md` for Calendar, Search, Notifications, Quick Add, Home, and module navigation handoffs.
+- [x] Keep Home as an awareness surface while allowing task rows to open Tasks with useful filter/search context.
+- [x] Let Search and Notifications pass best-effort destination context for Tasks, Calendar events, and Life Lists without adding URL routing.
+- [x] Add Tasks Show All wording and Clear All filter reset.
+- [x] Refresh server Calendar connection status on window focus/visibility return and clarify Calendar refresh button copy.
+- [x] Document that legacy browser Calendar fallback remains isolated until deployed server OAuth connect/reconnect/disconnect/event-refresh smoke passes.
+- [x] Keep Home Platform, Financial Planning, Context Engine runtime, durable notification schema, URL routing, and Calendar event creation/editing deferred.
 
 ## Release 1.4.5 Scope
 - [x] Transform Pool dashboard into a decision screen for swim readiness, health, last test, priority next action, chemistry status, recent chemical additions, trends, and retest guidance.

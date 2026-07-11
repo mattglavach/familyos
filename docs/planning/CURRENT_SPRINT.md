@@ -1,9 +1,20 @@
 # Current Sprint
 
 ## Sprint Goal
-Complete Release 1.5.1 Pool & Quick Add UX Polish by standardizing add/edit form layouts, validation placement, compact responsive fields, and save/cancel behavior across Pool, Quick Add, Tasks, Shopping, Meal Planning, and Life Lists without adding modules or changing the database schema.
+Complete the post-Release 1.5.1 implementation planning sprint by connecting the product vision, engineering principles, design system, architecture decisions, data model, and release strategy to the current codebase without implementing large new features.
 
 ## Active Items
+- [x] Complete FamilyOS implementation planning assessment in `docs/planning/IMPLEMENTATION_PLAN_2026_07_10.md`
+- [x] Define recommended Release 1.6 Core Operating Loop Hardening scope
+- [x] Execute Release 1.6 Core Operating Loop Hardening implementation pass
+- [x] Add app integration contracts for Calendar, Search, Notifications, Quick Add, and Home handoffs
+- [x] Add lightweight Search, Notification, Home, Tasks, Calendar, and Life Lists handoff context
+- [x] Add Tasks Show All and Clear All filter reset polish
+- [x] Improve Calendar refresh/status clarity and focus-return status refresh
+- [x] Clarify Settings Calendar connection hierarchy after deployed device OAuth validation
+- [x] Revalidate the updated Settings Calendar state on the deployed RC1 preview
+- [x] Run Release 1.6 lint, build, unit test, and git diff validation
+- [x] Keep Home platform, Financial Planning, and Context Engine implementation deferred
 - [x] Begin Release 1.5.1 Pool & Quick Add UX Polish branch
 - [x] Add shared reusable form components for sections, rows, numeric fields, toggles, notes, date/time entry, footers, delete buttons, and validation summaries
 - [x] Standardize Pool Test and Quick Add Pool Test chemistry fields through shared Pool field metadata and validation helpers
@@ -177,7 +188,8 @@ Complete Release 1.5.1 Pool & Quick Add UX Polish by standardizing add/edit form
 
 ## Blockers
 
-- Release 1.5.1 has no known implementation blocker. Authenticated create/edit/delete smoke validation still needs to run against a reachable local or deployed Supabase environment.
+- Release 1.6 has no known implementation blocker. Local browser smoke is blocked before authenticated app rendering because `.env.local` points Supabase to `http://127.0.0.1:54321`, that auth endpoint refuses local connections, and Docker Desktop is not running in this workspace. Deployed Calendar OAuth connect/reconnect/disconnect smoke validation remains environment-dependent and was not executed in this workspace because it requires authenticated production or staging Google OAuth access.
+- Release 1.5.1 has no known implementation, deployment, or production-smoke blocker after production closeout. `main` contains validated release commit `75faaefdb55f079bd42770ce876a8bdb7dac6293` through merge commit `9196bfa3a617af70d2f546a56062da5a27e6ebb2`; `v1.5.1` points to final production commit `fffe50c250d01ee6c42f3f5a0607044ac98ca81a`; Vercel reports the deployment Ready/Current in Production; authenticated production smoke passed for Pool Test partial save, Quick Add Pool Test open/close, Tasks, Shopping, Meal Planning, Life Lists, 390px no-overflow, 44x44 representative buttons, clean production-app console checks, and no visible save errors.
 - Release 1.5.0 has no known implementation blocker. Authenticated desktop Calendar smoke, 390px Calendar smoke, Calendar connect/reconnect smoke, Home Calendar card smoke, and error/empty-state smoke are blocked in this workspace because local Supabase is unreachable at `127.0.0.1:54321`.
 - Release 0.6B has no active code blockers after local lint/build validation. Real-device family testing and Vercel deployment validation remain before broad use.
 - Release 0.6C has no active production migration blocker after baseline alignment and household foundation validation.
@@ -197,6 +209,7 @@ Complete Release 1.5.1 Pool & Quick Add UX Polish by standardizing add/edit form
 - Preview write validation root cause: the linked FamilyOS Supabase project had household foundation and Calendar schema but was missing Release 0.9 invitations and Release 1.1-1.4 module migrations. Module reads fell back to seed data and all sampled writes failed. The remote database now has the missing module tables, Pool reading context columns, and RLS policies. Task creation also needed to stop sending `task-*` IDs because the remote `tasks.id` column is UUID-backed.
 
 ## Notes
+- Release 1.6 is schema-neutral and adds no new product modules. It defines app-level handoff contracts, improves best-effort context from Search/Notifications/Home into Tasks, Calendar, and Life Lists, adds Tasks filter reset polish, and documents why the legacy browser Calendar fallback remains isolated until deployed server OAuth validation passes.
 - Release 1.5.1 is schema-neutral and uses existing Pool, Tasks, Shopping, Meal Planning, and Life Lists tables. `pnpm run build` passed on July 8, 2026.
 - Frontend foundation now includes Tailwind CSS, shadcn/ui aliases/primitives, Lucide icons, Recharts, and an Origin UI-style drawer component for new feature work.
 - Production build now passes with `CI=true`; remaining deploy validation should happen through Vercel.

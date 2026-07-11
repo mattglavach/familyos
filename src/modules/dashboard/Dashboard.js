@@ -360,7 +360,7 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
     const item = {
       text: task.title,
       color: isOverdue ? COLORS.red : task.is_important ? COLORS.purple : COLORS.amber,
-      nav: "tasks",
+      nav: { tab: "tasks", filter: isOverdue ? "overdue" : days === 0 ? "today" : "all", search: task.title || "" },
       detail: isOverdue ? `${-days}d overdue` : days === 0 ? "Today" : task.is_important ? "Important" : days !== null ? `in ${days}d` : null,
     };
     if (isOverdue) overdue.push(item);
@@ -564,7 +564,7 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
                     item={{
                       text: task.title,
                       color: task.is_important ? COLORS.purple : days !== null && days < 0 ? COLORS.red : COLORS.blue,
-                      nav: "tasks",
+                      nav: { tab: "tasks", search: task.title || "" },
                       detail: days === null ? task.category || "Task" : days < 0 ? `${-days}d overdue` : days === 0 ? "Due today" : `Due in ${days}d`,
                     }}
                     showDivider={index < dashboardTasks.length - 1}
