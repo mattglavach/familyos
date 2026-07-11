@@ -1,5 +1,9 @@
 # Platform Notification Engine
 
+## Release 1.8 attention framework
+
+FamilyOS derives household-scoped attention items for Tasks, Calendar, Pool, and Maintenance. Items carry severity, source and record identifiers, relevant/expiry dates, navigation, acknowledgement compatibility, freshness, and deduplication keys. Duplicate active conditions are collapsed and expired conditions disappear. Push, email, SMS, browser permissions, and background delivery are not implemented.
+
 ## Purpose
 Define the shared reminder and notification architecture for Family OS.
 

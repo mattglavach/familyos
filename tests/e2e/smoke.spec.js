@@ -5,6 +5,7 @@ test("authenticated FamilyOS major-module smoke", async ({ page }) => {
   const failures = monitorPage(page);
   await loginDemoUser(page);
   await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
+  await expect(page.getByText("Schedule annual physical")).toBeVisible();
 
   await navigateModule(page, "Tasks");
   await expect(page.getByText("Schedule annual physical")).toBeVisible();

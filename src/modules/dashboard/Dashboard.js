@@ -1,699 +1,78 @@
 import { useMemo } from "react";
-import {
-  CalendarDays,
-  CalendarCheck,
-  CalendarX,
-  ChevronRight,
-  Clock,
-  DollarSign,
-  GraduationCap,
-  ListChecks,
-  ListTodo,
-  ShoppingCart,
-  Utensils,
-  Waves,
-} from "lucide-react";
+import { CalendarDays, ChevronRight, ListTodo, Wrench, Waves } from "lucide-react";
 import { StatusBadge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { Card, CardContent } from "../../components/ui/card";
 import { EmptyStatePanel } from "../../components/ui/empty-state";
 import { SectionHeader } from "../../components/ui/section-header";
 import { Skeleton } from "../../components/ui/skeleton";
-import { COLORS, MEMBER_COLORS, S } from "../../theme";
-import { normalizeCalendarStatus } from "../../lib/calendarStatus";
+import { useHousehold } from "../../context/HouseholdContext";
+import { buildPoolContext } from "../pool/domainService";
+import { buildHouseholdContext } from "../../services/householdContextService";
+import { COLORS, S } from "../../theme";
+import { formatCalendarEventTime } from "../../lib/calendarTime";
 
-function formatSyncTime(value) {
-  if (!value) return "Not synced yet";
-  const syncedAt = new Date(value);
-  if (Number.isNaN(syncedAt.getTime())) return "Sync time unavailable";
-  return `Synced ${syncedAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
+const severityTone = { Critical: "urgent", High: "urgent", Medium: "warning", Informational: "info" };
+const severityColor = { Critical: COLORS.red, High: COLORS.red, Medium: COLORS.amber, Informational: COLORS.blue };
+
+function AttentionCard({ item, onNavigate }) {
+  return <button type="button" onClick={() => onNavigate(item.navigationDestination)} className="flex min-h-16 w-full items-start gap-3 border-b border-border py-3 text-left last:border-0">
+    <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: severityColor[item.severity] }} />
+    <span className="min-w-0 flex-1"><span className="flex flex-wrap items-center gap-2"><span className="text-sm font-bold text-foreground">{item.title}</span><StatusBadge status={severityTone[item.severity]}>{item.severity}</StatusBadge></span><span className="mt-1 block text-xs leading-5 text-muted-foreground">{item.message}</span></span>
+    <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+  </button>;
+}
+function SummaryCard({ icon: Icon, title, value, detail, onClick, color = COLORS.blue }) {
+  return <button type="button" onClick={onClick} className="min-h-[116px] rounded-lg border border-border bg-card p-3.5 text-left shadow-soft" style={{ borderLeft: `3px solid ${color}` }}>
+    <span className="flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground"><Icon className="h-4 w-4" />{title}</span><ChevronRight className="h-4 w-4 text-muted-foreground" /></span>
+    <span className="mt-3 block text-lg font-extrabold" style={{ color }}>{value}</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">{detail}</span>
+  </button>;
 }
 
-function calendarStatus(calendar) {
-  const normalized = normalizeCalendarStatus(calendar);
-  if (normalized.key === "connected" && calendar.status !== "empty") {
-    return { label: normalized.label, status: normalized.tone, detail: formatSyncTime(calendar.lastSyncedAt) };
-  }
-  if (calendar.status === "empty") return { label: "Connected", status: "info", detail: `${formatSyncTime(calendar.lastSyncedAt)}. No events found.` };
-  return { label: normalized.label, status: normalized.tone, detail: normalized.detail, actionLabel: normalized.actionLabel, actionTarget: normalized.actionTarget };
-}
-
-function getMemberColor(member, fallbackName) {
-  return member?.color || MEMBER_COLORS[fallbackName] || COLORS.slate;
-}
-
-function SectionSkeleton({ rows = 3 }) {
-  return (
-    <Card>
-      <CardContent className="space-y-3 pt-5">
-        {Array.from({ length: rows }, (_, index) => (
-          <div key={index} className="space-y-2">
-            <Skeleton className="h-3.5 w-4/5" />
-            <Skeleton className="h-3 w-2/5" />
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-  );
-}
-
-function ActionRow({ item, showDivider, onNavigate }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onNavigate(item.nav)}
-      className={`flex min-h-12 w-full items-center gap-3 py-2.5 text-left ${showDivider ? "border-b border-border" : ""}`}
-    >
-      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: item.color }} />
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-semibold text-foreground">{item.text}</span>
-        {item.detail && <span className="mt-0.5 block text-xs font-medium" style={{ color: item.color }}>{item.detail}</span>}
-      </span>
-      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-    </button>
-  );
-}
-
-function ModuleCard({ item, onNavigate }) {
-  const Icon = item.icon;
-  return (
-    <button
-      type="button"
-      onClick={() => onNavigate(item.nav)}
-      className="min-h-[132px] rounded-lg border border-border bg-card p-3.5 text-left shadow-soft transition-colors hover:bg-accent"
-      style={{ borderLeft: `3px solid ${item.color}` }}
-    >
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
-          <Icon className="h-4 w-4" aria-hidden="true" />
-          {item.module}
-        </div>
-        <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-      </div>
-      <div className="mb-1 text-sm font-extrabold leading-tight" style={{ color: item.color }}>{item.label}</div>
-      <div className="line-clamp-2 text-xs leading-5 text-muted-foreground">{item.detail}</div>
-    </button>
-  );
-}
-
-function SchedulePanel({
-  calendar,
-  events,
-  onNavigate,
-  todayString,
-  formatDate,
-}) {
-  const status = calendarStatus(calendar);
-
-  if (!calendar.connected) {
-    const canConnect = calendar.canConnect !== false && typeof calendar.connect === "function";
-    return (
-      <Card style={{ borderLeft: `3px solid ${calendar.status === "needs_reauth" || calendar.error ? COLORS.amber : COLORS.slate}` }}>
-        <CardContent className="space-y-3 pt-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 gap-3">
-              <CalendarX className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="text-sm font-semibold text-foreground">Today&apos;s Schedule</div>
-                  <StatusBadge status={status.status}>{status.label}</StatusBadge>
-                </div>
-                <div className="mt-1 text-xs leading-5 text-muted-foreground">{status.detail}</div>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="secondary" size="sm" onClick={() => onNavigate("calendar")}>Calendar</Button>
-              {canConnect ? (
-                <Button type="button" size="sm" onClick={calendar.connect} loading={calendar.loading}>
-                  Connect Google Calendar
-                </Button>
-              ) : (
-                <Button type="button" size="sm" onClick={() => onNavigate(status.actionTarget || "calendar")}>
-                  {status.actionLabel || "Open Calendar"}
-                </Button>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const todayEvents = events.filter(event => event?.date === todayString).slice(0, 3);
-  const futureEvents = events
-    .filter(event => event?.date && event.date >= todayString)
-    .sort((a, b) => `${a.date} ${a.time || ""}`.localeCompare(`${b.date} ${b.time || ""}`));
-  const nextEvent = futureEvents[0] || null;
-  const upcomingEvents = futureEvents.filter(event => event.date !== todayString).slice(0, 3);
-
-  return (
-    <Card style={{ borderLeft: `3px solid ${status.status === "failed" || status.status === "warning" ? COLORS.amber : COLORS.blue}` }}>
-      <CardHeader className="p-4 pb-2">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <CalendarDays className="h-4 w-4 text-primary" aria-hidden="true" />
-              Today&apos;s Schedule
-            </CardTitle>
-            <div className="mt-1 text-xs leading-5 text-muted-foreground">
-              {nextEvent ? `Next: ${nextEvent.title} at ${nextEvent.time || "All day"}` : "No upcoming calendar events in the current window."}
-            </div>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <StatusBadge status={status.status}>{status.label}</StatusBadge>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <Button type="button" variant="secondary" size="icon-xs" aria-label="Refresh calendar" onClick={calendar.refresh} loading={calendar.loading}>
-              <CalendarCheck className="h-4 w-4" aria-hidden="true" />
-            </Button>
-            <Button type="button" variant="secondary" size="xs" onClick={() => onNavigate("calendar")}>Calendar</Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3 px-4 pb-4 pt-0">
-        {calendar.error && (
-          <div className="rounded-lg border border-destructive/35 bg-destructive/10 p-3 text-xs leading-5 text-destructive">
-            {calendar.error}
-          </div>
-        )}
-        {calendar.loading ? (
-          <div className="space-y-3 py-2">
-            <Skeleton className="h-3.5 w-4/5" />
-            <Skeleton className="h-3 w-2/5" />
-            <Skeleton className="h-3.5 w-3/5" />
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {todayEvents.length === 0 ? (
-              <EmptyStatePanel
-                title="No events today"
-                detail={upcomingEvents.length ? "Upcoming events are listed below." : "Open Calendar for the full schedule."}
-                action="Open Calendar"
-                onAction={() => onNavigate("calendar")}
-                className="py-6"
-              />
-            ) : (
-              <div className="space-y-2">
-                {todayEvents.map(event => (
-                  <button key={event.id} type="button" onClick={() => onNavigate("calendar")} className="flex min-h-12 w-full items-center gap-3 rounded-lg border border-border bg-card p-3 text-left transition-colors hover:bg-accent">
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: COLORS.blue }} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold text-foreground">{event.title}</span>
-                      <span className="mt-0.5 block text-xs text-muted-foreground">{event.time || "All day"}</span>
-                    </span>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                  </button>
-                ))}
-              </div>
-            )}
-            {upcomingEvents.length > 0 && (
-              <div className="border-t border-border pt-3">
-                <div className="mb-2 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Upcoming Schedule</div>
-                <div className="space-y-2">
-                  {upcomingEvents.map(event => (
-                    <button key={event.id} type="button" onClick={() => onNavigate("calendar")} className="flex min-h-11 w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-accent">
-                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: getMemberColor(null, event.member) }} />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-foreground">{event.title}</span>
-                        <span className="mt-0.5 block text-xs text-muted-foreground">{formatDate(event.date)} - {event.time || "All day"}</span>
-                      </span>
-                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-// - DASHBOARD -
 export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
-  const {
-    TODAY_DATE, TODAY_STR, daysAgo, daysBetween, formatDate,
-    formatMoneyShort, useTable, calcRetirementProjection, getChemRecommendations,
-  } = deps;
-
-  const deadlines = useTable("college_deadlines", "due_date", true);
+  const { TODAY_STR, useTable, getChemRecommendations } = deps;
+  const household = useHousehold();
+  const tasks = useTable("tasks", "due_date", true);
   const readings = useTable("pool_readings", "logged_at");
-  const assumptions = useTable("retirement_assumptions", "id", true);
-  const accounts = useTable("retirement_accounts", "name", true);
-  const taskData = useTable("tasks", "due_date", true);
   const treatments = useTable("pool_treatments", "logged_at");
-  const lifeLists = useTable("life_lists", "updated_at");
-  const lifeListItems = useTable("life_list_items", "updated_at");
-  const shoppingLists = useTable("shopping_lists", "updated_at");
-  const shoppingItems = useTable("shopping_items", "updated_at");
-  const pantryItems = useTable("pantry_items", "updated_at");
-  const mealPlans = useTable("meal_plans", "updated_at");
-  const recipes = useTable("recipes", "updated_at");
-  const mealAssignments = useTable("meal_assignments", "meal_date", true);
-  const recipeIngredients = useTable("recipe_ingredients", "sort_order", true);
+  const profiles = useTable("pool_profiles", "created_at");
+  const equipment = useTable("pool_equipment", "updated_at");
+  const poolMaintenance = useTable("pool_maintenance", "date");
+  const poolSchedule = useTable("pool_schedule", "last_completed");
+  const homeMaintenance = useTable("home_maintenance", "last_completed");
+  const calendar = secureCalendar.connection ? { connected: secureCalendar.connected, events: secureCalendar.events, loading: secureCalendar.loading, error: secureCalendar.error, updatedAt: secureCalendar.lastFetchedAt } : { connected: Boolean(gc.token), events: gc.events, loading: gc.loading, error: gc.error, updatedAt: gc.lastSyncedAt };
+  const loading = [tasks, readings, treatments, profiles, equipment, poolMaintenance, poolSchedule, homeMaintenance].some(table => table.loading) || calendar.loading;
+  const context = useMemo(() => {
+    const recommendations = readings.data[0] ? getChemRecommendations(readings.data[0], readings.data, null) : [];
+    const poolContext = buildPoolContext({ householdIdentifier: household.householdId, profile: profiles.data[0] || null, readings: readings.data, treatments: treatments.data, equipment: equipment.data, maintenance: poolMaintenance.data, schedule: poolSchedule.data, tasks: tasks.data, recommendations });
+    return buildHouseholdContext({ householdIdentifier: household.householdId, household: household.household, memberCount: household.memberships?.length, timezone: household.householdSettings?.timezone, range: { start: TODAY_STR, end: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10) }, tasks: tasks.data, calendar: calendar.connected ? calendar.events : null, calendarConfigured: calendar.connected, calendarUpdatedAt: calendar.updatedAt, maintenance: homeMaintenance.data, poolContext });
+  }, [TODAY_STR, calendar.connected, calendar.events, calendar.updatedAt, equipment.data, getChemRecommendations, homeMaintenance.data, household.household, household.householdId, household.householdSettings?.timezone, household.memberships?.length, poolMaintenance.data, poolSchedule.data, profiles.data, readings.data, tasks.data, treatments.data]);
+  const todayEvents = context.calendarSummary.today;
+  const upcomingEvents = context.calendarSummary.upcoming.slice(0, 4);
+  const openTasks = context.taskSummary.open.slice(0, 4);
+  const pool = context.poolSummary;
+  const maintenanceDue = context.maintenanceSummary.due;
 
-  async function connectSecureCalendar() {
-    const result = await secureCalendar.connect();
-    if (result?.authorizationUrl) window.location.assign(result.authorizationUrl);
-  }
+  return <div style={S.screen} className="space-y-5 overflow-x-hidden">
+    <section><SectionHeader title="Attention Needed" count={context.attentionItems.length} tone={context.attentionItems.some(item => ["Critical", "High"].includes(item.severity)) ? "red" : "amber"} />
+      <Card><CardContent className="px-4 py-1">{loading ? <div className="space-y-3 py-4"><Skeleton className="h-4 w-4/5" /><Skeleton className="h-4 w-3/5" /></div> : context.attentionItems.length ? context.attentionItems.slice(0, 8).map(item => <AttentionCard key={item.deduplicationKey} item={item} onNavigate={onNavigate} />) : <EmptyStatePanel title="Nothing needs attention today" detail="Tasks, Calendar, Pool, and maintenance are clear based on available data." className="py-8" />}</CardContent></Card>
+    </section>
 
-  const hasServerConnection = Boolean(secureCalendar.connection);
-  const calendar = hasServerConnection
-    ? {
-      mode: "secure",
-      connected: secureCalendar.connected,
-      loading: secureCalendar.loading,
-      error: secureCalendar.error,
-      status: secureCalendar.status,
-      events: secureCalendar.events,
-      lastSyncedAt: secureCalendar.connection?.last_sync_at || secureCalendar.lastFetchedAt,
-      sourceLabel: "Google Calendar",
-      detail: secureCalendar.error || "Connect Google Calendar to show your family schedule.",
-      refresh: secureCalendar.fetchEvents,
-      checkConnection: secureCalendar.refresh,
-      connect: connectSecureCalendar,
-      canConnect: true,
-    }
-    : {
-      mode: "legacy",
-      connected: Boolean(gc.token),
-      loading: gc.loading || gc.status === "syncing" || gc.status === "connecting" || gc.status === "script-loading",
-      error: gc.error,
-      status: gc.status === "synced" ? "connected" : gc.status,
-      events: gc.events,
-      lastSyncedAt: gc.lastSyncedAt,
-      sourceLabel: gc.sourceLabel || "Google Calendar",
-      detail: "Connect Google Calendar to show your family schedule.",
-      refresh: gc.refresh,
-      checkConnection: gc.refresh,
-      connect: gc.signIn,
-      canConnect: Boolean(gc.canConnect),
-    };
+    <section><SectionHeader title="Today" tone="blue" /><div className="grid grid-cols-2 gap-2.5">
+      <SummaryCard icon={ListTodo} title="Tasks" value={`${context.taskSummary.dueToday.length} due`} detail={`${context.taskSummary.overdue.length} overdue`} color={context.taskSummary.overdue.length ? COLORS.red : COLORS.purple} onClick={() => onNavigate({ tab: "tasks", filter: "today" })} />
+      <SummaryCard icon={CalendarDays} title="Calendar" value={`${todayEvents.length} event${todayEvents.length === 1 ? "" : "s"}`} detail={todayEvents[0]?.title || (calendar.connected ? "No events today" : "Calendar unavailable")} onClick={() => onNavigate("calendar")} />
+      <SummaryCard icon={Waves} title="Pool" value={pool.testFreshness?.state || "Unavailable"} detail={pool.attentionItems?.[0]?.title || "Review current Pool status"} color={pool.attentionItems?.length ? COLORS.amber : COLORS.green} onClick={() => onNavigate("pool")} />
+      <SummaryCard icon={Wrench} title="Maintenance" value={`${maintenanceDue.length} due`} detail={maintenanceDue[0]?.title || "No household maintenance due"} color={maintenanceDue.length ? COLORS.amber : COLORS.green} onClick={() => onNavigate("more")} />
+    </div></section>
 
-  const isLoading = [
-    deadlines,
-    readings,
-    assumptions,
-    accounts,
-    taskData,
-    treatments,
-    lifeLists,
-    lifeListItems,
-    shoppingLists,
-    shoppingItems,
-    pantryItems,
-    mealPlans,
-    recipes,
-    mealAssignments,
-    recipeIngredients,
-  ].some(table => table.loading);
+    <section><SectionHeader title="Upcoming" count={upcomingEvents.length} tone="blue" />
+      <Card><CardContent className="px-4 py-2">{upcomingEvents.length ? upcomingEvents.map(event => <button key={event.id || `${event.date}-${event.title}`} type="button" onClick={() => onNavigate({ tab: "calendar", eventId: event.id })} className="flex min-h-12 w-full items-center gap-3 border-b border-border py-2 text-left last:border-0"><CalendarDays className="h-4 w-4 text-primary" /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{event.title || event.summary || "Calendar event"}</span><span className="text-xs text-muted-foreground">{event.date} {formatCalendarEventTime(event)}</span></span></button>) : <EmptyStatePanel title="No upcoming events" detail={calendar.connected ? "The next seven days are open." : "Connect Calendar to include upcoming events."} className="py-7" />}</CardContent></Card>
+    </section>
 
-  const assump = assumptions.data[0];
-  const retProj = assump ? calcRetirementProjection(accounts.data, assump) : null;
-  const lastReading = readings.data[0];
-  const chemRecs = lastReading ? getChemRecommendations(lastReading, readings.data, null) : [];
-  const highChemRecs = chemRecs.filter(rec => rec.priority === "high");
-  const medChemRecs = chemRecs.filter(rec => rec.priority === "med");
-  const poolDaysAgo = lastReading ? daysAgo(lastReading.date) : null;
-  const poolStale = poolDaysAgo !== null && poolDaysAgo >= 3;
+    <section><SectionHeader title="Tasks" count={openTasks.length} tone="purple" action={<Button type="button" variant="ghost" size="xs" onClick={() => onNavigate("tasks")}>View all</Button>} />
+      <Card><CardContent className="px-4 py-2">{openTasks.length ? openTasks.map(task => <button key={task.id} type="button" onClick={() => onNavigate({ tab: "tasks", search: task.title || "" })} className="flex min-h-12 w-full items-center gap-3 border-b border-border py-2 text-left last:border-0"><ListTodo className="h-4 w-4 text-primary" /><span className="min-w-0 flex-1 truncate text-sm font-semibold">{task.title}</span><span className="shrink-0 text-xs text-muted-foreground">{task.due_date || "No date"}</span></button>) : <EmptyStatePanel title="No open tasks" detail="Create a task when the household needs follow-up." action="Add task" onAction={() => onNavigate("quick-add")} className="py-7" />}</CardContent></Card>
+    </section>
 
-  const urgentDeadlines = deadlines.data.filter(deadline => !deadline.completed && daysBetween(deadline.due_date) <= 14);
-  const upcomingDeadlines = deadlines.data.filter(deadline => !deadline.completed && daysBetween(deadline.due_date) > 14 && daysBetween(deadline.due_date) <= 60);
-  const urgentTasks = taskData.data.filter(task => {
-    if (task.completed && !task.recurring_interval_days) return false;
-    if (task.is_important) return true;
-    if (task.due_date && daysBetween(task.due_date) <= 0) return true;
-    return false;
-  });
-
-  const allEvents = useMemo(
-    () => (calendar.connected ? calendar.events : [])
-      .filter(event => event && typeof event === "object")
-      .map((event, index) => {
-        const eventId = event.id || `${event.date || "event"}-${index}`;
-        return {
-          ...event,
-          id: eventId,
-          title: event.title || "Untitled event",
-          member: event.member || "Family",
-          source: event.source || calendar.sourceLabel,
-        };
-      }),
-    [calendar.connected, calendar.events, calendar.sourceLabel]
-  );
-  const next7Days = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(TODAY_DATE);
-    date.setDate(date.getDate() + index);
-    return date.toISOString().split("T")[0];
-  });
-
-  const overdue = [];
-  const thisWeek = [];
-
-  if (poolStale) overdue.push({ text: `Pool not tested in ${poolDaysAgo} days`, color: COLORS.amber, nav: "pool", detail: "Log a reading" });
-  highChemRecs.forEach(rec => overdue.push({ text: rec.action, color: COLORS.red, nav: "pool", detail: null }));
-  medChemRecs.slice(0, 2).forEach(rec => thisWeek.push({ text: rec.action, color: COLORS.amber, nav: "pool", detail: null }));
-  urgentTasks.slice(0, 4).forEach(task => {
-    const days = task.due_date ? daysBetween(task.due_date) : null;
-    const isOverdue = days !== null && days < 0;
-    const item = {
-      text: task.title,
-      color: isOverdue ? COLORS.red : task.is_important ? COLORS.purple : COLORS.amber,
-      nav: { tab: "tasks", filter: isOverdue ? "overdue" : days === 0 ? "today" : "all", search: task.title || "" },
-      detail: isOverdue ? `${-days}d overdue` : days === 0 ? "Today" : task.is_important ? "Important" : days !== null ? `in ${days}d` : null,
-    };
-    if (isOverdue) overdue.push(item);
-    else thisWeek.push(item);
-  });
-  urgentDeadlines.forEach(deadline => {
-    const days = daysBetween(deadline.due_date);
-    const item = {
-      text: deadline.title,
-      color: days <= 4 ? COLORS.red : COLORS.amber,
-      nav: "college",
-      detail: days === 0 ? "Today" : days < 0 ? `${-days}d overdue` : `in ${days}d`,
-    };
-    if (days <= 4) overdue.push(item);
-    else thisWeek.push(item);
-  });
-  allEvents.filter(event => event.date === TODAY_STR).forEach(event => {
-    overdue.push({ text: event.title, color: COLORS.blue, nav: "calendar", detail: event.time || "Today" });
-  });
-  allEvents.filter(event => next7Days.includes(event.date) && event.date !== TODAY_STR).slice(0, 3).forEach(event => {
-    thisWeek.push({
-      text: event.title,
-      color: getMemberColor(null, event.member),
-      nav: "calendar",
-      detail: `${event.time || ""} ${formatDate(event.date)}`.trim(),
-    });
-  });
-
-  const focusItems = [...overdue, ...thisWeek].slice(0, 5);
-  const totalIssues = overdue.length + thisWeek.length;
-  const headline = totalIssues === 0
-    ? "Nothing needs attention right now."
-    : [
-      overdue.length > 0 ? `${overdue.length} item${overdue.length > 1 ? "s" : ""} need action now` : null,
-      thisWeek.length > 0 ? `${thisWeek.length} due this week` : null,
-    ].filter(Boolean).join(", ") + ".";
-
-  const poolColor = highChemRecs.length > 0 ? COLORS.red : medChemRecs.length > 0 ? COLORS.amber : poolStale ? COLORS.amber : COLORS.green;
-  const poolLabel = highChemRecs.length > 0 ? "Action needed" : medChemRecs.length > 0 ? "Monitor" : poolStale ? `${poolDaysAgo}d since test` : "Good";
-  const poolDetail = highChemRecs.length > 0 ? `${highChemRecs[0].action.slice(0, 38)}...` : lastReading ? `pH ${lastReading.ph || "--"} FC ${lastReading.free_chlorine || "--"} Salt ${lastReading.salt || "--"}` : "No readings yet";
-
-  const tasksOverdue = urgentTasks.filter(task => task.due_date && daysBetween(task.due_date) < 0).length;
-  const tasksDueSoon = urgentTasks.filter(task => task.is_important && (!task.due_date || daysBetween(task.due_date) >= 0)).length;
-  const tasksColor = tasksOverdue > 0 ? COLORS.red : tasksDueSoon > 0 ? COLORS.amber : COLORS.green;
-  const tasksLabel = tasksOverdue > 0 ? `${tasksOverdue} overdue` : tasksDueSoon > 0 ? `${tasksDueSoon} this week` : "All clear";
-  const tasksDetail = tasksOverdue > 0 ? `${urgentTasks[0]?.title || ""}`.slice(0, 38) : tasksDueSoon > 0 ? "Important tasks due" : "Nothing overdue";
-
-  const finColor = retProj ? retProj.statusColor : COLORS.slate;
-  const finLabel = retProj ? retProj.statusLabel.split(" - ")[0].split("--")[0].trim().slice(0, 18) : "Add accounts";
-  const finDetail = retProj ? `Age ${assump.retirement_age} - ${retProj.gap > 0 ? `-${formatMoneyShort(retProj.gap)} gap` : `surplus ${formatMoneyShort(-retProj.gap)}`}` : "Add accounts";
-
-  const collegeColor = urgentDeadlines.length > 0 ? COLORS.amber : COLORS.green;
-  const collegeLabel = urgentDeadlines.length > 0 ? `${urgentDeadlines.length} deadline${urgentDeadlines.length > 1 ? "s" : ""}` : upcomingDeadlines.length > 0 ? "Coming up" : "On track";
-  const collegeDetail = urgentDeadlines.length > 0 ? urgentDeadlines[0].title.slice(0, 38) : upcomingDeadlines.length > 0 ? `Next: ${upcomingDeadlines[0].title.slice(0, 32)}` : "No urgent deadlines";
-  const activeLifeLists = lifeLists.data.filter(list => !list.archived && list.visibility !== "personal");
-  const recentLifeItems = lifeListItems.data
-    .filter(item => !item.archived && item.status !== "archived")
-    .sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0))
-    .slice(0, 4);
-  const favoriteLifeLists = activeLifeLists.filter(list => list.favorite).slice(0, 3);
-  const lifeListColor = recentLifeItems.length > 0 || favoriteLifeLists.length > 0 ? COLORS.purple : COLORS.slate;
-  const lifeListLabel = recentLifeItems.length > 0 ? `${recentLifeItems.length} recent` : favoriteLifeLists.length > 0 ? `${favoriteLifeLists.length} favorite` : "Add lists";
-  const lifeListDetail = recentLifeItems[0]?.title || favoriteLifeLists[0]?.name || "Capture family ideas";
-  const neededShoppingItems = shoppingItems.data
-    .filter(item => !item.purchased && !item.archived)
-    .sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0))
-    .slice(0, 4);
-  const lowPantryItems = pantryItems.data
-    .filter(item => !item.archived && (item.reorder_flag || Number(item.current_quantity || 0) <= Number(item.minimum_quantity || 0)))
-    .slice(0, 4);
-  const favoriteShoppingLists = shoppingLists.data.filter(list => !list.archived && list.favorite).slice(0, 3);
-  const shoppingColor = lowPantryItems.length > 0 ? COLORS.amber : neededShoppingItems.length > 0 ? COLORS.green : COLORS.slate;
-  const shoppingLabel = lowPantryItems.length > 0 ? `${lowPantryItems.length} low` : neededShoppingItems.length > 0 ? `${neededShoppingItems.length} needed` : "Add lists";
-  const shoppingDetail = lowPantryItems[0]?.name ? `${lowPantryItems[0].name} low` : neededShoppingItems[0]?.name || favoriteShoppingLists[0]?.name || "Plan the next shop";
-  const recipeById = Object.fromEntries(recipes.data.map(recipe => [recipe.id, recipe]));
-  const todayMeals = mealAssignments.data.filter(item => !item.archived && item.meal_date === TODAY_STR);
-  const upcomingMeals = mealAssignments.data.filter(item => !item.archived && next7Days.includes(item.meal_date) && item.meal_date !== TODAY_STR).slice(0, 3);
-  const mealRecipeIds = new Set([...todayMeals, ...upcomingMeals].map(item => item.recipe_id).filter(Boolean));
-  const mealMissingCount = recipeIngredients.data.filter(ingredient => {
-    if (!mealRecipeIds.has(ingredient.recipe_id) || ingredient.optional) return false;
-    const pantryItem = pantryItems.data.find(item => item.id === ingredient.pantry_item_id || String(item.name || "").toLowerCase() === String(ingredient.ingredient || "").toLowerCase());
-    return !pantryItem || pantryItem.archived || pantryItem.reorder_flag || Number(pantryItem.current_quantity || 0) <= 0;
-  }).length;
-  const favoriteMealPlans = mealPlans.data.filter(plan => !plan.archived && plan.favorite).slice(0, 2);
-  const mealColor = mealMissingCount > 0 ? COLORS.amber : todayMeals.length > 0 ? COLORS.green : COLORS.slate;
-  const mealLabel = mealMissingCount > 0 ? `${mealMissingCount} missing` : todayMeals.length > 0 ? `${todayMeals.length} today` : "Plan meals";
-  const mealDetail = todayMeals[0] ? (recipeById[todayMeals[0].recipe_id]?.title || todayMeals[0].title) : favoriteMealPlans[0]?.name || "Build this week's meals";
-
-  const modules = [
-    { module: "Pool", color: poolColor, label: poolLabel, detail: poolDetail, nav: "pool", icon: Waves },
-    { module: "Tasks", color: tasksColor, label: tasksLabel, detail: tasksDetail, nav: "tasks", icon: ListTodo },
-    { module: "Shopping", color: shoppingColor, label: shoppingLabel, detail: shoppingDetail, nav: "shopping", icon: ShoppingCart },
-    { module: "Meal Planning", color: mealColor, label: mealLabel, detail: mealDetail, nav: "meal-planning", icon: Utensils },
-    { module: "Finance", color: finColor, label: finLabel, detail: finDetail, nav: "finance", icon: DollarSign },
-    { module: "College", color: collegeColor, label: collegeLabel, detail: collegeDetail, nav: "college", icon: GraduationCap },
-    { module: "Life Lists", color: lifeListColor, label: lifeListLabel, detail: lifeListDetail, nav: "life-lists", icon: ListChecks },
-  ];
-  const dashboardTasks = taskData.data
-    .filter(task => !task.completed)
-    .sort((a, b) => {
-      const aDue = a.due_date ? daysBetween(a.due_date) : 9999;
-      const bDue = b.due_date ? daysBetween(b.due_date) : 9999;
-      if (!!b.is_important !== !!a.is_important) return b.is_important ? 1 : -1;
-      return aDue - bDue;
-    })
-    .slice(0, 4);
-
-  const recentActivity = [
-    ...readings.data.slice(0, 2).map(reading => ({ date: reading.date, text: `Pool reading - pH ${reading.ph || "--"} FC ${reading.free_chlorine || "--"}`, color: COLORS.blue })),
-    ...treatments.data.slice(0, 2).map(treatment => {
-      const chemicals = [
-        treatment.muriatic_acid_oz && `${treatment.muriatic_acid_oz}oz acid`,
-        treatment.salt_lbs && `${treatment.salt_lbs}lb salt`,
-        treatment.cya_oz && `${treatment.cya_oz}oz CYA`,
-      ].filter(Boolean);
-      return { date: treatment.date, text: `Treatment - ${chemicals.length > 0 ? chemicals.join(", ") : "maintenance"}`, color: COLORS.green };
-    }),
-    ...deadlines.data.filter(deadline => deadline.completed).slice(0, 1).map(deadline => ({ date: deadline.due_date, text: `College: ${deadline.title}`, color: COLORS.green })),
-    ...neededShoppingItems.slice(0, 2).map(item => ({ date: item.updated_at || item.created_at, text: `Shopping: ${item.name}`, color: COLORS.green })),
-    ...mealAssignments.data.filter(item => !item.archived).slice(0, 2).map(item => ({ date: item.updated_at || item.created_at || item.meal_date, text: `Meal: ${recipeById[item.recipe_id]?.title || item.title}`, color: COLORS.blue })),
-    ...recentLifeItems.slice(0, 2).map(item => ({ date: item.updated_at || item.created_at, text: `Life Lists: ${item.title}`, color: COLORS.purple })),
-  ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 4);
-  const lifeListInsight = [
-    ...favoriteLifeLists.map(list => ({ text: list.name, color: list.color || COLORS.purple, nav: "life-lists", detail: "Favorite list" })),
-    ...recentLifeItems.map(item => ({ text: item.title, color: COLORS.blue, nav: "life-lists", detail: item.status ? item.status.replace(/_/g, " ") : "Recently updated" })),
-  ].slice(0, 5);
-  const shoppingInsight = [
-    ...lowPantryItems.map(item => ({ text: item.name, color: COLORS.amber, nav: "shopping", detail: "Pantry low" })),
-    ...neededShoppingItems.map(item => ({ text: item.name, color: item.priority === "high" ? COLORS.red : COLORS.green, nav: "shopping", detail: item.category || "Needed" })),
-    ...favoriteShoppingLists.map(list => ({ text: list.name, color: list.color || COLORS.green, nav: "shopping", detail: "Favorite list" })),
-  ].slice(0, 5);
-  const mealInsight = [
-    ...todayMeals.map(item => ({ text: recipeById[item.recipe_id]?.title || item.title, color: COLORS.green, nav: "meal-planning", detail: item.meal_type ? item.meal_type.replace(/^\w/, letter => letter.toUpperCase()) : "Today" })),
-    ...upcomingMeals.map(item => ({ text: recipeById[item.recipe_id]?.title || item.title, color: COLORS.blue, nav: "meal-planning", detail: formatDate(item.meal_date) })),
-    ...favoriteMealPlans.map(plan => ({ text: plan.name, color: COLORS.purple, nav: "meal-planning", detail: "Favorite plan" })),
-  ].slice(0, 5);
-
-  return (
-    <div style={S.screen} className="space-y-5">
-      <Card className="overflow-hidden" style={{ borderTop: `3px solid ${totalIssues === 0 ? COLORS.green : overdue.length > 0 ? COLORS.red : COLORS.amber}` }}>
-        <CardContent className="p-4">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Today&apos;s Priorities</div>
-            <div className="flex items-center gap-2">
-              <StatusBadge status={totalIssues === 0 ? "healthy" : overdue.length > 0 ? "urgent" : "warning"}>
-                {totalIssues === 0 ? "All clear" : overdue.length > 0 ? `${overdue.length} urgent` : `${thisWeek.length} due`}
-              </StatusBadge>
-            </div>
-          </div>
-          <div className="mb-1 text-2xl font-extrabold leading-tight tracking-normal" style={{ color: totalIssues === 0 ? COLORS.green : overdue.length > 0 ? COLORS.red : COLORS.amber }}>
-            {totalIssues === 0 ? "All clear" : overdue.length > 0 ? `${overdue.length} urgent` : `${thisWeek.length} this week`}
-          </div>
-          <p className="mb-2 text-sm leading-6 text-muted-foreground">{headline}</p>
-          {isLoading ? (
-            <div className="space-y-3 pt-2">
-              <Skeleton className="h-3.5 w-4/5" />
-              <Skeleton className="h-3.5 w-3/5" />
-            </div>
-          ) : focusItems.length > 0 ? (
-            <div className="mt-3 border-t border-border">
-              {focusItems.map((item, index) => (
-                <ActionRow
-                  key={`${item.text}-${index}`}
-                  item={item}
-                  showDivider={index < focusItems.length - 1}
-                  onNavigate={onNavigate}
-                />
-              ))}
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      <section>
-        <SectionHeader title="Household Insights" count={modules.length} tone="blue" />
-        <div className="grid grid-cols-2 gap-2.5">
-          {modules.map(item => <ModuleCard key={item.module} item={item} onNavigate={onNavigate} />)}
-        </div>
-      </section>
-
-      <SchedulePanel
-        calendar={calendar}
-        events={allEvents}
-        onNavigate={onNavigate}
-        todayString={TODAY_STR}
-        formatDate={formatDate}
-      />
-
-      <section>
-        <SectionHeader title="My Tasks" count={dashboardTasks.length} tone="purple" action={<Button type="button" variant="ghost" size="xs" onClick={() => onNavigate("tasks")}>View all</Button>} />
-        {isLoading ? (
-          <SectionSkeleton rows={2} />
-        ) : dashboardTasks.length ? (
-          <Card>
-            <CardContent className="px-4 py-2">
-              {dashboardTasks.map((task, index) => {
-                const days = task.due_date ? daysBetween(task.due_date) : null;
-                return (
-                  <ActionRow
-                    key={task.id || `${task.title}-${index}`}
-                    item={{
-                      text: task.title,
-                      color: task.is_important ? COLORS.purple : days !== null && days < 0 ? COLORS.red : COLORS.blue,
-                      nav: { tab: "tasks", search: task.title || "" },
-                      detail: days === null ? task.category || "Task" : days < 0 ? `${-days}d overdue` : days === 0 ? "Due today" : `Due in ${days}d`,
-                    }}
-                    showDivider={index < dashboardTasks.length - 1}
-                    onNavigate={onNavigate}
-                  />
-                );
-              })}
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <EmptyStatePanel
-              icon={<ListTodo className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />}
-              title="No open tasks"
-              detail="Create a household task when something needs follow-up."
-              action="Add task"
-              onAction={() => onNavigate("quick-add")}
-              className="py-8"
-            />
-          </Card>
-        )}
-      </section>
-
-      <section>
-        <SectionHeader title="Life Lists" count={lifeListInsight.length} tone="purple" action={<Button type="button" variant="ghost" size="xs" onClick={() => onNavigate("life-lists")}>View all</Button>} />
-        {isLoading ? (
-          <SectionSkeleton rows={2} />
-        ) : lifeListInsight.length ? (
-          <Card>
-            <CardContent className="px-4 py-2">
-              {lifeListInsight.map((item, index) => (
-                <ActionRow key={`${item.text}-${index}`} item={item} showDivider={index < lifeListInsight.length - 1} onNavigate={onNavigate} />
-              ))}
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <EmptyStatePanel
-              icon={<ListChecks className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />}
-              title="No Life Lists yet"
-              detail="Create a list for ideas, books, movies, places, gifts, or plans."
-              action="Open Life Lists"
-              onAction={() => onNavigate("life-lists")}
-              className="py-8"
-            />
-          </Card>
-        )}
-      </section>
-
-      <section>
-        <SectionHeader title="Shopping" count={shoppingInsight.length} tone="green" action={<Button type="button" variant="ghost" size="xs" onClick={() => onNavigate("shopping")}>View all</Button>} />
-        {isLoading ? (
-          <SectionSkeleton rows={2} />
-        ) : shoppingInsight.length ? (
-          <Card>
-            <CardContent className="px-4 py-2">
-              {shoppingInsight.map((item, index) => (
-                <ActionRow key={`${item.text}-${index}`} item={item} showDivider={index < shoppingInsight.length - 1} onNavigate={onNavigate} />
-              ))}
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <EmptyStatePanel
-              icon={<ShoppingCart className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />}
-              title="No shopping items yet"
-              detail="Create a list or pantry item when the household needs something."
-              action="Open Shopping"
-              onAction={() => onNavigate("shopping")}
-              className="py-8"
-            />
-          </Card>
-        )}
-      </section>
-
-      <section>
-        <SectionHeader title="Meal Planning" count={mealInsight.length} tone="blue" action={<Button type="button" variant="ghost" size="xs" onClick={() => onNavigate("meal-planning")}>View all</Button>} />
-        {isLoading ? (
-          <SectionSkeleton rows={2} />
-        ) : mealInsight.length ? (
-          <Card>
-            <CardContent className="px-4 py-2">
-              {mealInsight.map((item, index) => (
-                <ActionRow key={`${item.text}-${index}`} item={item} showDivider={index < mealInsight.length - 1} onNavigate={onNavigate} />
-              ))}
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <EmptyStatePanel
-              icon={<Utensils className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />}
-              title="No meals planned yet"
-              detail="Create a meal plan and add recipes for the week."
-              action="Open Meal Planning"
-              onAction={() => onNavigate("meal-planning")}
-              className="py-8"
-            />
-          </Card>
-        )}
-      </section>
-
-      <section>
-        <SectionHeader title="Recent Activity" tone="blue" />
-        {isLoading ? (
-          <SectionSkeleton rows={2} />
-        ) : recentActivity.length > 0 ? (
-          <Card>
-            <CardContent className="px-4 py-2">
-              {recentActivity.map((activity, index) => (
-                <div key={`${activity.text}-${index}`} className={`flex min-h-11 items-center gap-3 py-2 ${index < recentActivity.length - 1 ? "border-b border-border" : ""}`}>
-                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: activity.color }} />
-                  <div className="min-w-0 flex-1 truncate text-sm text-secondary-foreground">{activity.text}</div>
-                  <div className="shrink-0 text-xs text-muted-foreground">{formatDate(activity.date)}</div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <EmptyStatePanel
-              icon={<Clock className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />}
-              title="No recent activity"
-              detail="Completed work and new readings will appear here."
-              className="py-8"
-            />
-          </Card>
-        )}
-      </section>
-
-    </div>
-  );
+    <section><SectionHeader title="Pool" tone="blue" /><Card><CardContent className="grid gap-3 p-4 sm:grid-cols-3"><div><div className="text-xs font-bold uppercase text-muted-foreground">Test</div><div className="mt-1 text-sm font-bold">{pool.testFreshness?.state || "Unavailable"}</div></div><div><div className="text-xs font-bold uppercase text-muted-foreground">Retests</div><div className="mt-1 text-sm font-bold">{pool.pendingRetests?.length || 0} pending</div></div><div><div className="text-xs font-bold uppercase text-muted-foreground">Data gaps</div><div className="mt-1 text-sm font-bold">{pool.dataCompletenessFlags?.length || 0}</div></div><Button type="button" variant="secondary" className="sm:col-span-3" onClick={() => onNavigate("pool")}>Open Pool Operations</Button></CardContent></Card></section>
+  </div>;
 }

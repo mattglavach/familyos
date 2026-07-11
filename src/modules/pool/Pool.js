@@ -318,7 +318,7 @@ export function Pool() {
     }),
     [latest, maintenance.data, readings.data, schedule.data, treatments.data]
   );
-  const poolContext = useMemo(() => buildPoolContext({ profile: profiles.data[0] || null, readings: readings.data, treatments: treatments.data, equipment: equipment.data, tasks: tasks.data, recommendations }), [equipment.data, profiles.data, readings.data, recommendations, tasks.data, treatments.data]);
+  const poolContext = useMemo(() => buildPoolContext({ householdIdentifier: household.householdId, profile: profiles.data[0] || null, readings: readings.data, treatments: treatments.data, equipment: equipment.data, maintenance: maintenance.data, schedule: schedule.data, tasks: tasks.data, recommendations }), [equipment.data, household.householdId, maintenance.data, profiles.data, readings.data, recommendations, schedule.data, tasks.data, treatments.data]);
   const health = getPoolHealth(latest, recommendations);
   const nextAction = recommendations[0];
   const readiness = swimReadiness(latest, recommendations);
@@ -633,6 +633,18 @@ export function Pool() {
           <Button type="button" variant="secondary" className="flex-1" onClick={() => nextAction && openReview(nextAction)} disabled={!editable || !nextAction || nextAction.priority === "low"}>Review</Button>
         </div>
         {!editable && <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 10 }}>Viewer access is read-only for Pool actions.</div>}
+      </div>
+
+      <div style={{ ...S.card, marginBottom: 14 }}>
+        <div style={{ fontSize: 16, fontWeight: 900, marginBottom: 10 }}>Operational Intelligence</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 8 }}>
+          {metric("Pending Retests", poolContext.pendingRetests.length, poolContext.pendingRetests.some(item => item.status === "overdue") ? COLORS.red : COLORS.blue, poolContext.pendingRetests.some(item => item.status === "overdue") ? "Follow-up overdue" : "Human follow-up")}
+          {metric("FC Demand", poolContext.chlorineDemandSummary.state === "observed" ? `${poolContext.chlorineDemandSummary.observedDailyFcDemand} ppm/day` : "Unavailable", COLORS.blue, poolContext.chlorineDemandSummary.state.replace(/-/g, " "))}
+          {metric("pH Rise", poolContext.phRiseSummary.state === "observed" ? `${poolContext.phRiseSummary.typicalObservedRise}` : "Unavailable", COLORS.blue, poolContext.phRiseSummary.state.replace(/-/g, " "))}
+          {metric("Data Gaps", poolContext.dataCompletenessFlags.length, poolContext.dataCompletenessFlags.length ? COLORS.amber : COLORS.green, poolContext.dataCompletenessFlags.slice(0, 2).map(item => item.replace(/-/g, " ")).join(", ") || "Complete")}
+        </div>
+        <div style={{ fontSize: 12, color: COLORS.slate, lineHeight: 1.5, marginTop: 10 }}>Trend and demand summaries are observed history, not predictions or automatic dosing instructions. Review current conditions and confirm every action.</div>
+        {poolContext.pendingRetests.slice(0, 3).map(item => <div key={item.treatmentId} style={{ borderLeft: `3px solid ${item.status === "overdue" ? COLORS.red : COLORS.amber}`, padding: "7px 0 7px 10px", marginTop: 8 }}><div style={{ fontSize: 13, fontWeight: 900 }}>Retest {item.status}</div><div style={{ fontSize: 12, color: COLORS.slateLight }}>Expected {item.expectedRetestAt ? new Date(item.expectedRetestAt).toLocaleString() : "after treatment"}. Edit the treatment to record notes and observed outcome.</div></div>)}
       </div>
 
       {poolActionError && (

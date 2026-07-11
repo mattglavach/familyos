@@ -204,6 +204,7 @@ A feature or release is complete only when applicable criteria are satisfied:
 - The result is ready for product validation or the next explicitly approved release action.
 
 Development demo accounts, seeded data, test credentials, and auto-login must remain confined to local or explicitly designated non-production environments. Auto-login must fail closed outside localhost development builds. Detailed controls are maintained in `docs/process/DEVELOPMENT_TESTING_INFRASTRUCTURE.md`.
+Demo seeding must verify an exact expected target before creating an administrative client or mutating data, and may delete only the deterministically identified demo household after ownership and membership checks pass. Production builds must compile out development auto-login and pass the bundle marker scan.
 
 ## Documentation Governance
 

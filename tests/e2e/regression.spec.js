@@ -1,13 +1,54 @@
 const { test, expect } = require("@playwright/test");
-const { loginDemoUser, navigateModule } = require("./helpers/app");
+const { loginDemoUser, logoutDemoUser, navigateModule } = require("./helpers/app");
 
 test("authentication can sign out and sign back in", async ({ page }) => {
   await loginDemoUser(page);
-  await navigateModule(page, "More");
-  await page.getByRole("button", { name: /^Settings/ }).click();
-  await page.getByRole("button", { name: /Sign out/i }).click();
-  await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+  await logoutDemoUser(page);
   await loginDemoUser(page);
+});
+
+test("task completion persists after reload and can be reopened", async ({ page }) => {
+  await loginDemoUser(page);
+  await navigateModule(page, "Tasks");
+  const title = "Take recycling to curb";
+  await page.getByRole("button", { name: `Complete ${title}` }).click();
+  await page.reload();
+  await navigateModule(page, "Tasks");
+  await page.getByRole("button", { name: "Completed", exact: true }).click();
+  await expect(page.getByRole("button", { name: `Reopen ${title}` })).toBeVisible();
+  await page.getByRole("button", { name: `Reopen ${title}` }).click();
+  await expect(page.getByText(title)).toBeVisible();
+});
+
+test("task mutation failure shows a controlled error", async ({ page }) => {
+  await loginDemoUser(page);
+  await page.route("**/rest/v1/tasks*", async route => {
+    if (route.request().method() === "PATCH") return route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ message: "controlled test failure" }) });
+    return route.continue();
+  });
+  await navigateModule(page, "Tasks");
+  await page.getByRole("button", { name: "Complete Take recycling to curb" }).click();
+  await expect(page.getByText("Task could not be completed right now.")).toBeVisible();
+});
+
+test("tasks shows a meaningful empty state", async ({ page }) => {
+  await loginDemoUser(page);
+  await page.route("**/rest/v1/tasks*", route => route.request().method() === "GET"
+    ? route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+    : route.continue());
+  await navigateModule(page, "Tasks");
+  await expect(page.getByText("Create your first task")).toBeVisible();
+});
+
+test("tasks exposes a loading state during a delayed request", async ({ page }) => {
+  await loginDemoUser(page);
+  await page.route("**/rest/v1/tasks*", async route => {
+    if (route.request().method() === "GET") await new Promise(resolve => setTimeout(resolve, 1200));
+    await route.continue();
+  });
+  const navigation = navigateModule(page, "Tasks");
+  await expect(page.getByTestId("tasks-loading")).toBeVisible();
+  await navigation;
 });
 
 test("task CRUD round trip", async ({ page }) => {

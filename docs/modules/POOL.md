@@ -1,5 +1,11 @@
 # Pool
 
+## Release 1.8 Optimization Contract
+
+The `familyos.pool-context` contract is version 2.0. It retains compatibility fields while adding profile summary, latest complete test, freshness, chemistry status, pending retests, chlorine-demand summary, pH-rise summary, maintenance and equipment status, open Pool Tasks, data-completeness flags, deterministic attention items, trend summaries, and explicit safety constraints.
+
+Trend states distinguish rising, falling, stable, insufficient, stale, and irregular records. These are observed history, not predictions. Chlorine-demand intervals contaminated by treatments are excluded. Neither summary changes SWG output or generates a dose by itself. All actions remain human-confirmed.
+
 ## Release 1.7 Operations Contract
 FamilyOS owns the Pool profile, measurements, treatment/equipment history, targets, deterministic calculations, safety constraints, timing rules, status, trends, linked Tasks, and structured context. ChatGPT may explain, interpret, plan, diagnose, and optimize, but is not the source of dosage, compatibility, or swim-safety rules. The `familyos.pool-context` v1.0 contract supplies scoped profile, history, equipment, open Tasks, warnings, recommendations, and data-quality context.
 

@@ -1,5 +1,9 @@
 # Dashboard
 
+## Release 1.8 command center
+
+Dashboard now answers, "What needs the household's attention today?" It consumes the Household Context Service and shows deterministically ordered Attention Needed, Today, Upcoming, Tasks, Calendar, Pool, and Maintenance summaries. Each item routes to its owning module.
+
 ## Purpose
 Home is the family's Morning Briefing. It should answer what needs attention today, what is happening next, who is involved, and what action should happen now.
 

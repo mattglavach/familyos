@@ -13,6 +13,14 @@ const timeFormatter = new Intl.DateTimeFormat("en-US", {
   minute: "2-digit",
 });
 
+const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: FAMILYOS_TIME_ZONE,
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+});
+
 function parts(value, formatter) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
@@ -35,4 +43,34 @@ export function normalizeCalendarEventTime(start = {}) {
     allDay: false,
     sourceTimeZone: start.timeZone || "",
   };
+}
+
+/** Normalize either a provider event or a FamilyOS event at every client boundary. */
+export function normalizeCalendarEvent(event = {}) {
+  const providerStart = event.providerStart || event.start;
+  const start = providerStart && typeof providerStart === "object"
+    ? providerStart
+    : event.allDay
+      ? { date: providerStart || event.date, timeZone: event.sourceTimeZone }
+      : { dateTime: providerStart, timeZone: event.sourceTimeZone };
+  const normalized = normalizeCalendarEventTime(start);
+  if (!normalized.start) return { ...event, providerStart: providerStart || "" };
+  return {
+    ...event,
+    ...normalized,
+    providerStart: normalized.start,
+    providerTimeZone: start.timeZone || event.providerTimeZone || event.sourceTimeZone || (normalized.allDay ? "date-only" : ""),
+  };
+}
+
+export function formatCalendarEventTime(event = {}) {
+  const normalized = normalizeCalendarEvent(event);
+  return normalized.allDay ? "All day" : normalized.time || "Time unavailable";
+}
+
+export function formatCalendarEventDateTime(event = {}) {
+  const normalized = normalizeCalendarEvent(event);
+  if (normalized.allDay) return normalized.date || "Date unavailable";
+  const date = new Date(normalized.start);
+  return Number.isNaN(date.getTime()) ? "Date unavailable" : dateTimeFormatter.format(date);
 }

@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { normalizeCalendarEventTime } from "../src/lib/calendarTime";
 
 const DEFAULT_ALLOWED_ORIGINS = [
   "http://localhost:3000",
@@ -12,7 +13,6 @@ const GOOGLE_SCOPES = [
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 const TOKEN_REFRESH_SKEW_MS = 5 * 60 * 1000;
 const CALENDAR_SETUP_ERROR = "Google Calendar is not configured for this environment.";
-const FAMILYOS_TIME_ZONE = "America/New_York";
 
 function getSupabaseUrl() {
   return process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL || "";
@@ -189,27 +189,25 @@ function normalizedStatus(rows) {
   };
 }
 
-function normalizeGoogleEvent(event, index, source) {
+export function normalizeGoogleEvent(event, index, source) {
   const start = event.start?.dateTime || event.start?.date || "";
   if (!start) return null;
-  const allDay = !event.start?.dateTime;
-  const startDate = new Date(start);
+  const normalized = normalizeCalendarEventTime(event.start || {});
   const end = event.end?.dateTime || event.end?.date || "";
-  if (!allDay && Number.isNaN(startDate.getTime())) return null;
-  const dateParts = allDay ? null : Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: FAMILYOS_TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(startDate).map(part => [part.type, part.value]));
-  const date = allDay ? event.start.date : `${dateParts.year}-${dateParts.month}-${dateParts.day}`;
-  const time = allDay
-    ? "All day"
-    : startDate.toLocaleTimeString("en-US", { timeZone: FAMILYOS_TIME_ZONE, hour: "numeric", minute: "2-digit" });
+  if (!normalized.date) return null;
   return {
     id: event.id || String(index),
     title: event.summary || "(No title)",
-    date,
-    start,
+    date: normalized.date,
+    start: normalized.start,
+    providerStart: start,
     end,
-    time,
-    allDay,
-    sourceTimeZone: event.start?.timeZone || (allDay ? "date-only" : ""),
+    time: normalized.time,
+    allDay: normalized.allDay,
+    sourceTimeZone: normalized.sourceTimeZone,
+    providerTimeZone: event.start?.timeZone || normalized.sourceTimeZone,
+    originalStartTime: event.originalStartTime || null,
+    recurringEventId: event.recurringEventId || "",
     location: event.location || "",
     description: event.description || "",
     notes: event.description || "",

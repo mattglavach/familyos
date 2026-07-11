@@ -285,7 +285,7 @@ function ConfirmDialog({ open, title, description, confirmLabel, onConfirm, onCa
 
 function TaskSkeleton() {
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-testid="tasks-loading">
       {[0, 1, 2].map(index => (
         <Card key={index}>
           <CardContent className="space-y-3 p-4">
@@ -346,12 +346,12 @@ function TaskCard({ task, members, daysBetween, formatDate, onEdit, onComplete, 
           </Select>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
             {task.status === "Completed" ? (
-              <Button type="button" variant="secondary" size="sm" onClick={() => onReopen(task)}>
+              <Button type="button" variant="secondary" size="sm" aria-label={`Reopen ${task.title}`} onClick={() => onReopen(task)}>
                 <RotateCcw className="h-4 w-4" aria-hidden="true" />
                 Reopen
               </Button>
             ) : (
-              <Button type="button" size="sm" onClick={() => onComplete(task)}>
+              <Button type="button" size="sm" aria-label={`Complete ${task.title}`} onClick={() => onComplete(task)}>
                 <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
                 Complete
               </Button>

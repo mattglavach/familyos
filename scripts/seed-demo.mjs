@@ -1,5 +1,6 @@
 import { config as loadEnv } from "dotenv";
 import { createClient } from "@supabase/supabase-js";
+import { createVerifiedAdmin, DEMO_HOUSEHOLD_ID, DEMO_HOUSEHOLD_KEY, DEMO_HOUSEHOLD_NAME, verifyDemoState, verifyFreshBootstrapState } from "./lib/demoSeedSafety.mjs";
 
 loadEnv({ path: ".env.local" });
 loadEnv({ path: ".env.test.local", override: true });
@@ -13,12 +14,13 @@ const environment = (process.env.FAMILYOS_ENV || "").toLowerCase();
 function fail(message) { throw new Error(`[seed:demo] ${message}`); }
 if (!url || !serviceKey || !password) fail("SUPABASE_URL (or REACT_APP_SUPABASE_URL), SUPABASE_SERVICE_ROLE_KEY, and DEMO_USER_PASSWORD are required.");
 if (!email.endsWith("@familyos.app")) fail("Demo email must use the familyos.app domain.");
-if (!["development", "test", "local"].includes(environment)) fail("FAMILYOS_ENV must be development, test, or local.");
-const localTarget = /localhost|127\.0\.0\.1/.test(url);
-if (!localTarget && process.env.DEMO_SEED_ALLOW_REMOTE_TEST !== "true") fail("Remote seeding is disabled. Set DEMO_SEED_ALLOW_REMOTE_TEST=true only for a dedicated non-production Supabase project.");
-if (/prod|production/i.test(url) || environment === "production") fail("Refusing to seed a production-like target.");
-
-const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+const { target, admin } = createVerifiedAdmin({
+  url,
+  environment,
+  allowRemote: process.env.DEMO_SEED_ALLOW_REMOTE_TEST,
+  expectedProjectRef: process.env.DEMO_SEED_EXPECTED_PROJECT_REF,
+  expectedUrl: process.env.DEMO_SEED_EXPECTED_URL,
+}, verifiedUrl => createClient(verifiedUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } }));
 const iso = (days = 0) => new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
 const stamp = (days = 0, hour = 12) => `${iso(days)}T${String(hour).padStart(2, "0")}:00:00.000Z`;
 
@@ -41,20 +43,27 @@ async function insert(table, rows) {
   return query(`insert ${table}`, admin.from(table).insert(rows).select());
 }
 
-console.log(`[seed:demo] Resetting ${email} in ${environment}.`);
+console.log(`[seed:demo] Verified ${target.projectRef} (${target.hostname}); resetting ${email}.`);
 const existing = await findUser();
+const demoHouseholds = await query("find deterministic demo household", admin.from("households").select("id,name,created_by_user_id,bootstrap_migration_key").eq("id", DEMO_HOUSEHOLD_ID));
+const keyedHouseholds = await query("find keyed demo household", admin.from("households").select("id,name,created_by_user_id,bootstrap_migration_key").eq("bootstrap_migration_key", DEMO_HOUSEHOLD_KEY));
+const demoMemberships = await query("inspect demo household memberships", admin.from("household_members").select("household_id,user_id,role,status").eq("household_id", DEMO_HOUSEHOLD_ID));
+const userMemberships = existing ? await query("inspect demo user memberships", admin.from("household_members").select("household_id,user_id,role,status").eq("user_id", existing.id)) : [];
+const verifiedState = verifyDemoState({ demoUser: existing, demoHouseholds, keyedHouseholds, demoMemberships, userMemberships });
+if (verifiedState.household) await query("delete deterministic demo household", admin.from("households").delete().eq("id", DEMO_HOUSEHOLD_ID));
 if (existing) {
-  const memberships = await query("find demo households", admin.from("household_members").select("household_id").eq("user_id", existing.id));
-  for (const membership of memberships || []) await query("delete demo household", admin.from("households").delete().eq("id", membership.household_id));
   await query("delete demo auth user", admin.auth.admin.deleteUser(existing.id));
 }
 
 const created = await query("create demo auth user", admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { display_name: "Alex Demo" } }));
 const userId = created.user.id;
-const bootstrapMemberships = await query("find bootstrap household", admin.from("household_members").select("household_id").eq("user_id", userId));
-for (const membership of bootstrapMemberships || []) await query("delete bootstrap household", admin.from("households").delete().eq("id", membership.household_id));
+const freshHouseholds = await query("inspect new user bootstrap household", admin.from("households").select("id,created_by_user_id,bootstrap_source_user_id,bootstrap_migration_key").eq("bootstrap_source_user_id", userId));
+const freshUserMemberships = await query("inspect new user bootstrap memberships", admin.from("household_members").select("household_id,user_id,role,status").eq("user_id", userId));
+const freshMemberships = freshHouseholds.length ? await query("inspect bootstrap household members", admin.from("household_members").select("household_id,user_id,role,status").eq("household_id", freshHouseholds[0].id)) : [];
+const freshBootstrap = verifyFreshBootstrapState({ user: created.user, households: freshHouseholds, memberships: freshMemberships, userMemberships: freshUserMemberships });
+await query("delete verified bootstrap household", admin.from("households").delete().eq("id", freshBootstrap.id));
 await query("update demo profile", admin.from("profiles").upsert({ id: userId, email, display_name: "Alex Demo", avatar_url: "" }));
-const [household] = await insert("households", { name: "Demo Family Household", created_by_user_id: userId, status: "active" });
+const [household] = await insert("households", { id: DEMO_HOUSEHOLD_ID, name: DEMO_HOUSEHOLD_NAME, created_by_user_id: userId, bootstrap_source_user_id: userId, bootstrap_migration_key: DEMO_HOUSEHOLD_KEY, status: "active" });
 const householdId = household.id;
 const people = await insert("people", [
   { household_id: householdId, first_name: "Alex", last_name: "Demo", display_name: "Alex", relationship: "Self", member_type: "adult", color: "#4A90D9", birthday: "1982-03-14", email, notes: "Anniversary: 2008-06-21" },

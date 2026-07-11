@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { APP_CONFIG, canUseDemoAutoLogin } from "../config";
+import { APP_CONFIG } from "../config";
 import { supabase } from "../lib/supabase";
 
 function getEmailRedirectTo() {
@@ -67,16 +67,17 @@ export function useSupabaseAuth() {
     let mounted = true;
     supabase.auth.getSession().then(async ({data})=>{
       if (!mounted) return;
-      if (!data.session && canUseDemoAutoLogin()) {
-        const { data: demoData, error: demoError } = await supabase.auth.signInWithPassword({
-          email: APP_CONFIG.demoEmail,
-          password: APP_CONFIG.demoPassword,
-        });
+      if (!data.session && process.env.NODE_ENV === "development") {
+        // Webpack removes this branch and its non-static development module from production builds.
+        const { tryDevelopmentDemoLogin } = require("../development/demoAutoLogin");
+        const demoResult = await tryDevelopmentDemoLogin(supabase, window.location);
         if (!mounted) return;
-        if (demoError) setError("Development demo auto-login failed. Reseed the demo account and verify local environment variables.");
-        setSession(demoData?.session || null);
-        setLoading(false);
-        return;
+        if (demoResult.attempted) {
+          if (demoResult.error) setError(demoResult.error);
+          setSession(demoResult.session);
+          setLoading(false);
+          return;
+        }
       }
       setSession(data.session);
       setLoading(false);

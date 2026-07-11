@@ -1,5 +1,9 @@
 # Database Schema
 
+## Release 1.8 Context and attention model
+
+Household Context, Pool trend summaries, and attention items are derived at runtime from household-scoped source records. No attention table is added because conditions resolve with their source state. Existing Release 1.7 treatment fields support the retest workflow. No Release 1.8 migration is required or applied.
+
 ## Release 1.7 Pool Operations
 Migration `20260711_release_1_7_pool_operations.sql` adds household-scoped `pool_profiles` with member-read and owner/adult-write RLS. It adds test context/water appearance and richer treatment traceability. It is additive and does not rewrite production history.
 

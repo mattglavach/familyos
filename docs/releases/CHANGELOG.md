@@ -1,6 +1,18 @@
 # Changelog
 
+## 1.8.0 - 2026-07-11
+
+- Fixed the release-blocking Calendar defect where preserved UTC instants could be rendered using a stale UTC-clock display string. Calendar, event details, Dashboard, Search, Notifications, and Household Context now reformat the provider instant explicitly in `America/New_York`.
+- Preserved provider timestamp, timezone, recurring-event, and `originalStartTime` metadata while keeping all-day dates date-only.
+- Added `familyos.household-context` 1.0 with timezone, date-only, freshness, availability, aggregation, isolation, and deterministic attention semantics.
+- Refocused Dashboard on actionable cross-module attention, Today, Upcoming, Tasks, Calendar, Pool, and Maintenance.
+- Updated `familyos.pool-context` to 2.0 with observed trends, chlorine-demand and pH-rise summaries, retest states, maintenance intelligence, completeness flags, and safety constraints.
+- Reused the derived attention framework in Notifications and retained household-scoped Global Search with Pool records.
+- Preserved human confirmation, acid/chlorine separation, stale/missing-input rules, and no automatic dosing or equipment control.
+- No migration, remote Git action, deployment, or production change was performed.
+
 ## Unreleased
+- Hardened permanent test infrastructure after security review: deterministic demo-household deletion boundaries, exact pre-client Supabase target verification, production compile-time removal and bundle scanning for auto-login, seed-guard unit tests, and Playwright completion/error/empty/loading/dashboard coverage.
 - Added permanent development testing infrastructure: guarded `test@familyos.app` reset/seed tooling, localhost-only development auto-login, reusable Playwright diagnostics, authenticated major-module smoke tests, task CRUD/auth/responsive regression coverage, 390px coverage, commands, security controls, and operating documentation.
 - Prepared Release 1.7.0 with Calendar America/New_York normalization, More cleanup, Pool profile and operational records, deterministic safety rules, linked Task awareness, and `familyos.pool-context` v1.0.
 - Configured the user-level Codex runtime for `approval_policy = "never"`, `sandbox_mode = "danger-full-access"`, and elevated Windows sandboxing; aligned global and FamilyOS instructions around autonomous end-to-end engineering, publication, migration, deployment, recovery, and genuine-blocker-only escalation.

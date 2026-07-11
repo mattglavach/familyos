@@ -29,7 +29,7 @@ async function loginDemoUser(page) {
   await waitForPageReady(page, "FamilyOS");
 }
 
-async function logout(page) {
+async function logoutDemoUser(page) {
   await navigateModule(page, "More");
   await page.getByRole("button", { name: /Settings/ }).click();
   await page.getByRole("button", { name: /Sign out/i }).click();
@@ -52,10 +52,6 @@ async function waitForPageReady(page, text) {
   await page.waitForLoadState("networkidle").catch(() => null);
 }
 
-async function captureScreenshot(page, name) {
-  await page.screenshot({ path: `test-results/${name}.png`, fullPage: true });
-}
-
 function assertNoRuntimeFailures(failures) {
   expect(failures.page, `Unhandled exceptions:\n${failures.page.join("\n")}`).toEqual([]);
   expect(failures.console, `Console errors:\n${failures.console.join("\n")}`).toEqual([]);
@@ -63,4 +59,4 @@ function assertNoRuntimeFailures(failures) {
   expect(failures.responses, `Failed API calls:\n${failures.responses.join("\n")}`).toEqual([]);
 }
 
-module.exports = { assertNoRuntimeFailures, captureScreenshot, loginDemoUser, logout, monitorPage, navigateModule, openMoreModule, waitForPageReady };
+module.exports = { assertNoRuntimeFailures, loginDemoUser, logoutDemoUser, monitorPage, navigateModule, openMoreModule, waitForPageReady };

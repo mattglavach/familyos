@@ -15,6 +15,8 @@ It provides specialized validation detail under `docs/governance/FamilyOS_Projec
 
 Permanent setup and security guidance is in `docs/process/DEVELOPMENT_TESTING_INFRASTRUCTURE.md`.
 
+No release is complete until `pnpm run check`, `pnpm run test:smoke`, and `pnpm run test:regression` pass with zero failures. Environment-dependent checks may be recorded as blocked, but never as passed or complete.
+
 ## Migration Validation
 - Use disposable/local/staging Supabase, never production unless explicitly approved.
 - Apply migrations from an empty or representative baseline.
