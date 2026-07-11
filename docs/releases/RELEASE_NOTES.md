@@ -1,5 +1,11 @@
 # Release Notes
 
+## Release 1.8.1
+
+Release 1.8.1 is a local UX-polish and stabilization release. Tasks now reliably reveal a newly created item by resetting all filters after save, and Show All resets the complete filter state. Task filters, task rows, Calendar connection status, Calendar event rows, Dashboard cards, shared screen padding, and section spacing are substantially more compact. Completed tasks remain available through the Status filter, while Show All intentionally shows every active household task, including overdue, future, and no-due-date items. No module, schema, migration, integration contract, dependency, or architecture was added or changed.
+
+Validation passed for ESLint, 62 automated tests, 18 demo-seed safety checks, the production build, production bundle safety, and `git diff --check`. Authenticated visual screenshots were not produced because the required local `agent-browser` executable is unavailable. No remote test environment was used.
+
 ## Release 1.8.0
 
 ### Calendar timezone blocker

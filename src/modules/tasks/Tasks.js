@@ -1,20 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  CheckCircle2,
   Edit3,
-  ListFilter,
   Plus,
-  RotateCcw,
+  Search,
   Trash2,
   UserRound,
 } from "lucide-react";
-import { Badge, StatusBadge } from "../../components/ui/badge";
+import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { Card, CardContent } from "../../components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { EmptyStatePanel } from "../../components/ui/empty-state";
 import { FormGroup, FormHelp, FormRow, FormSection, NotesField, SaveCancelFooter, ValidationSummary } from "../../components/ui/form";
 import { Input } from "../../components/ui/input";
+import { Checkbox } from "../../components/ui/checkbox";
 import { Label } from "../../components/ui/label";
 import { SectionHeader } from "../../components/ui/section-header";
 import { ChipGroup } from "../../components/ui/segmented-control";
@@ -49,12 +48,6 @@ const WORKSPACE_FILTERS = [
   { value: "overdue", label: "Overdue" },
   { value: "completed", label: "Completed" },
 ];
-const PRIMARY_WORKSPACE_FILTERS = [
-  { value: "all", label: "Show All" },
-  { value: "mine", label: "My Tasks" },
-  { value: "today", label: "Today" },
-  { value: "overdue", label: "Overdue" },
-];
 const SECONDARY_WORKSPACE_FILTERS = [
   { value: "upcoming", label: "Upcoming" },
   { value: "completed", label: "Completed" },
@@ -68,17 +61,7 @@ const RECURRENCE_OPTIONS = [
   { value: "yearly", label: "Yearly", days: 365, supported: true },
 ];
 
-const CATEGORY_TONES = {
-  Pool: "blue",
-  Yard: "green",
-  Home: "amber",
-  College: "red",
-  Finance: "green",
-  Personal: "purple",
-  Work: "blue",
-};
 const PRIORITY_TONES = { high: "red", med: "amber", low: "slate" };
-const STATUS_TONES = { "Not Started": "neutral", "In Progress": "info", Completed: "complete" };
 const PRIORITY_WEIGHT = { high: 3, med: 2, low: 1 };
 const DB_STATUS_TO_UI = { not_started: "Not Started", in_progress: "In Progress", completed: "Completed" };
 const UI_STATUS_TO_DB = { "Not Started": "not_started", "In Progress": "in_progress", Completed: "completed" };
@@ -178,11 +161,6 @@ function recurrenceValueFromDays(days) {
 function recurrenceDaysFromValue(value) {
   const option = RECURRENCE_OPTIONS.find(item => item.value === value);
   return option?.supported ? option.days : null;
-}
-
-function recurrenceLabel(days) {
-  if (!days) return "";
-  return RECURRENCE_OPTIONS.find(item => item.days === Number(days) && item.supported)?.label || `Every ${days}d`;
 }
 
 function emptyTaskForm(defaultAssignee = "Family", defaults = {}) {
@@ -298,70 +276,26 @@ function TaskSkeleton() {
   );
 }
 
-function TaskCard({ task, members, daysBetween, formatDate, onEdit, onComplete, onReopen, onDelete, onReassign }) {
+function TaskCard({ task, members, daysBetween, formatDate, onEdit, onComplete, onReopen, onDelete }) {
   const dueDate = task.effective_due_date;
   const days = dueDate ? daysBetween(dueDate) : null;
   const overdue = days !== null && !Number.isNaN(days) && days < 0 && task.status !== "Completed";
   const accent = task.status === "Completed" ? COLORS.green : overdue ? COLORS.red : task.priority === "high" ? COLORS.purple : memberColor(task.assignee, members);
 
   return (
-    <Card style={{ borderLeft: `3px solid ${accent}` }}>
-      <CardContent className="space-y-3 p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="mb-2 flex flex-wrap items-center gap-1.5">
-              <StatusBadge status={STATUS_TONES[task.status]}>{task.status}</StatusBadge>
-              <Badge variant={PRIORITY_TONES[task.priority]}>{priorityLabel(task.priority)}</Badge>
-              <Badge variant={CATEGORY_TONES[task.category] || "slate"}>{task.category || "Home"}</Badge>
-            </div>
-            <div className={`text-base font-bold leading-tight text-foreground ${task.status === "Completed" ? "line-through opacity-70" : ""}`}>{task.title}</div>
-            {task.description && <div className="mt-2 text-sm leading-6 text-muted-foreground">{task.description}</div>}
-          </div>
-          <Button type="button" variant="secondary" size="icon-xs" aria-label={`Edit ${task.title}`} onClick={() => onEdit(task)}>
-            <Edit3 className="h-4 w-4" aria-hidden="true" />
-          </Button>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1 font-semibold" style={{ color: memberColor(task.assignee, members) }}>
-            <UserRound className="h-3.5 w-3.5" aria-hidden="true" />
-            {task.assignee || "Family"}
+    <Card className="overflow-hidden" style={{ borderLeft: `3px solid ${accent}` }}>
+      <CardContent className="flex min-h-12 items-center gap-2 px-3 py-2">
+        <Checkbox checked={task.status === "Completed"} onCheckedChange={() => task.status === "Completed" ? onReopen(task) : onComplete(task)} aria-label={`${task.status === "Completed" ? "Reopen" : "Complete"} ${task.title}`} />
+        <button type="button" onClick={() => onEdit(task)} className="min-w-0 flex-1 text-left">
+          <span className={`block truncate text-sm font-semibold leading-5 text-foreground ${task.status === "Completed" ? "line-through opacity-70" : ""}`}>{task.title}</span>
+          <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
+            <span className={overdue ? "font-semibold text-destructive" : days === 0 ? "font-semibold text-amber-300" : ""}>{dueDate ? (overdue ? `${-days}d overdue` : days === 0 ? "Due today" : formatDate(dueDate)) : "No due date"}</span>
+            {task.assignee && task.assignee !== "Family" && <span className="inline-flex items-center gap-1" style={{ color: memberColor(task.assignee, members) }}><UserRound className="h-3 w-3" aria-hidden="true" />{task.assignee}</span>}
           </span>
-          {dueDate && (
-            <span className={overdue ? "font-semibold text-destructive" : days === 0 ? "font-semibold text-amber-300" : ""}>
-              {overdue ? `${-days}d overdue` : days === 0 ? "Due today" : `Due ${formatDate(dueDate)}`}
-            </span>
-          )}
-          {task.created_at && <span>Created {formatDate(task.created_at)}</span>}
-          {task.completed_at && <span>Completed {formatDate(task.completed_at)}</span>}
-          {task.recurring_interval_days && <span>{recurrenceLabel(task.recurring_interval_days)}</span>}
-        </div>
-
-        <div className="grid gap-2 md:grid-cols-[1fr_auto]">
-          <Select value={task.assignee || "Family"} onChange={event => onReassign(task, event.target.value)} aria-label={`Reassign ${task.title}`}>
-            <option value="Family">Family</option>
-            {members.filter(member => member.status !== "inactive").map(member => (
-              <option key={member.id} value={member.name}>{member.name}</option>
-            ))}
-          </Select>
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-            {task.status === "Completed" ? (
-              <Button type="button" variant="secondary" size="sm" aria-label={`Reopen ${task.title}`} onClick={() => onReopen(task)}>
-                <RotateCcw className="h-4 w-4" aria-hidden="true" />
-                Reopen
-              </Button>
-            ) : (
-              <Button type="button" size="sm" aria-label={`Complete ${task.title}`} onClick={() => onComplete(task)}>
-                <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-                Complete
-              </Button>
-            )}
-            <Button type="button" variant="destructive-outline" size="sm" onClick={() => onDelete(task)} aria-label={`Delete ${task.title}`}>
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
-              Delete
-            </Button>
-          </div>
-        </div>
+        </button>
+        <Badge variant={PRIORITY_TONES[task.priority]} className="shrink-0 text-[10px]">{priorityLabel(task.priority)}</Badge>
+        <Button type="button" variant="ghost" size="icon-xs" className="!h-9 !min-h-9 !w-9 !min-w-9" aria-label={`Edit ${task.title}`} onClick={() => onEdit(task)}><Edit3 className="h-3.5 w-3.5" aria-hidden="true" /></Button>
+        <Button type="button" variant="ghost" size="icon-xs" className="!h-9 !min-h-9 !w-9 !min-w-9 text-destructive" onClick={() => onDelete(task)} aria-label={`Delete ${task.title}`}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" /></Button>
       </CardContent>
     </Card>
   );
@@ -372,7 +306,7 @@ function TaskList({ title, count, tone, tasks, emptyTitle, emptyDetail, renderTa
     <section>
       <SectionHeader title={title} count={count} tone={tone} />
       {tasks.length ? (
-        <div className="space-y-3">{tasks.map(renderTask)}</div>
+        <div className="space-y-1.5">{tasks.map(renderTask)}</div>
       ) : (
         <Card>
           <EmptyStatePanel title={emptyTitle} detail={emptyDetail} className="py-7" />
@@ -456,10 +390,7 @@ export function Tasks({ deps, initialView }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
-  const [categoryFilter, setCategoryFilter] = useState("All");
   const [dueFilter, setDueFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("due");
-  const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [drawer, setDrawer] = useState({ open: false, mode: "create", task: null });
   const [form, setForm] = useState(emptyTaskForm());
   const [formError, setFormError] = useState("");
@@ -498,10 +429,7 @@ export function Tasks({ deps, initialView }) {
     setMemberFilter("All");
     setStatusFilter("All");
     setPriorityFilter("All");
-    setCategoryFilter("All");
     setDueFilter("all");
-    setSortBy("due");
-    setShowMoreFilters(false);
   }
 
   useEffect(() => {
@@ -510,11 +438,9 @@ export function Tasks({ deps, initialView }) {
     if (initialView.search) setSearchTerm(initialView.search);
     if (initialView.due) {
       setDueFilter(initialView.due);
-      setShowMoreFilters(true);
     }
     if (initialView.status) {
       setStatusFilter(initialView.status);
-      setShowMoreFilters(true);
     }
   }, [initialView]);
 
@@ -532,12 +458,11 @@ export function Tasks({ deps, initialView }) {
       if (memberFilter !== "All" && task.assignee !== memberFilter) return false;
       if (statusFilter !== "All" && task.status !== statusFilter) return false;
       if (priorityFilter !== "All" && task.priority !== priorityFilter) return false;
-      if (categoryFilter !== "All" && task.category !== categoryFilter) return false;
       if (dueFilter !== "all" && bucket !== dueFilter) return false;
       return true;
     });
-    return sortTasks(filtered, sortBy);
-  }, [activeFilter, categoryFilter, daysBetween, defaultMember, dueFilter, memberFilter, nextDueDate, priorityFilter, searchTerm, sortBy, statusFilter, tasks]);
+    return sortTasks(filtered, "due");
+  }, [activeFilter, daysBetween, defaultMember, dueFilter, memberFilter, nextDueDate, priorityFilter, searchTerm, statusFilter, tasks]);
 
   function notify(message) {
     setToast({ message });
@@ -592,6 +517,7 @@ export function Tasks({ deps, initialView }) {
       if (drawer.mode === "edit" && drawer.task) await taskTable.update(drawer.task.id, row);
       else await taskTable.insert(row);
 
+      if (drawer.mode === "create") clearFilters();
       closeDrawer();
       notify(drawer.mode === "edit" ? "Task updated." : "Task created. You can find it in All tasks.");
     } catch (error) {
@@ -688,30 +614,6 @@ export function Tasks({ deps, initialView }) {
     }
   }
 
-  async function reassignTask(task, assignee) {
-    try {
-      await taskTable.update(task.id, {
-      title: task.title,
-      category: task.category || "Home",
-      priority: task.priority || "med",
-      due_date: task.due_date || null,
-      recurring_interval_days: task.recurring_interval_days || null,
-      last_completed: task.last_completed || null,
-      is_important: task.priority === "high" || !!task.is_important,
-      notes: task.description || "",
-      completed: task.status === "Completed",
-      assigned_person_id: memberIdByName(assignee, members),
-      status: UI_STATUS_TO_DB[task.status] || "not_started",
-      completed_at: task.completed_at || null,
-      module_key: task.module_key || "tasks",
-      updated_by_user_id: household.user?.id || null,
-      });
-      notify(`Task assigned to ${assignee}.`);
-    } catch (error) {
-      notifyMutationError(error, "Task could not be reassigned right now.");
-    }
-  }
-
   const renderTask = task => (
     <TaskCard
       key={task.id}
@@ -723,16 +625,12 @@ export function Tasks({ deps, initialView }) {
       onComplete={completeTask}
       onReopen={reopenTask}
       onDelete={setConfirmDeleteTask}
-      onReassign={reassignTask}
     />
   );
 
   const loading = taskTable.loading || family.loading;
-  const hasAdvancedFilters = memberFilter !== "All" || statusFilter !== "All" || priorityFilter !== "All" || categoryFilter !== "All" || dueFilter !== "all" || sortBy !== "due" || SECONDARY_WORKSPACE_FILTERS.some(option => option.value === activeFilter);
+  const hasAdvancedFilters = memberFilter !== "All" || statusFilter !== "All" || priorityFilter !== "All" || dueFilter !== "all" || SECONDARY_WORKSPACE_FILTERS.some(option => option.value === activeFilter);
   const hasAnyFilter = Boolean(searchTerm.trim()) || activeFilter !== "all" || hasAdvancedFilters;
-  const filterHelp = activeFilter === "all"
-    ? "Showing every open task by due date so new tasks are easy to find."
-    : `Showing ${activeFilterLabel.toLowerCase()}.`;
 
   return (
     <div style={S.screen} className="space-y-5">
@@ -758,82 +656,21 @@ export function Tasks({ deps, initialView }) {
       ) : (
         <>
           <Card>
-            <CardHeader className="p-4 pb-2">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <ListFilter className="h-4 w-4 text-primary" aria-hidden="true" />
-                Find Tasks
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 px-4 pb-4 pt-0">
-              <FormGroup>
-                <Label htmlFor="task-search">Search</Label>
-                <Input id="task-search" value={searchTerm} placeholder="Search title, notes, category, assignee..." onChange={event => setSearchTerm(event.target.value)} />
-              </FormGroup>
-              <ChipGroup value={activeFilter} options={PRIMARY_WORKSPACE_FILTERS} ariaLabel="Task filters" onValueChange={setActiveFilter} />
-              <div className="flex items-center justify-between gap-3">
-                <FormHelp>{filterHelp}</FormHelp>
-                <div className="flex shrink-0 flex-wrap justify-end gap-2">
-                  {hasAnyFilter && <Button type="button" variant="ghost" size="xs" onClick={clearFilters}>Clear All</Button>}
-                  <Button type="button" variant="secondary" size="xs" onClick={() => setShowMoreFilters(value => !value)}>
-                    {showMoreFilters ? "Hide Filters" : hasAdvancedFilters ? "More Filters On" : "More Filters"}
-                  </Button>
+            <CardContent className="p-2.5">
+              <div className="task-filter-toolbar">
+                <div className="relative min-w-[180px] flex-[2_1_220px]">
+                  <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                  <Input id="task-search" className="h-9 pl-8 text-xs" aria-label="Search tasks" value={searchTerm} placeholder="Search tasks" onChange={event => setSearchTerm(event.target.value)} />
+                </div>
+                <div className="task-filter-controls">
+                  <Select className="h-9 min-w-[112px] px-2 pr-7 text-xs" aria-label="Status" value={statusFilter} onChange={event => { const status = event.target.value; setStatusFilter(status); setActiveFilter(status === "Completed" ? "completed" : activeFilter === "completed" ? "all" : activeFilter); }}><option value="All">All status</option>{STATUS_OPTIONS.map(status => <option key={status} value={status}>{status}</option>)}</Select>
+                  <Select className="h-9 min-w-[105px] px-2 pr-7 text-xs" aria-label="Priority" value={priorityFilter} onChange={event => setPriorityFilter(event.target.value)}><option value="All">All priority</option>{PRIORITY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</Select>
+                  <Select className="h-9 min-w-[105px] px-2 pr-7 text-xs" aria-label="Owner" value={memberFilter} onChange={event => setMemberFilter(event.target.value)}><option value="All">All owners</option><option value="Family">Family</option>{activeMembers.map(member => <option key={member.id} value={member.name}>{member.name}</option>)}</Select>
+                  <Select className="h-9 min-w-[105px] px-2 pr-7 text-xs" aria-label="Due date" value={dueFilter} onChange={event => setDueFilter(event.target.value)}>{DUE_FILTERS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</Select>
+                  <Button type="button" variant={activeFilter === "all" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={clearFilters}>Show All</Button>
+                  <Button type="button" variant="ghost" size="xs" className="!min-h-9 px-2.5" onClick={clearFilters} disabled={!hasAnyFilter}>Clear</Button>
                 </div>
               </div>
-              {showMoreFilters && (
-                <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
-                  <ChipGroup value={activeFilter} options={SECONDARY_WORKSPACE_FILTERS} ariaLabel="More task filters" onValueChange={setActiveFilter} />
-                  <FormRow>
-                    <FormGroup>
-                      <Label>Family Member</Label>
-                      <Select value={memberFilter} onChange={event => setMemberFilter(event.target.value)}>
-                        <option value="All">All</option>
-                        <option value="Family">Family</option>
-                        {activeMembers.map(member => <option key={member.id} value={member.name}>{member.name}</option>)}
-                      </Select>
-                    </FormGroup>
-                    <FormGroup>
-                      <Label>Status</Label>
-                      <Select value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>
-                        <option value="All">All</option>
-                        {STATUS_OPTIONS.map(status => <option key={status} value={status}>{status}</option>)}
-                      </Select>
-                    </FormGroup>
-                  </FormRow>
-                  <FormRow>
-                    <FormGroup>
-                      <Label>Priority</Label>
-                      <Select value={priorityFilter} onChange={event => setPriorityFilter(event.target.value)}>
-                        <option value="All">All</option>
-                        {PRIORITY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-                      </Select>
-                    </FormGroup>
-                    <FormGroup>
-                      <Label>Category</Label>
-                      <Select value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)}>
-                        <option value="All">All</option>
-                        {CATEGORY_OPTIONS.map(category => <option key={category} value={category}>{category}</option>)}
-                      </Select>
-                    </FormGroup>
-                  </FormRow>
-                  <FormRow>
-                    <FormGroup>
-                      <Label>Due</Label>
-                      <Select value={dueFilter} onChange={event => setDueFilter(event.target.value)}>
-                        {DUE_FILTERS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-                      </Select>
-                    </FormGroup>
-                    <FormGroup>
-                      <Label>Sort</Label>
-                      <Select value={sortBy} onChange={event => setSortBy(event.target.value)}>
-                        <option value="priority">Priority</option>
-                        <option value="due">Due date</option>
-                        <option value="updated">Recently updated</option>
-                        <option value="alpha">Alphabetical</option>
-                      </Select>
-                    </FormGroup>
-                  </FormRow>
-                </div>
-              )}
             </CardContent>
           </Card>
 

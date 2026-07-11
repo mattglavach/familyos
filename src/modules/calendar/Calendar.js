@@ -55,11 +55,13 @@ function groupEvents(events, todayString) {
   };
 }
 
-function formatSyncTime(value) {
+export function formatSyncTime(value, now = new Date()) {
   if (!value) return "Not synced yet";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Sync time unavailable";
-  return date.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  const sameDay = date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
+  const time = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  return sameDay ? `Today ${time}` : date.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
 export function eventMetaLine(event, todayString, formatDateFull) {
@@ -98,30 +100,17 @@ function EventCard({ event, todayString, formatDateFull, selected, onSelect }) {
   return (
     <Card className={`min-w-0 max-w-full overflow-hidden ${selected ? "border-primary" : ""}`} style={{ borderLeft: `3px solid ${COLORS.blue}` }}>
       <CardContent className="min-w-0 p-0">
-        <button type="button" onClick={() => onSelect(event.id)} className="block min-h-16 w-full p-4 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+        <button type="button" onClick={() => onSelect(event.id)} className="block min-h-12 w-full px-3 py-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="truncate text-base font-bold text-foreground">{event.title || "Untitled event"}</div>
-              <div className="mt-1 text-sm text-muted-foreground">
+              <div className="truncate text-sm font-bold text-foreground">{event.title || "Untitled event"}</div>
+              <div className="mt-0.5 text-xs text-muted-foreground">
                 {eventMetaLine(event, todayString, formatDateFull)}
               </div>
-              {event.location && <div className="mt-1 flex min-w-0 items-start gap-1 text-xs leading-5 text-muted-foreground"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" /><span className="min-w-0 break-words">{event.location}</span></div>}
+              {event.location && <div className="mt-0.5 flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground"><MapPin className="h-3 w-3 shrink-0" aria-hidden="true" /><span className="truncate">{event.location}</span></div>}
             </div>
-            <Badge variant="blue" className="shrink-0">{event.member || "Family"}</Badge>
           </div>
         </button>
-        <div className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-3">
-          <Badge variant="slate">{event.source || "Calendar"}</Badge>
-          {event.attendees?.length > 0 && <Badge variant="slate">{event.attendees.length} attendee{event.attendees.length === 1 ? "" : "s"}</Badge>}
-          {event.htmlLink && (
-            <Button type="button" variant="secondary" size="xs" asChild>
-              <a href={event.htmlLink} target="_blank" rel="noreferrer">
-                <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                Open
-              </a>
-            </Button>
-          )}
-        </div>
       </CardContent>
     </Card>
   );
@@ -132,7 +121,7 @@ function EventSection({ title, events, emptyTitle, emptyDetail, todayString, for
     <section className="min-w-0 max-w-full">
       <SectionHeader title={title} count={events.length} tone={title === "Today" ? "blue" : "neutral"} />
       {events.length ? (
-        <div className="min-w-0 max-w-full space-y-3">
+        <div className="min-w-0 max-w-full space-y-1.5">
           {events.map((event, index) => (
             <EventCard
               key={event.id || `${title}-${index}`}
@@ -273,7 +262,7 @@ export function Calendar({ calendar = {}, deps = {}, initialView }) {
   }, [initialView]);
 
   return (
-    <div style={S.screen} className="min-w-0 max-w-full space-y-5 overflow-x-hidden">
+    <div style={S.screen} className="min-w-0 max-w-full space-y-4 overflow-x-hidden">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
@@ -282,13 +271,18 @@ export function Calendar({ calendar = {}, deps = {}, initialView }) {
           </div>
           <div className="mt-1 text-2xl font-extrabold text-foreground">Today & Upcoming</div>
         </div>
-        <Button type="button" variant="secondary" size="sm" onClick={safeCalendar.connected ? safeCalendar.refresh : safeCalendar.checkConnection} loading={safeCalendar.loading} disabled={safeCalendar.loading}>
+        <Button type="button" variant="secondary" size="xs" onClick={safeCalendar.connected ? safeCalendar.refresh : safeCalendar.checkConnection} loading={safeCalendar.loading} disabled={safeCalendar.loading}>
           <RefreshCw className="h-4 w-4" aria-hidden="true" />
-          {safeCalendar.connected ? "Refresh Events" : "Refresh Status"}
+          {safeCalendar.connected ? "Refresh" : "Check"}
         </Button>
       </div>
 
-      <Card style={{ borderLeft: `3px solid ${status.tone === "connected" ? COLORS.green : status.tone === "warning" ? COLORS.amber : COLORS.slate}` }}>
+      {safeCalendar.connected && !safeCalendar.error && !status.needsAttention ? (
+        <div className="flex min-h-12 flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2" style={{ borderLeft: `3px solid ${COLORS.green}` }}>
+          <div className="min-w-0"><div className="text-sm font-bold text-foreground">Google Calendar <span className="text-emerald-400">✓</span></div><div className="text-xs text-muted-foreground">Last synced: {formatSyncTime(safeCalendar.lastSyncedAt)}</div></div>
+          <div className="flex gap-1.5"><Button type="button" variant="secondary" size="xs" onClick={safeCalendar.refresh} loading={safeCalendar.loading}><RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />Refresh</Button><Button type="button" variant="ghost" size="xs" onClick={startConnection}>Reconnect</Button></div>
+        </div>
+      ) : <Card style={{ borderLeft: `3px solid ${status.tone === "connected" ? COLORS.green : status.tone === "warning" ? COLORS.amber : COLORS.slate}` }}>
         <CardHeader className="p-4 pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             {safeCalendar.connected ? <CalendarCheck className="h-4 w-4 text-primary" aria-hidden="true" /> : <CalendarX className="h-4 w-4 text-muted-foreground" aria-hidden="true" />}
@@ -331,11 +325,11 @@ export function Calendar({ calendar = {}, deps = {}, initialView }) {
             </div>
           )}
         </CardContent>
-      </Card>
+      </Card>}
 
       <section>
         <SectionHeader title="Schedule Summary" count={events.length} tone="blue" />
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-2">
           <SummaryTile
             label="Today"
             value={grouped.today.length ? `${grouped.today.length} event${grouped.today.length === 1 ? "" : "s"}` : "Clear"}
@@ -350,13 +344,6 @@ export function Calendar({ calendar = {}, deps = {}, initialView }) {
             tone={nextEvent ? COLORS.amber : COLORS.slate}
             icon={<Clock className="h-4 w-4" aria-hidden="true" />}
           />
-          <SummaryTile
-            label="Connection"
-            value={status.label}
-            detail={safeCalendar.connected ? `Last sync: ${formatSyncTime(safeCalendar.lastSyncedAt)}` : status.actionLabel}
-            tone={safeCalendar.connected ? COLORS.green : COLORS.amber}
-            icon={<CalendarDays className="h-4 w-4" aria-hidden="true" />}
-          />
         </div>
       </section>
 
@@ -370,8 +357,8 @@ export function Calendar({ calendar = {}, deps = {}, initialView }) {
         </Card>
       ) : safeCalendar.connected ? (
         visibleGroupCount ? (
-          <div className="grid min-w-0 max-w-full gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-            <div className="min-w-0 space-y-5">
+          <div className="grid min-w-0 max-w-full gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+            <div className="min-w-0 space-y-3">
               <EventSection title="Today" events={grouped.today} emptyTitle="Nothing scheduled today" emptyDetail="Connected calendar events for today will appear here." selectedId={selectedEvent?.id} onSelect={setSelectedEventId} todayString={TODAY_STR} formatDateFull={formatDateFull} />
               <EventSection title="Tomorrow" events={grouped.tomorrow} emptyTitle="Nothing scheduled tomorrow" emptyDetail="Tomorrow is clear in the current calendar window." selectedId={selectedEvent?.id} onSelect={setSelectedEventId} todayString={TODAY_STR} formatDateFull={formatDateFull} />
               <EventSection title="This Week" events={grouped.thisWeek} emptyTitle="No other events this week" emptyDetail="Events later this week will appear here." selectedId={selectedEvent?.id} onSelect={setSelectedEventId} todayString={TODAY_STR} formatDateFull={formatDateFull} />

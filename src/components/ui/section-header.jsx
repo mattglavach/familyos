@@ -11,7 +11,7 @@ function SectionHeader({ title, count, action, className, tone = "neutral" }) {
   };
 
   return (
-    <div className={cn("mb-2 mt-5 flex items-center justify-between gap-3", className)}>
+    <div className={cn("mb-1.5 mt-3.5 flex items-center justify-between gap-3", className)}>
       <div className={cn("text-xs font-bold uppercase tracking-[0.08em]", tones[tone] || tones.neutral)}>
         {title}
         {count !== undefined && <span className="ml-2 text-muted-foreground">{count}</span>}
