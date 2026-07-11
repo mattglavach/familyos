@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Added permanent development testing infrastructure: guarded `test@familyos.app` reset/seed tooling, localhost-only development auto-login, reusable Playwright diagnostics, authenticated major-module smoke tests, task CRUD/auth/responsive regression coverage, 390px coverage, commands, security controls, and operating documentation.
 - Prepared Release 1.7.0 with Calendar America/New_York normalization, More cleanup, Pool profile and operational records, deterministic safety rules, linked Task awareness, and `familyos.pool-context` v1.0.
 - Configured the user-level Codex runtime for `approval_policy = "never"`, `sandbox_mode = "danger-full-access"`, and elevated Windows sandboxing; aligned global and FamilyOS instructions around autonomous end-to-end engineering, publication, migration, deployment, recovery, and genuine-blocker-only escalation.
 - Consolidated FamilyOS product, architecture, AI, UX, security, delivery, and governance rules into one canonical project-instructions document; added a reusable governance-maintenance prompt; reconciled current navigation with the approved long-term module architecture; and preserved historical release, audit, decision, implementation, and archive records.

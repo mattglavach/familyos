@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { APP_CONFIG } from "../config";
+import { APP_CONFIG, canUseDemoAutoLogin } from "../config";
 import { supabase } from "../lib/supabase";
 
 function getEmailRedirectTo() {
@@ -65,8 +65,19 @@ export function useSupabaseAuth() {
 
   useEffect(()=>{
     let mounted = true;
-    supabase.auth.getSession().then(({data})=>{
+    supabase.auth.getSession().then(async ({data})=>{
       if (!mounted) return;
+      if (!data.session && canUseDemoAutoLogin()) {
+        const { data: demoData, error: demoError } = await supabase.auth.signInWithPassword({
+          email: APP_CONFIG.demoEmail,
+          password: APP_CONFIG.demoPassword,
+        });
+        if (!mounted) return;
+        if (demoError) setError("Development demo auto-login failed. Reseed the demo account and verify local environment variables.");
+        setSession(demoData?.session || null);
+        setLoading(false);
+        return;
+      }
       setSession(data.session);
       setLoading(false);
     });

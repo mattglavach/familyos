@@ -6,6 +6,8 @@ Release 1.7.0 is a local release candidate covering Calendar timezone stabilizat
 Release 1.7.0 local release candidate; production actions awaiting approval
 
 ## Current State
+Permanent automated development testing infrastructure is implemented locally. It includes a guarded demo-account reset/seed command, five-person representative dataset, localhost development auto-login, Playwright diagnostics, major-module smoke coverage, and reusable regression tests. Environment-dependent execution remains pending because the current ignored local environment does not contain a Supabase service-role key or demo password.
+
 Codex autonomy configuration and FamilyOS governance are aligned for complete scoped implementation and release execution. High-impact work retains target verification, recoverability, bounded scope, and post-change validation without routine approval checkpoints.
 
 FamilyOS now has one canonical cross-domain governance source at `docs/governance/FamilyOS_Project_Instructions.md` plus a reusable maintenance prompt. Active product and navigation guidance distinguishes the implemented Home, Tasks, Calendar, Quick Add, and More shell from the approved long-term Dashboard, Calendar, Tasks, Life, Home, and Financial Planning architecture. Historical records remain preserved.
@@ -15,6 +17,7 @@ Post-release Calendar layout hardening constrains event and detail content to th
 Release 1.0 core MVP through Release 1.5.1 Pool & Quick Add UX Polish are complete. Release 1.6 Core Operating Loop Hardening is validated for merge with app integration contracts, lightweight cross-surface handoff context, Tasks filter reset polish, Calendar refresh/status clarity, and corrected Settings hierarchy for device versus shared Calendar connections. Deployed RC1 smoke passed on the stable branch origin for authenticated Home, Tasks, Calendar, Search, Notifications, responsive layout, clean browser console, Google device OAuth, event loading, and the updated Settings connection state. Show All/Clear All could not be exercised with real task data because the validation account had zero tasks; this remains a documented post-deploy check rather than a merge blocker. Release 1.5.1 was merged to `main`, tagged, deployed to production, and production-smoke validated after the post-merge shared Button touch-target hardening commit. The July 10, 2026 implementation planning sprint is documented in `docs/planning/IMPLEMENTATION_PLAN_2026_07_10.md`.
 
 ## Completed
+- Permanent FamilyOS demo seed and Playwright testing framework implementation
 - Canonical FamilyOS project-instructions consolidation with subordinate active references and preserved historical documentation
 - Family OS v1 documentation workspace
 - Platform architecture documentation

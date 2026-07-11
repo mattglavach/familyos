@@ -199,8 +199,11 @@ A feature or release is complete only when applicable criteria are satisfied:
 - Database migrations and RLS are validated in an approved non-production environment when affected.
 - Documentation, changelog, release notes, status, and roadmap are current as applicable.
 - No known regression or unresolved release blocker remains.
+- Authenticated UI releases use the permanent non-production demo seed and Playwright smoke/regression framework when the required test environment is available.
 - Git diff and status are reviewed.
 - The result is ready for product validation or the next explicitly approved release action.
+
+Development demo accounts, seeded data, test credentials, and auto-login must remain confined to local or explicitly designated non-production environments. Auto-login must fail closed outside localhost development builds. Detailed controls are maintained in `docs/process/DEVELOPMENT_TESTING_INFRASTRUCTURE.md`.
 
 ## Documentation Governance
 

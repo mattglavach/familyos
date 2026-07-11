@@ -98,6 +98,7 @@ This folder is the operating manual for Family OS.
 - docs/process/ARCHITECTURE_GUIDELINES.md
 - docs/process/UI_GUIDELINES.md
 - docs/process/TESTING_GUIDELINES.md
+- docs/process/DEVELOPMENT_TESTING_INFRASTRUCTURE.md
 - docs/process/DOCUMENTATION_GUIDELINES.md
 - docs/process/GIT_WORKFLOW.md
 - docs/process/CODE_REVIEW_CHECKLIST.md

@@ -10,6 +10,8 @@
 Complete the post-Release 1.5.1 implementation planning sprint by connecting the product vision, engineering principles, design system, architecture decisions, data model, and release strategy to the current codebase without implementing large new features.
 
 ## Active Items
+- [x] Establish permanent non-production demo seeding, guarded localhost auto-login, and reusable Playwright smoke/regression infrastructure
+- [ ] Supply dedicated non-production service-role/demo credentials and execute the environment-dependent seed and authenticated browser suites
 - [x] Align global Codex configuration and FamilyOS governance for autonomous end-to-end software-development and release execution
 - [x] Consolidate FamilyOS cross-domain governance into `docs/governance/FamilyOS_Project_Instructions.md` and add its reusable maintenance prompt
 - [x] Reconcile current Home/Tasks/Calendar/Quick Add/More implementation with the approved Dashboard/Calendar/Tasks/Life/Home/Financial Planning target architecture

@@ -1,5 +1,9 @@
 # Architecture Decisions
 
+## 2026-07-11: Use service-role demo seeding and Playwright browser validation
+
+FamilyOS uses a deterministic Supabase admin seed for one non-production demo identity and Playwright for authenticated browser smoke/regression coverage. The seed fails closed unless the environment is explicitly local/test/development and remote use is separately authorized. Development auto-login is allowed only in CRA development mode on loopback hosts. Browser tests intentionally disable auto-login so real authentication remains covered. External Google Calendar data is not mutated by the seed.
+
 ## 2026-07-11: Focus Home and use a hybrid Pool architecture
 Home is limited to recurring operational systems, with Pool first and Garden next. FamilyOS owns persistent facts and deterministic rules; ChatGPT owns explanation and analysis through a versioned context object. Chemical calculations, compatibility, and swim-safety rules remain deterministic and human-reviewed. Pool uses Tasks as the single execution system. Broad Home asset management is excluded.
 
