@@ -4,6 +4,7 @@
 Complete the post-Release 1.5.1 implementation planning sprint by connecting the product vision, engineering principles, design system, architecture decisions, data model, and release strategy to the current codebase without implementing large new features.
 
 ## Active Items
+- [x] Constrain Calendar event and detail cards to the app-shell width on mobile and desktop
 - [x] Complete FamilyOS implementation planning assessment in `docs/planning/IMPLEMENTATION_PLAN_2026_07_10.md`
 - [x] Define recommended Release 1.6 Core Operating Loop Hardening scope
 - [x] Execute Release 1.6 Core Operating Loop Hardening implementation pass
