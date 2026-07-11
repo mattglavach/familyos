@@ -1,10 +1,10 @@
 # Project Status
 
 ## Current Version
-1.6 RC1 validation follow-up in progress
+1.6 RC1 validation complete; merge approved
 
 ## Current State
-Release 1.0 core MVP through Release 1.5.1 Pool & Quick Add UX Polish are complete. Release 1.6 Core Operating Loop Hardening has an implementation pass complete with app integration contracts, lightweight cross-surface handoff context, Tasks filter reset polish, and Calendar refresh/status clarity. RC1 deployed smoke confirmed device Google OAuth works after registering the preview origin, then found confusing Settings hierarchy between the active device connection and the unavailable shared household integration. A focused presentation fix is in validation. Release 1.5.1 was merged to `main`, tagged, deployed to production, and production-smoke validated after the post-merge shared Button touch-target hardening commit. The July 10, 2026 implementation planning sprint is documented in `docs/planning/IMPLEMENTATION_PLAN_2026_07_10.md`.
+Release 1.0 core MVP through Release 1.5.1 Pool & Quick Add UX Polish are complete. Release 1.6 Core Operating Loop Hardening is validated for merge with app integration contracts, lightweight cross-surface handoff context, Tasks filter reset polish, Calendar refresh/status clarity, and corrected Settings hierarchy for device versus shared Calendar connections. Deployed RC1 smoke passed on the stable branch origin for authenticated Home, Tasks, Calendar, Search, Notifications, responsive layout, clean browser console, Google device OAuth, event loading, and the updated Settings connection state. Show All/Clear All could not be exercised with real task data because the validation account had zero tasks; this remains a documented post-deploy check rather than a merge blocker. Release 1.5.1 was merged to `main`, tagged, deployed to production, and production-smoke validated after the post-merge shared Button touch-target hardening commit. The July 10, 2026 implementation planning sprint is documented in `docs/planning/IMPLEMENTATION_PLAN_2026_07_10.md`.
 
 ## Completed
 - Family OS v1 documentation workspace
