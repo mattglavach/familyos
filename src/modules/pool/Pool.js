@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, CalendarClock, CheckCircle2, ClipboardList, Droplets, FlaskConical, HelpCircle, History, Settings2, ThermometerSun, Wrench } from "lucide-react";
+import { AlertTriangle, CalendarClock, CheckCircle2, ClipboardList, Droplets, FlaskConical, HelpCircle, History, Pencil, Settings2, ThermometerSun, Trash2, Wrench } from "lucide-react";
 import { EmptyState, Loading, Modal, SwipeCard, SwipeHint } from "../../components/common";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
@@ -283,6 +284,7 @@ export function Pool() {
   const [testSubmitting, setTestSubmitting] = useState(false);
   const [poolActionError, setPoolActionError] = useState("");
   const [reviewRec, setReviewRec] = useState(null);
+  const [deleteHistoryItem, setDeleteHistoryItem] = useState(null);
 
   const latest = latestReadingValues(readings.data);
   const recommendations = useMemo(
@@ -362,6 +364,20 @@ export function Pool() {
 
   function showPoolMutationError(error, fallback) {
     setPoolActionError(formatUserFacingError(error, fallback));
+  }
+
+  async function confirmHistoryDelete() {
+    const item = deleteHistoryItem;
+    if (!item) return;
+    setPoolActionError("");
+    try {
+      if (item.kind === "Reading") await readings.remove(item.id);
+      else if (item.kind === "Chemical") await treatments.remove(item.id);
+      else await maintenance.remove(item.id);
+      setDeleteHistoryItem(null);
+    } catch (error) {
+      showPoolMutationError(error, "Pool history item could not be deleted right now.");
+    }
   }
 
   function openTest(row = null) {
@@ -607,7 +623,7 @@ export function Pool() {
           ["maintenance", Settings2],
         ].map(([id, Icon]) => (
           <button key={id} style={S.tabBtn(tab === id)} onClick={() => setTab(id)}>
-            <Icon size={14} aria-hidden="true" style={{ display: "inline", marginRight: 4, verticalAlign: "-2px" }} />{id === "dashboard" ? "actions" : id}
+            <Icon size={14} aria-hidden="true" style={{ display: "inline", marginRight: 4, verticalAlign: "-2px" }} />{id === "dashboard" ? "Actions" : id[0].toUpperCase() + id.slice(1)}
           </button>
         ))}
       </div>
@@ -725,7 +741,6 @@ export function Pool() {
                 </div>
               )}
               {!history.length && <EmptyState title="No pool history yet" detail="Log a test, treatment, maintenance item, or pool note to build the timeline." />}
-              <SwipeHint />
               {Object.entries(groupedHistory).map(([date, items]) => (
                 <section key={date} style={{ marginBottom: 12 }}>
                   <div style={{ fontSize: 12, color: COLORS.slate, fontWeight: 900, textTransform: "uppercase", margin: "8px 0" }}>{formatDate(date)}</div>
@@ -733,33 +748,23 @@ export function Pool() {
                     const nextReading = item.kind === "Chemical" ? readings.data.find(reading => new Date(reading.logged_at || reading.date) > new Date(item.sort || item.date)) : null;
                     const major = isMajorHistoryItem(item);
                     return (
-                      <SwipeCard key={`${item.kind}-${item.id}`} id={`${item.kind}-${item.id}`} activeId={activeSwipe} setActiveId={setActiveSwipe}
-                        onEdit={() => {
-                          setForm({ ...item });
-                          setModal(item.kind === "Reading" ? "test" : item.kind === "Chemical" ? "treatment" : "maintenance");
-                        }}
-                        onDelete={async () => {
-                          setPoolActionError("");
-                          try {
-                            if (item.kind === "Reading") await readings.remove(item.id);
-                            else if (item.kind === "Chemical") await treatments.remove(item.id);
-                            else await maintenance.remove(item.id);
-                            setActiveSwipe(null);
-                          } catch (error) {
-                            showPoolMutationError(error, "Pool history item could not be deleted right now.");
-                          }
-                        }}
-                        style={{ ...S.card, borderLeft: `4px solid ${major ? COLORS.amber : COLORS.border}` }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                          <div>
-                            <div style={{ fontSize: 13, color: item.kind === "Chemical" ? COLORS.amber : item.kind === "Reading" ? COLORS.blue : COLORS.green, fontWeight: 800 }}>{item.kind}{major ? " - major" : ""}</div>
-                            <div style={{ fontSize: 15, color: COLORS.white, fontWeight: 800, marginTop: 3 }}>{item.text}</div>
-                            {historyDetail(item, nextReading) && <div style={{ fontSize: 12, color: COLORS.slateLight, lineHeight: 1.45, marginTop: 5 }}>{historyDetail(item, nextReading)}</div>}
-                            {item.notes && <div style={{ fontSize: 13, color: COLORS.slate, lineHeight: 1.45, marginTop: 5 }}>{item.notes}</div>}
+                      <div key={`${item.kind}-${item.id}`} className="mb-2 rounded-lg border border-border bg-card px-3 py-2" style={{ borderLeft: `3px solid ${major ? COLORS.amber : COLORS.border}` }}>
+                        <div className="flex min-w-0 items-start gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                              <span className="text-xs font-extrabold" style={{ color: item.kind === "Chemical" ? COLORS.amber : item.kind === "Reading" ? COLORS.blue : COLORS.green }}>{item.kind}{major ? " · major" : ""}</span>
+                              <span className="text-xs text-muted-foreground">{item.sort && String(item.sort).includes("T") ? new Date(item.sort).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : ""}</span>
+                            </div>
+                            <div className="mt-0.5 text-sm font-bold leading-5 text-foreground">{item.text}</div>
+                            {historyDetail(item, nextReading) && <div className="mt-0.5 line-clamp-1 text-xs leading-5 text-muted-foreground">{historyDetail(item, nextReading)}</div>}
+                            {item.notes && <div className="mt-0.5 line-clamp-2 text-xs leading-5 text-muted-foreground">{item.notes}</div>}
                           </div>
-                          {item.kind === "Reading" && <div style={{ fontSize: 12, color: COLORS.slate, whiteSpace: "nowrap" }}>FC {item.free_chlorine ?? "--"} / pH {item.ph ?? "--"}</div>}
+                          {editable && <div className="flex shrink-0 gap-1">
+                            <Button type="button" variant="ghost" size="icon-xs" aria-label={`Edit ${item.kind} entry`} title="Edit" onClick={() => { setForm({ ...item }); setModal(item.kind === "Reading" ? "test" : item.kind === "Chemical" ? "treatment" : "maintenance"); }}><Pencil aria-hidden="true" /></Button>
+                            <Button type="button" variant="ghost" size="icon-xs" className="text-destructive hover:text-destructive" aria-label={`Delete ${item.kind} entry`} title="Delete" onClick={() => setDeleteHistoryItem(item)}><Trash2 aria-hidden="true" /></Button>
+                          </div>}
                         </div>
-                      </SwipeCard>
+                      </div>
                     );
                   })}
                 </section>
@@ -993,6 +998,18 @@ export function Pool() {
           </FormSection>
         </Modal>
       )}
+      <Dialog open={Boolean(deleteHistoryItem)} onOpenChange={open => !open && setDeleteHistoryItem(null)}>
+        <DialogContent titleId="pool-history-delete-title" onClose={() => setDeleteHistoryItem(null)}>
+          <DialogHeader>
+            <DialogTitle id="pool-history-delete-title">Delete pool history entry?</DialogTitle>
+            <DialogDescription>This {deleteHistoryItem?.kind?.toLowerCase() || "pool"} entry will be permanently removed. This cannot be undone.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={() => setDeleteHistoryItem(null)}>Cancel</Button>
+            <Button type="button" variant="destructive" onClick={confirmHistoryDelete}>Delete entry</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

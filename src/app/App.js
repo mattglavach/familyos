@@ -1,5 +1,5 @@
 import { Component, useState } from "react";
-import { Bell, CalendarDays, Search, Settings as SettingsIcon } from "lucide-react";
+import { Bell, Plus, Search, Settings as SettingsIcon } from "lucide-react";
 import { Dashboard } from "../modules/dashboard/Dashboard";
 import { Tasks } from "../modules/tasks/Tasks";
 import { Calendar } from "../modules/calendar/Calendar";
@@ -34,7 +34,6 @@ import { SectionHeader } from "../components/ui/section-header";
 import { StatusBadge } from "../components/ui/badge";
 import { Skeleton } from "../components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/tooltip";
-import { normalizeCalendarStatus } from "../lib/calendarStatus";
 function SetupRequired(){
   return(
     <div style={S.app} className="px-5 py-10">
@@ -209,8 +208,7 @@ function HeaderIconButton({ label, tooltip, children, className = "", ...props }
   );
 }
 
-function AppHeader({tab, auth, calendar, unreadCount, onSettings, onSearch, onNotifications, onCalendarStatus}){
-  const calendarStatus = normalizeCalendarStatus(calendar);
+function AppHeader({tab, auth, unreadCount, onSettings, onSearch, onNotifications, onAdd}){
   return <header className="sticky top-0 z-10 border-b border-border bg-card/95 px-4 pb-3.5 pt-[calc(env(safe-area-inset-top)+16px)] backdrop-blur sm:px-5">
     <div className="flex items-center justify-between gap-2 sm:gap-3">
       <div className="min-w-0 flex-1">
@@ -225,46 +223,29 @@ function AppHeader({tab, auth, calendar, unreadCount, onSettings, onSearch, onNo
           <Bell className="h-4 w-4" aria-hidden="true" />
           {unreadCount > 0 && <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-400 px-1 text-[10px] font-extrabold text-slate-950">{unreadCount}</span>}
         </HeaderIconButton>
-        {tab !== "settings" && (
-          <HeaderIconButton label="Settings" onClick={onSettings}>
-            <SettingsIcon className="h-4 w-4" aria-hidden="true" />
-          </HeaderIconButton>
-        )}
+        <HeaderIconButton label="Add" tooltip="Add household item" onClick={onAdd} className="border-primary/50 bg-primary text-primary-foreground hover:bg-primary/90">
+          <Plus className="h-5 w-5" aria-hidden="true" />
+        </HeaderIconButton>
         <Button type="button" variant="secondary" size="xs" className="hidden sm:inline-flex" onClick={auth.signOut}>Sign out</Button>
-        <Tooltip>
-          <TooltipTrigger>
-            <Button
-              type="button"
-              variant={calendarStatus.needsAttention ? "outline" : "secondary"}
-              size="icon-xs"
-              aria-label={`Calendar status: ${calendarStatus.label}`}
-              title={calendarStatus.detail}
-              loading={calendar.loading}
-              onClick={onCalendarStatus}
-              className="relative"
-            >
-              <CalendarDays className="h-4 w-4" aria-hidden="true" />
-              {calendarStatus.needsAttention && <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-card" aria-hidden="true" />}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">{calendarStatus.detail}</TooltipContent>
-        </Tooltip>
+        <HeaderIconButton label="Settings" onClick={onSettings} aria-current={tab === "settings" ? "page" : undefined}>
+          <SettingsIcon className="h-4 w-4" aria-hidden="true" />
+        </HeaderIconButton>
       </div>
     </div>
   </header>;
 }
 
-function BottomNavigation({tab,onNavigate,onQuickAdd}){
+function BottomNavigation({tab,onNavigate}){
   return <nav className="fixed bottom-0 left-1/2 z-20 flex w-full max-w-[430px] -translate-x-1/2 border-t border-border bg-card pb-[env(safe-area-inset-bottom)]" aria-label="Primary navigation">
     {TABS.map(t=>{
-      const active = tab===t.id || (t.id === "more" && ["settings","finance","pool","college","life-lists","shopping","meal-planning"].includes(tab));
+      const active = tab===t.id || (t.id === "more" && ["settings","finance","college","life-lists","shopping","meal-planning"].includes(tab));
       return (
       <button
         key={t.id}
         type="button"
         className={`flex min-h-[56px] flex-1 flex-col items-center justify-center gap-1 border-t-2 px-0.5 pb-2 pt-2 text-[10px] font-semibold transition-colors ${active?"border-primary text-primary":"border-transparent text-muted-foreground"}`}
         aria-current={active?"page":undefined}
-        onClick={()=>t.id === "quick-add" ? onQuickAdd() : onNavigate(t.id)}
+        onClick={()=>onNavigate(t.id)}
       >
         {I[t.iconKey](active)}<span>{t.label}</span>
       </button>
@@ -343,7 +324,7 @@ export default function App(){
 function AuthenticatedApp({ auth }) {
   const [tab,setTab] = useState("home");
   const [navigationContext, setNavigationContext] = useState(null);
-  const [quickAddSignal, setQuickAddSignal] = useState(0);
+  const [quickAddRequest, setQuickAddRequest] = useState({ signal: 0, mode: null });
   const [searchOpen, setSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -354,7 +335,7 @@ function AuthenticatedApp({ auth }) {
   function switchTab(target){
     const nextTab = typeof target === "string" ? target : target?.tab;
     if (nextTab === "quick-add") {
-      setQuickAddSignal(value => value + 1);
+      setQuickAddRequest(previous => ({ signal: previous.signal + 1, mode: null }));
       return;
     }
     if (!nextTab) return;
@@ -406,20 +387,17 @@ function AuthenticatedApp({ auth }) {
       connect: gc.signIn,
       canConnect: Boolean(gc.canConnect),
     };
-  const headerCalendarStatus = normalizeCalendarStatus(headerCalendar);
-
   return(
     <div style={S.app}>
       <GlobalInteractionStyles/>
       <AppHeader
         tab={tab}
         auth={auth}
-        calendar={headerCalendar}
         unreadCount={unreadCount}
         onSettings={()=>switchTab("settings")}
         onSearch={() => setSearchOpen(true)}
         onNotifications={() => setNotificationsOpen(true)}
-        onCalendarStatus={() => switchTab(headerCalendarStatus.actionTarget)}
+        onAdd={() => setQuickAddRequest(previous => ({ signal: previous.signal + 1, mode: null }))}
       />
 
       {tab==="home"&&<Dashboard onNavigate={switchTab} gc={gc} secureCalendar={secureCalendar} deps={{
@@ -456,8 +434,8 @@ function AuthenticatedApp({ auth }) {
         onNavigate={switchTab}
         onUnreadChange={setUnreadCount}
       />
-      <QuickAdd onNavigate={switchTab} openSignal={quickAddSignal}/>
-      <BottomNavigation tab={tab} onNavigate={switchTab} onQuickAdd={() => setQuickAddSignal(value => value + 1)}/>
+      <QuickAdd onNavigate={switchTab} openSignal={quickAddRequest.signal} initialMode={quickAddRequest.mode}/>
+      <BottomNavigation tab={tab} onNavigate={switchTab}/>
     </div>
   );
 }

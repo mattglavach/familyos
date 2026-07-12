@@ -60,13 +60,29 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
   const allScheduleCount = context.calendarSummary.today.length + context.calendarSummary.upcoming.length;
   const priorities = [...tasks.data].filter(task => priorityRank(task, TODAY_STR) < 99).sort((a, b) => priorityRank(a, TODAY_STR) - priorityRank(b, TODAY_STR) || String(a.due_date || "9999").localeCompare(String(b.due_date || "9999"))).slice(0, 5);
   const qualifyingPriorityCount = tasks.data.filter(task => priorityRank(task, TODAY_STR) < 99).length;
-  const attention = context.attentionItems.filter(item => !["tasks", "calendar", "shopping", "meal-planning"].includes(item.sourceModule)).slice(0, 3);
+  const contextualAttention = context.attentionItems.filter(item => !["tasks", "calendar", "shopping", "meal-planning"].includes(item.sourceModule));
+  const attentionItems = [
+    ...priorities.map(task => ({ key: `task-${task.id}`, title: task.title, detail: dateLabel(task.due_date, TODAY_STR), tab: { tab: "tasks", search: task.title || "" }, severity: priorityRank(task, TODAY_STR) === 0 ? "High" : "Medium", icon: ListTodo })),
+    ...contextualAttention.map(item => ({ key: item.deduplicationKey, title: item.title, detail: item.message, tab: item.navigationDestination, severity: item.severity, icon: null })),
+  ].slice(0, 5);
+  const firstName = String(household.profile?.full_name || household.profile?.name || "").trim().split(/\s+/)[0];
+  const greeting = new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening";
+  const summaryParts = [];
+  if (context.calendarSummary.today.length) summaryParts.push(`${context.calendarSummary.today.length} event${context.calendarSummary.today.length === 1 ? "" : "s"} today`);
+  if (qualifyingPriorityCount) summaryParts.push(`${qualifyingPriorityCount} task${qualifyingPriorityCount === 1 ? "" : "s"} due or overdue`);
+  if (context.poolSummary?.chemistryStatus?.warnings?.length) summaryParts.push("pool needs review");
+  const dailySummary = summaryParts.length ? summaryParts.join(" · ") : "No urgent household items today.";
   const familySnapshot = useMemo(() => {
     const rows = [];
+    if (allScheduleCount > schedule.length) rows.push({ label: "Calendar", detail: `${allScheduleCount - schedule.length} more upcoming event${allScheduleCount - schedule.length === 1 ? "" : "s"}`, tab: "calendar", icon: CalendarDays });
+    const openTaskCount = tasks.data.filter(task => !task.completed && String(task.status || "").toLowerCase() !== "completed").length;
+    if (openTaskCount > qualifyingPriorityCount) rows.push({ label: "Tasks", detail: `${openTaskCount} open · ${qualifyingPriorityCount} need attention`, tab: "tasks", icon: ListTodo });
     if (profiles.data.length || readings.data.length) {
       const freshness = context.poolSummary.testFreshness?.state;
       const warnings = context.poolSummary.chemistryStatus?.warnings?.length || 0;
-      const detail = warnings ? `${warnings} water condition${warnings === 1 ? "" : "s"} need review` : freshness === "stale" ? "Water test is due" : freshness === "current" ? "Water test is current" : "Pool setup is ready";
+      const lastTest = readings.data[0]?.date || String(readings.data[0]?.logged_at || "").slice(0, 10);
+      const nextStep = warnings ? context.poolSummary.recommendedNextAction?.action || "Review pool guidance" : freshness === "stale" ? "Log a new water test" : "No action required";
+      const detail = `${warnings ? "Needs attention" : freshness === "stale" ? "Test due" : "On track"} · ${nextStep}${lastTest ? ` · tested ${new Date(`${lastTest}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}`;
       rows.push({ label: "Pool", detail, tab: "pool", icon: Waves });
     }
     if (retirementAccounts.data.length || retirementAssumptions.data.length) {
@@ -83,20 +99,22 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
       rows.push({ label: "Home", detail, tab: "finance", icon: House });
     }
     return rows;
-  }, [TODAY_STR, context.poolSummary, formatMoneyShort, homeMaintenance.data, mortgage.data, profiles.data.length, readings.data.length, retirementAccounts.data, retirementAssumptions.data]);
+  }, [TODAY_STR, allScheduleCount, context.poolSummary, formatMoneyShort, homeMaintenance.data, mortgage.data, profiles.data.length, qualifyingPriorityCount, readings.data, retirementAccounts.data, retirementAssumptions.data, schedule.length, tasks.data]);
 
   if (loading) return <div style={S.screen} className="space-y-3"><Skeleton className="h-24" /><Skeleton className="h-32" /><Skeleton className="h-20" /></div>;
   return <div style={S.screen} className="space-y-3 overflow-x-hidden">
-    {schedule.length > 0 && <section><SectionHeader title="Upcoming Schedule" count={allScheduleCount} tone="blue" action={allScheduleCount > 3 ? <Button type="button" variant="ghost" size="xs" onClick={() => onNavigate("calendar")}>View All</Button> : null} />
+    <Card><CardContent className="px-4 py-3">
+      <div className="text-lg font-extrabold text-foreground">{greeting}{firstName ? `, ${firstName}` : ""}</div>
+      <div className="mt-0.5 text-xs font-semibold text-muted-foreground">{new Date(`${TODAY_STR}T12:00:00`).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</div>
+      <div className="mt-2 text-sm leading-5 text-foreground">{dailySummary}</div>
+    </CardContent></Card>
+
+    {schedule.length > 0 && <section><SectionHeader title="Today's Schedule" count={allScheduleCount} tone="blue" action={allScheduleCount > 3 ? <Button type="button" variant="ghost" size="xs" onClick={() => onNavigate("calendar")}>View All</Button> : null} />
       <Card><CardContent className="px-4 py-1">{schedule.map(event => <button key={event.id || `${event.date}-${event.title}`} type="button" onClick={() => onNavigate({ tab: "calendar", eventId: event.id })} className="flex min-h-11 w-full items-center gap-3 border-b border-border py-1.5 text-left last:border-0"><CalendarDays className="h-4 w-4 shrink-0 text-primary" /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{event.title || event.summary || "Calendar event"}</span><span className="block truncate text-xs text-muted-foreground">{formatCalendarEventTime(event)}{event.location ? ` · ${event.location}` : ""}</span></span><ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" /></button>)}</CardContent></Card>
     </section>}
 
-    {priorities.length > 0 && <section><SectionHeader title="Priorities" count={qualifyingPriorityCount} tone="purple" action={qualifyingPriorityCount > 5 ? <Button type="button" variant="ghost" size="xs" onClick={() => onNavigate("tasks")}>View All Tasks</Button> : null} />
-      <Card><CardContent className="px-4 py-1">{priorities.map(task => <button key={task.id} type="button" onClick={() => onNavigate({ tab: "tasks", search: task.title || "" })} className="flex min-h-11 w-full items-center gap-3 border-b border-border py-1.5 text-left last:border-0"><ListTodo className="h-4 w-4 shrink-0 text-primary" /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{task.title}</span><span className="text-xs text-muted-foreground">{dateLabel(task.due_date, TODAY_STR)}</span></span><ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" /></button>)}</CardContent></Card>
-    </section>}
-
-    {attention.length > 0 && <section><SectionHeader title="Needs Attention" count={attention.length} tone={attention.some(item => ["Critical", "High"].includes(item.severity)) ? "red" : "amber"} />
-      <Card><CardContent className="px-4 py-1">{attention.map(item => <button key={item.deduplicationKey} type="button" onClick={() => onNavigate(item.navigationDestination)} className="flex min-h-11 w-full items-start gap-3 border-b border-border py-2 text-left last:border-0"><span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: item.severity === "High" || item.severity === "Critical" ? COLORS.red : COLORS.amber }} /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{item.title}</span><span className="line-clamp-2 text-xs leading-5 text-muted-foreground">{item.message}</span></span><ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" /></button>)}</CardContent></Card>
+    {attentionItems.length > 0 && <section><SectionHeader title="Needs Attention" count={attentionItems.length} tone={attentionItems.some(item => ["Critical", "High"].includes(item.severity)) ? "red" : "amber"} />
+      <Card><CardContent className="px-4 py-1">{attentionItems.map(item => { const Icon = item.icon; return <button key={item.key} type="button" onClick={() => onNavigate(item.tab)} className="flex min-h-11 w-full items-start gap-3 border-b border-border py-2 text-left last:border-0">{Icon ? <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" /> : <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: item.severity === "High" || item.severity === "Critical" ? COLORS.red : COLORS.amber }} />}<span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{item.title}</span><span className="line-clamp-1 text-xs leading-5 text-muted-foreground">{item.detail}</span></span><ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" /></button>; })}</CardContent></Card>
     </section>}
 
     {familySnapshot.length > 0 && <section><SectionHeader title="Family Snapshot" tone="neutral" />

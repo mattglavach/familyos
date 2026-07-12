@@ -1,5 +1,16 @@
 # Current Sprint
 
+## Release 1.8.4 local release candidate
+
+- [x] Move global creation to the top Add action and keep Settings far right.
+- [x] Replace bottom Add with Pool and preserve five module destinations.
+- [x] Replace Pool History swipes with compact visible Edit/Delete controls and confirmed deletion.
+- [x] Refine Home into a concise, non-duplicative daily brief with hidden empty sections.
+- [x] Preserve schema, integrations, permissions, dependencies, and chemistry logic.
+- [x] Complete the full automated and authenticated browser validation gates.
+
+No push, deployment, tag, migration, or production mutation is included.
+
 ## Release 1.8.3 local release candidate
 
 - [x] Add a compact, meaningful Family Snapshot to Home.

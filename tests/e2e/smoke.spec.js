@@ -16,7 +16,7 @@ test("authenticated FamilyOS major-module smoke", async ({ page }) => {
 
   await openMoreModule(page, "Life Lists");
   await expect(page.getByText("Family Goals").first()).toBeVisible();
-  await openMoreModule(page, "Pool");
+  await navigateModule(page, "Pool");
   await expect(page.getByText("Pool", { exact: true }).first()).toBeVisible();
   await openMoreModule(page, "Shopping");
   await expect(page.getByText("Weekly Groceries").first()).toBeVisible();

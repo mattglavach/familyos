@@ -43,7 +43,7 @@ export function More({ onNavigate }) {
           More
         </div>
         <div className="mt-1 text-2xl font-extrabold text-foreground">Household Modules</div>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">Core daily flows stay in Home, Tasks, Calendar, and Quick Add. Lower-frequency and future modules live here.</p>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">Core daily flows stay in Home, Tasks, Calendar, and Pool. Use the top Add button for global creation; lower-frequency modules live here.</p>
       </div>
 
       {platformGroups.map(group => (

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, ChevronLeft, ClipboardList, Droplets, ListChecks, ShoppingCart, Utensils } from "lucide-react";
+import { CalendarDays, Check, ChevronLeft, ClipboardList, Droplets, ListChecks, ShoppingCart, Utensils } from "lucide-react";
 import { TODAY_STR } from "../../lib/dates";
 import { formatUserFacingError } from "../../lib/userFacingErrors";
 import { useHousehold } from "../../context/HouseholdContext";
@@ -14,7 +14,7 @@ import { DateTimeField, FormError, FormGroup, FormHelp, FormRow, FormSection, No
 import { ChipGroup, SegmentedControl } from "../../components/ui/segmented-control";
 import { SectionHeader } from "../../components/ui/section-header";
 // - QUICK ADD -
-export function QuickAdd({onNavigate, openSignal = 0}){
+export function QuickAdd({onNavigate, openSignal = 0, initialMode = null}){
   const [open,setOpen] = useState(false);
   const tasks = useTable("tasks", "due_date", true);
   const lifeLists = useTable("life_lists", "updated_at");
@@ -56,7 +56,8 @@ export function QuickAdd({onNavigate, openSignal = 0}){
   }
 
   const options=[
-    {id:"task", icon:ClipboardList, label:"Task", status:"Ready", enabled:true, accentClass:"border-l-violet-400", iconClass:"text-violet-300"},
+    {id:"task", icon:ClipboardList, label:"Add Task", status:"Ready", featured:true, enabled:true, accentClass:"border-l-violet-400", iconClass:"text-violet-300"},
+    {id:"calendar-event", icon:CalendarDays, label:"Add Calendar Event", status:"Google", featured:true, enabled:true, accentClass:"border-l-sky-400", iconClass:"text-sky-300"},
     {id:"shopping-item", icon:ShoppingCart, label:"Shopping Item", status:"Ready", enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
     {id:"shopping-list", icon:ShoppingCart, label:"Shopping List", status:"Ready", enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
     {id:"recipe", icon:Utensils, label:"Recipe", status:"Ready", enabled:true, accentClass:"border-l-sky-400", iconClass:"text-sky-300"},
@@ -64,8 +65,8 @@ export function QuickAdd({onNavigate, openSignal = 0}){
     {id:"meal-assignment", icon:Utensils, label:"Meal Assignment", status:"Ready", enabled:true, accentClass:"border-l-sky-400", iconClass:"text-sky-300"},
     {id:"life-item", icon:ListChecks, label:"List Item", status:"Ready", enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
     {id:"life-list", icon:ListChecks, label:"Life List", status:"Ready", enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
-    {id:"pool", icon:Droplets, label:"Pool Test", status:"Ready", enabled:true, accentClass:"border-l-primary", iconClass:"text-primary"},
-    {id:"pool-treatment", icon:Droplets, label:"Chemical Added", status:"Ready", enabled:true, accentClass:"border-l-primary", iconClass:"text-primary"},
+    {id:"pool-treatment", icon:Droplets, label:"Add Pool Activity", status:"Ready", featured:true, enabled:true, accentClass:"border-l-primary", iconClass:"text-primary"},
+    {id:"pool", icon:Droplets, label:"Add Pool Test Result", status:"Ready", featured:true, enabled:true, accentClass:"border-l-primary", iconClass:"text-primary"},
     {id:"pool-maintenance", icon:Droplets, label:"Maintenance Completed", status:"Ready", enabled:true, accentClass:"border-l-primary", iconClass:"text-primary"},
     {id:"pool-note", icon:Droplets, label:"Pool Note", status:"Ready", enabled:true, accentClass:"border-l-primary", iconClass:"text-primary"},
   ];
@@ -101,8 +102,17 @@ export function QuickAdd({onNavigate, openSignal = 0}){
   });
 
   useEffect(() => {
-    if (openSignal) setOpen(true);
-  }, [openSignal]);
+    if (openSignal) { setMode(initialMode); setOpen(true); }
+  }, [initialMode, openSignal]);
+
+  function chooseMode(id) {
+    if (id === "calendar-event") {
+      window.open("https://calendar.google.com/calendar/u/0/r/eventedit", "_blank", "noopener,noreferrer");
+      close();
+      return;
+    }
+    setMode(id);
+  }
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -242,10 +252,10 @@ export function QuickAdd({onNavigate, openSignal = 0}){
         {!mode&&<>
           <SectionHeader title="Capture" className="mt-0"/>
           <div className="space-y-2">
-          {options.map(o=>{
+          {options.filter(option => option.featured).map(o=>{
             const Icon = o.icon;
             return (
-              <button key={o.id} disabled={!o.enabled} onClick={()=>o.enabled&&setMode(o.id)} className={`flex min-h-12 w-full items-center gap-3 rounded-lg border border-l-[3px] border-border bg-secondary px-4 py-3 text-left text-foreground transition-colors hover:border-primary/50 disabled:cursor-not-allowed disabled:opacity-60 ${o.accentClass}`}>
+              <button key={o.id} disabled={!o.enabled} onClick={()=>o.enabled&&chooseMode(o.id)} className={`flex min-h-12 w-full items-center gap-3 rounded-lg border border-l-[3px] border-border bg-secondary px-4 py-3 text-left text-foreground transition-colors hover:border-primary/50 disabled:cursor-not-allowed disabled:opacity-60 ${o.accentClass}`}>
                 <Icon size={20} aria-hidden="true" className={o.iconClass}/>
                 <span className="min-w-0 flex-1 text-sm font-semibold">{o.label}</span>
                 <span className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">{o.status}</span>

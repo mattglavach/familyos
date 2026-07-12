@@ -1,6 +1,6 @@
 # Pool
 
-Release 1.8.3 consolidates the recommendation into the always-visible Pool Status card. Water Test Results, Recent Activity, and Trend Charts are collapsed by default and remember their expanded state in browser-local preferences. History combines tests, treatments, cleaning, and maintenance. Existing detailed History, Equipment, and Maintenance workspaces remain available.
+Release 1.8.4 keeps the consolidated Pool Status and promotes Pool into primary bottom navigation. History combines tests, treatments, cleaning, and maintenance in compact cards with visible accessible Edit/Delete actions. History no longer uses swipe gestures, and deletion requires confirmation. Equipment and Maintenance retain their existing workflows.
 
 ## Release 1.8 Optimization Contract
 

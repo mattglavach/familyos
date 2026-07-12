@@ -2,7 +2,7 @@ export const TABS = [
   { id: "home", label: "Home", iconKey: "home" },
   { id: "tasks", label: "Tasks", iconKey: "tasks" },
   { id: "calendar", label: "Calendar", iconKey: "calendar" },
-  { id: "quick-add", label: "Add", iconKey: "quickAdd" },
+  { id: "pool", label: "Pool", iconKey: "pool" },
   { id: "more", label: "More", iconKey: "more" },
 ];
 

@@ -67,7 +67,7 @@ Release 1.0 should not require breadcrumbs for the current shallow app structure
 - Household switching should refresh the current surface without confusing route jumps.
 
 ## Transition to the Approved Architecture
-1. Preserve the implemented Home, Tasks, Calendar, Quick Add, and More shell until a navigation release is explicitly approved.
+1. Preserve the implemented Home, Tasks, Calendar, Pool, and More shell until a navigation release is explicitly approved; Quick Add remains a global top-bar action.
 2. Evolve toward Dashboard, Calendar, Tasks, Life, Home, and Financial Planning without presenting unfinished destinations as complete.
 3. Treat Quick Add and Search as cross-module capabilities, not business-domain modules.
 4. Move Shopping under Life when the target architecture is implemented unless a later architecture decision changes ownership.

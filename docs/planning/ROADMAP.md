@@ -1,5 +1,11 @@
 # Roadmap
 
+## Release 1.8.4: Navigation and Daily UX Refinement
+- [x] Move global Add to the top bar and promote Pool into bottom module navigation.
+- [x] Make Pool History compact and manageable without swipe gestures.
+- [x] Simplify Home around today's schedule, highest-priority attention, and meaningful module status.
+- [x] Complete authenticated desktop and 390px browser regression validation.
+
 ## Release 1.8.0: Household Context, Dashboard Intelligence, and Pool Optimization
 - [x] Implement the versioned Household Context Service and deterministic cross-module attention framework.
 - [x] Refocus Dashboard on household attention, today, upcoming, Tasks, Calendar, Pool, and maintenance.

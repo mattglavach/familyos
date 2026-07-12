@@ -1,5 +1,17 @@
 # Release Notes
 
+## Release 1.8.4
+
+Release 1.8.4 is a cohesive UX refinement release. The top bar replaces Calendar status with a prominent global Add action and keeps Settings as the far-right icon. The compact Add sheet routes Task, Pool Activity, and Pool Test Result into established forms, while Calendar Event hands off to Google Calendar's existing event editor.
+
+Bottom navigation now contains Home, Tasks, Calendar, Pool, and More. Pool has its own selected state and Add is no longer a bottom destination.
+
+Pool History cards are denser and expose accessible Edit and Delete buttons without swiping. Existing edit validation is preserved, deletion requires confirmation, and History-specific swipe instructions, gesture handlers, and hidden actions are removed.
+
+Home opens with a compact greeting, date, and meaningful daily summary, followed only by populated Today's Schedule, Needs Attention, and Family Snapshot sections. Schedule is limited to three events, attention is capped at five prioritized items, duplicate task/alert surfaces are consolidated, and Pool status is reduced to condition, one next step, and last-test timing.
+
+Validation covers lint, automated tests, seed safety, production build, bundle safety, authenticated desktop/mobile browser flows, navigation, Pool History edit/delete confirmation, empty-state behavior, duplicate-content review, and diff validation. No database, migration, dependency, authentication, permission, production configuration, financial calculation, or Pool chemistry logic changed.
+
 ## Release 1.8.3
 
 Release 1.8.3 continues the focused UX cleanup. Home adds a compact Family Snapshot below Needs Attention and only shows Pool, Retirement, or Home rows when their source data produces a useful status. Each row routes to the owning Pool or Finance workspace.

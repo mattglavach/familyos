@@ -32,15 +32,15 @@ These states must remain explicitly separate.
 
 ### Current implementation
 
-The current app shell implements five primary actions:
+The current app shell implements five primary module destinations:
 
 1. Home
 2. Tasks
 3. Calendar
-4. Quick Add
+4. Pool
 5. More
 
-Home currently serves as the dashboard. Additional implemented workspaces, including Life Lists, Shopping, Meal Planning, Pool, Household, and Settings, are reached through app navigation and More as documented by the current code and release records.
+Home currently serves as the dashboard. Quick Add is a global top-bar action, and Settings is the far-right top-bar action. Additional implemented workspaces, including Life Lists, Shopping, Meal Planning, Household, and Settings, are reached through app navigation and More as documented by the current code and release records.
 
 ### Approved long-term product architecture
 

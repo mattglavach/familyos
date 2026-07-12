@@ -88,11 +88,12 @@ describe("Pool Test persistence UI", () => {
     ]);
 
     act(() => root.render(React.createElement(Pool)));
-    clickByText(container, "history");
+    clickByText(container, "History");
 
     expect(container.textContent).toContain("pH 7.5 FC 5.5 Salt 3400");
     expect(container.textContent).toContain("Reloaded from Supabase");
-    expect(container.textContent).toContain("FC 5.5 / pH 7.5");
+    expect(container.querySelector('button[aria-label="Edit Reading entry"]')).not.toBeNull();
+    expect(container.querySelector('button[aria-label="Delete Reading entry"]')).not.toBeNull();
   });
 
   test("renders the shared partial Pool Test form with CC after FC and context fields", () => {
@@ -170,12 +171,12 @@ describe("Pool Test persistence UI", () => {
     ]);
 
     act(() => root.render(React.createElement(Pool)));
-    clickByText(container, "history");
+    clickByText(container, "History");
 
     expect(container.textContent).toContain("pH -- FC -- Salt --");
     expect(container.textContent).toContain("Partial test after party");
     expect(container.textContent).toContain("Heavy use");
-    expect(container.textContent).toContain("FC 5.5 / pH 7.5");
+    expect(container.querySelectorAll('button[aria-label="Edit Reading entry"]')).toHaveLength(2);
   });
 
 });

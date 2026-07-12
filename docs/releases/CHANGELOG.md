@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.4 - 2026-07-11
+
+- Moved global creation into a prominent top-bar Add sheet and kept Settings as the far-right icon.
+- Replaced bottom Add with Pool while preserving five module destinations.
+- Reworked Pool History into compact cards with visible Edit/Delete actions and confirmed deletion; removed History swipe behavior.
+- Refined Home into a compact daily brief with three schedule events, up to five attention items, and meaningful non-duplicative snapshot rows.
+- Added navigation and Pool History interaction coverage with no schema, dependency, authentication, configuration, or production changes.
+
 - Restored the authoritative legacy Supabase baseline, added fresh-project Pool audit compatibility, and added isolated empty-database migration-chain validation for dedicated non-production environments.
 
 ## 1.8.3 - 2026-07-11

@@ -76,10 +76,34 @@ test("task CRUD round trip", async ({ page }) => {
 
 test("responsive navigation remains usable", async ({ page }) => {
   await loginDemoUser(page);
-  for (const label of ["Home", "Tasks", "Calendar", "More"]) {
+  for (const label of ["Home", "Tasks", "Calendar", "Pool", "More"]) {
     await navigateModule(page, label);
     await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
   }
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
   expect(overflow).toBe(false);
+});
+
+test("global Add and Pool History expose the refined actions", async ({ page }) => {
+  await loginDemoUser(page);
+  const nav = page.getByRole("navigation", { name: "Primary navigation" });
+  await expect(nav.getByRole("button", { name: "Add", exact: true })).toHaveCount(0);
+  await expect(nav.getByRole("button", { name: "Pool", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Calendar status:/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Settings", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  for (const action of ["Add Task", "Add Calendar Event", "Add Pool Activity", "Add Pool Test Result"]) await expect(page.getByRole("button", { name: new RegExp(action) })).toBeVisible();
+  await page.getByRole("button", { name: "Close" }).click();
+  await navigateModule(page, "Pool");
+  await page.getByRole("button", { name: "History", exact: true }).click();
+  const editButton = page.getByRole("button", { name: /^Edit .* entry$/ }).first();
+  const deleteButton = page.getByRole("button", { name: /^Delete .* entry$/ }).first();
+  await expect(editButton).toBeVisible();
+  await expect(deleteButton).toBeVisible();
+  await editButton.click();
+  await expect(page.getByRole("heading", { name: /^Edit Pool Test$|^Chemical Added$|^Maintenance or Pool Note$/ })).toBeVisible();
+  await page.getByRole("button", { name: "Close" }).click();
+  await deleteButton.click();
+  await expect(page.getByText("Delete pool history entry?")).toBeVisible();
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
 });
