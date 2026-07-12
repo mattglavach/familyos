@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.5.0-rc.1 - 2026-07-12
+
+- Added member-level Morning Brief, Evening Review, and Weekly Planning schedules with day/time controls, missed-window handling, persisted generation history, manual refresh, and scheduled-period idempotency.
+- Expanded the in-app Notification Center with household-scoped read/dismiss state, mark-all-read, category preferences, quiet hours, urgency ordering, source navigation, and restrained navigation counts.
+- Added Calendar all-day/timed and recurring-series labels plus overlap and tight-transition intelligence.
+- Added a protected eight-template routine library and household template management workflows.
+- Added Playwright axe-core accessibility auditing and an additive Release 2.5 migration with explicit ownership and RLS.
+- Deferred external notification channels, server-side scheduling, recurrence mutation, predictive consumables, and Financial Planning integration.
+
 ## 2.4.0 - 2026-07-12
 
 - Hardened the Release 2.3 Pool maintenance-history migration for production environments where `pool_schedule.id` is UUID rather than text; history keeps a stable textual identifier and the completion RPC compares IDs safely across either schema shape.

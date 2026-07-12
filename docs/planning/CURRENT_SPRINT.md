@@ -1,5 +1,13 @@
 # Current Sprint
 
+## Release 2.5.0 release candidate
+
+Status: release candidate implemented and validated through preview on `codex/release-2.5.0`.
+
+Required scope is implemented: automated brief scheduling, in-app notifications, Calendar intelligence, routine templates, and automated accessibility audit coverage. The release intentionally uses authenticated-open scheduling because no reliable server scheduler is configured. Production actions remain out of scope pending approval.
+
+Exit gates: additive migration bootstrap and upgrade validation, full unit/build/bundle/seed validation, authenticated desktop/tablet/mobile/dark regression, axe accessibility audit, preview deployment, draft PR, and clean branch.
+
 ## Release 2.4.0 smart planning and daily operations
 
 - [x] Add actionable Home context, preparation alerts, and compact daily progress.

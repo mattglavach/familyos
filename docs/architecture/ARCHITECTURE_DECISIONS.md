@@ -1,5 +1,17 @@
 # Architecture Decisions
 
+## 2026-07-12 - Release 2.5 proactive planning uses persisted, authenticated-open orchestration
+
+Decision: store member-level brief schedules, generation history, notification preferences/state, and household routine templates in Supabase. When no reliable server scheduler is configured, evaluate due briefs after authenticated app open and require the user to prepare/review the brief. Do not use a browser timer or autonomous record mutation.
+
+Idempotency: a partial unique index prevents more than one successful scheduled brief per household, user, type, and period. Manual refreshes remain auditable and are intentionally allowed. Notification source keys reuse `notification_states` so read/dismissal is durable without duplicating source records.
+
+Permissions: brief and notification preferences/history are private to the authenticated active household member. Routine templates are household-readable; owner/adult roles manage user-created templates. Built-in templates are application constants and cannot be deleted through database policies or UI.
+
+Calendar: provider data remains read-oriented. FamilyOS derives overlap, tight-transition, all-day, and recurrence indicators. Editing an occurrence or series remains in Google Calendar until provider synchronization supports safe write semantics.
+
+Relationship: Needs Attention remains the compact cross-module summary; Notifications is the durable user-specific action queue; preparation alerts are Calendar-derived signals; briefs synthesize current context as proposals; Tasks remains the action-item system of record.
+
 ## 2026-07-12 - Release 2.4 planning intelligence remains derived and advisory
 
 Decision: derive Home preparation, progress, attention, search, and AI context from owning module records. Do not add a duplicate planning store or persist AI output automatically. Habit goal metadata is additive; routine template identity is optional; completion history remains authoritative.

@@ -1,0 +1,3 @@
+import { dayDistance, dedupeNotifications, notificationIsEnabled, withinQuietHours } from "./notificationEngine";
+test("notification helpers deduplicate and prioritize",()=>{expect(dedupeNotifications([{sourceKey:"x",priority:1},{sourceKey:"x",priority:3},{sourceKey:"y",priority:2}]).map(x=>x.sourceKey)).toEqual(["x","y"]);expect(dayDistance("2026-07-13",new Date(2026,6,12))).toBe(1);});
+test("quiet hours span midnight and categories use sensible defaults",()=>{expect(withinQuietHours({quiet_hours_start:"21:00",quiet_hours_end:"07:00"},new Date(2026,6,12,23))).toBe(true);expect(notificationIsEnabled({category:"tasks"},{})).toBe(true);expect(notificationIsEnabled({category:"tasks"},{enabled_categories:{tasks:false}})).toBe(false);});

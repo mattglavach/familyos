@@ -439,7 +439,7 @@ function AuthenticatedApp({ auth }) {
       {tab==="more"&&<More onNavigate={switchTab}/>}
       {tab==="needs-attention"&&<NeedsAttention onNavigate={switchTab} calendarEvents={headerCalendar.events}/>}
       {tab==="settings"&&<Settings auth={auth} gc={gc} secureCalendar={secureCalendar}/>}
-      {tab==="ai-workspace"&&<AIWorkspace calendarEvents={headerCalendar.events} onNavigate={switchTab}/>}
+      {tab==="ai-workspace"&&<AIWorkspace calendarEvents={headerCalendar.events} onNavigate={switchTab} initialView={navigationContext?.tab === "ai-workspace" ? navigationContext : null}/>}
       {tab==="habits"&&<Habits/>}
       {tab==="routines"&&<Routines/>}
       </Suspense>

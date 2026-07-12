@@ -69,7 +69,14 @@ export function normalizeEvent(event, index, sourceLabel) {
   };
 }
 
-function EventCard({ event, todayString, formatDateFull, selected, onSelect }) {
+export function calendarInsights(events = []) {
+  const timed=events.filter(event=>!event.allDay&&event.start).map(event=>({...event,_start:new Date(event.start?.dateTime||event.start),_end:new Date(event.end?.dateTime||event.end||event.start)})).filter(event=>!Number.isNaN(event._start.getTime())).sort((a,b)=>a._start-b._start);
+  const flags={};
+  timed.forEach((event,index)=>{const next=timed[index+1];if(!next)return;const gap=(next._start-event._end)/60000;if(gap<0){flags[event.id]={...(flags[event.id]||{}),conflict:true};flags[next.id]={...(flags[next.id]||{}),conflict:true};}else if(gap<=30){flags[event.id]={...(flags[event.id]||{}),tight:true};flags[next.id]={...(flags[next.id]||{}),tight:true};}});
+  return flags;
+}
+
+function EventCard({ event, todayString, formatDateFull, selected, onSelect, insight }) {
   const panelId = `calendar-event-${String(event.occurrenceKey || event.id).replace(/[^a-zA-Z0-9_-]/g, "-")}`;
   return (
     <Card className={`min-w-0 max-w-full overflow-hidden ${selected ? "border-primary" : ""}`} style={{ borderLeft: `3px solid ${COLORS.blue}` }}>
@@ -82,6 +89,7 @@ function EventCard({ event, todayString, formatDateFull, selected, onSelect }) {
                 {eventMetaLine(event, todayString, formatDateFull)}
               </div>
               {event.source && event.source !== "Calendar" && <div className="mt-0.5 text-[11px] text-muted-foreground">{event.source}</div>}
+              <div className="mt-1 flex flex-wrap gap-1"><Badge variant="slate">{event.allDay?"All day":"Timed"}</Badge>{event.recurringEventId&&<Badge variant="purple">Recurring series</Badge>}{insight?.conflict&&<Badge variant="red">Overlaps another event</Badge>}{insight?.tight&&!insight.conflict&&<Badge variant="amber">Tight transition</Badge>}</div>
             </div>
             <ChevronDown className={`mt-1 h-4 w-4 shrink-0 transition-transform ${selected ? "rotate-180" : ""}`} aria-hidden="true" />
           </div>
@@ -92,7 +100,7 @@ function EventCard({ event, todayString, formatDateFull, selected, onSelect }) {
   );
 }
 
-function EventSection({ title, events, emptyTitle, emptyDetail, todayString, formatDateFull, selectedId, onSelect }) {
+function EventSection({ title, events, emptyTitle, emptyDetail, todayString, formatDateFull, selectedId, onSelect, insights }) {
   return (
     <section className="min-w-0 max-w-full">
       <SectionHeader title={title} count={events.length} tone={title === "Today" ? "blue" : "neutral"} />
@@ -106,6 +114,7 @@ function EventSection({ title, events, emptyTitle, emptyDetail, todayString, for
               onSelect={onSelect}
               todayString={todayString}
               formatDateFull={formatDateFull}
+              insight={insights[event.id]}
             />
           ))}
         </div>
@@ -159,6 +168,7 @@ function EventDetails({ id, event, todayString, formatDateFull }) {
             {event.notes}
           </div>
         </div>}
+        {event.recurringEventId&&<div className="rounded-lg border border-border bg-secondary/30 p-3 text-xs leading-5 text-muted-foreground"><b className="text-foreground">Recurring event:</b> This occurrence belongs to a series. Release 2.5 safely supports viewing the occurrence and opening it in Google Calendar. Series edits remain in the provider because FamilyOS does not yet have a write-safe recurrence contract.</div>}
         {event.htmlLink && (
           <Button type="button" variant="secondary" asChild>
             <a href={event.htmlLink} target="_blank" rel="noreferrer">
@@ -191,6 +201,7 @@ export function Calendar({ calendar = {}, deps = {}, initialView }) {
     [safeCalendar.events, safeCalendar.sourceLabel]
   );
   const grouped = groupEvents(events, TODAY_STR);
+  const insights = useMemo(()=>calendarInsights(events),[events]);
   const visibleGroupCount = grouped.today.length + grouped.thisWeek.length;
   const startConnection = () => {
     if (safeCalendar.canConnect === false) {
@@ -277,8 +288,8 @@ export function Calendar({ calendar = {}, deps = {}, initialView }) {
       ) : safeCalendar.connected ? (
         visibleGroupCount ? (
           <div className="min-w-0 max-w-full space-y-3">
-              <EventSection title="Today" events={grouped.today} emptyTitle="Nothing scheduled today" emptyDetail="Connected calendar events for today will appear here." selectedId={selectedEventId} onSelect={setSelectedEventId} todayString={TODAY_STR} formatDateFull={formatDateFull} />
-              <EventSection title={`This Week · ${eventDateLabel(addDays(TODAY_STR,1),TODAY_STR,formatDateFull)} - ${eventDateLabel(addDays(TODAY_STR,6),TODAY_STR,formatDateFull)}`} events={grouped.thisWeek} emptyTitle="Nothing else scheduled this week" emptyDetail="Events from tomorrow through the end of this view will appear here." selectedId={selectedEventId} onSelect={setSelectedEventId} todayString={TODAY_STR} formatDateFull={formatDateFull} />
+              <EventSection title="Today" events={grouped.today} emptyTitle="Nothing scheduled today" emptyDetail="Connected calendar events for today will appear here." selectedId={selectedEventId} onSelect={setSelectedEventId} todayString={TODAY_STR} formatDateFull={formatDateFull} insights={insights}/>
+              <EventSection title={`This Week · ${eventDateLabel(addDays(TODAY_STR,1),TODAY_STR,formatDateFull)} - ${eventDateLabel(addDays(TODAY_STR,6),TODAY_STR,formatDateFull)}`} events={grouped.thisWeek} emptyTitle="Nothing else scheduled this week" emptyDetail="Events from tomorrow through the end of this view will appear here." selectedId={selectedEventId} onSelect={setSelectedEventId} todayString={TODAY_STR} formatDateFull={formatDateFull} insights={insights}/>
           </div>
         ) : (
           <Card>

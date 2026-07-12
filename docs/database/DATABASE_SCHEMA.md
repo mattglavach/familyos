@@ -1,5 +1,11 @@
 # Database Schema
 
+## Release 2.5 proactive planning
+
+Migration `20260712040000_release_2_5_proactive_planning.sql` adds `brief_schedules`, `brief_generation_history`, `notification_preferences`, `routine_templates`, and `routine_template_steps`. Existing `notification_states` continues to own per-user read/dismiss state.
+
+All new rows have explicit household ownership. Member preferences and brief history require the signed-in user plus active household membership. Routine templates are household-readable and owner/adult-managed; built-in templates are protected. The scheduled-history partial unique index enforces one successful scheduled generation per member/type/period while allowing explicit manual refresh history. All changes are additive and existing records need no backfill.
+
 ## Release 2.3.0 daily operations
 
 Migration `20260712020000_release_2_3_daily_operations.sql` adds `habits` and unique period-based `habit_completions`; `routines`, ordered `routine_steps`, and unique period-based `routine_completions`; user-owned `notification_states`; and immutable `pool_maintenance_history`. It adds non-destructive task archive/delete lifecycle columns and focused household/assignment indexes. The security-definer `complete_pool_maintenance` RPC locks the schedule row, validates the active household role, writes one idempotent history record, and advances `last_completed` in one transaction. Existing history is preserved and no broad data rewrite occurs.

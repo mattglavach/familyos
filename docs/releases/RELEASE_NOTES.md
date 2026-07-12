@@ -1,5 +1,15 @@
 # Release Notes
 
+## Release 2.5.0 RC - Proactive Planning and Household Automation
+
+Release 2.5 makes planning proactive without allowing FamilyOS or AI to make autonomous record changes. Household members can configure brief schedules, see a restrained notification queue, understand calendar conflicts and recurring events, and create routines from reusable templates.
+
+Scheduled briefs use a safe staged model: preferences and generation history are stored in Supabase, and due briefs are surfaced when an authenticated member opens FamilyOS. No browser timer, background delivery, email, SMS, push, or production cron is claimed. AI output remains a proposal.
+
+Calendar recurrence remains provider-owned. FamilyOS identifies recurring occurrences, conflicts, and tight transitions, but directs mutation to Google Calendar until a write-safe recurrence contract exists.
+
+This release candidate is not deployed to production. Apply `20260712040000_release_2_5_proactive_planning.sql` to the approved non-production project before preview validation. Production migration, deployment, merge, and tag require separate approval.
+
 ## Release 2.4.0 - Smart Planning and Daily Operations
 
 Production compatibility note: release validation identified historical schema variance in `pool_schedule.id` (`text` in fresh baselines and `uuid` in production). The Release 2.3 prerequisite migration now stores maintenance-history schedule identifiers as text without a cross-type foreign key and resolves schedules through a safe textual comparison. This preserves existing records and behavior across both schema shapes.

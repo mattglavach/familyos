@@ -3,6 +3,8 @@ const path = require("path");
 const { loadPlaywrightEnvironment, validatePlaywrightEnvironment } = require("./tests/e2e/helpers/environment");
 
 loadPlaywrightEnvironment();
+if (process.env.PLAYWRIGHT_BASE_URL_OVERRIDE) process.env.PLAYWRIGHT_BASE_URL = process.env.PLAYWRIGHT_BASE_URL_OVERRIDE;
+if (process.env.PLAYWRIGHT_SKIP_WEBSERVER_OVERRIDE) process.env.PLAYWRIGHT_SKIP_WEBSERVER = process.env.PLAYWRIGHT_SKIP_WEBSERVER_OVERRIDE;
 const { baseURL } = validatePlaywrightEnvironment();
 const authFile = path.join(__dirname, "tests", "e2e", ".auth", "user.json");
 
