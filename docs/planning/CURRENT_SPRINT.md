@@ -9,7 +9,7 @@
 - [x] Group and deduplicate Needs Attention and add safe task quick completion.
 - [x] Expand universal search to all requested active record types.
 - [x] Complete local migration bootstrap, cross-viewport, dark-mode, keyboard, and regression validation.
-- [ ] Apply the migration and complete deployment plus production verification.
+- [x] Apply the production migrations, deploy from `main`, and complete available production verification.
 
 ## Release 2.3.0 daily operations
 
