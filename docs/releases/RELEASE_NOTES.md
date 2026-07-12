@@ -1,6 +1,6 @@
 # Release Notes
 
-## Release 2.5.0 RC - Proactive Planning and Household Automation
+## Release 2.5.0 - Proactive Planning and Household Automation
 
 Release 2.5 makes planning proactive without allowing FamilyOS or AI to make autonomous record changes. Household members can configure brief schedules, see a restrained notification queue, understand calendar conflicts and recurring events, and create routines from reusable templates.
 
@@ -8,7 +8,7 @@ Scheduled briefs use a safe staged model: preferences and generation history are
 
 Calendar recurrence remains provider-owned. FamilyOS identifies recurring occurrences, conflicts, and tight transitions, but directs mutation to Google Calendar until a write-safe recurrence contract exists.
 
-This release candidate is not deployed to production. Apply `20260712040000_release_2_5_proactive_planning.sql` to the approved non-production project before preview validation. Production migration, deployment, merge, and tag require separate approval.
+Release 2.5.0 was published to production on 2026-07-12 after additive migration, merge, deployment, and post-deploy verification. Production uses the stable Vercel alias and Supabase project `dsowansazqleudupnjug`; the migration history is current through `20260712040000`.
 
 ## Release 2.4.0 - Smart Planning and Daily Operations
 

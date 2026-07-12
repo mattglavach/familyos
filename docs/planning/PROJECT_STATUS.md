@@ -1,10 +1,10 @@
 # Project Status
 
-## Release 2.5.0 candidate
+## Release 2.5.0 production
 
-FamilyOS 2.5.0 is implemented on `codex/release-2.5.0` and validated through the READY preview at `https://familyos-nip6een40-glavach.vercel.app`. The release extends existing household-scoped architecture rather than adding a parallel planning system. Brief scheduling uses authenticated-open due evaluation; notifications remain in-app; AI output remains advisory; and Calendar recurrence writes remain provider-owned.
+FamilyOS 2.5.0 is deployed to production from `main` at merge commit `209404e`. The production Supabase project `dsowansazqleudupnjug` has all 17 migrations through Release 2.5, and the Vercel production deployment is READY at `https://familyos-glavach.vercel.app`. Public sign-in smoke, mobile containment, runtime console, and production error-log review passed. The release extends existing household-scoped architecture rather than adding a parallel planning system. Brief scheduling uses authenticated-open due evaluation; notifications remain in-app; AI output remains advisory; and Calendar recurrence writes remain provider-owned.
 
-Production migration, production deployment, merge, and `v2.5.0` tag are not complete and must not be inferred from release-candidate documentation.
+Production migration, merge, and deployment are complete. The production schema backup captured before migration remains at `C:\Users\Matt Glavach\AppData\Local\Temp\familyos-production-pre-2.5-schema.sql` for short-term recovery support.
 
 Release 2.4.0 is deployed to production from `main` at commit `d58dc52`. Smart planning remains an awareness and reasoning layer over FamilyOS records: Home summarizes, source modules own data, and AI output requires user initiation and review. Lint, 102 automated tests, 18 seed-safety tests, fresh 16-migration bootstrap, production build, bundle safety, authenticated non-production desktop/mobile/tablet/dark-mode regression, production migration-history/schema verification, production deployment readiness, public sign-in smoke, and current-deployment runtime-error review pass. Authenticated production navigation was not run because no approved production browser session or credentials were available.
 

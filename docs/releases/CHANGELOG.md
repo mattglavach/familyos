@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.5.0-rc.1 - 2026-07-12
+## 2.5.0 - 2026-07-12
 
 - Added member-level Morning Brief, Evening Review, and Weekly Planning schedules with day/time controls, missed-window handling, persisted generation history, manual refresh, and scheduled-period idempotency.
 - Expanded the in-app Notification Center with household-scoped read/dismiss state, mark-all-read, category preferences, quiet hours, urgency ordering, source navigation, and restrained navigation counts.

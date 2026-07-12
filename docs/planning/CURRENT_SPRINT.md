@@ -1,12 +1,12 @@
 # Current Sprint
 
-## Release 2.5.0 release candidate
+## Release 2.5.0 production closeout
 
-Status: release candidate implemented and validated through preview on `codex/release-2.5.0`.
+Status: released to production from `main` at merge commit `209404e` on 2026-07-12. Production migration and deployment verification passed.
 
 Required scope is implemented: automated brief scheduling, in-app notifications, Calendar intelligence, routine templates, and automated accessibility audit coverage. The release intentionally uses authenticated-open scheduling because no reliable server scheduler is configured. Production actions remain out of scope pending approval.
 
-Exit gates: additive migration bootstrap and upgrade validation, full unit/build/bundle/seed validation, authenticated desktop/tablet/mobile/dark regression, axe accessibility audit, preview deployment, draft PR, and clean branch.
+Completed gates: additive migration bootstrap and upgrade validation, full unit/build/bundle/seed validation, authenticated desktop/tablet/mobile/dark regression, axe accessibility audit, preview, production migration, merged PR #10, READY production deployment, and public production smoke.
 
 ## Release 2.4.0 smart planning and daily operations
 

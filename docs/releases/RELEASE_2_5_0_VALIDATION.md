@@ -25,6 +25,12 @@ Passed on 2026-07-12: zero-warning ESLint; 108 unit/integration tests; 18 seed-s
 
 Preview `https://familyos-nip6een40-glavach.vercel.app` reached READY with preview-only test-project configuration. Authenticated sign-in, Release 2.5 workflows, axe audit, major-module smoke, console monitoring, application network monitoring, and serverless Calendar status passed. Vercel toolbar JWE/HEAD requests that the browser intentionally aborts are excluded from the application-network assertion.
 
+## Production publication
+
+Approved and completed on 2026-07-12. PR #10 was published from draft and squash-merged to `main` as `209404e` with successful GitHub status. Production Supabase project `dsowansazqleudupnjug` was backed up, verified to be current through Release 2.4, and advanced with only `20260712040000_release_2_5_proactive_planning.sql`. Post-migration history shows all 17 migrations aligned.
+
+Vercel deployment `dpl_BH7rPw4c4AZZYpdKLvnfinXawjE1` reached READY at `https://familyos-glavach.vercel.app`. Production returned HTTP 200, loaded the correct production Supabase project, returned the expected unauthenticated 401 from the Calendar API, displayed the sign-in surface at 390 px without horizontal overflow, emitted no browser console or page errors, and had no production error logs during verification. Authenticated production navigation was not run because no approved production browser credentials were available.
+
 ## Known limitations
 
 - Due briefs are evaluated after authenticated app open; no background delivery is configured.
