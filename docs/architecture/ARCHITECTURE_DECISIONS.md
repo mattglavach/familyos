@@ -1,5 +1,13 @@
 # Architecture Decisions
 
+## 2026-07-12 - Release 2.4 planning intelligence remains derived and advisory
+
+Decision: derive Home preparation, progress, attention, search, and AI context from owning module records. Do not add a duplicate planning store or persist AI output automatically. Habit goal metadata is additive; routine template identity is optional; completion history remains authoritative.
+
+Why: this preserves FamilyOS as the system of record, keeps AI optional, minimizes schema expansion, and allows every summary or recommendation to route back to its source record.
+
+Consequences: preparation coverage depends on structured dates and recognizable event context. Pool forecasts are limited to recorded maintenance and chemical history. Automated briefs and autonomous actions remain out of scope.
+
 ## 2026-07-12: Guided AI acceptance reuses owning-module forms
 
 Release 2.1.0 represents reviewed AI suggestions as transient navigation payloads. Tasks, Pool, Life Lists, and Financial Planning open their existing forms with proposed values; Calendar uses Google Calendar's existing event template. Payloads are not persisted, permissions are unchanged, and only the form's explicit save action may write. This avoids duplicate workflows, schema changes, and an unsafe AI mutation layer.

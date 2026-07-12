@@ -33,6 +33,8 @@ const Finance = lazy(() => import("../modules/finance/Finance").then(module => (
 const LifeLists = lazy(() => import("../modules/life-lists/LifeLists").then(module => ({ default: module.LifeLists })));
 const MealPlanning = lazy(() => import("../modules/meal-planning/MealPlanning").then(module => ({ default: module.MealPlanning })));
 const More = lazy(() => import("../modules/more/More").then(module => ({ default: module.More })));
+const NeedsAttention = lazy(() => import("../modules/needs-attention/NeedsAttention").then(module => ({ default: module.NeedsAttention })));
+const Routines = lazy(() => import("../modules/routines/Routines").then(module => ({ default: module.Routines })));
 const NotificationCenter = lazy(() => import("../modules/notifications/NotificationCenter").then(module => ({ default: module.NotificationCenter })));
 const GlobalSearch = lazy(() => import("../modules/search/GlobalSearch").then(module => ({ default: module.GlobalSearch })));
 const Settings = lazy(() => import("../modules/settings/Settings").then(module => ({ default: module.Settings })));
@@ -242,7 +244,7 @@ function AppHeader({tab, auth, unreadCount, onSettings, onSearch, onNotification
 function BottomNavigation({tab,onNavigate}){
   return <nav className="fixed bottom-0 left-1/2 z-20 flex w-full max-w-[430px] -translate-x-1/2 border-t border-border bg-card pb-[env(safe-area-inset-bottom)]" aria-label="Primary navigation">
     {TABS.map(t=>{
-      const active = tab===t.id || (t.id === "more" && ["settings","finance","college","life-lists","meal-planning","ai-workspace","habits"].includes(tab));
+      const active = tab===t.id;
       return (
       <button
         key={t.id}
@@ -435,9 +437,11 @@ function AuthenticatedApp({ auth }) {
       {tab==="life-lists"&&<LifeLists initialView={navigationContext?.tab === "life-lists" ? navigationContext : null}/>}
       {tab==="meal-planning"&&<MealPlanning/>}
       {tab==="more"&&<More onNavigate={switchTab}/>}
+      {tab==="needs-attention"&&<NeedsAttention onNavigate={switchTab} calendarEvents={headerCalendar.events}/>}
       {tab==="settings"&&<Settings auth={auth} gc={gc} secureCalendar={secureCalendar}/>}
       {tab==="ai-workspace"&&<AIWorkspace calendarEvents={headerCalendar.events} onNavigate={switchTab}/>}
       {tab==="habits"&&<Habits/>}
+      {tab==="routines"&&<Routines/>}
       </Suspense>
       </AppErrorBoundary>
 

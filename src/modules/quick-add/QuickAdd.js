@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, Check, ChevronLeft, ClipboardList, Droplets, ListChecks, NotebookPen, Settings2, ShoppingCart, Utensils } from "lucide-react";
+import { CalendarDays, Check, ChevronLeft, ClipboardList, Droplets, ListChecks, NotebookPen, Repeat2, Settings2, ShoppingCart, Utensils } from "lucide-react";
 import { TODAY_STR } from "../../lib/dates";
 import { formatUserFacingError } from "../../lib/userFacingErrors";
 import { useHousehold } from "../../context/HouseholdContext";
@@ -29,6 +29,9 @@ export function QuickAdd({onNavigate, openSignal = 0, initialMode = null}){
   const poolMaintenance = useTable("pool_maintenance", "date");
   const homeMaintenance = useTable("home_maintenance", "last_completed");
   const notes = useTable("notes", "created_at");
+  const habits = useTable("habits", "created_at", true);
+  const routines = useTable("routines", "created_at", true);
+  const routineSteps = useTable("routine_steps", "sort_order", true, { userId: null });
   const household = useHousehold();
   const [form,setForm] = useState({});
   const [mode,setMode] = useState(null);
@@ -64,6 +67,8 @@ export function QuickAdd({onNavigate, openSignal = 0, initialMode = null}){
     {id:"maintenance", icon:Settings2, label:"Maintenance", status:"Ready", featured:true, enabled:true, accentClass:"border-l-amber-400", iconClass:"text-amber-300"},
     {id:"shopping-item", icon:ShoppingCart, label:"Shopping Item", status:"Ready", featured:true, enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
     {id:"life-item", icon:ListChecks, label:"Life Item", status:"Ready", featured:true, enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
+    {id:"habit", icon:Repeat2, label:"Habit", status:"Ready", featured:true, enabled:true, accentClass:"border-l-violet-400", iconClass:"text-violet-300"},
+    {id:"routine", icon:Repeat2, label:"Routine", status:"Ready", featured:true, enabled:true, accentClass:"border-l-amber-400", iconClass:"text-amber-300"},
     {id:"note", icon:NotebookPen, label:"Note", status:"Ready", featured:true, enabled:true, accentClass:"border-l-slate-400", iconClass:"text-slate-300"},
     {id:"recipe", icon:Utensils, label:"Recipe", status:"Ready", enabled:true, accentClass:"border-l-sky-400", iconClass:"text-sky-300"},
     {id:"meal-plan", icon:Utensils, label:"Meal Plan", status:"Ready", enabled:true, accentClass:"border-l-sky-400", iconClass:"text-sky-300"},
@@ -130,7 +135,7 @@ export function QuickAdd({onNavigate, openSignal = 0, initialMode = null}){
     const row={title:form.title,category:form.category||"Home",priority:form.priority||"med",due_date:form.due_date||null,recurring_interval_days:recurrence?.supported ? recurrence.days : null,last_completed:null,is_important:form.is_important||false,notes:form.notes||"",completed:false};
     try{
       await tasks.insert(row);
-      close();setToast({message:"Task created. Opening Tasks."});onNavigate("tasks");
+      const createdTitle=form.title;close();setToast({message:"Task created. Opening Tasks."});onNavigate({tab:"tasks",filter:"all",search:createdTitle});
     }catch(e){setSaveError(formatUserFacingError(e, "Task could not be saved right now."));}
   }
   async function savePool(){
@@ -164,6 +169,8 @@ export function QuickAdd({onNavigate, openSignal = 0, initialMode = null}){
       close();setToast({message:"Pool entry saved."});onNavigate("pool");
     }catch(e){setSaveError(formatUserFacingError(e, "Pool entry could not be saved right now."));}
   }
+  async function saveHabit(){if(submitting)return;if(!form.title?.trim()){setSaveError("Name is required");return;}try{setSubmitting(true);await habits.insert({name:form.title.trim(),description:form.notes||"",frequency:form.frequency==="weekday"?"daily":form.frequency||"daily",active_days:form.frequency==="weekday"?[1,2,3,4,5]:[],...(Number(form.target_count)>1?{target_count:Number(form.target_count)}:{}),visibility:form.visibility||"household",important:Boolean(form.important),start_date:TODAY_STR,status:"active",archived:false});close();setToast({message:"Habit created."});onNavigate("habits");}catch(e){setSaveError(formatUserFacingError(e,"Habit could not be saved right now."));}finally{setSubmitting(false);}}
+  async function saveRoutine(){if(submitting)return;if(!form.title?.trim()){setSaveError("Name is required");return;}const steps=(form.steps||"").split("\n").map(x=>x.trim()).filter(Boolean);if(!steps.length){setSaveError("Add at least one checklist step.");return;}try{setSubmitting(true);const routine=await routines.insert({name:form.title.trim(),description:form.notes||"",recurrence:form.recurrence||"daily",visibility:form.visibility||"household",estimated_minutes:Number(form.estimated_minutes)||null,archived:false});for(let index=0;index<steps.length;index+=1)await routineSteps.insert({routine_id:routine.id,title:steps[index],optional:false,sort_order:index});close();setToast({message:"Routine created."});onNavigate("routines");}catch(e){setSaveError(formatUserFacingError(e,"Routine could not be saved right now."));}finally{setSubmitting(false);}}
   async function saveMaintenance(){
     setSaveError(null); if(!form.title?.trim()){setSaveError("Title is required");return;}
     const row={title:form.title.trim(),last_completed:form.last_completed||TODAY_STR,interval_days:Number(form.interval_days)||30,notes:form.notes||""};
@@ -281,8 +288,8 @@ export function QuickAdd({onNavigate, openSignal = 0, initialMode = null}){
         {mode==="task"&&<>
           <FormSection>
             <FormGroup>
-              <Label>Title</Label>
-              <Input placeholder="e.g. Mow front yard" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
+              <Label htmlFor="quick-task-title">Title</Label>
+              <Input id="quick-task-title" placeholder="e.g. Mow front yard" value={form.title||""} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
             </FormGroup>
             <FormGroup>
               <Label>Category</Label>
@@ -295,8 +302,8 @@ export function QuickAdd({onNavigate, openSignal = 0, initialMode = null}){
               Mark as important
             </button>
             <FormGroup>
-              <Label>Due Date (optional)</Label>
-              <Input type="date" value={form.due_date||""} onChange={e=>setForm(p=>({...p,due_date:e.target.value}))}/>
+              <Label htmlFor="quick-task-due">Due Date (optional)</Label>
+              <Input id="quick-task-due" type="date" value={form.due_date||""} onChange={e=>setForm(p=>({...p,due_date:e.target.value}))}/>
             </FormGroup>
             <FormGroup>
               <Label>Repeat</Label>
@@ -504,6 +511,10 @@ export function QuickAdd({onNavigate, openSignal = 0, initialMode = null}){
             <Button type="button" variant="secondary" className="w-full" onClick={()=>setMode(null)}><ChevronLeft aria-hidden="true"/>Back</Button>
           </FormSection>
         </>}
+
+        {mode==="habit"&&<FormSection><FormGroup><Label htmlFor="quick-habit-name">Name</Label><Input id="quick-habit-name" autoFocus value={form.title||""} onChange={e=>setField("title",e.target.value)} placeholder="Read, exercise, feed pets..."/></FormGroup><FormGroup><Label>Frequency</Label><SegmentedControl value={form.frequency||"daily"} options={[{value:"daily",label:"Daily"},{value:"weekday",label:"Weekdays"},{value:"weekly",label:"Weekly"},{value:"monthly",label:"Monthly"}]} ariaLabel="Habit frequency" onValueChange={value=>setField("frequency",value)}/></FormGroup>{["weekly","monthly"].includes(form.frequency)&&<FormGroup><Label htmlFor="quick-habit-target">Completion goal</Label><Input id="quick-habit-target" type="number" min="1" max={form.frequency==="weekly"?7:31} value={form.target_count||""} onChange={e=>setField("target_count",e.target.value)} placeholder={form.frequency==="weekly"?"3 times per week":"5 times per month"}/></FormGroup>}<FormGroup><Label>Visibility</Label><SegmentedControl value={form.visibility||"household"} options={[{value:"household",label:"Household"},{value:"personal",label:"Personal"}]} ariaLabel="Habit visibility" onValueChange={value=>setField("visibility",value)}/></FormGroup><NotesField id="quick-habit-notes" value={form.notes||""} onChange={value=>setField("notes",value)}/><ValidationSummary error={saveError}/><SaveCancelFooter saveLabel="Add Habit" cancelLabel="Back" onSave={saveHabit} onCancel={()=>setMode(null)} submitting={submitting}/></FormSection>}
+
+        {mode==="routine"&&<FormSection><FormGroup><Label htmlFor="quick-routine-name">Name</Label><Input id="quick-routine-name" autoFocus value={form.title||""} onChange={e=>setField("title",e.target.value)} placeholder="Morning routine"/></FormGroup><FormGroup><Label>Repeat</Label><SegmentedControl value={form.recurrence||"daily"} options={[{value:"once",label:"Once"},{value:"daily",label:"Daily"},{value:"weekly",label:"Weekly"}]} ariaLabel="Routine recurrence" onValueChange={value=>setField("recurrence",value)}/></FormGroup><FormGroup><Label htmlFor="quick-routine-minutes">Estimated minutes</Label><Input id="quick-routine-minutes" type="number" min="1" value={form.estimated_minutes||""} onChange={e=>setField("estimated_minutes",e.target.value)}/></FormGroup><NotesField id="quick-routine-steps" label="Checklist steps" placeholder={'One step per line'} value={form.steps||""} onChange={value=>setField("steps",value)}/><ValidationSummary error={saveError}/><SaveCancelFooter saveLabel="Add Routine" cancelLabel="Back" onSave={saveRoutine} onCancel={()=>setMode(null)} submitting={submitting}/></FormSection>}
 
         {mode==="life-item"&&<>
           <FormSection>

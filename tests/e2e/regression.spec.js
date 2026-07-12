@@ -1,5 +1,5 @@
 const { test, expect } = require("@playwright/test");
-const { loginDemoUser, logoutDemoUser, navigateModule } = require("./helpers/app");
+const { loginDemoUser, logoutDemoUser, navigateModule, openMoreModule } = require("./helpers/app");
 
 test("authentication can sign out and sign back in", async ({ page }) => {
   await loginDemoUser(page);
@@ -59,11 +59,11 @@ test("tasks exposes a loading state during a delayed request", async ({ page }) 
 
 test("task CRUD round trip", async ({ page }) => {
   await loginDemoUser(page);
-  await navigateModule(page, "Tasks");
   const title = `Playwright task ${Date.now()}`;
-  await page.getByRole("button", { name: "New Task" }).click();
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("button", { name: "Task Ready", exact: true }).click();
   await page.getByLabel("Title").fill(title);
-  await page.getByRole("button", { name: "Create", exact: true }).click();
+  await page.getByRole("button", { name: "Add Task", exact: true }).click();
   await expect(page.getByText(title)).toBeVisible();
   await page.getByRole("button", { name: `Edit ${title}` }).click();
   await page.getByLabel("Title").fill(`${title} updated`);
@@ -76,7 +76,7 @@ test("task CRUD round trip", async ({ page }) => {
 
 test("responsive navigation remains usable", async ({ page }) => {
   await loginDemoUser(page);
-  for (const label of ["Home", "Tasks", "Calendar", "Pool", "More"]) {
+  for (const label of ["Home", "Tasks", "Calendar", "Pool", "Attention"]) {
     await navigateModule(page, label);
     await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
   }
@@ -92,8 +92,7 @@ test("Home and AI Workspace retain accessible names, focus, and responsive conta
   expect(await page.evaluate(() => document.activeElement !== document.body)).toBe(true);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
   expect(overflow).toBe(false);
-  await navigateModule(page, "More");
-  await page.getByRole("button", { name: /AI Workspace/ }).click();
+  await openMoreModule(page, "AI Workspace");
   await expect(page.getByRole("heading", { name: "Ask FamilyOS" })).toBeVisible();
   await expect(page.getByLabel("Favorite current prompt")).toBeVisible();
   await expect(page.getByLabel("AI response to review")).toBeVisible();

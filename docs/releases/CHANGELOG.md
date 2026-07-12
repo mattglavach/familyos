@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.4.0 - 2026-07-12
+
+- Added Home preparation intelligence and daily progress across Tasks, Habits, Routines, Calendar, and Needs Attention.
+- Added three user-initiated AI planning modes backed by structured FamilyOS context.
+- Added richer Habit goals, streaks, completion analysis, calendar visualization, and recovery guidance.
+- Added Routine progress, history, duplication, template guidance, and recurrence editing.
+- Grouped and deduplicated Needs Attention with preparation alerts and task quick completion.
+- Expanded universal search to Habits, Routines, and home maintenance.
+- Added the additive Release 2.4 smart-planning migration and supporting indexes.
+
+## 2.3.0 - 2026-07-12
+- Fixed My Tasks identity resolution across authenticated users, household-member records, reassignment, archived/deleted rows, and active-household boundaries; restored Assigned by Me.
+- Fixed Pool Maintenance Done with an idempotent household-authorized transaction that records immutable history and advances the recurring schedule atomically.
+- Added durable household-scoped Habits, completion history, period deduplication, streaks, archive preservation, and global creation.
+- Added lightweight Routines with ordered steps, optional-step completion rules, recurrence period resets, history, and global creation.
+- Replaced More in bottom navigation with Needs Attention while preserving all module access through the Modules surface and Settings header action.
+- Simplified Tasks and Home creation controls in favor of the global Add button; capped Today Focus at three items and made AI Brief a compact secondary action.
+- Added additive RLS-protected notification-state and pool-maintenance-history foundations plus query indexes.
+- Kept Microsoft 365, Outlook, external email, health, wearable, and smart-home integrations deferred.
+
 ## 2.2.0 - 2026-07-12
 - Redesigned Home as a unified Today dashboard with Morning Brief, Today’s Focus, actionable Needs Attention, Upcoming, quick actions, and compact status cards.
 - Added a floating Quick Add control for tasks, calendar events, pool tests, maintenance, shopping items, Life items, and notes.

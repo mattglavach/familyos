@@ -1,5 +1,27 @@
 # Roadmap
 
+## Release 2.4.0: Smart Planning and Daily Operations
+
+Status: implementation and local release validation complete; production publication pending.
+
+- Home provides actionable preparation and daily operating progress without owning duplicate records.
+- AI Brief supports Morning, Evening, and Weekly planning as optional, user-triggered reasoning.
+- Habits and Routines provide measurable history and flexible operating goals.
+- Needs Attention and Search unify discovery and action while routing to source modules.
+- Pool forecasting and recommendations remain strictly based on recorded history; predictive inventory depletion is deferred until reliable usage quantities exist.
+
+Deferred beyond 2.4: automated brief generation, fabricated or generic chemical dosing, autonomous record changes, and broad calendar scheduling replacement.
+
+## Release 2.3.0: Daily Operations Foundation
+- [x] Fix My Tasks assignment and Pool Maintenance completion release blockers.
+- [x] Consolidate Home daily focus and make AI Brief secondary.
+- [x] Establish durable Habits and lightweight Routines foundations.
+- [x] Promote Needs Attention and preserve lower-frequency module access.
+- [x] Expand global creation and add durable notification-state foundations.
+- [ ] Finish database, authenticated permission, desktop, mobile, tablet, and dark-mode release validation.
+
+Deferred: advanced habit analytics and targets, challenges/rewards, pause/vacation mode, smart reminders, AI recommendations, predictive automation, Microsoft 365, Outlook, email, health, wearables, and smart-home integrations.
+
 ## Release 2.2.0: Today, Quick Capture, and Habits
 - [x] Replace Home with a unified, actionable Today dashboard and compact status cards.
 - [x] Add a floating seven-target Quick Add experience with intentionally minimal forms.
