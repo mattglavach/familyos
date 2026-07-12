@@ -45,10 +45,10 @@ create table if not exists public.pool_readings (
   filter_pressure numeric,
   pump_hours numeric,
   test_source text not null default 'Manual',
-  recent_weather_notes text not null default '',
+  recent_weather_notes text default '',
   recent_heavy_usage boolean not null default false,
   test_context text not null default 'Routine',
-  water_appearance text not null default '',
+  water_appearance text default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   notes text default ''

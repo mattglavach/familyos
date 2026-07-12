@@ -1,5 +1,14 @@
 # Roadmap
 
+## Release 2.2.0: Today, Quick Capture, and Habits
+- [x] Replace Home with a unified, actionable Today dashboard and compact status cards.
+- [x] Add a floating seven-target Quick Add experience with intentionally minimal forms.
+- [x] Add seven daily habits with today's completion and a seven-day completion percentage.
+- [x] Expand Tasks with Today, Upcoming, This Week, Overdue, Someday, Completed, pinning, importance, recurrence, quick completion, editing, and existing bulk workflows.
+- [x] Preserve module ownership, accessibility, responsive behavior, lazy loading, and existing persistence contracts without a migration.
+
+Next: validate device-local habits with household use before deciding whether multi-device habit sync warrants a database-backed Release 2.x enhancement.
+
 ## Future consideration after core stability
 
 - Reconsider Outlook Calendar and other Microsoft 365 integrations only after the core application is stable and mature. These integrations are not a committed near-term release, current dependency, core architecture requirement, or blocker for Calendar improvements.

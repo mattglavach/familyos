@@ -5,6 +5,9 @@ test("authenticated FamilyOS major-module smoke", async ({ page }) => {
   const failures = monitorPage(page);
   await loginDemoUser(page);
   await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
+  await expect(page.getByRole("main", { name: "Today dashboard" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Quick Add" })).toBeVisible();
+  await expect(page.getByText(/today's focus/i, { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /Schedule annual physical/ }).first()).toBeVisible();
 
   await page.keyboard.press("Control+K");
@@ -14,6 +17,8 @@ test("authenticated FamilyOS major-module smoke", async ({ page }) => {
   await page.getByRole("button", { name: "Close" }).last().click();
 
   await navigateModule(page, "Tasks");
+  await expect(page.getByRole("button", { name: "Today", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "This Week", exact: true })).toBeVisible();
   await expect(page.getByText("Schedule annual physical")).toBeVisible();
   await navigateModule(page, "Calendar");
   await expect(page.getByText("Calendar", { exact: true }).first()).toBeVisible();

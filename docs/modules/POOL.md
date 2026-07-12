@@ -2,6 +2,8 @@
 
 Release 2.1.1 stabilizes partial Pool Test saves. A valid date and at least one chemistry or water measurement are required; every other value is optional, numeric zero is valid, and blank optional values normalize to `null`. Invalid fields are identified directly, failed writes retain the form, duplicate submissions are blocked, successful writes refresh Pool data immediately, and Pool entry forms use the shared compact responsive grid pattern.
 
+Release 2.2.0 removes historical `NOT NULL` drift from optional Pool Test weather and appearance fields. Both authenticated entry paths are regression-tested against real Supabase persistence, including numeric zero, decimal values, ownership, immediate activity/status refresh, full browser reload, duplicate prevention, failure retention, and authenticated cleanup of only the created test row.
+
 Release 1.8.4 keeps the consolidated Pool Status and promotes Pool into primary bottom navigation. History combines tests, treatments, cleaning, and maintenance in compact cards with visible accessible Edit/Delete actions. History no longer uses swipe gestures, and deletion requires confirmation. Equipment and Maintenance retain their existing workflows.
 
 ## Release 1.8 Optimization Contract

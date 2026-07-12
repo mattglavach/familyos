@@ -86,7 +86,7 @@ test("responsive navigation remains usable", async ({ page }) => {
 
 test("Home and AI Workspace retain accessible names, focus, and responsive containment", async ({ page }) => {
   await loginDemoUser(page);
-  await expect(page.getByText(/Top Priorities/).first()).toBeVisible();
+  await expect(page.getByText(/Today's Focus/i).first()).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
   await page.keyboard.press("Tab");
   expect(await page.evaluate(() => document.activeElement !== document.body)).toBe(true);
@@ -107,7 +107,7 @@ test("global Add and Pool History expose the refined actions", async ({ page }) 
   await expect(page.getByRole("button", { name: /^Calendar status:/ })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Settings", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Add", exact: true }).click();
-  for (const action of ["Add Task", "Add Calendar Event", "Add Pool Activity", "Add Pool Test Result"]) await expect(page.getByRole("button", { name: new RegExp(action) })).toBeVisible();
+  for (const action of ["Task Ready", "Calendar Event Google", "Pool Test Ready", "Maintenance Ready", "Shopping Item Ready", "Life Item Ready", "Note Ready"]) await expect(page.getByRole("button", { name: action, exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Close" }).click();
   await navigateModule(page, "Pool");
   await page.getByRole("button", { name: "History", exact: true }).click();

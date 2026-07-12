@@ -1,5 +1,9 @@
 # Project Status
 
+Release 2.2.0 is the current local release candidate. It introduces the unified Today dashboard, compact module status, seven-path Quick Add, device-local Habits, and expanded daily task workflows. One required, non-destructive Pool optional-field migration is included; no authentication, permission, dependency, push, deployment, or tag change is included.
+
+Release 2.2.0 blocker closeout adds one required, non-destructive Pool Test migration that permits `null` for optional weather and appearance fields. Real authenticated persistence now passes through both Pool and Quick Add on desktop and 390px mobile, including post-refresh ownership verification. RLS is unchanged.
+
 Release 2.1.1 is the current local release candidate. It stabilizes partial Pool Test persistence, eliminates Calendar Today/This Week duplication, adds compact inline event details, and condenses Pool entry forms. Outlook Calendar is deferred as a future consideration after core stability and maturity. No schema, migration, authentication, dependency, push, tag, or deployment change is included.
 
 Release 2.1.0 is the current local release candidate. It adds explicit guided acceptance into existing module forms, favorite/recent AI prompts, collapsible prompt preview metadata, a priorities-first configurable Home briefing, and deterministic Context Engine deduplication and prioritization. No migration, authentication, permission, dependency, automatic prompt transmission, or automatic AI write is included.

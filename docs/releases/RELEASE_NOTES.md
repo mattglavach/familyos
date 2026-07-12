@@ -1,5 +1,17 @@
 # Release Notes
 
+## Release 2.2.0 - Today, Quick Capture, and Habits
+
+Date: 2026-07-12
+
+Release 2.2.0 turns FamilyOS into a faster daily operating surface. Home now prioritizes today’s schedule, urgent work, household status, habits, and five direct capture actions. Global Quick Add supports seven minimal capture paths, and Habits introduces lightweight daily consistency tracking.
+
+- Database changes: one additive migration drops historical `NOT NULL` constraints from optional `pool_readings.recent_weather_notes` and `pool_readings.water_appearance`. RLS, grants, ownership, required fields, and existing data are unchanged.
+- Dependencies: None.
+- Validation: lint, 93 unit/integration tests, 18 seed-safety tests, production build, bundle safety, and 57 authenticated Playwright tests across desktop, 390px mobile, tablet, and dark-mode projects, including real Pool persistence, focus, responsive containment, failure retention, and refresh verification.
+- Known limitation: habits and task pins are authenticated-user-scoped but device-local and do not sync between devices.
+- Recommendation: proceed to product-owner review; deployment remains intentionally out of scope.
+
 ## Release 2.1.1 - Calendar and Pool Stabilization
 
 FamilyOS 2.1.1 corrects Pool Test validation and persistence for partial measurement sets, including zero values, while retaining entered data on failure and protecting against duplicate submissions. Pool Test and related Pool entry forms use a more compact responsive layout, refresh saved readings immediately, and provide specific field and safe persistence feedback.

@@ -37,6 +37,7 @@ const NotificationCenter = lazy(() => import("../modules/notifications/Notificat
 const GlobalSearch = lazy(() => import("../modules/search/GlobalSearch").then(module => ({ default: module.GlobalSearch })));
 const Settings = lazy(() => import("../modules/settings/Settings").then(module => ({ default: module.Settings })));
 const AIWorkspace = lazy(() => import("../modules/ai-workspace/AIWorkspace").then(module => ({ default: module.AIWorkspace })));
+const Habits = lazy(() => import("../modules/habits/Habits").then(module => ({ default: module.Habits })));
 function SetupRequired(){
   return(
     <div style={S.app} className="px-5 py-10">
@@ -241,7 +242,7 @@ function AppHeader({tab, auth, unreadCount, onSettings, onSearch, onNotification
 function BottomNavigation({tab,onNavigate}){
   return <nav className="fixed bottom-0 left-1/2 z-20 flex w-full max-w-[430px] -translate-x-1/2 border-t border-border bg-card pb-[env(safe-area-inset-bottom)]" aria-label="Primary navigation">
     {TABS.map(t=>{
-      const active = tab===t.id || (t.id === "more" && ["settings","finance","college","life-lists","meal-planning","ai-workspace"].includes(tab));
+      const active = tab===t.id || (t.id === "more" && ["settings","finance","college","life-lists","meal-planning","ai-workspace","habits"].includes(tab));
       return (
       <button
         key={t.id}
@@ -413,7 +414,7 @@ function AuthenticatedApp({ auth }) {
 
       <AppErrorBoundary resetKey={tab} label={TITLES[tab] || "FamilyOS"} onRetry={() => switchTab(tab)}>
       <Suspense fallback={<GlobalLoading/>}>
-      {tab==="home"&&<Dashboard onNavigate={switchTab} gc={gc} secureCalendar={secureCalendar} deps={{
+      {tab==="home"&&<Dashboard onNavigate={switchTab} onQuickAdd={(mode)=>setQuickAddRequest(previous=>({signal:previous.signal+1,mode}))} gc={gc} secureCalendar={secureCalendar} deps={{
         TODAY_DATE,TODAY_STR,daysAgo,daysBetween,nextDueDate,formatDate,formatDateFull,
         formatMoneyShort,maintStatus,useTable,calcRetirementProjection,getChemRecommendations,
       }}/>} 
@@ -436,6 +437,7 @@ function AuthenticatedApp({ auth }) {
       {tab==="more"&&<More onNavigate={switchTab}/>}
       {tab==="settings"&&<Settings auth={auth} gc={gc} secureCalendar={secureCalendar}/>}
       {tab==="ai-workspace"&&<AIWorkspace calendarEvents={headerCalendar.events} onNavigate={switchTab}/>}
+      {tab==="habits"&&<Habits/>}
       </Suspense>
       </AppErrorBoundary>
 
@@ -452,6 +454,7 @@ function AuthenticatedApp({ auth }) {
       />
       </Suspense>
       <QuickAdd onNavigate={switchTab} openSignal={quickAddRequest.signal} initialMode={quickAddRequest.mode}/>
+      <Button type="button" size="icon" aria-label="Quick Add" title="Quick Add" onClick={() => setQuickAddRequest(previous => ({ signal: previous.signal + 1, mode: null }))} className="fixed bottom-[calc(72px+env(safe-area-inset-bottom))] right-4 z-20 h-14 w-14 rounded-full shadow-soft sm:bottom-6 sm:right-6"><Plus className="h-6 w-6" aria-hidden="true"/></Button>
       <BottomNavigation tab={tab} onNavigate={switchTab}/>
     </div>
   );

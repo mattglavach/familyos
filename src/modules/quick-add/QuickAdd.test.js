@@ -71,6 +71,13 @@ describe("QuickAdd Pool Test", () => {
     expect(container.querySelector('input[aria-label="pH"]')).not.toBeNull();
   });
 
+  test("offers the seven Release 2.2 quick capture targets", () => {
+    act(() => root.render(React.createElement(QuickAdd, { openSignal: 1, onNavigate: jest.fn() })));
+    ["Task", "Calendar Event", "Pool Test", "Maintenance", "Shopping Item", "Life Item", "Note"].forEach(label => {
+      expect([...container.querySelectorAll("button")].some(button => button.textContent.includes(label))).toBe(true);
+    });
+  });
+
   test("renders CC directly after FC before pH", () => {
     act(() => root.render(React.createElement(QuickAdd, { openSignal: 1, onNavigate: jest.fn() })));
     clickByText(container, "Pool Test");

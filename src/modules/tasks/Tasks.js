@@ -3,6 +3,7 @@ import {
   ChevronDown,
   ChevronUp,
   Edit3,
+  Pin,
   Plus,
   Search,
   Trash2,
@@ -29,6 +30,7 @@ import { formatUserFacingError } from "../../lib/userFacingErrors";
 import { isDueTask, isMyTask, sortDueTasks } from "./taskViews";
 
 const TASK_METADATA_KEY = "familyos_task_metadata_v1";
+const taskMetadataKey = userId => `${TASK_METADATA_KEY}:${userId || "anonymous"}`;
 
 const CATEGORY_OPTIONS = ["Home", "Pool", "Yard", "College", "Finance", "Personal", "Work"];
 const PRIORITY_OPTIONS = [
@@ -40,6 +42,8 @@ const STATUS_OPTIONS = ["Not Started", "In Progress", "Completed"];
 const DUE_FILTERS = [
   { value: "all", label: "All Due" },
   { value: "overdue", label: "Overdue" },
+  { value: "this-week", label: "This Week" },
+  { value: "someday", label: "Someday" },
   { value: "today", label: "Today" },
   { value: "upcoming", label: "Upcoming" },
 ];
@@ -69,10 +73,10 @@ const PRIORITY_WEIGHT = { high: 3, med: 2, low: 1 };
 const DB_STATUS_TO_UI = { not_started: "Not Started", in_progress: "In Progress", completed: "Completed" };
 const UI_STATUS_TO_DB = { "Not Started": "not_started", "In Progress": "in_progress", Completed: "completed" };
 
-function readTaskMetadata() {
+function readTaskMetadata(userId) {
   try {
     if (typeof window === "undefined" || !window.localStorage) return {};
-    const raw = localStorage.getItem(TASK_METADATA_KEY);
+    const raw = localStorage.getItem(taskMetadataKey(userId));
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
@@ -85,6 +89,7 @@ function readTaskMetadata() {
           description: typeof value.description === "string" ? value.description : "",
           created_at: typeof value.created_at === "string" ? value.created_at : null,
           completed_at: typeof value.completed_at === "string" ? value.completed_at : null,
+          pinned: Boolean(value.pinned),
         }])
     );
   } catch {
@@ -152,6 +157,7 @@ function normalizeTask(row, metadata, members, nextDueDate, index = 0) {
     status: completed ? "Completed" : dbStatus || extra.status || "Not Started",
     created_at: extra.created_at || source.created_at || source.created_date || null,
     completed_at: source.completed_at || extra.completed_at || (completed && !source.recurring_interval_days ? source.last_completed : null),
+    pinned: Boolean(extra.pinned),
     effective_due_date: effectiveDueDate(source, nextDueDate),
   };
 }
@@ -279,7 +285,7 @@ function TaskSkeleton() {
   );
 }
 
-function TaskCard({ task, members, daysBetween, formatDate, onEdit, onComplete, onReopen, onDelete }) {
+function TaskCard({ task, members, daysBetween, formatDate, onEdit, onComplete, onReopen, onDelete, onPin }) {
   const dueDate = task.effective_due_date;
   const days = dueDate ? daysBetween(dueDate) : null;
   const overdue = days !== null && !Number.isNaN(days) && days < 0 && task.status !== "Completed";
@@ -296,7 +302,8 @@ function TaskCard({ task, members, daysBetween, formatDate, onEdit, onComplete, 
             {task.assignee && task.assignee !== "Family" && <span className="inline-flex items-center gap-1" style={{ color: memberColor(task.assignee, members) }}><UserRound className="h-3 w-3" aria-hidden="true" />{task.assignee}</span>}
           </span>
         </button>
-        <Badge variant={PRIORITY_TONES[task.priority]} className="shrink-0 text-[10px]">{priorityLabel(task.priority)}</Badge>
+        <Button type="button" variant="ghost" size="icon-xs" className={`!h-9 !min-h-9 !w-9 !min-w-9 ${task.pinned ? "text-primary" : "text-muted-foreground"}`} aria-label={`${task.pinned ? "Unpin" : "Pin"} ${task.title}`} aria-pressed={task.pinned} onClick={() => onPin(task)}><Pin className="h-3.5 w-3.5" aria-hidden="true" /></Button>
+        <Badge variant={PRIORITY_TONES[task.priority]} className="hidden shrink-0 text-[10px] sm:inline-flex">{task.is_important ? "Important" : priorityLabel(task.priority)}</Badge>
         <Button type="button" variant="ghost" size="icon-xs" className="!h-9 !min-h-9 !w-9 !min-w-9" aria-label={`Edit ${task.title}`} onClick={() => onEdit(task)}><Edit3 className="h-3.5 w-3.5" aria-hidden="true" /></Button>
         <Button type="button" variant="ghost" size="icon-xs" className="!h-9 !min-h-9 !w-9 !min-w-9 text-destructive" onClick={() => onDelete(task)} aria-label={`Delete ${task.title}`}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" /></Button>
       </CardContent>
@@ -401,11 +408,12 @@ export function Tasks({ deps, initialView }) {
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
   const [confirmDeleteTask, setConfirmDeleteTask] = useState(null);
+  const [bulkSelected, setBulkSelected] = useState([]);
 
   useEffect(() => {
-    const nextMetadata = readTaskMetadata();
+    const nextMetadata = readTaskMetadata(household.user?.id);
     setMetadata(nextMetadata);
-  }, []);
+  }, [household.user?.id]);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -467,13 +475,16 @@ export function Tasks({ deps, initialView }) {
       if (activeFilter === "today" && bucket !== "today") return false;
       if (activeFilter === "upcoming" && bucket !== "upcoming") return false;
       if (activeFilter === "overdue" && bucket !== "overdue") return false;
+      if (activeFilter === "this-week" && (bucket === "overdue" || bucket === "completed" || !task.effective_due_date || daysBetween(task.effective_due_date) > 7)) return false;
+      if (activeFilter === "someday" && task.effective_due_date) return false;
       if (memberFilter !== "All" && task.assignee !== memberFilter) return false;
       if (statusFilter !== "All" && task.status !== statusFilter) return false;
       if (priorityFilter !== "All" && task.priority !== priorityFilter) return false;
       if (dueFilter !== "all" && bucket !== dueFilter) return false;
       return true;
     });
-    return activeFilter === "due" ? [...filtered].sort(sortDueTasks) : sortTasks(filtered, "due");
+    const sorted = activeFilter === "due" ? [...filtered].sort(sortDueTasks) : sortTasks(filtered, "due");
+    return sorted.sort((a, b) => Number(b.pinned) - Number(a.pinned));
   }, [TODAY_STR, activeFilter, daysBetween, dueFilter, household.membership?.person_id, household.userPreferences?.default_person_id, memberFilter, nextDueDate, priorityFilter, searchTerm, statusFilter, tasks]);
 
   function notify(message) {
@@ -482,6 +493,22 @@ export function Tasks({ deps, initialView }) {
 
   function notifyMutationError(error, fallback = "Task could not be saved right now.") {
     notify(formatUserFacingError(error, fallback));
+  }
+
+  function togglePin(task) {
+    setMetadata(previous => {
+      const next = { ...previous, [task.id]: { ...(previous[task.id] || {}), pinned: !task.pinned } };
+      try { localStorage.setItem(taskMetadataKey(household.user?.id), JSON.stringify(next)); } catch {}
+      return next;
+    });
+    notify(task.pinned ? "Task unpinned." : "Task pinned.");
+  }
+
+  async function bulkComplete() {
+    const selected = filteredTasks.filter(task => bulkSelected.includes(task.id) && task.status !== "Completed");
+    for (const task of selected) await completeTask(task);
+    setBulkSelected([]);
+    notify(`${selected.length} task${selected.length === 1 ? "" : "s"} completed.`);
   }
 
   function openCreateTask() {
@@ -637,6 +664,7 @@ export function Tasks({ deps, initialView }) {
       onComplete={completeTask}
       onReopen={reopenTask}
       onDelete={setConfirmDeleteTask}
+      onPin={togglePin}
     />
   );
 
@@ -679,6 +707,11 @@ export function Tasks({ deps, initialView }) {
                   <Button type="button" variant={activeFilter === "mine" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("mine")}>My Tasks</Button>
                   <Button type="button" variant={activeFilter === "all" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={clearFilters}>All Tasks</Button>
                   <Button type="button" variant={activeFilter === "completed" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("completed")}>Completed</Button>
+                  <Button type="button" variant={activeFilter === "today" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("today")}>Today</Button>
+                  <Button type="button" variant={activeFilter === "upcoming" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("upcoming")}>Upcoming</Button>
+                  <Button type="button" variant={activeFilter === "this-week" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("this-week")}>This Week</Button>
+                  <Button type="button" variant={activeFilter === "overdue" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("overdue")}>Overdue</Button>
+                  <Button type="button" variant={activeFilter === "someday" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("someday")}>Someday</Button>
                   <Button type="button" variant="ghost" size="xs" className="!min-h-9 px-2.5" aria-expanded={filtersExpanded} aria-controls="task-secondary-filters" onClick={() => setFiltersExpanded(value => !value)}>{filtersExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />} Filters</Button>
                 </div>
               </div>
@@ -692,6 +725,8 @@ export function Tasks({ deps, initialView }) {
               </div>}
             </CardContent>
           </Card>
+
+          {activeFilter !== "completed" && filteredTasks.length > 0 && <div className="flex flex-wrap items-center gap-2"><Button type="button" size="xs" variant="secondary" aria-pressed={bulkSelected.length === filteredTasks.length} onClick={() => setBulkSelected(bulkSelected.length === filteredTasks.length ? [] : filteredTasks.map(task => task.id))}>{bulkSelected.length === filteredTasks.length ? "Clear selection" : "Select visible"}</Button>{bulkSelected.length > 0 && <Button type="button" size="xs" onClick={bulkComplete}>Complete selected ({bulkSelected.length})</Button>}</div>}
 
           <TaskList
             title={activeFilterLabel}

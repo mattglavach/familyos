@@ -1,5 +1,16 @@
 # Current Sprint
 
+## Release 2.2.0 Today operating system
+
+- [x] Redesign Home around Morning Brief, Today's Focus, actionable Needs Attention, Upcoming, status cards, and Quick Actions.
+- [x] Add floating Quick Add with seven minimal capture paths.
+- [x] Add device-local Habits with seven defaults and daily/weekly completion.
+- [x] Add six daily task views, pinning, importance, recurrence, quick/inline completion, editing, and bulk completion.
+- [x] Preserve authentication, permissions, dependencies, and all existing modules; add only the required optional-field Pool Test constraint repair.
+- [x] Complete authenticated Playwright desktop, mobile, tablet, dark-mode, focus, containment, and regression validation in the approved non-production environment.
+
+One required additive Pool Test migration is included and was validated only against the approved non-production test project. No production migration, push, deployment, or tag is included.
+
 ## Release 2.1.1 Calendar and Pool stabilization
 
 - [x] Correct partial Pool Test saves, zero handling, validation, errors, refresh, and duplicate-submit protection.

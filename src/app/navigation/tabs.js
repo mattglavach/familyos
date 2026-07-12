@@ -18,5 +18,6 @@ export const TITLES = {
   "quick-add": "Quick Add",
   settings: "Settings",
   "ai-workspace": "AI Workspace",
+  habits: "Habits",
   tasks: "Tasks",
 };

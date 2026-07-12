@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, Check, ChevronLeft, ClipboardList, Droplets, ListChecks, Utensils } from "lucide-react";
+import { CalendarDays, Check, ChevronLeft, ClipboardList, Droplets, ListChecks, NotebookPen, Settings2, ShoppingCart, Utensils } from "lucide-react";
 import { TODAY_STR } from "../../lib/dates";
 import { formatUserFacingError } from "../../lib/userFacingErrors";
 import { useHousehold } from "../../context/HouseholdContext";
@@ -27,6 +27,8 @@ export function QuickAdd({onNavigate, openSignal = 0, initialMode = null}){
   const poolReadings = useTable("pool_readings", "logged_at");
   const poolTreatments = useTable("pool_treatments", "logged_at");
   const poolMaintenance = useTable("pool_maintenance", "date");
+  const homeMaintenance = useTable("home_maintenance", "last_completed");
+  const notes = useTable("notes", "created_at");
   const household = useHousehold();
   const [form,setForm] = useState({});
   const [mode,setMode] = useState(null);
@@ -56,15 +58,18 @@ export function QuickAdd({onNavigate, openSignal = 0, initialMode = null}){
   }
 
   const options=[
-    {id:"task", icon:ClipboardList, label:"Add Task", status:"Ready", featured:true, enabled:true, accentClass:"border-l-violet-400", iconClass:"text-violet-300"},
-    {id:"calendar-event", icon:CalendarDays, label:"Add Calendar Event", status:"Google", featured:true, enabled:true, accentClass:"border-l-sky-400", iconClass:"text-sky-300"},
+    {id:"task", icon:ClipboardList, label:"Task", status:"Ready", featured:true, enabled:true, accentClass:"border-l-violet-400", iconClass:"text-violet-300"},
+    {id:"calendar-event", icon:CalendarDays, label:"Calendar Event", status:"Google", featured:true, enabled:true, accentClass:"border-l-sky-400", iconClass:"text-sky-300"},
+    {id:"pool", icon:Droplets, label:"Pool Test", status:"Ready", featured:true, enabled:true, accentClass:"border-l-primary", iconClass:"text-primary"},
+    {id:"maintenance", icon:Settings2, label:"Maintenance", status:"Ready", featured:true, enabled:true, accentClass:"border-l-amber-400", iconClass:"text-amber-300"},
+    {id:"shopping-item", icon:ShoppingCart, label:"Shopping Item", status:"Ready", featured:true, enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
+    {id:"life-item", icon:ListChecks, label:"Life Item", status:"Ready", featured:true, enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
+    {id:"note", icon:NotebookPen, label:"Note", status:"Ready", featured:true, enabled:true, accentClass:"border-l-slate-400", iconClass:"text-slate-300"},
     {id:"recipe", icon:Utensils, label:"Recipe", status:"Ready", enabled:true, accentClass:"border-l-sky-400", iconClass:"text-sky-300"},
     {id:"meal-plan", icon:Utensils, label:"Meal Plan", status:"Ready", enabled:true, accentClass:"border-l-sky-400", iconClass:"text-sky-300"},
     {id:"meal-assignment", icon:Utensils, label:"Meal Assignment", status:"Ready", enabled:true, accentClass:"border-l-sky-400", iconClass:"text-sky-300"},
-    {id:"life-item", icon:ListChecks, label:"List Item", status:"Ready", enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
     {id:"life-list", icon:ListChecks, label:"Life List", status:"Ready", enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
     {id:"pool-treatment", icon:Droplets, label:"Add Pool Activity", status:"Ready", featured:true, enabled:true, accentClass:"border-l-primary", iconClass:"text-primary"},
-    {id:"pool", icon:Droplets, label:"Add Pool Test Result", status:"Ready", featured:true, enabled:true, accentClass:"border-l-primary", iconClass:"text-primary"},
     {id:"pool-maintenance", icon:Droplets, label:"Maintenance Completed", status:"Ready", enabled:true, accentClass:"border-l-primary", iconClass:"text-primary"},
     {id:"pool-note", icon:Droplets, label:"Pool Note", status:"Ready", enabled:true, accentClass:"border-l-primary", iconClass:"text-primary"},
   ];
@@ -158,6 +163,15 @@ export function QuickAdd({onNavigate, openSignal = 0, initialMode = null}){
       await poolMaintenance.insert(row);
       close();setToast({message:"Pool entry saved."});onNavigate("pool");
     }catch(e){setSaveError(formatUserFacingError(e, "Pool entry could not be saved right now."));}
+  }
+  async function saveMaintenance(){
+    setSaveError(null); if(!form.title?.trim()){setSaveError("Title is required");return;}
+    const row={title:form.title.trim(),last_completed:form.last_completed||TODAY_STR,interval_days:Number(form.interval_days)||30,notes:form.notes||""};
+    try{await homeMaintenance.insert(row);close();setToast({message:"Maintenance record saved."});onNavigate("home");}catch(e){setSaveError(formatUserFacingError(e,"Maintenance record could not be saved right now."));}
+  }
+  async function saveNote(){
+    setSaveError(null); if(!form.body?.trim()){setSaveError("Note is required");return;}
+    try{await notes.insert({title:form.title||"Quick note",body:form.body.trim(),tag:"Quick Capture"});close();setToast({message:"Note saved."});}catch(e){setSaveError(formatUserFacingError(e,"Note could not be saved right now."));}
   }
   async function saveLifeList(){
     setSaveError(null);
@@ -298,6 +312,10 @@ export function QuickAdd({onNavigate, openSignal = 0, initialMode = null}){
             <Button type="button" variant="secondary" className="w-full" onClick={()=>setMode(null)}><ChevronLeft aria-hidden="true"/>Back</Button>
           </FormSection>
         </>}
+
+        {mode==="maintenance"&&<FormSection><FormGroup><Label>Maintenance item</Label><Input autoFocus placeholder="e.g. Replace HVAC filter" value={form.title||""} onChange={e=>setField("title",e.target.value)}/></FormGroup><FormRow><FormGroup><Label>Last completed</Label><Input type="date" value={form.last_completed||TODAY_STR} onChange={e=>setField("last_completed",e.target.value)}/></FormGroup><FormGroup><Label>Repeat every (days)</Label><Input type="number" min="1" value={form.interval_days||30} onChange={e=>setField("interval_days",e.target.value)}/></FormGroup></FormRow><FormGroup><Label>Note</Label><Input value={form.notes||""} onChange={e=>setField("notes",e.target.value)}/></FormGroup><Button type="button" className="w-full" onClick={saveMaintenance}>Save Maintenance</Button>{saveError&&<FormError>{saveError}</FormError>}</FormSection>}
+
+        {mode==="note"&&<FormSection><FormGroup><Label>Title</Label><Input autoFocus placeholder="Quick note" value={form.title||""} onChange={e=>setField("title",e.target.value)}/></FormGroup><FormGroup><Label>Note</Label><Input placeholder="What do you want to remember?" value={form.body||""} onChange={e=>setField("body",e.target.value)}/></FormGroup><Button type="button" className="w-full" onClick={saveNote}>Save Note</Button>{saveError&&<FormError>{saveError}</FormError>}</FormSection>}
 
         {mode==="life-list"&&<>
           <FormSection>

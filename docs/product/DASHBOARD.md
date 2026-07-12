@@ -1,5 +1,9 @@
 # Dashboard
 
+## Release 2.2 Today experience
+
+Home is now the unified Today dashboard. Its order is Morning Brief, Today's Focus, actionable Needs Attention, compact module status cards, the next three events, and Quick Actions. Focus is capped at five items. Needs Attention is omitted when there are no actionable records. Home remains an awareness and routing layer; record editing stays in the owning module or Quick Add.
+
 ## Release 1.8 command center
 
 Dashboard now answers, "What needs the household's attention today?" It consumes the Household Context Service and shows deterministically ordered Attention Needed, Today, Upcoming, Tasks, Calendar, Pool, and Maintenance summaries. Each item routes to its owning module.

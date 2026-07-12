@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.2.0 - 2026-07-12
+- Redesigned Home as a unified Today dashboard with Morning Brief, Today’s Focus, actionable Needs Attention, Upcoming, quick actions, and compact status cards.
+- Added a floating Quick Add control for tasks, calendar events, pool tests, maintenance, shopping items, Life items, and notes.
+- Added a Habits module for seven daily habits, today’s completion, and rolling seven-day completion percentage.
+- Expanded Tasks with This Week and Someday views plus device-local pinning, while preserving importance, recurrence, quick completion, inline edit drawer, and bulk completion behavior.
+- Lazy loaded Habits and retained the existing module-level lazy-loading strategy; no RLS or dependency changes.
+- Fixed the Pool Test release blocker by allowing optional weather and appearance fields to persist as `null`; added real authenticated desktop/mobile persistence and refresh regression coverage without changing RLS.
+- Scoped device-local habit completion and task pins by authenticated user and removed duplicate Today items across Focus and Needs Attention.
+
 ## 2.1.1 - 2026-07-12
 
 - Fixed Pool Test partial saves, zero-value handling, blank normalization, field validation, safe persistence errors, duplicate-submit protection, immediate refresh, and success confirmation.
