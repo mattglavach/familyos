@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.9.0 - 2026-07-12
+
+- Upgraded Universal Search with Ctrl+K/Cmd+K access, partial matching, module grouping, and contextual navigation into Tasks, Calendar, Life Lists, Shopping, Pantry, Pool History, and Settings.
+- Expanded dynamic in-app notifications for overdue and due-today tasks, seven-day Calendar events, Pool testing/maintenance attention, and existing household reminders, with unread count, individual read actions, and Clear All.
+- Standardized responsive empty states, card/list/table skeletons, friendly error cards, retry actions, offline-aware recovery, and an application-wide error boundary.
+- Improved keyboard focus, screen-reader loading announcements, ARIA labeling, and touch-friendly interaction behavior on the changed surfaces.
+- Lazy-loaded lower-frequency modules and global overlays, reducing the initial production JavaScript bundle by approximately 25 KB.
+- Preserved the compact Home daily brief and its hidden-empty-section behavior without adding modules or widgets.
+- No database, migration, dependency, authentication, permission, or business-logic changes.
+
 ## 1.8.4 - 2026-07-11
 
 - Moved global creation into a prominent top-bar Add sheet and kept Settings as the far-right icon.

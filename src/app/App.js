@@ -1,11 +1,8 @@
-import { Component, useState } from "react";
+import { Component, lazy, Suspense, useEffect, useState } from "react";
 import { Bell, Plus, Search, Settings as SettingsIcon } from "lucide-react";
 import { Dashboard } from "../modules/dashboard/Dashboard";
 import { Tasks } from "../modules/tasks/Tasks";
 import { Calendar } from "../modules/calendar/Calendar";
-import { More } from "../modules/more/More";
-import { GlobalSearch } from "../modules/search/GlobalSearch";
-import { NotificationCenter } from "../modules/notifications/NotificationCenter";
 import { I, S } from "../theme";
 import { APP_CONFIG, CONFIG_STATUS } from "../config";
 import { TODAY_DATE, TODAY_STR, daysAgo, daysBetween, formatDate, formatDateFull, formatTodayShort, nextDueDate } from "../lib/dates";
@@ -16,14 +13,9 @@ import { useSupabaseAuth } from "../hooks/useSupabaseAuth";
 import { useTable } from "../hooks/useTable";
 import { HouseholdProvider, useHousehold } from "../context/HouseholdContext";
 import { maintColor, maintStatus } from "../utils/status";
-import { College } from "../modules/college/College";
 import { Pool, getChemRecommendations } from "../modules/pool/Pool";
-import { Finance, calcRetirementProjection, formatMoneyShort } from "../modules/finance/Finance";
-import { LifeLists } from "../modules/life-lists/LifeLists";
-import { Shopping } from "../modules/shopping/Shopping";
-import { MealPlanning } from "../modules/meal-planning/MealPlanning";
+import { calcRetirementProjection, formatMoneyShort } from "../modules/finance/Finance";
 import { QuickAdd } from "../modules/quick-add/QuickAdd";
-import { Settings } from "../modules/settings/Settings";
 import { TABS, TITLES } from "./navigation/tabs";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
@@ -33,7 +25,18 @@ import { FormError, FormGroup, FormHelp, FormSection } from "../components/ui/fo
 import { SectionHeader } from "../components/ui/section-header";
 import { StatusBadge } from "../components/ui/badge";
 import { Skeleton } from "../components/ui/skeleton";
+import { ErrorState } from "../components/ui/error-state";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/tooltip";
+
+const College = lazy(() => import("../modules/college/College").then(module => ({ default: module.College })));
+const Finance = lazy(() => import("../modules/finance/Finance").then(module => ({ default: module.Finance })));
+const LifeLists = lazy(() => import("../modules/life-lists/LifeLists").then(module => ({ default: module.LifeLists })));
+const MealPlanning = lazy(() => import("../modules/meal-planning/MealPlanning").then(module => ({ default: module.MealPlanning })));
+const More = lazy(() => import("../modules/more/More").then(module => ({ default: module.More })));
+const NotificationCenter = lazy(() => import("../modules/notifications/NotificationCenter").then(module => ({ default: module.NotificationCenter })));
+const GlobalSearch = lazy(() => import("../modules/search/GlobalSearch").then(module => ({ default: module.GlobalSearch })));
+const Settings = lazy(() => import("../modules/settings/Settings").then(module => ({ default: module.Settings })));
+const Shopping = lazy(() => import("../modules/shopping/Shopping").then(module => ({ default: module.Shopping })));
 function SetupRequired(){
   return(
     <div style={S.app} className="px-5 py-10">
@@ -267,7 +270,7 @@ function GlobalLoading(){
   );
 }
 
-class CalendarErrorBoundary extends Component {
+class AppErrorBoundary extends Component {
   constructor(props) {
     super(props);
     this.state = { hasError: false };
@@ -294,12 +297,7 @@ class CalendarErrorBoundary extends Component {
       <div style={S.screen}>
         <Card>
           <CardContent className="space-y-3 p-4">
-            <CardTitle>Calendar needs attention</CardTitle>
-            <CardDescription>Calendar is still available. Try again, or check the connection on the Calendar screen.</CardDescription>
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" onClick={this.retry}>Try again</Button>
-              <Button type="button" variant="secondary" onClick={this.props.onSettings}>Open Calendar</Button>
-            </div>
+            <ErrorState title={`${this.props.label || "This screen"} needs attention`} description="Your data is safe. Try loading this screen again. If the problem continues, check your network connection." onRetry={this.retry} network={typeof navigator !== "undefined" && !navigator.onLine} />
           </CardContent>
         </Card>
       </div>
@@ -331,6 +329,18 @@ function AuthenticatedApp({ auth }) {
   const gc = useGoogleCalendar();
   const household = useHousehold();
   const secureCalendar = useCalendarConnections(household.householdId);
+
+  useEffect(() => {
+    function openSearch(event) {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setNotificationsOpen(false);
+        setSearchOpen(true);
+      }
+    }
+    window.addEventListener("keydown", openSearch);
+    return () => window.removeEventListener("keydown", openSearch);
+  }, []);
 
   function switchTab(target){
     const nextTab = typeof target === "string" ? target : target?.tab;
@@ -400,31 +410,36 @@ function AuthenticatedApp({ auth }) {
         onAdd={() => setQuickAddRequest(previous => ({ signal: previous.signal + 1, mode: null }))}
       />
 
+      <AppErrorBoundary resetKey={tab} label={TITLES[tab] || "FamilyOS"} onRetry={() => switchTab(tab)}>
+      <Suspense fallback={<GlobalLoading/>}>
       {tab==="home"&&<Dashboard onNavigate={switchTab} gc={gc} secureCalendar={secureCalendar} deps={{
         TODAY_DATE,TODAY_STR,daysAgo,daysBetween,nextDueDate,formatDate,formatDateFull,
         formatMoneyShort,maintStatus,useTable,calcRetirementProjection,getChemRecommendations,
       }}/>} 
       {tab==="calendar"&&(
-        <CalendarErrorBoundary resetKey={`${headerCalendar.status}-${headerCalendar.connected}-${headerCalendar.loading}`} onRetry={() => switchTab("calendar")} onSettings={() => switchTab("calendar")}>
+        <AppErrorBoundary resetKey={`${headerCalendar.status}-${headerCalendar.connected}-${headerCalendar.loading}`} label="Calendar" onRetry={() => switchTab("calendar")}>
           <Calendar calendar={headerCalendar} initialView={navigationContext?.tab === "calendar" ? navigationContext : null} onNavigate={switchTab} deps={{
             TODAY_STR,formatDateFull,
           }}/>
-        </CalendarErrorBoundary>
+        </AppErrorBoundary>
       )}
       {tab==="college"&&<College/>}
       {tab==="tasks"&&<Tasks initialView={navigationContext?.tab === "tasks" ? navigationContext : null} deps={{
         TODAY_DATE,TODAY_STR,daysBetween,nextDueDate,formatDate,
         maintStatus,maintColor,useTable,
       }}/>} 
-      {tab==="pool"&&<Pool/>}
+      {tab==="pool"&&<Pool initialView={navigationContext?.tab === "pool" ? navigationContext : null}/>}
       {tab==="finance"&&<Finance/>}
       {tab==="life-lists"&&<LifeLists initialView={navigationContext?.tab === "life-lists" ? navigationContext : null}/>}
-      {tab==="shopping"&&<Shopping/>}
+      {tab==="shopping"&&<Shopping initialView={navigationContext?.tab === "shopping" ? navigationContext : null}/>}
       {tab==="meal-planning"&&<MealPlanning/>}
       {tab==="more"&&<More onNavigate={switchTab}/>}
       {tab==="settings"&&<Settings auth={auth} gc={gc} secureCalendar={secureCalendar}/>}
+      </Suspense>
+      </AppErrorBoundary>
 
-      <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} calendarEvents={headerCalendar.events} onNavigate={switchTab}/>
+      <Suspense fallback={null}>
+      {searchOpen && <GlobalSearch open onOpenChange={setSearchOpen} calendarEvents={headerCalendar.events} onNavigate={switchTab}/>}
       <NotificationCenter
         open={notificationsOpen}
         onOpenChange={setNotificationsOpen}
@@ -434,6 +449,7 @@ function AuthenticatedApp({ auth }) {
         onNavigate={switchTab}
         onUnreadChange={setUnreadCount}
       />
+      </Suspense>
       <QuickAdd onNavigate={switchTab} openSignal={quickAddRequest.signal} initialMode={quickAddRequest.mode}/>
       <BottomNavigation tab={tab} onNavigate={switchTab}/>
     </div>

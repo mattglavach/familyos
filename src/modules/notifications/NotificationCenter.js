@@ -56,9 +56,14 @@ export function buildNotifications(tasks, calendarEvents, household, calendar, p
       notifications.push({ id: `task-due-${task.id}`, kind: "task", tone: task.is_important ? "important" : "warning", title: task.title || "Task due", detail: days === 0 ? "Due today" : "Marked important", nav: { tab: "tasks", filter: days === 0 ? "today" : "all", search: task.title || "" } });
     }
   });
-  (calendarEvents || []).filter(event => daysUntil(event.date) === 0).slice(0, 5).forEach(event => {
+  (calendarEvents || []).filter(event => {
+    const days = daysUntil(event.date);
+    return days !== null && days >= 0 && days <= 7;
+  }).slice(0, 8).forEach(event => {
     const normalized = normalizeCalendarEvent(event);
-    notifications.push({ id: `event-today-${normalized.id || normalized.title}`, kind: "calendar", tone: "info", title: normalized.title || "Calendar event", detail: `${formatCalendarEventTime(normalized)} today`, nav: { tab: "calendar", eventId: normalized.id } });
+    const days = daysUntil(normalized.date);
+    const timing = days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`;
+    notifications.push({ id: `${days === 0 ? "event-today" : "event-upcoming"}-${normalized.id || normalized.title}`, kind: "calendar", tone: "info", title: normalized.title || "Calendar event", detail: `${formatCalendarEventTime(normalized)} ${timing}`, nav: { tab: "calendar", eventId: normalized.id } });
   });
   if (calendar.error) {
     notifications.push({ id: "calendar-error", kind: "calendar", tone: "warning", title: "Calendar needs attention", detail: "Open Calendar to reconnect or check status.", nav: "calendar" });
@@ -120,6 +125,11 @@ export function NotificationCenter({ open, onOpenChange, calendarEvents, househo
     store(Array.from(new Set([...readIds, ...notifications.map(item => item.id)])));
   }
 
+  function markRead(event, item) {
+    event.stopPropagation();
+    store(Array.from(new Set([...readIds, item.id])));
+  }
+
   function choose(item) {
     store(Array.from(new Set([...readIds, item.id])));
     onOpenChange(false);
@@ -134,7 +144,7 @@ export function NotificationCenter({ open, onOpenChange, calendarEvents, househo
             <Bell className="h-4 w-4 text-primary" aria-hidden="true" />
             <StatusBadge status={unreadCount ? "warning" : "healthy"}>{unreadCount ? `${unreadCount} unread` : "Caught up"}</StatusBadge>
           </div>
-          <Button type="button" variant="secondary" size="xs" onClick={markAllRead}>Mark all read</Button>
+          <Button type="button" variant="secondary" size="xs" onClick={markAllRead}>Clear all</Button>
         </div>
         <ChipGroup value={view} options={NOTIFICATION_VIEWS} ariaLabel="Notification view" onValueChange={setView} />
         {visibleNotifications.length ? (
@@ -142,14 +152,14 @@ export function NotificationCenter({ open, onOpenChange, calendarEvents, househo
             {visibleNotifications.map(item => {
               const read = readIds.includes(item.id) || item.id === "all-clear";
               return (
-                <button key={item.id} type="button" onClick={() => choose(item)} className={`flex min-h-14 w-full items-start gap-3 rounded-lg border border-border p-3 text-left ${read ? "bg-secondary/25" : "bg-secondary/60"}`}>
+                <div key={item.id} role="button" tabIndex={0} onClick={() => choose(item)} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); choose(item); } }} className={`flex min-h-14 w-full cursor-pointer items-start gap-3 rounded-lg border border-border p-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${read ? "bg-secondary/25" : "bg-secondary/60"}`} aria-label={`Open ${item.title}`}>
                   {iconFor(item.kind)}
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-bold text-foreground">{item.title}</span>
                     <span className="mt-1 block text-xs leading-5 text-muted-foreground">{item.detail}</span>
                   </span>
-                  <Badge variant={read ? "slate" : "blue"}>{read ? "Read" : "New"}</Badge>
-                </button>
+                  {read ? <Badge variant="slate">Read</Badge> : <Button type="button" variant="ghost" size="xs" onClick={event => markRead(event, item)} aria-label={`Mark ${item.title} read`}>Mark read</Button>}
+                </div>
               );
             })}
           </div>

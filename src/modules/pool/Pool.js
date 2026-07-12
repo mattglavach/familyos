@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, CalendarClock, CheckCircle2, ClipboardList, Droplets, FlaskConical, HelpCircle, History, Pencil, Settings2, ThermometerSun, Trash2, Wrench } from "lucide-react";
 import { EmptyState, Loading, Modal, SwipeCard, SwipeHint } from "../../components/common";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
@@ -263,7 +263,7 @@ function recommendationCard(rec, onReview, editable) {
   );
 }
 
-export function Pool() {
+export function Pool({ initialView }) {
   const readings = useTable("pool_readings", "logged_at");
   const treatments = useTable("pool_treatments", "logged_at");
   const maintenance = useTable("pool_maintenance", "date");
@@ -285,6 +285,10 @@ export function Pool() {
   const [poolActionError, setPoolActionError] = useState("");
   const [reviewRec, setReviewRec] = useState(null);
   const [deleteHistoryItem, setDeleteHistoryItem] = useState(null);
+
+  useEffect(() => {
+    if (initialView?.view === "history") setTab("history");
+  }, [initialView]);
 
   const latest = latestReadingValues(readings.data);
   const recommendations = useMemo(

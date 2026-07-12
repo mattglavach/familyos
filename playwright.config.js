@@ -36,5 +36,7 @@ module.exports = defineConfig({
     { name: "setup", testMatch: /auth\.setup\.js/ },
     { name: "chromium", testIgnore: /auth\.setup\.js/, dependencies: ["setup"], use: { ...devices["Desktop Chrome"], storageState: authFile } },
     { name: "mobile-chromium", testIgnore: /auth\.setup\.js/, dependencies: ["setup"], use: { ...devices["Pixel 5"], viewport: { width: 390, height: 844 }, storageState: authFile } },
+    { name: "tablet-chromium", testIgnore: /auth\.setup\.js/, dependencies: ["setup"], use: { ...devices["Desktop Chrome"], viewport: { width: 768, height: 1024 }, storageState: authFile } },
+    { name: "dark-chromium", testIgnore: /auth\.setup\.js/, dependencies: ["setup"], use: { ...devices["Desktop Chrome"], colorScheme: "dark", storageState: authFile } },
   ],
 });

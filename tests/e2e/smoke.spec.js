@@ -7,6 +7,12 @@ test("authenticated FamilyOS major-module smoke", async ({ page }) => {
   await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
   await expect(page.getByText("Schedule annual physical")).toBeVisible();
 
+  await page.keyboard.press("Control+K");
+  await expect(page.getByText("Search Family OS", { exact: true })).toBeVisible();
+  await page.getByPlaceholder("Search tasks, pool, shopping, meals...").fill("annual physical");
+  await expect(page.getByText("Schedule annual physical", { exact: true }).first()).toBeVisible();
+  await page.getByRole("button", { name: "Close" }).last().click();
+
   await navigateModule(page, "Tasks");
   await expect(page.getByText("Schedule annual physical")).toBeVisible();
   await navigateModule(page, "Calendar");

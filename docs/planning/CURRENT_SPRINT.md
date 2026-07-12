@@ -1,5 +1,17 @@
 # Current Sprint
 
+## Release 1.9.0 platform quality release
+
+- [x] Upgrade global Search coverage, grouping, shortcut access, and contextual navigation.
+- [x] Upgrade dynamic notifications and read/clear controls without push delivery or durable schema.
+- [x] Add shared responsive empty, card/list/table loading, and retryable error states.
+- [x] Improve accessibility and lazy-load lower-frequency application surfaces.
+- [x] Preserve the compact Home daily brief and existing architecture, authentication, permissions, schema, and business logic.
+- [x] Pass lint, automated tests, seed safeguards, production build, bundle safety, and diff validation.
+- [x] Complete authenticated desktop, tablet, 390px mobile, and dark-mode Playwright validation.
+
+No push, deployment, tag, migration, or production mutation is included.
+
 ## Release 1.8.4 local release candidate
 
 - [x] Move global creation to the top Add action and keep Settings far right.

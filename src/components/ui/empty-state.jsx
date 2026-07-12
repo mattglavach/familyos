@@ -3,8 +3,8 @@ import { cn } from "../../lib/utils";
 
 function EmptyStatePanel({ icon, title = "Nothing here yet", detail, action, onAction, className }) {
   return (
-    <div className={cn("px-4 py-4 text-center", className)}>
-      {icon && <div className="mb-2 text-2xl opacity-70">{icon}</div>}
+    <div className={cn("flex flex-col items-center px-4 py-5 text-center", className)}>
+      {icon && <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-xl text-muted-foreground" aria-hidden="true">{icon}</div>}
       <div className="text-sm font-bold text-secondary-foreground">{title}</div>
       {detail && <div className="mx-auto mt-1 max-w-sm text-xs leading-5 text-muted-foreground">{detail}</div>}
       {action && onAction && (

@@ -1,5 +1,21 @@
 # Release Notes
 
+## Release 1.9.0
+
+Release 1.9.0 is a platform quality release. Universal Search now opens from the header or Ctrl+K/Cmd+K, uses fast partial matching, groups results by module, and carries useful context into the destination item or workspace. Search covers Tasks, Calendar, Life Lists, Pool History, Shopping, Pantry, and Settings, while retaining the existing implemented planning surfaces.
+
+The Notification Center remains lightweight and in-app only. It dynamically derives overdue tasks, tasks due today, the next seven days of Calendar events, Pool testing and maintenance attention, and existing household reminders. The bell shows an unread badge, each item can be marked read, selecting an item opens its source, and Clear All archives the current set locally on the device.
+
+Shared platform UI now provides responsive empty states, card/list/table skeletons, friendly retryable error cards, offline-aware copy, and an application-level recovery boundary so a module failure does not produce a blank screen. Keyboard focus, ARIA labeling, screen-reader loading announcements, and changed touch targets were reviewed. Lower-frequency modules and global overlays are lazy-loaded, reducing the initial production JavaScript bundle by approximately 25 KB. Home retains the 1.8.4 compact daily-brief structure and continues to hide empty sections.
+
+Known limitations: notification read state remains device-local, notifications do not use push/email/SMS delivery, search uses the current in-memory household datasets rather than a server index, and navigation is state-based rather than URL-addressable. These are intentional platform boundaries for this release.
+
+Future roadmap: continue Gardening Operations as a separately scoped future module release; evaluate a shared server-backed search registry and durable notification preferences only when scale or multi-device needs justify them.
+
+No database migration, authentication change, permission change, dependency change, or new module is included.
+
+Validation passed: ESLint; 62 application tests; 18 seed-safety tests; production build; production bundle safety; authenticated Playwright smoke on desktop Chromium, 768px tablet Chromium, 390px mobile Chromium, and dark-mode Chromium; and `git diff --check`.
+
 ## Release 1.8.4
 
 Release 1.8.4 is a cohesive UX refinement release. The top bar replaces Calendar status with a prominent global Add action and keeps Settings as the far-right icon. The compact Add sheet routes Task, Pool Activity, and Pool Test Result into established forms, while Calendar Event hands off to Google Calendar's existing event editor.

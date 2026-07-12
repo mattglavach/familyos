@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Archive, Check, ChevronLeft, ChevronRight, Heart, Package, Plus, Search, ShoppingCart, Star, Trash2 } from "lucide-react";
 import { Badge, StatusBadge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
@@ -189,7 +189,7 @@ function PantryRow({ item, canManage, onEdit, onToggleFavorite }) {
   );
 }
 
-export function Shopping() {
+export function Shopping({ initialView }) {
   const household = useHousehold();
   const lists = useTable("shopping_lists", "sort_order", true);
   const items = useTable("shopping_items", "sort_order", true);
@@ -215,6 +215,13 @@ export function Shopping() {
   const canCreate = Boolean(household.user?.id);
   const canManagePantry = canManageSharedLists;
   const normalizedQuery = query.trim().toLowerCase();
+
+  useEffect(() => {
+    if (!initialView?.ts) return;
+    if (initialView.view) setView(initialView.view);
+    if (initialView.listId) setSelectedId(initialView.listId);
+    if (initialView.search) setQuery(initialView.search);
+  }, [initialView]);
 
   const visibleLists = useMemo(() => lists.data.filter(list => canViewList(list, household)), [household, lists.data]);
   const selectedList = visibleLists.find(list => list.id === selectedId) || null;

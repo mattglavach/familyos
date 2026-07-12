@@ -1,5 +1,14 @@
 # Roadmap
 
+## Release 1.9.0: Platform Quality
+- [x] Upgrade Universal Search across active household surfaces with keyboard access, grouping, partial matching, and contextual navigation.
+- [x] Upgrade the lightweight dynamic Notification Center with task, Calendar, Pool, and maintenance attention plus read/clear controls.
+- [x] Standardize empty, loading, and application error recovery states.
+- [x] Improve accessibility, responsive behavior, and initial-load performance without changing module ownership or business rules.
+- [x] Preserve the compact Home daily brief and avoid new widgets or modules.
+
+Gardening Operations remains a future separately scoped release. Later releases include Financial Planning and ChatGPT reasoning over the Context Engine.
+
 ## Release 1.8.4: Navigation and Daily UX Refinement
 - [x] Move global Add to the top bar and promote Pool into bottom module navigation.
 - [x] Make Pool History compact and manageable without swipe gestures.
@@ -14,7 +23,7 @@
 - [x] Stabilize responsive card grids, wrapping, and overflow behavior using the existing mobile-first system.
 - [ ] Complete authenticated desktop/mobile smoke in an approved non-production environment.
 
-Release 1.9 is Gardening Operations. Later releases include Financial Planning and ChatGPT reasoning over the Context Engine.
+The previously proposed 1.9 Gardening Operations scope is deferred to a separately numbered future release so 1.9.0 can remain the approved platform-quality release.
 
 ## Release 1.7.0: Stabilization and Pool Operations
 - [x] Normalize Calendar events to `America/New_York` while preserving provider timestamps and all-day dates.

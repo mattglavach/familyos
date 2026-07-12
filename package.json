@@ -1,6 +1,6 @@
 {
   "name": "familyos",
-  "version": "1.8.4",
+  "version": "1.9.0",
   "private": true,
   "packageManager": "pnpm@11.7.0",
   "dependencies": {
@@ -31,6 +31,8 @@
     "test:smoke": "playwright test tests/e2e/smoke.spec.js",
     "test:smoke:desktop": "playwright test --project=chromium tests/e2e/smoke.spec.js",
     "test:smoke:mobile": "playwright test --project=mobile-chromium tests/e2e/smoke.spec.js",
+    "test:smoke:tablet": "playwright test --project=tablet-chromium tests/e2e/smoke.spec.js",
+    "test:smoke:dark": "playwright test --project=dark-chromium tests/e2e/smoke.spec.js",
     "test:regression": "pnpm run seed:demo && playwright test",
     "test:e2e:ui": "playwright test --ui"
   },

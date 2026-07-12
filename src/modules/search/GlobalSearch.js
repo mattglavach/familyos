@@ -113,15 +113,15 @@ export function GlobalSearch({ open, onOpenChange, calendarEvents, onNavigate })
     const shoppingListResults = shoppingListTable.data
       .filter(list => !list.archived && includesQuery(`${list.name} ${list.description} ${list.category} ${list.visibility}`, normalizedQuery))
       .slice(0, 6)
-      .map(list => ({ type: "Shopping", label: list.name || "Shopping list", detail: `${list.category || "List"} - ${list.visibility || "household"}`, nav: "shopping" }));
+      .map(list => ({ type: "Shopping", label: list.name || "Shopping list", detail: `${list.category || "List"} - ${list.visibility || "household"}`, nav: { tab: "shopping", view: "items", listId: list.id } }));
     const shoppingItemResults = shoppingItemTable.data
       .filter(item => !item.archived && includesQuery(`${item.name} ${item.notes} ${item.category} ${item.unit}`, normalizedQuery))
       .slice(0, 6)
-      .map(item => ({ type: "Shopping", label: item.name || "Shopping item", detail: item.purchased ? "Purchased item" : "Needed item", nav: "shopping" }));
+      .map(item => ({ type: "Shopping", label: item.name || "Shopping item", detail: item.purchased ? "Purchased item" : "Needed item", nav: { tab: "shopping", view: "items", listId: item.list_id, search: item.name || "" } }));
     const pantryResults = pantryTable.data
       .filter(item => !item.archived && includesQuery(`${item.name} ${item.notes} ${item.category} ${item.unit}`, normalizedQuery))
       .slice(0, 6)
-      .map(item => ({ type: "Pantry", label: item.name || "Pantry item", detail: item.reorder_flag ? "Pantry reorder" : "Pantry item", nav: "shopping" }));
+      .map(item => ({ type: "Pantry", label: item.name || "Pantry item", detail: item.reorder_flag ? "Pantry reorder" : "Pantry item", nav: { tab: "shopping", view: "pantry", search: item.name || "" } }));
     const mealPlanResults = mealPlanTable.data
       .filter(plan => !plan.archived && includesQuery(`${plan.name} ${plan.description} ${plan.notes} ${plan.visibility}`, normalizedQuery))
       .slice(0, 6)
@@ -137,15 +137,15 @@ export function GlobalSearch({ open, onOpenChange, calendarEvents, onNavigate })
     const poolTestResults = poolTests.data
       .filter(item => includesQuery(`${item.test_source} ${item.notes} ${item.recent_weather_notes} ${item.date} pH ${item.ph} FC ${item.free_chlorine} salt ${item.salt}`, normalizedQuery))
       .slice(0, 6)
-      .map(item => ({ type: "Pool", label: `Pool test - ${item.date}`, detail: `pH ${item.ph || "--"} FC ${item.free_chlorine || "--"} Salt ${item.salt || "--"}`, nav: "pool" }));
+      .map(item => ({ type: "Pool", label: `Pool test - ${item.date}`, detail: `pH ${item.ph || "--"} FC ${item.free_chlorine || "--"} Salt ${item.salt || "--"}`, nav: { tab: "pool", view: "history", recordId: item.id } }));
     const poolTreatmentResults = poolTreatments.data
       .filter(item => includesQuery(`${item.notes} ${item.water_clarity} acid salt cya chlorine swg ${item.date}`, normalizedQuery))
       .slice(0, 6)
-      .map(item => ({ type: "Pool", label: `Pool treatment - ${item.date}`, detail: item.notes || "Chemical or equipment change", nav: "pool" }));
+      .map(item => ({ type: "Pool", label: `Pool treatment - ${item.date}`, detail: item.notes || "Chemical or equipment change", nav: { tab: "pool", view: "history", recordId: item.id } }));
     const poolMaintenanceResults = poolMaintenance.data
       .filter(item => includesQuery(`${item.type} ${item.notes} ${item.water_clarity} ${item.date}`, normalizedQuery))
       .slice(0, 6)
-      .map(item => ({ type: "Pool", label: item.type || "Pool maintenance", detail: item.date || "Maintenance", nav: "pool" }));
+      .map(item => ({ type: "Pool", label: item.type || "Pool maintenance", detail: item.date || "Maintenance", nav: { tab: "pool", view: "history", recordId: item.id } }));
     const poolEquipmentResults = poolEquipment.data
       .filter(item => includesQuery(`${item.type} ${item.name} ${item.brand} ${item.model} ${item.notes} ${item.warranty_notes}`, normalizedQuery))
       .slice(0, 6)

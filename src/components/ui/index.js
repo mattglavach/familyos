@@ -8,6 +8,7 @@ export * from "./command";
 export * from "./dialog";
 export * from "./drawer";
 export * from "./empty-state";
+export * from "./error-state";
 export * from "./form";
 export * from "./input";
 export * from "./label";
