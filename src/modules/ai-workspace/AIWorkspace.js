@@ -7,7 +7,7 @@ import { SectionHeader } from "../../components/ui/section-header";
 import { ExpandableSection } from "../../components/ui/expandable-section";
 import { useTable } from "../../hooks/useTable";
 import { useHousehold } from "../../context/HouseholdContext";
-import { buildContextEngine, calendarContext, financialContext, homeContext, lifeContext, poolContext, taskContext } from "../../services/contextEngine";
+import { buildContextEngine, calendarContext, financialContext, habitContext, homeContext, lifeContext, poolContext, routineContext, taskContext } from "../../services/contextEngine";
 import { buildPrompt } from "../../services/promptBuilder";
 import { readAiSettings, readPromptTraces, recordPromptTrace, writeAiSettings } from "../../services/aiPreferences";
 import { buildPoolContext } from "../pool/domainService";
@@ -15,18 +15,18 @@ import { identifySuggestions } from "./responseReview";
 import { googleCalendarUrl, workflowNavigation } from "./guidedWorkflows";
 import { S } from "../../theme";
 
-const QUESTIONS = ["What needs attention this week?", "Summarize my family's schedule.", "Prepare my weekend.", "What should I accomplish today?", "Review my pool.", "Summarize upcoming expenses."];
+const QUESTIONS = ["Morning Brief: summarize today's priorities, calendar, habits, pool, and household reminders.", "Evening Review: summarize completed work, remaining work, missed habits, and tomorrow preparation.", "Weekly Planning: summarize deadlines, family events, pool history-based recommendations, habit trends, and suggested priorities.", "What needs attention this week?", "Prepare my weekend.", "Review my pool."];
 
 export function AIWorkspace({ calendarEvents = [], onNavigate }) {
   const household = useHousehold();
-  const tasks = useTable("tasks", "due_date", true), lists = useTable("life_lists", "updated_at"), items = useTable("life_list_items", "updated_at"), readings = useTable("pool_readings", "logged_at"), treatments = useTable("pool_treatments", "logged_at"), profiles = useTable("pool_profiles", "name", true), equipment = useTable("pool_equipment", "type", true), maintenance = useTable("home_maintenance", "last_completed"), accounts = useTable("retirement_accounts", "name", true), assumptions = useTable("retirement_assumptions", "id", true);
+  const tasks = useTable("tasks", "due_date", true), lists = useTable("life_lists", "updated_at"), items = useTable("life_list_items", "updated_at"), readings = useTable("pool_readings", "logged_at"), treatments = useTable("pool_treatments", "logged_at"), profiles = useTable("pool_profiles", "name", true), equipment = useTable("pool_equipment", "type", true), maintenance = useTable("home_maintenance", "last_completed"), accounts = useTable("retirement_accounts", "name", true), assumptions = useTable("retirement_assumptions", "id", true),habits=useTable("habits","created_at",true),habitCompletions=useTable("habit_completions","completed_at"),routines=useTable("routines","created_at",true),routineCompletions=useTable("routine_completions","created_at");
   const [settings, setSettings] = useState(readAiSettings);
   const [question, setQuestion] = useState(() => readAiSettings().defaultPromptTemplate || QUESTIONS[0]);
   const [copied, setCopied] = useState(false), [response, setResponse] = useState(""), [traces, setTraces] = useState(readPromptTraces());
   const context = useMemo(() => {
     const pool = buildPoolContext({ householdIdentifier: household.householdId, profile: profiles.data[0], readings: readings.data, treatments: treatments.data, equipment: equipment.data });
-    return buildContextEngine([taskContext(tasks.data), calendarContext(calendarEvents), lifeContext(lists.data, items.data), poolContext(pool), homeContext(maintenance.data), financialContext(accounts.data, assumptions.data)], { role: household.membership?.role, financialContextAllowed: !settings.hideSensitiveFinancialData, childContextAllowed: !settings.hideChildInformation, timezone: household.householdSettings?.timezone });
-  }, [accounts.data, assumptions.data, calendarEvents, equipment.data, household.householdId, household.householdSettings?.timezone, household.membership?.role, items.data, lists.data, maintenance.data, profiles.data, readings.data, settings.hideChildInformation, settings.hideSensitiveFinancialData, tasks.data, treatments.data]);
+    return buildContextEngine([taskContext(tasks.data), calendarContext(calendarEvents),habitContext(habits.data,habitCompletions.data),routineContext(routines.data,routineCompletions.data), lifeContext(lists.data, items.data), poolContext(pool), homeContext(maintenance.data), financialContext(accounts.data, assumptions.data)], { role: household.membership?.role, financialContextAllowed: !settings.hideSensitiveFinancialData, childContextAllowed: !settings.hideChildInformation, timezone: household.householdSettings?.timezone });
+  }, [accounts.data, assumptions.data, calendarEvents, equipment.data,habitCompletions.data,habits.data, household.householdId, household.householdSettings?.timezone, household.membership?.role, items.data, lists.data, maintenance.data, profiles.data, readings.data,routineCompletions.data,routines.data, settings.hideChildInformation, settings.hideSensitiveFinancialData, tasks.data, treatments.data]);
   const result = useMemo(() => buildPrompt(context, question, settings), [context, question, settings]);
   const suggestions = useMemo(() => identifySuggestions(response), [response]);
   const promptOptions = [...new Set([...(settings.favoritePrompts || []), ...QUESTIONS, ...traces.map(item => item.question)])].slice(0, 12);

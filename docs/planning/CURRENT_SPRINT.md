@@ -1,5 +1,16 @@
 # Current Sprint
 
+## Release 2.4.0 smart planning and daily operations
+
+- [x] Add actionable Home context, preparation alerts, and compact daily progress.
+- [x] Add user-initiated Morning Brief, Evening Review, and Weekly Planning context.
+- [x] Evolve Habits with flexible goals, completion analytics, streak history, calendar visualization, and recovery guidance.
+- [x] Evolve Routines with progress, history, duplication, templates, duration, and recurrence editing.
+- [x] Group and deduplicate Needs Attention and add safe task quick completion.
+- [x] Expand universal search to all requested active record types.
+- [x] Complete local migration bootstrap, cross-viewport, dark-mode, keyboard, and regression validation.
+- [ ] Apply the migration and complete deployment plus production verification.
+
 ## Release 2.3.0 daily operations
 
 - [x] Correct My Tasks identity, assignment, lifecycle, and household filtering; restore Assigned by Me.

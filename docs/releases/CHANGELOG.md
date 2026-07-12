@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.4.0 - 2026-07-12
+
+- Added Home preparation intelligence and daily progress across Tasks, Habits, Routines, Calendar, and Needs Attention.
+- Added three user-initiated AI planning modes backed by structured FamilyOS context.
+- Added richer Habit goals, streaks, completion analysis, calendar visualization, and recovery guidance.
+- Added Routine progress, history, duplication, template guidance, and recurrence editing.
+- Grouped and deduplicated Needs Attention with preparation alerts and task quick completion.
+- Expanded universal search to Habits, Routines, and home maintenance.
+- Added the additive Release 2.4 smart-planning migration and supporting indexes.
+
 ## 2.3.0 - 2026-07-12
 - Fixed My Tasks identity resolution across authenticated users, household-member records, reassignment, archived/deleted rows, and active-household boundaries; restored Assigned by Me.
 - Fixed Pool Maintenance Done with an idempotent household-authorized transaction that records immutable history and advances the recurring schedule atomically.

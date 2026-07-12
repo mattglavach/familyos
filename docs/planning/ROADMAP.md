@@ -1,5 +1,17 @@
 # Roadmap
 
+## Release 2.4.0: Smart Planning and Daily Operations
+
+Status: implementation and local release validation complete; production publication pending.
+
+- Home provides actionable preparation and daily operating progress without owning duplicate records.
+- AI Brief supports Morning, Evening, and Weekly planning as optional, user-triggered reasoning.
+- Habits and Routines provide measurable history and flexible operating goals.
+- Needs Attention and Search unify discovery and action while routing to source modules.
+- Pool forecasting and recommendations remain strictly based on recorded history; predictive inventory depletion is deferred until reliable usage quantities exist.
+
+Deferred beyond 2.4: automated brief generation, fabricated or generic chemical dosing, autonomous record changes, and broad calendar scheduling replacement.
+
 ## Release 2.3.0: Daily Operations Foundation
 - [x] Fix My Tasks assignment and Pool Maintenance completion release blockers.
 - [x] Consolidate Home daily focus and make AI Brief secondary.

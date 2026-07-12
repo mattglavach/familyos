@@ -1,5 +1,16 @@
 # Release Notes
 
+## Release 2.4.0 - Smart Planning and Daily Operations
+
+Release 2.4.0 evolves existing daily-operations foundations into a preparation-focused command center without changing module ownership. Home now combines actionable preparation signals with a compact daily progress readout. AI Workspace offers explicit Morning Brief, Evening Review, and Weekly Planning prompts using structured Tasks, Calendar, Habits, Routines, Home, and recorded Pool context; generation remains user initiated and output remains advisory.
+
+- Habits: count-based weekly/monthly goals, weekday schedules, current and longest streaks, weekly/monthly completion rates, a 28-day completion calendar, and recovery guidance.
+- Routines: progress bars, completion-history counts, duplication, recurrence editing, template guidance, and retained estimated duration.
+- Needs Attention: grouped Today, This Week, Overdue, Maintenance, Habits, and Calendar preparation items with task quick completion and shared deduplication.
+- Search: direct results for Habits, Routines, home maintenance, Tasks, Events, Pool history, and Life Lists.
+- Data: additive `target_count` and `template_key` fields plus history query indexes. No destructive data changes.
+- Validation: lint, 102 automated tests, 18 seed-safety tests, fresh 16-migration bootstrap, production build, bundle safety, `git diff --check`, and authenticated desktop/mobile/tablet/dark-mode smoke and Release 2.3 regression workflows passed. Keyboard search and accessible labels were exercised in browser tests; no separate automated WCAG audit was run. The 2.4 migration was not applied to production and no production deployment or verification was performed.
+
 ## Release 2.3.0 - Daily Operations Foundation
 
 Date: 2026-07-12

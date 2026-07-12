@@ -437,7 +437,7 @@ function AuthenticatedApp({ auth }) {
       {tab==="life-lists"&&<LifeLists initialView={navigationContext?.tab === "life-lists" ? navigationContext : null}/>}
       {tab==="meal-planning"&&<MealPlanning/>}
       {tab==="more"&&<More onNavigate={switchTab}/>}
-      {tab==="needs-attention"&&<NeedsAttention onNavigate={switchTab}/>}
+      {tab==="needs-attention"&&<NeedsAttention onNavigate={switchTab} calendarEvents={headerCalendar.events}/>}
       {tab==="settings"&&<Settings auth={auth} gc={gc} secureCalendar={secureCalendar}/>}
       {tab==="ai-workspace"&&<AIWorkspace calendarEvents={headerCalendar.events} onNavigate={switchTab}/>}
       {tab==="habits"&&<Habits/>}

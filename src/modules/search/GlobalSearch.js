@@ -50,6 +50,9 @@ export function GlobalSearch({ open, onOpenChange, calendarEvents, onNavigate })
   const poolTreatments = useTable("pool_treatments", "logged_at");
   const poolMaintenance = useTable("pool_maintenance", "date");
   const poolEquipment = useTable("pool_equipment", "type", true);
+  const habits = useTable("habits", "created_at", true);
+  const routines = useTable("routines", "created_at", true);
+  const homeMaintenance = useTable("home_maintenance", "last_completed");
   const family = useFamilyMembers();
   const reloadTasks = taskTable.reload;
   const reloadLists = listTable.reload;
@@ -61,6 +64,7 @@ export function GlobalSearch({ open, onOpenChange, calendarEvents, onNavigate })
   const reloadPoolTreatments = poolTreatments.reload;
   const reloadPoolMaintenance = poolMaintenance.reload;
   const reloadPoolEquipment = poolEquipment.reload;
+  const reloadHabits=habits.reload,reloadRoutines=routines.reload,reloadHomeMaintenance=homeMaintenance.reload;
   const normalizedQuery = query.trim().toLowerCase();
 
   useEffect(() => {
@@ -75,7 +79,8 @@ export function GlobalSearch({ open, onOpenChange, calendarEvents, onNavigate })
     reloadPoolTreatments();
     reloadPoolMaintenance();
     reloadPoolEquipment();
-  }, [open, reloadItems, reloadLists, reloadMealAssignments, reloadMealPlans, reloadPoolEquipment, reloadPoolMaintenance, reloadPoolTests, reloadPoolTreatments, reloadRecipes, reloadTasks]);
+    reloadHabits();reloadRoutines();reloadHomeMaintenance();
+  }, [open, reloadHabits,reloadHomeMaintenance,reloadRoutines,reloadItems, reloadLists, reloadMealAssignments, reloadMealPlans, reloadPoolEquipment, reloadPoolMaintenance, reloadPoolTests, reloadPoolTreatments, reloadRecipes, reloadTasks]);
 
   const results = useMemo(() => {
     if (!normalizedQuery) return [];
@@ -127,12 +132,15 @@ export function GlobalSearch({ open, onOpenChange, calendarEvents, onNavigate })
       .filter(item => includesQuery(`${item.type} ${item.name} ${item.brand} ${item.model} ${item.notes} ${item.warranty_notes}`, normalizedQuery))
       .slice(0, 6)
       .map(item => ({ type: "Pool", label: item.name || item.type || "Pool equipment", detail: `${item.type || "Equipment"} ${item.next_maintenance ? `- next ${item.next_maintenance}` : ""}`, nav: "pool" }));
+    const habitResults=habits.data.filter(item=>!item.archived&&includesQuery(`${item.name} ${item.description} ${item.frequency}`,normalizedQuery)).slice(0,6).map(item=>({type:"Habits",label:item.name,detail:`${item.frequency} habit`,nav:"habits"}));
+    const routineResults=routines.data.filter(item=>!item.archived&&includesQuery(`${item.name} ${item.description} ${item.recurrence}`,normalizedQuery)).slice(0,6).map(item=>({type:"Routines",label:item.name,detail:`${item.recurrence} routine`,nav:"routines"}));
+    const maintenanceResults=homeMaintenance.data.filter(item=>includesQuery(`${item.title} ${item.category} ${item.notes}`,normalizedQuery)).slice(0,6).map(item=>({type:"Maintenance",label:item.title||"Maintenance",detail:item.category||"Home maintenance",nav:{tab:"tasks",search:item.title||""}}));
     const navResults = navigationTargets
       .filter(item => includesQuery(`${item.label} ${item.detail}`, normalizedQuery));
-    return [...taskResults, ...eventResults, ...memberResults, ...listResults, ...itemResults, ...mealPlanResults, ...recipeResults, ...mealAssignmentResults, ...poolTestResults, ...poolTreatmentResults, ...poolMaintenanceResults, ...poolEquipmentResults, ...navResults].slice(0, 24);
-  }, [calendarEvents, family.members, itemTable.data, listTable.data, mealAssignmentTable.data, mealPlanTable.data, normalizedQuery, poolEquipment.data, poolMaintenance.data, poolTests.data, poolTreatments.data, recipeTable.data, taskTable.data]);
+    return [...taskResults, ...eventResults,...habitResults,...routineResults,...maintenanceResults, ...memberResults, ...listResults, ...itemResults, ...mealPlanResults, ...recipeResults, ...mealAssignmentResults, ...poolTestResults, ...poolTreatmentResults, ...poolMaintenanceResults, ...poolEquipmentResults, ...navResults].slice(0, 30);
+  }, [calendarEvents, family.members,habits.data,homeMaintenance.data,routines.data, itemTable.data, listTable.data, mealAssignmentTable.data, mealPlanTable.data, normalizedQuery, poolEquipment.data, poolMaintenance.data, poolTests.data, poolTreatments.data, recipeTable.data, taskTable.data]);
   const groupedResults = useMemo(() => {
-    const order = ["Tasks", "Calendar", "Pool", "Life Lists", "Meal Planning", "Household", "Navigation"];
+    const order = ["Tasks", "Calendar", "Habits", "Routines", "Maintenance", "Pool", "Life Lists", "Meal Planning", "Household", "Navigation"];
     return order
       .map(type => ({ type, items: results.filter(result => result.type === type) }))
       .filter(group => group.items.length);
