@@ -1,5 +1,9 @@
 # Database Schema
 
+## Release 2.3.0 daily operations
+
+Migration `20260712020000_release_2_3_daily_operations.sql` adds `habits` and unique period-based `habit_completions`; `routines`, ordered `routine_steps`, and unique period-based `routine_completions`; user-owned `notification_states`; and immutable `pool_maintenance_history`. It adds non-destructive task archive/delete lifecycle columns and focused household/assignment indexes. The security-definer `complete_pool_maintenance` RPC locks the schedule row, validates the active household role, writes one idempotent history record, and advances `last_completed` in one transaction. Existing history is preserved and no broad data rewrite occurs.
+
 ## Release 2.2.0 Pool Test optional fields
 
 `pool_readings.recent_weather_notes` and `pool_readings.water_appearance` are nullable optional text fields. Blank Pool Test form values normalize to `null`. The migration changes no required chemistry fields, ownership columns, grants, or RLS policies.

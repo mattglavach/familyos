@@ -1,9 +1,22 @@
 export function isTaskComplete(task) { return Boolean(task.completed) || String(task.status || "").toLowerCase() === "completed"; }
-export function isMyTask(task, { currentPersonId } = {}) {
-  if (isTaskComplete(task)) return false;
+export function resolveCurrentPersonId({ userId, preferredPersonId, membershipPersonId, people = [] } = {}) {
+  if (preferredPersonId && people.some(person => person.id === preferredPersonId)) return preferredPersonId;
+  if (membershipPersonId && people.some(person => person.id === membershipPersonId)) return membershipPersonId;
+  return people.find(person => person.user_id === userId)?.id || null;
+}
+export function isMyTask(task, { currentPersonId, currentUserId, activeHouseholdId, includeCompleted = false } = {}) {
+  if (activeHouseholdId && task.household_id && task.household_id !== activeHouseholdId) return false;
+  if (task.deleted_at || task.archived) return false;
+  if (!includeCompleted && isTaskComplete(task)) return false;
   if (task.assigned_person_id) return Boolean(currentPersonId) && task.assigned_person_id === currentPersonId;
   if (Array.isArray(task.assigned_person_ids) && task.assigned_person_ids.length) return task.assigned_person_ids.includes(currentPersonId);
+  if (task.assigned_user_id) return task.assigned_user_id === currentUserId;
   return ["household", "family", "shared"].includes(String(task.visibility || task.assignment_scope || "household").toLowerCase());
+}
+export function isAssignedByMe(task, { currentUserId, activeHouseholdId, includeCompleted = false } = {}) {
+  if (activeHouseholdId && task.household_id && task.household_id !== activeHouseholdId) return false;
+  if (task.deleted_at || task.archived || (!includeCompleted && isTaskComplete(task))) return false;
+  return Boolean(currentUserId) && task.created_by_user_id === currentUserId;
 }
 export function localDateKey(value) {
   if (!value) return "";

@@ -1,5 +1,17 @@
 # Current Sprint
 
+## Release 2.3.0 daily operations
+
+- [x] Correct My Tasks identity, assignment, lifecycle, and household filtering; restore Assigned by Me.
+- [x] Make Pool Maintenance Done transactional, idempotent, immediately refreshed, and history-backed.
+- [x] Add durable Habits and lightweight Routines with recurrence-aware completion history.
+- [x] Make global Add the primary creation surface for Tasks, Life items, Habits, and Routines.
+- [x] Replace More bottom navigation with Needs Attention while preserving access to all modules and Settings.
+- [x] Condense Home Today Focus to three items and keep AI Brief secondary.
+- [x] Complete disposable database migration/RLS validation and authenticated cross-viewport browser regression before production release.
+
+Microsoft 365, Outlook, email workflows, health, wearables, and smart-home integrations remain intentionally deferred.
+
 ## Release 2.2.0 Today operating system
 
 - [x] Redesign Home around Morning Brief, Today's Focus, actionable Needs Attention, Upcoming, status cards, and Quick Actions.

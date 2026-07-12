@@ -1,0 +1,3 @@
+import { requiredStepsComplete, routinePeriodKey, toggleCompletedStep } from "./routineStore";
+test("routine period keys reset daily and weekly",()=>{expect(routinePeriodKey({recurrence:"daily"},new Date(2026,6,12,23))).toBe("2026-07-12");expect(routinePeriodKey({recurrence:"weekly"},new Date(2026,6,12,23))).toBe("2026-07-06");expect(routinePeriodKey({recurrence:"once"},new Date())).toBe("once");});
+test("optional steps do not block completion",()=>{const steps=[{id:"a"},{id:"b",optional:true}];expect(requiredStepsComplete(steps,["a"])).toBe(true);expect(requiredStepsComplete(steps,[])).toBe(false);expect(toggleCompletedStep(["a"],"a")).toEqual([]);});

@@ -1,0 +1,3 @@
+import { habitPeriodKey, habitStreak } from "./Habits";
+test("habit period keys respect daily weekly and monthly boundaries",()=>{const date=new Date(2026,6,12,23);expect(habitPeriodKey({frequency:"daily"},date)).toBe("2026-07-12");expect(habitPeriodKey({frequency:"weekly"},date)).toBe("2026-07-06");expect(habitPeriodKey({frequency:"monthly"},date)).toBe("2026-07");});
+test("habit streak stops at the first missed applicable period",()=>{const habit={id:"h",frequency:"daily"};expect(habitStreak(habit,[{habit_id:"h",period_key:"2026-07-12",status:"completed"},{habit_id:"h",period_key:"2026-07-11",status:"completed"}],new Date(2026,6,12,12))).toBe(2);});
