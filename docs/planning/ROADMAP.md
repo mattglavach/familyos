@@ -2,7 +2,7 @@
 
 ## Release 2.4.0: Smart Planning and Daily Operations
 
-Status: implementation and local release validation complete; production publication pending.
+Status: released to production on 2026-07-12.
 
 - Home provides actionable preparation and daily operating progress without owning duplicate records.
 - AI Brief supports Morning, Evening, and Weekly planning as optional, user-triggered reasoning.

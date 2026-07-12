@@ -11,7 +11,8 @@ Release 2.4.0 evolves existing daily-operations foundations into a preparation-f
 - Needs Attention: grouped Today, This Week, Overdue, Maintenance, Habits, and Calendar preparation items with task quick completion and shared deduplication.
 - Search: direct results for Habits, Routines, home maintenance, Tasks, Events, Pool history, and Life Lists.
 - Data: additive `target_count` and `template_key` fields plus history query indexes. No destructive data changes.
-- Validation: lint, 102 automated tests, 18 seed-safety tests, fresh 16-migration bootstrap, production build, bundle safety, `git diff --check`, and authenticated desktop/mobile/tablet/dark-mode smoke and Release 2.3 regression workflows passed. Keyboard search and accessible labels were exercised in browser tests; no separate automated WCAG audit was run. The 2.4 migration was not applied to production and no production deployment or verification was performed.
+- Validation: lint, 102 automated tests, 18 seed-safety tests, fresh 16-migration bootstrap, production build, bundle safety, `git diff --check`, and 13 authenticated non-production Playwright workflows across desktop/mobile/tablet/dark mode passed. Keyboard search and accessible labels were exercised; no separate automated WCAG audit was run.
+- Production: backups captured for `public` and `auth`; Release 2.3 and 2.4 migrations applied to verified project `dsowansazqleudupnjug`; all 16 migration versions, new columns, indexes, RPC, and RLS state verified; Vercel production deployment `dpl_DETSAkJtQhdDxzRG1rMCX5Fiky98` is `READY` at commit `d58dc52`; public sign-in smoke passed; no warnings, errors, or fatal logs were found for the current deployment. Authenticated production navigation was not run because no approved production browser session or credentials were available.
 
 ## Release 2.3.0 - Daily Operations Foundation
 
