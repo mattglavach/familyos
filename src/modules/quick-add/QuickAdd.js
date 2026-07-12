@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, Check, ChevronLeft, ClipboardList, Droplets, ListChecks, ShoppingCart, Utensils } from "lucide-react";
+import { CalendarDays, Check, ChevronLeft, ClipboardList, Droplets, ListChecks, Utensils } from "lucide-react";
 import { TODAY_STR } from "../../lib/dates";
 import { formatUserFacingError } from "../../lib/userFacingErrors";
 import { useHousehold } from "../../context/HouseholdContext";
@@ -58,8 +58,6 @@ export function QuickAdd({onNavigate, openSignal = 0, initialMode = null}){
   const options=[
     {id:"task", icon:ClipboardList, label:"Add Task", status:"Ready", featured:true, enabled:true, accentClass:"border-l-violet-400", iconClass:"text-violet-300"},
     {id:"calendar-event", icon:CalendarDays, label:"Add Calendar Event", status:"Google", featured:true, enabled:true, accentClass:"border-l-sky-400", iconClass:"text-sky-300"},
-    {id:"shopping-item", icon:ShoppingCart, label:"Shopping Item", status:"Ready", enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
-    {id:"shopping-list", icon:ShoppingCart, label:"Shopping List", status:"Ready", enabled:true, accentClass:"border-l-emerald-400", iconClass:"text-emerald-300"},
     {id:"recipe", icon:Utensils, label:"Recipe", status:"Ready", enabled:true, accentClass:"border-l-sky-400", iconClass:"text-sky-300"},
     {id:"meal-plan", icon:Utensils, label:"Meal Plan", status:"Ready", enabled:true, accentClass:"border-l-sky-400", iconClass:"text-sky-300"},
     {id:"meal-assignment", icon:Utensils, label:"Meal Assignment", status:"Ready", enabled:true, accentClass:"border-l-sky-400", iconClass:"text-sky-300"},

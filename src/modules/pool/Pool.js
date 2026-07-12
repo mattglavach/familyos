@@ -12,6 +12,7 @@ import { roleCanManage } from "../../hooks/useHouseholdCollaboration";
 import { useHousehold } from "../../context/HouseholdContext";
 import { TODAY_STR, daysAgo, daysBetween, formatDate, nextDueDate } from "../../lib/dates";
 import { formatUserFacingError } from "../../lib/userFacingErrors";
+import { buildPoolChatPrompt, treatmentPrefill } from "./poolWorkflow";
 import { useTable } from "../../hooks/useTable";
 import { maintColor, maintStatus, statusColor } from "../../utils/status";
 import { COLORS, S } from "../../theme";
@@ -284,6 +285,7 @@ export function Pool({ initialView }) {
   const [testSubmitting, setTestSubmitting] = useState(false);
   const [poolActionError, setPoolActionError] = useState("");
   const [reviewRec, setReviewRec] = useState(null);
+  const [treatmentSubmitting,setTreatmentSubmitting]=useState(false);
   const [deleteHistoryItem, setDeleteHistoryItem] = useState(null);
 
   useEffect(() => {
@@ -312,6 +314,7 @@ export function Pool({ initialView }) {
     { name: "TA", ...trendDetail(readings.data, "alkalinity", "ppm") },
     { name: "Temp", ...trendDetail(readings.data, "water_temp", "F") },
   ];
+  const chatPrompt=buildPoolChatPrompt({profile:profiles.data[0],equipment:equipment.data,latest,readings:readings.data,treatments:treatments.data,recommendations,trends});
   const recentTreatment = treatments.data[0];
   const dueMaintenance = schedule.data
     .map(item => ({ ...item, status: maintStatus(item), due: item.last_completed ? nextDueDate(item.last_completed, item.interval_days) : null }))
@@ -414,39 +417,20 @@ export function Pool({ initialView }) {
     }
   }
 
-  async function confirmAction(rec) {
-    setPoolActionError("");
-    try {
-      await audits.insert({
-        reading_id: latest?.id || null,
-        recommendation_id: rec.id,
-        action: rec.action,
-        explanation: rec.explanation,
-        confidence: rec.confidence,
-        safety_note: rec.safetyNote,
-        status: "confirmed",
-        created_at: new Date().toISOString(),
-        confirmed_at: new Date().toISOString(),
-      });
-      setForm({ date: TODAY_STR, notes: rec.action });
-      setModal(rec.category === "Equipment" ? "maintenance" : "treatment");
-    } catch (error) {
-      showPoolMutationError(error, "Pool action could not be confirmed right now.");
-    }
-  }
-
   function openReview(rec) {
     setReviewRec(rec);
     setModal("review");
   }
 
-  async function confirmReviewedPlan() {
+  function confirmReviewedPlan() {
     if (!reviewRec) return;
-    await confirmAction(reviewRec);
+    setForm({...treatmentPrefill(treatmentPlan,latest),_recommendation:reviewRec});
+    setModal("treatment");
     setReviewRec(null);
   }
 
   async function saveTreatment() {
+    if(treatmentSubmitting)return;
     const row = {
       date: form.date || TODAY_STR,
       logged_at: dateTime(form.date || TODAY_STR, form.time),
@@ -482,12 +466,14 @@ export function Pool({ initialView }) {
     };
     setPoolActionError("");
     try {
+      setTreatmentSubmitting(true);
       if (form.id) await treatments.update(form.id, row);
       else await treatments.insert(row);
+      if(form._recommendation)await audits.insert({reading_id:latest?.id||null,recommendation_id:form._recommendation.id,action:form._recommendation.action,explanation:form._recommendation.explanation,confidence:form._recommendation.confidence,safety_note:form._recommendation.safetyNote,status:"completed",created_at:new Date().toISOString(),confirmed_at:new Date().toISOString(),completed_at:new Date().toISOString()});
       setModal(null); setForm({});
     } catch (error) {
       showPoolMutationError(error, "Pool treatment could not be saved right now.");
-    }
+    } finally { setTreatmentSubmitting(false); }
   }
 
   async function saveProfile() {
@@ -600,7 +586,7 @@ export function Pool({ initialView }) {
           <div style={{ fontSize: 16, color: COLORS.white, fontWeight: 900, lineHeight: 1.35, marginTop: 4 }}>{nextAction?.action || "No action needed"}</div>
           <div style={{ fontSize: 12, color: COLORS.slateLight, lineHeight: 1.45, marginTop: 3 }}>{nextAction?.explanation || `Test again ${retest.detail.toLowerCase()}`}</div>
           {nextAction?.retest && <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 4 }}>{nextAction.retest}</div>}
-          {editable && <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}><Button type="button" size="sm" onClick={() => openTest()}>Log Test</Button>{nextAction && nextAction.priority !== "low" && <Button type="button" size="sm" variant="secondary" onClick={() => openReview(nextAction)}>Review Recommendation</Button>}</div>}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>{editable&&<Button type="button" size="sm" onClick={() => openTest()}>Log Test</Button>}{editable&&nextAction&&nextAction.priority!=="low"&&<Button type="button" size="sm" variant="secondary" onClick={() => openReview(nextAction)}>Review Recommendation</Button>}<Button type="button" size="sm" variant="secondary" onClick={()=>setModal("chatgpt")}>Review with ChatGPT</Button></div>
         </div>
         {latest && <ExpandableSection title="Water Test Results" preferenceKey="familyos.pool.water-test-results.expanded" className="mt-3 bg-transparent">
           {chemistrySummary(latest).map(([label, value, unit, key]) => {
@@ -941,7 +927,8 @@ export function Pool({ initialView }) {
             <FormRow><FormGroup><Label>Pump Speed RPM</Label><Input type="number" value={form.pump_speed_rpm || ""} onChange={e => setForm(p => ({ ...p, pump_speed_rpm: e.target.value }))} /></FormGroup><FormGroup><Label>Retest At</Label><Input type="datetime-local" value={form.retest_at || ""} onChange={e => setForm(p => ({ ...p, retest_at: e.target.value }))} /></FormGroup></FormRow>
             <FormGroup><Label>Expected Result</Label><Input value={form.expected_result || ""} onChange={e => setForm(p => ({ ...p, expected_result: e.target.value }))} /></FormGroup>
             <FormGroup><Label>Notes</Label><Input value={form.notes || ""} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} /></FormGroup>
-            <Button type="button" className="w-full" onClick={saveTreatment}>Save Chemical Entry</Button>
+            <ValidationSummary error={poolActionError} />
+            <SaveCancelFooter saveLabel="Save Chemical Entry" onCancel={()=>{setModal(null);setForm({});}} onSave={saveTreatment} submitting={treatmentSubmitting} />
           </FormSection>
         </Modal>
       )}
@@ -1002,6 +989,8 @@ export function Pool({ initialView }) {
           </FormSection>
         </Modal>
       )}
+
+      {modal==="chatgpt"&&<Modal title="Review with ChatGPT" onClose={()=>setModal(null)}><FormSection><p className="text-sm leading-6 text-muted-foreground">Review the exact information below before sharing. Nothing is transmitted automatically, and external AI advice cannot change FamilyOS records.</p><textarea className="min-h-80 w-full rounded-md border border-border bg-secondary p-3 text-xs leading-5 text-foreground" readOnly value={chatPrompt} aria-label="Pool analysis prompt"/><p className="text-xs leading-5 text-amber-300">AI analysis should supplement, not override, validated pool testing and chemical-label guidance.</p><Button type="button" className="w-full" onClick={async()=>{try{await navigator.clipboard.writeText(chatPrompt);setPoolActionError("");}catch{setPoolActionError("The prompt could not be copied. Select the text and copy it manually.");}}}>Copy Prompt</Button></FormSection></Modal>}
       <Dialog open={Boolean(deleteHistoryItem)} onOpenChange={open => !open && setDeleteHistoryItem(null)}>
         <DialogContent titleId="pool-history-delete-title" onClose={() => setDeleteHistoryItem(null)}>
           <DialogHeader>

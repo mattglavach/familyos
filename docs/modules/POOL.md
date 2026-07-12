@@ -14,6 +14,8 @@ FamilyOS owns the Pool profile, measurements, treatment/equipment history, targe
 ## Purpose
 The Pool module is the Pool Care Assistant. It tracks water tests, treatments, equipment, maintenance, notes, parties, weather context, and action history so the household can answer: what does the pool need, why does it matter, and what should happen next?
 
+Release 1.8.4 completes Confirm and Log by prefilling the existing editable chemical form and saving only after explicit confirmation. Review with ChatGPT generates a reusable, privacy-filtered context prompt for preview and copy; it never transmits automatically and external advice cannot update Pool records.
+
 ## Release 1.4.0 Scope
 - Pool health dashboard.
 - Water test logging for FC, CC, pH, TA, CYA, salt, temperature, source, SWG, pump runtime, weather notes, heavy use, and notes.

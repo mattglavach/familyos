@@ -1,5 +1,13 @@
 # Release Notes
 
+## Release 1.8.4 - Core Workflow Stabilization
+
+FamilyOS 1.8.4 makes the daily experience shorter and completes the Pool treatment loop. Home now uses one Family Snapshot with embedded attention details, a stable Life Lists entry, and optional non-blocking weather. Tasks opens to Due and excludes work assigned exclusively to another person from My Tasks. Calendar is limited to Today and This Week and repeats active multi-day events on every applicable local date. Google events retain their verified external source action.
+
+Shopping is no longer exposed in the active product. Existing database tables and stored Shopping records are preserved. Pool treatment recommendations now open the existing editable chemical form and write only after confirmation. Review with ChatGPT previews a privacy-filtered prompt and requires the user to copy it; FamilyOS never transmits the prompt or accepts external AI output into Pool records.
+
+Known limitations: greeting weather requires a supported location value on household settings (`weather_location`, `location`, `postal_code`, or `zip_code`). The current schema does not provide a Settings field for it, so weather remains gracefully hidden until location configuration is added. Release 2.0.0 is the next planned release.
+
 ## Release 1.9.0
 
 Release 1.9.0 is a platform quality release. Universal Search now opens from the header or Ctrl+K/Cmd+K, uses fast partial matching, groups results by module, and carries useful context into the destination item or workspace. Search covers Tasks, Calendar, Life Lists, Pool History, Shopping, Pantry, and Settings, while retaining the existing implemented planning surfaces.

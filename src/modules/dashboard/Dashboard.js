@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { CalendarDays, ChevronRight, House, Landmark, ListTodo, Waves } from "lucide-react";
+import { CalendarDays, ChevronRight, House, Landmark, ListChecks, ListTodo, Waves } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { SectionHeader } from "../../components/ui/section-header";
@@ -7,8 +7,9 @@ import { Skeleton } from "../../components/ui/skeleton";
 import { useHousehold } from "../../context/HouseholdContext";
 import { buildPoolContext } from "../pool/domainService";
 import { buildHouseholdContext } from "../../services/householdContextService";
-import { COLORS, S } from "../../theme";
+import { S } from "../../theme";
 import { formatCalendarEventTime } from "../../lib/calendarTime";
+import { useGreetingWeather } from "../../services/weatherService";
 
 const DAY_MS = 86400000;
 
@@ -39,6 +40,8 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
   const { TODAY_STR, useTable, getChemRecommendations, formatMoneyShort } = deps;
   const household = useHousehold();
   const tasks = useTable("tasks", "due_date", true);
+  const lifeLists = useTable("life_lists", "updated_at");
+  const lifeItems = useTable("life_list_items", "updated_at");
   const readings = useTable("pool_readings", "logged_at");
   const treatments = useTable("pool_treatments", "logged_at");
   const profiles = useTable("pool_profiles", "created_at");
@@ -50,7 +53,8 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
   const retirementAssumptions = useTable("retirement_assumptions", "id", true);
   const mortgage = useTable("mortgage", "id", true);
   const calendar = secureCalendar.connection ? { connected: secureCalendar.connected, events: secureCalendar.events, loading: secureCalendar.loading, updatedAt: secureCalendar.lastFetchedAt } : { connected: Boolean(gc.token), events: gc.events, loading: gc.loading, updatedAt: gc.lastSyncedAt };
-  const loading = [tasks, readings, treatments, profiles, equipment, poolMaintenance, poolSchedule, homeMaintenance, retirementAccounts, retirementAssumptions, mortgage].some(table => table.loading) || calendar.loading;
+  const loading = [tasks, lifeLists, lifeItems, readings, treatments, profiles, equipment, poolMaintenance, poolSchedule, homeMaintenance, retirementAccounts, retirementAssumptions, mortgage].some(table => table.loading) || calendar.loading;
+  const weather=useGreetingWeather(household.householdSettings);
   const context = useMemo(() => {
     const recommendations = readings.data[0] ? getChemRecommendations(readings.data[0], readings.data, null) : [];
     const poolContext = buildPoolContext({ householdIdentifier: household.householdId, profile: profiles.data[0] || null, readings: readings.data, treatments: treatments.data, equipment: equipment.data, maintenance: poolMaintenance.data, schedule: poolSchedule.data, tasks: tasks.data, recommendations });
@@ -74,9 +78,12 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
   const dailySummary = summaryParts.length ? summaryParts.join(" · ") : "No urgent household items today.";
   const familySnapshot = useMemo(() => {
     const rows = [];
+    const taskAttention=attentionItems.filter(item=>item.tab?.tab==="tasks").slice(0,2);
     if (allScheduleCount > schedule.length) rows.push({ label: "Calendar", detail: `${allScheduleCount - schedule.length} more upcoming event${allScheduleCount - schedule.length === 1 ? "" : "s"}`, tab: "calendar", icon: CalendarDays });
     const openTaskCount = tasks.data.filter(task => !task.completed && String(task.status || "").toLowerCase() !== "completed").length;
-    if (openTaskCount > qualifyingPriorityCount) rows.push({ label: "Tasks", detail: `${openTaskCount} open · ${qualifyingPriorityCount} need attention`, tab: "tasks", icon: ListTodo });
+    if (openTaskCount) rows.push({ label: "Tasks", detail: `${openTaskCount} open · ${qualifyingPriorityCount} need attention`, details:taskAttention.map(item=>item.title), tab: "tasks", icon: ListTodo });
+    const activeLists=lifeLists.data.filter(list=>!list.archived); const activeItems=lifeItems.data.filter(item=>!item.archived&&!item.completed_at&&!["completed","archived"].includes(String(item.status).toLowerCase()));
+    rows.push({label:"Life Lists",detail:activeLists.length?`${activeLists.length} active list${activeLists.length===1?"":"s"} · ${activeItems.length} active item${activeItems.length===1?"":"s"}`:"No active lists",tab:"life-lists",icon:ListChecks});
     if (profiles.data.length || readings.data.length) {
       const freshness = context.poolSummary.testFreshness?.state;
       const warnings = context.poolSummary.chemistryStatus?.warnings?.length || 0;
@@ -99,13 +106,14 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
       rows.push({ label: "Home", detail, tab: "finance", icon: House });
     }
     return rows;
-  }, [TODAY_STR, allScheduleCount, context.poolSummary, formatMoneyShort, homeMaintenance.data, mortgage.data, profiles.data.length, qualifyingPriorityCount, readings.data, retirementAccounts.data, retirementAssumptions.data, schedule.length, tasks.data]);
+  }, [TODAY_STR, allScheduleCount, attentionItems, context.poolSummary, formatMoneyShort, homeMaintenance.data, lifeItems.data, lifeLists.data, mortgage.data, profiles.data.length, qualifyingPriorityCount, readings.data, retirementAccounts.data, retirementAssumptions.data, schedule.length, tasks.data]);
 
   if (loading) return <div style={S.screen} className="space-y-3"><Skeleton className="h-24" /><Skeleton className="h-32" /><Skeleton className="h-20" /></div>;
   return <div style={S.screen} className="space-y-3 overflow-x-hidden">
     <Card><CardContent className="px-4 py-3">
       <div className="text-lg font-extrabold text-foreground">{greeting}{firstName ? `, ${firstName}` : ""}</div>
       <div className="mt-0.5 text-xs font-semibold text-muted-foreground">{new Date(`${TODAY_STR}T12:00:00`).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</div>
+      {weather&&<div className="mt-1 text-sm font-semibold text-foreground">{weather.temperature}° · {weather.condition} · High {weather.high}° / Low {weather.low}°{weather.note?` · ${weather.note}`:""}</div>}
       <div className="mt-2 text-sm leading-5 text-foreground">{dailySummary}</div>
     </CardContent></Card>
 
@@ -113,12 +121,8 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
       <Card><CardContent className="px-4 py-1">{schedule.map(event => <button key={event.id || `${event.date}-${event.title}`} type="button" onClick={() => onNavigate({ tab: "calendar", eventId: event.id })} className="flex min-h-11 w-full items-center gap-3 border-b border-border py-1.5 text-left last:border-0"><CalendarDays className="h-4 w-4 shrink-0 text-primary" /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{event.title || event.summary || "Calendar event"}</span><span className="block truncate text-xs text-muted-foreground">{formatCalendarEventTime(event)}{event.location ? ` · ${event.location}` : ""}</span></span><ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" /></button>)}</CardContent></Card>
     </section>}
 
-    {attentionItems.length > 0 && <section><SectionHeader title="Needs Attention" count={attentionItems.length} tone={attentionItems.some(item => ["Critical", "High"].includes(item.severity)) ? "red" : "amber"} />
-      <Card><CardContent className="px-4 py-1">{attentionItems.map(item => { const Icon = item.icon; return <button key={item.key} type="button" onClick={() => onNavigate(item.tab)} className="flex min-h-11 w-full items-start gap-3 border-b border-border py-2 text-left last:border-0">{Icon ? <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" /> : <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: item.severity === "High" || item.severity === "Critical" ? COLORS.red : COLORS.amber }} />}<span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{item.title}</span><span className="line-clamp-1 text-xs leading-5 text-muted-foreground">{item.detail}</span></span><ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" /></button>; })}</CardContent></Card>
-    </section>}
-
     {familySnapshot.length > 0 && <section><SectionHeader title="Family Snapshot" tone="neutral" />
-      <Card><CardContent className="px-4 py-1">{familySnapshot.map(row => { const Icon = row.icon; return <button key={row.label} type="button" onClick={() => onNavigate(row.tab)} className="flex min-h-11 w-full items-center gap-3 border-b border-border py-1.5 text-left last:border-0"><Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{row.label}</span><span className="block truncate text-xs text-muted-foreground">{row.detail}</span></span><ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" /></button>; })}</CardContent></Card>
+      <Card><CardContent className="px-4 py-1">{familySnapshot.map(row => { const Icon = row.icon; return <div key={row.label} className="border-b border-border py-1.5 last:border-0"><button type="button" onClick={() => onNavigate(row.tab)} className="flex min-h-11 w-full items-center gap-3 text-left"><Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{row.label}</span><span className="block truncate text-xs text-muted-foreground">{row.detail}</span>{row.details?.slice(0,2).map(detail=><span key={detail} className="mt-0.5 block truncate text-xs text-amber-300">• {detail}</span>)}</span><ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" /></button></div>; })}</CardContent></Card>
     </section>}
   </div>;
 }

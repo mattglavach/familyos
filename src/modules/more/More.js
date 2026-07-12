@@ -1,4 +1,4 @@
-import { ChevronRight, DollarSign, ListChecks, NotebookTabs, Settings, ShoppingCart, Utensils, Waves } from "lucide-react";
+import { ChevronRight, DollarSign, ListChecks, NotebookTabs, Settings, Utensils, Waves } from "lucide-react";
 import { Badge } from "../../components/ui/badge";
 import { Card, CardContent } from "../../components/ui/card";
 import { SectionHeader } from "../../components/ui/section-header";
@@ -21,7 +21,6 @@ const platformGroups = [
     title: "Planning",
     items: [
       { id: "college", label: "College", detail: "Existing college planning workspace.", icon: NotebookTabs, badge: "Existing", enabled: true },
-      { id: "shopping", label: "Shopping", detail: "Shared lists, pantry, and staple tracking.", icon: ShoppingCart, badge: "Ready", enabled: true },
       { id: "meal-planning", label: "Meal Planning", detail: "Recipes, weekly meal plans, pantry checks, and shopping review.", icon: Utensils, badge: "New", enabled: true },
       { id: "life-lists", label: "Life Lists", detail: "Flexible lists for ideas, media, places, gifts, and family plans.", icon: ListChecks, badge: "New", enabled: true },
     ],

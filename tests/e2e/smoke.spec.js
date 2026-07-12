@@ -9,7 +9,7 @@ test("authenticated FamilyOS major-module smoke", async ({ page }) => {
 
   await page.keyboard.press("Control+K");
   await expect(page.getByText("Search Family OS", { exact: true })).toBeVisible();
-  await page.getByPlaceholder("Search tasks, pool, shopping, meals...").fill("annual physical");
+  await page.getByPlaceholder("Search tasks, pool, lists, meals...").fill("annual physical");
   await expect(page.getByText("Schedule annual physical", { exact: true }).first()).toBeVisible();
   await page.getByRole("button", { name: "Close" }).last().click();
 
@@ -24,8 +24,6 @@ test("authenticated FamilyOS major-module smoke", async ({ page }) => {
   await expect(page.getByText("Family Goals").first()).toBeVisible();
   await navigateModule(page, "Pool");
   await expect(page.getByText("Pool", { exact: true }).first()).toBeVisible();
-  await openMoreModule(page, "Shopping");
-  await expect(page.getByText("Weekly Groceries").first()).toBeVisible();
   await openMoreModule(page, "Meal Planning");
   await openMoreModule(page, "Finance");
   await expect(page.getByText("Monthly Contributions", { exact: true })).toBeVisible();

@@ -40,7 +40,7 @@ The current app shell implements five primary module destinations:
 4. Pool
 5. More
 
-Home currently serves as the dashboard. Quick Add is a global top-bar action, and Settings is the far-right top-bar action. Additional implemented workspaces, including Life Lists, Shopping, Meal Planning, Household, and Settings, are reached through app navigation and More as documented by the current code and release records.
+Home currently serves as the dashboard. Quick Add is a global top-bar action, and Settings is the far-right top-bar action. Additional implemented workspaces, including Life Lists, Meal Planning, Household, and Settings, are reached through app navigation and More as documented by the current code and release records. Shopping data is preserved but the Shopping module is inactive as of Release 1.8.4.
 
 ### Approved long-term product architecture
 
@@ -73,7 +73,7 @@ Tasks owns action items, priorities, due dates, assignments, completion, search,
 
 ### Life
 
-Life owns lists, shopping-related records, recurring household administration, and family reference information. Shopping exists in the current implementation. Its approved long-term home is Life unless a later architecture decision changes that ownership.
+Life owns lists, recurring household administration, and family reference information. Historical Shopping records remain stored but are not exposed in the active product as of Release 1.8.4; any future Shopping capability requires explicit Release 2.x scope.
 
 ### Home
 

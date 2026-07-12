@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarCheck, CalendarClock, CalendarDays, CalendarX, Clock, ExternalLink, MapPin, RefreshCw, Users } from "lucide-react";
+import { CalendarCheck, CalendarClock, CalendarDays, CalendarX, ExternalLink, MapPin, RefreshCw, Users } from "lucide-react";
 import { Badge, StatusBadge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
@@ -8,7 +8,7 @@ import { SectionHeader } from "../../components/ui/section-header";
 import { Skeleton } from "../../components/ui/skeleton";
 import { COLORS, S } from "../../theme";
 import { normalizeCalendarStatus } from "../../lib/calendarStatus";
-import { formatCalendarEventTime, normalizeCalendarEvent } from "../../lib/calendarTime";
+import { expandCalendarEventDays, formatCalendarEventTime, normalizeCalendarEvent } from "../../lib/calendarTime";
 
 function dateKey(value) {
   if (!value) return "";
@@ -30,28 +30,13 @@ function eventDateLabel(value, todayString, formatDateFull) {
 }
 
 function groupEvents(events, todayString) {
-  const tomorrowString = addDays(todayString, 1);
   const weekEndString = addDays(todayString, 6);
-  const groups = {
-    today: [],
-    tomorrow: [],
-    thisWeek: [],
-    upcoming: [],
-  };
-  (events || []).forEach(event => {
-    if (!event || typeof event !== "object") return;
-    const key = dateKey(event.date);
-    if (key === todayString) groups.today.push(event);
-    else if (key === tomorrowString) groups.tomorrow.push(event);
-    else if (key > tomorrowString && key <= weekEndString) groups.thisWeek.push(event);
-    else groups.upcoming.push(event);
-  });
+  const groups = { today: [], thisWeek: [] };
+  (events || []).flatMap(event => expandCalendarEventDays(event,todayString,weekEndString)).forEach(event => { if(event.date===todayString)groups.today.push(event); groups.thisWeek.push(event); });
   const byTime = (a, b) => `${dateKey(a.date)} ${a.time || ""}`.localeCompare(`${dateKey(b.date)} ${b.time || ""}`);
   return {
     today: groups.today.sort(byTime),
-    tomorrow: groups.tomorrow.sort(byTime),
     thisWeek: groups.thisWeek.sort(byTime),
-    upcoming: groups.upcoming.sort(byTime),
   };
 }
 
@@ -79,21 +64,6 @@ export function normalizeEvent(event, index, sourceLabel) {
     attendees: Array.isArray(calendarEvent.attendees) ? calendarEvent.attendees : [],
     notes: calendarEvent.notes || calendarEvent.description || "",
   };
-}
-
-function SummaryTile({ label, value, detail, tone = COLORS.blue, icon }) {
-  return (
-    <Card style={{ borderLeft: `3px solid ${tone}` }}>
-      <CardContent className="min-h-[104px] p-4">
-        <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
-          {icon}
-          {label}
-        </div>
-        <div className="text-xl font-extrabold leading-tight text-foreground">{value}</div>
-        <div className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{detail}</div>
-      </CardContent>
-    </Card>
-  );
 }
 
 function EventCard({ event, todayString, formatDateFull, selected, onSelect }) {
@@ -124,7 +94,7 @@ function EventSection({ title, events, emptyTitle, emptyDetail, todayString, for
         <div className="min-w-0 max-w-full space-y-1.5">
           {events.map((event, index) => (
             <EventCard
-              key={event.id || `${title}-${index}`}
+              key={event.occurrenceKey || event.id || `${title}-${index}`}
               event={event}
               selected={selectedId === event.id}
               onSelect={onSelect}
@@ -247,8 +217,7 @@ export function Calendar({ calendar = {}, deps = {}, initialView }) {
   );
   const grouped = groupEvents(events, TODAY_STR);
   const selectedEvent = events.find(event => event.id === selectedEventId) || events[0] || null;
-  const nextEvent = events.find(event => dateKey(event.date) >= TODAY_STR) || null;
-  const visibleGroupCount = grouped.today.length + grouped.tomorrow.length + grouped.thisWeek.length + grouped.upcoming.length;
+  const visibleGroupCount = grouped.thisWeek.length;
   const startConnection = () => {
     if (safeCalendar.canConnect === false) {
       safeCalendar.checkConnection?.();
@@ -269,7 +238,7 @@ export function Calendar({ calendar = {}, deps = {}, initialView }) {
             <CalendarDays className="h-4 w-4" aria-hidden="true" />
             Calendar
           </div>
-          <div className="mt-1 text-2xl font-extrabold text-foreground">Today & Upcoming</div>
+          <div className="mt-1 text-2xl font-extrabold text-foreground">Today & This Week</div>
         </div>
       </div>
 
@@ -323,26 +292,6 @@ export function Calendar({ calendar = {}, deps = {}, initialView }) {
         </CardContent>
       </Card>}
 
-      <section>
-        <SectionHeader title="Schedule Summary" count={events.length} tone="blue" />
-        <div className="grid grid-cols-2 gap-2">
-          <SummaryTile
-            label="Today"
-            value={grouped.today.length ? `${grouped.today.length} event${grouped.today.length === 1 ? "" : "s"}` : "Clear"}
-            detail={grouped.today[0]?.title || "No events scheduled today."}
-            tone={grouped.today.length ? COLORS.blue : COLORS.green}
-            icon={<CalendarCheck className="h-4 w-4" aria-hidden="true" />}
-          />
-          <SummaryTile
-            label="Next Event"
-            value={nextEvent ? (nextEvent.time || "All day") : "None"}
-            detail={nextEvent ? `${nextEvent.title} - ${eventDateLabel(nextEvent.date, TODAY_STR, formatDateFull)}` : "No upcoming events in the current calendar window."}
-            tone={nextEvent ? COLORS.amber : COLORS.slate}
-            icon={<Clock className="h-4 w-4" aria-hidden="true" />}
-          />
-        </div>
-      </section>
-
       {safeCalendar.loading ? (
         <Card>
           <CardContent className="space-y-3 p-4">
@@ -356,9 +305,7 @@ export function Calendar({ calendar = {}, deps = {}, initialView }) {
           <div className="grid min-w-0 max-w-full gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
             <div className="min-w-0 space-y-3">
               <EventSection title="Today" events={grouped.today} emptyTitle="Nothing scheduled today" emptyDetail="Connected calendar events for today will appear here." selectedId={selectedEvent?.id} onSelect={setSelectedEventId} todayString={TODAY_STR} formatDateFull={formatDateFull} />
-              <EventSection title="Tomorrow" events={grouped.tomorrow} emptyTitle="Nothing scheduled tomorrow" emptyDetail="Tomorrow is clear in the current calendar window." selectedId={selectedEvent?.id} onSelect={setSelectedEventId} todayString={TODAY_STR} formatDateFull={formatDateFull} />
-              <EventSection title="This Week" events={grouped.thisWeek} emptyTitle="No other events this week" emptyDetail="Events later this week will appear here." selectedId={selectedEvent?.id} onSelect={setSelectedEventId} todayString={TODAY_STR} formatDateFull={formatDateFull} />
-              <EventSection title="Upcoming" events={grouped.upcoming} emptyTitle="No later events" emptyDetail="Events beyond this week will appear here after sync." selectedId={selectedEvent?.id} onSelect={setSelectedEventId} todayString={TODAY_STR} formatDateFull={formatDateFull} />
+              <EventSection title={`This Week · ${eventDateLabel(TODAY_STR,TODAY_STR,formatDateFull)} - ${eventDateLabel(addDays(TODAY_STR,6),TODAY_STR,formatDateFull)}`} events={grouped.thisWeek} emptyTitle="Nothing scheduled this week" emptyDetail="Connected calendar events for the next seven days will appear here." selectedId={selectedEvent?.id} onSelect={setSelectedEventId} todayString={TODAY_STR} formatDateFull={formatDateFull} />
             </div>
             <div className="min-w-0 lg:sticky lg:top-24 lg:self-start">
               <EventDetails event={selectedEvent} todayString={TODAY_STR} formatDateFull={formatDateFull} />

@@ -1,19 +1,15 @@
 # Roadmap
 
-## Release 1.9.0: Platform Quality
-- [x] Upgrade Universal Search across active household surfaces with keyboard access, grouping, partial matching, and contextual navigation.
-- [x] Upgrade the lightweight dynamic Notification Center with task, Calendar, Pool, and maintenance attention plus read/clear controls.
-- [x] Standardize empty, loading, and application error recovery states.
-- [x] Improve accessibility, responsive behavior, and initial-load performance without changing module ownership or business rules.
-- [x] Preserve the compact Home daily brief and avoid new widgets or modules.
+## Release 1.8.4: Core Workflow Stabilization
+- [x] Consolidate Home attention into Family Snapshot, add Life Lists, and provide optional greeting weather.
+- [x] Remove Shopping from the active product while preserving stored data.
+- [x] Make Due the first Tasks view and correct My Tasks assignment semantics.
+- [x] Simplify Calendar to Today and This Week and correct multi-day event behavior.
+- [x] Complete Pool Confirm and Log and add a reviewed, copy-only ChatGPT handoff.
 
-Gardening Operations remains a future separately scoped release. Later releases include Financial Planning and ChatGPT reasoning over the Context Engine.
+## Next: Release 2.0.0
 
-## Release 1.8.4: Navigation and Daily UX Refinement
-- [x] Move global Add to the top bar and promote Pool into bottom module navigation.
-- [x] Make Pool History compact and manageable without swipe gestures.
-- [x] Simplify Home around today's schedule, highest-priority attention, and meaningful module status.
-- [x] Complete authenticated desktop and 390px browser regression validation.
+Define the cross-module Context Engine and Release 2.0 architecture before adding new modules. Preserve human review, household permissions, privacy filtering, traceable context, and FamilyOS ownership of accepted records. Gardening Operations and broader Financial Planning remain separately scoped candidates.
 
 ## Release 1.8.0: Household Context, Dashboard Intelligence, and Pool Optimization
 - [x] Implement the versioned Household Context Service and deterministic cross-module attention framework.
@@ -23,7 +19,7 @@ Gardening Operations remains a future separately scoped release. Later releases 
 - [x] Stabilize responsive card grids, wrapping, and overflow behavior using the existing mobile-first system.
 - [ ] Complete authenticated desktop/mobile smoke in an approved non-production environment.
 
-The previously proposed 1.9 Gardening Operations scope is deferred to a separately numbered future release so 1.9.0 can remain the approved platform-quality release.
+The previously proposed 1.9 scopes are superseded. Release 2.0.0 is next.
 
 ## Release 1.7.0: Stabilization and Pool Operations
 - [x] Normalize Calendar events to `America/New_York` while preserving provider timestamps and all-day dates.

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.8.4 - 2026-07-12
+
+- Consolidated Home attention items into compact Family Snapshot rows and added the persistent Life Lists entry.
+- Added optional, cached greeting weather through a server-side Open-Meteo boundary; weather stays hidden without a configured household location.
+- Removed Shopping from active navigation, Add, Search, Home, and route exposure without deleting stored data.
+- Replaced Assigned by Me with Due as the default Tasks view and corrected household/direct assignment filtering.
+- Simplified Calendar to Today and This Week, fixed local multi-day/all-day expansion and exclusive Google end dates, and retained safe source links.
+- Corrected Pool Confirm and Log to prefill the shared chemical form before any write, added duplicate-submit protection, and added a reviewed Copy Prompt ChatGPT handoff.
+- No schema, authentication, permission, or dependency changes.
+
 ## 1.9.0 - 2026-07-12
 
 - Upgraded Universal Search with Ctrl+K/Cmd+K access, partial matching, module grouping, and contextual navigation into Tasks, Calendar, Life Lists, Shopping, Pantry, Pool History, and Settings.

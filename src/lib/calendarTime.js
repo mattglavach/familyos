@@ -60,7 +60,26 @@ export function normalizeCalendarEvent(event = {}) {
     ...normalized,
     providerStart: normalized.start,
     providerTimeZone: start.timeZone || event.providerTimeZone || event.sourceTimeZone || (normalized.allDay ? "date-only" : ""),
+    providerEnd: event.providerEnd || event.end || null,
   };
+}
+
+function localDateKey(value) {
+  if (!value) return "";
+  if (typeof value === "object") return value.date || localDateKey(value.dateTime);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(value))) return String(value);
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
+}
+function plusDays(key, days) { const date=new Date(`${key}T12:00:00`); date.setDate(date.getDate()+days); return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`; }
+export function expandCalendarEventDays(event, rangeStart, rangeEnd) {
+  const normalized=normalizeCalendarEvent(event); const start=normalized.date; if(!start)return[];
+  let end=localDateKey(normalized.providerEnd)||start;
+  if(normalized.allDay&&end>start)end=plusDays(end,-1);
+  const first=start<rangeStart?rangeStart:start; const last=end>rangeEnd?rangeEnd:end; if(first>last)return[];
+  const days=[]; for(let day=first;day<=last;day=plusDays(day,1))days.push({...normalized,date:day,occurrenceDate:day,isMultiDay:start!==end,isActiveOccurrence:day>start,occurrenceKey:`${normalized.id||normalized.title||"event"}:${day}`});
+  return days;
 }
 
 export function formatCalendarEventTime(event = {}) {

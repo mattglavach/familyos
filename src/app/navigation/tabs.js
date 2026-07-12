@@ -13,7 +13,6 @@ export const TITLES = {
   finance: "Finance",
   "life-lists": "Life Lists",
   "meal-planning": "Meal Planning",
-  shopping: "Shopping",
   more: "More",
   pool: "Pool",
   "quick-add": "Quick Add",

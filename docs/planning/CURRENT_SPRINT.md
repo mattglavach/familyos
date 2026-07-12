@@ -1,25 +1,14 @@
 # Current Sprint
 
-## Release 1.9.0 platform quality release
+## Release 1.8.4 stabilization release
 
-- [x] Upgrade global Search coverage, grouping, shortcut access, and contextual navigation.
-- [x] Upgrade dynamic notifications and read/clear controls without push delivery or durable schema.
-- [x] Add shared responsive empty, card/list/table loading, and retryable error states.
-- [x] Improve accessibility and lazy-load lower-frequency application surfaces.
-- [x] Preserve the compact Home daily brief and existing architecture, authentication, permissions, schema, and business logic.
-- [x] Pass lint, automated tests, seed safeguards, production build, bundle safety, and diff validation.
-- [x] Complete authenticated desktop, tablet, 390px mobile, and dark-mode Playwright validation.
-
-No push, deployment, tag, migration, or production mutation is included.
-
-## Release 1.8.4 local release candidate
-
-- [x] Move global creation to the top Add action and keep Settings far right.
-- [x] Replace bottom Add with Pool and preserve five module destinations.
-- [x] Replace Pool History swipes with compact visible Edit/Delete controls and confirmed deletion.
-- [x] Refine Home into a concise, non-duplicative daily brief with hidden empty sections.
-- [x] Preserve schema, integrations, permissions, dependencies, and chemistry logic.
-- [x] Complete the full automated and authenticated browser validation gates.
+- [x] Consolidate Home attention into Family Snapshot and add Life Lists plus optional greeting weather.
+- [x] Remove Shopping from active routes, navigation, Add, Search, and dashboard exposure without deleting data.
+- [x] Implement Due, My Tasks, All Tasks, and Completed primary task views with local-date behavior.
+- [x] Simplify Calendar and correct all-day and timed multi-day event expansion.
+- [x] Complete Pool treatment confirmation and privacy-first ChatGPT prompt preview/copy.
+- [x] Add targeted unit coverage and update release and module documentation.
+- [x] Complete final build, safety, and authenticated desktop/mobile Playwright gates.
 
 No push, deployment, tag, migration, or production mutation is included.
 

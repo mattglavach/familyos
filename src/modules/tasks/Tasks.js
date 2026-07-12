@@ -26,6 +26,7 @@ import { COLORS, MEMBER_COLORS, S } from "../../theme";
 import { useHousehold } from "../../context/HouseholdContext";
 import { useFamilyMembers } from "../dashboard/useFamilyMembers";
 import { formatUserFacingError } from "../../lib/userFacingErrors";
+import { isDueTask, isMyTask, sortDueTasks } from "./taskViews";
 
 const TASK_METADATA_KEY = "familyos_task_metadata_v1";
 
@@ -387,7 +388,7 @@ export function Tasks({ deps, initialView }) {
 
   const [metadata, setMetadata] = useState({});
   const [metadataError] = useState("");
-  const [activeFilter, setActiveFilter] = useState("all");
+  const [activeFilter, setActiveFilter] = useState("due");
   const [memberFilter, setMemberFilter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -419,10 +420,6 @@ export function Tasks({ deps, initialView }) {
     [members, taskTable.data, metadata, nextDueDate]
   );
 
-  const defaultMember = useMemo(() => {
-    const preferred = family.members.find(member => member.id === household.userPreferences?.default_person_id);
-    return preferred?.name || activeMembers[0]?.name || "Family";
-  }, [activeMembers, family.members, household.userPreferences?.default_person_id]);
   const openTaskCount = tasks.filter(task => task.status !== "Completed").length;
   const activeFilterLabel = WORKSPACE_FILTERS.find(option => option.value === activeFilter)?.label || "Tasks";
 
@@ -454,8 +451,8 @@ export function Tasks({ deps, initialView }) {
       const bucket = dueBucket(task, daysBetween, nextDueDate);
       if (activeFilter === "completed" && task.status !== "Completed") return false;
       if (activeFilter !== "completed" && task.status === "Completed") return false;
-      if (activeFilter === "mine" && task.assignee !== defaultMember) return false;
-      if (activeFilter === "assigned-by-me" && task.created_by_user_id !== household.user?.id) return false;
+      if (activeFilter === "mine" && !isMyTask(task, { currentPersonId: household.userPreferences?.default_person_id || household.membership?.person_id })) return false;
+      if (activeFilter === "due" && !isDueTask(task, TODAY_STR)) return false;
       if (activeFilter === "today" && bucket !== "today") return false;
       if (activeFilter === "upcoming" && bucket !== "upcoming") return false;
       if (activeFilter === "overdue" && bucket !== "overdue") return false;
@@ -465,8 +462,8 @@ export function Tasks({ deps, initialView }) {
       if (dueFilter !== "all" && bucket !== dueFilter) return false;
       return true;
     });
-    return sortTasks(filtered, "due");
-  }, [activeFilter, daysBetween, defaultMember, dueFilter, household.user?.id, memberFilter, nextDueDate, priorityFilter, searchTerm, statusFilter, tasks]);
+    return activeFilter === "due" ? [...filtered].sort(sortDueTasks) : sortTasks(filtered, "due");
+  }, [TODAY_STR, activeFilter, daysBetween, dueFilter, household.membership?.person_id, household.userPreferences?.default_person_id, memberFilter, nextDueDate, priorityFilter, searchTerm, statusFilter, tasks]);
 
   function notify(message) {
     setToast({ message });
@@ -633,8 +630,8 @@ export function Tasks({ deps, initialView }) {
   );
 
   const loading = taskTable.loading || family.loading;
-  const hasAdvancedFilters = memberFilter !== "All" || statusFilter !== "All" || priorityFilter !== "All" || dueFilter !== "all" || activeFilter === "assigned-by-me" || SECONDARY_WORKSPACE_FILTERS.some(option => option.value === activeFilter);
-  const hasAnyFilter = Boolean(searchTerm.trim()) || activeFilter !== "all" || hasAdvancedFilters;
+  const hasAdvancedFilters = memberFilter !== "All" || statusFilter !== "All" || priorityFilter !== "All" || dueFilter !== "all" || SECONDARY_WORKSPACE_FILTERS.some(option => option.value === activeFilter);
+  const hasAnyFilter = Boolean(searchTerm.trim()) || activeFilter !== "due" || hasAdvancedFilters;
 
   return (
     <div style={S.screen} className="space-y-5">
@@ -667,9 +664,10 @@ export function Tasks({ deps, initialView }) {
                   <Input id="task-search" className="h-9 pl-8 text-xs" aria-label="Search tasks" value={searchTerm} placeholder="Search tasks" onChange={event => setSearchTerm(event.target.value)} />
                 </div>
                 <div className="task-filter-controls">
-                  <Button type="button" variant={activeFilter === "all" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={clearFilters}>Show All</Button>
+                  <Button type="button" variant={activeFilter === "due" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("due")}>Due</Button>
                   <Button type="button" variant={activeFilter === "mine" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("mine")}>My Tasks</Button>
-                  <Button type="button" variant={activeFilter === "assigned-by-me" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("assigned-by-me")}>Assigned by Me</Button>
+                  <Button type="button" variant={activeFilter === "all" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={clearFilters}>All Tasks</Button>
+                  <Button type="button" variant={activeFilter === "completed" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("completed")}>Completed</Button>
                   <Button type="button" variant="ghost" size="xs" className="!min-h-9 px-2.5" aria-expanded={filtersExpanded} aria-controls="task-secondary-filters" onClick={() => setFiltersExpanded(value => !value)}>{filtersExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />} Filters</Button>
                 </div>
               </div>
