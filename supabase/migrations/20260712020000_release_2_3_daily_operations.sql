@@ -53,7 +53,9 @@ create index if not exists notification_states_user_household_idx on public.noti
 
 create table if not exists public.pool_maintenance_history (
   id uuid primary key default gen_random_uuid(), household_id uuid not null references public.households(id) on delete cascade,
-  schedule_id text references public.pool_schedule(id) on delete set null, maintenance_item text not null, prior_due_date date,
+  -- Historical production environments may use uuid or text schedule identifiers.
+  -- Store the stable textual value without a cross-type foreign key.
+  schedule_id text, maintenance_item text not null, prior_due_date date,
   completed_at timestamptz not null default now(), completed_by uuid references auth.users(id) on delete set null, notes text not null default '',
   idempotency_key text not null unique, created_at timestamptz not null default now()
 );
@@ -63,14 +65,14 @@ create or replace function public.complete_pool_maintenance(p_schedule_id text, 
 returns public.pool_maintenance_history language plpgsql security definer set search_path = public, pg_temp as $$
 declare v_schedule public.pool_schedule; v_history public.pool_maintenance_history; v_key text; v_completed timestamptz := now(); v_next date;
 begin
-  select * into v_schedule from public.pool_schedule where id = p_schedule_id for update;
+  select * into v_schedule from public.pool_schedule where id::text = p_schedule_id for update;
   if v_schedule.id is null or not public.familyos_has_household_role(v_schedule.household_id, array['owner','adult']) then raise exception 'Maintenance item is unavailable.'; end if;
   v_key := coalesce(nullif(p_idempotency_key,''), p_schedule_id::text || ':' || v_completed::date::text);
   select * into v_history from public.pool_maintenance_history where idempotency_key = v_key;
   if v_history.id is not null then return v_history; end if;
   v_next := v_completed::date + greatest(coalesce(v_schedule.interval_days, 1), 1);
   insert into public.pool_maintenance_history(household_id,schedule_id,maintenance_item,prior_due_date,completed_at,completed_by,notes,idempotency_key)
-  values(v_schedule.household_id,v_schedule.id,coalesce(v_schedule.title,v_schedule.maintenance_type,'Pool maintenance'),v_schedule.last_completed + greatest(coalesce(v_schedule.interval_days,1),1),v_completed,auth.uid(),coalesce(p_notes,''),v_key) returning * into v_history;
+  values(v_schedule.household_id,v_schedule.id::text,coalesce(v_schedule.title,v_schedule.maintenance_type,'Pool maintenance'),v_schedule.last_completed + greatest(coalesce(v_schedule.interval_days,1),1),v_completed,auth.uid(),coalesce(p_notes,''),v_key) returning * into v_history;
   update public.pool_schedule set last_completed=v_completed::date, updated_at=v_completed where id=v_schedule.id;
   return v_history;
 end $$;
