@@ -54,6 +54,7 @@ This folder is the operating manual for Family OS.
 - docs/product/PRD_TEMPLATE.md
 
 ### Architecture
+- docs/architecture/CONTEXT_ENGINE.md
 - docs/architecture/SYSTEM_ARCHITECTURE.md
 - docs/architecture/FOLDER_STRUCTURE.md
 - docs/architecture/AUTHENTICATION.md
@@ -132,6 +133,7 @@ This folder is the operating manual for Family OS.
 - docs/ui/THEME.md
 
 ### Modules
+- AI Workspace: `docs/modules/AI_WORKSPACE.md`
 - Dashboard
 - Finance
 - Retirement

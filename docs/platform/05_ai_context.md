@@ -1,6 +1,12 @@
 # Platform AI Context
 
-## Release 1.8 implementation boundary
+## Release 2.0 implementation
+
+Release 2.0 implements the provider-neutral Context Engine and Prompt Builder described in `docs/architecture/CONTEXT_ENGINE.md`. The earlier Household Context Service remains the dashboard compatibility contract. New AI-facing work must use module contributors and `familyos.context-engine` version 2.0.
+
+The AI Workspace is the only active prompt-generation surface. It previews and copies prompts without automatic transmission, stores only trace metadata on the device, and never writes AI output to FamilyOS records.
+
+## Release 1.8 implementation boundary (historical)
 
 The broader Context Engine remains an architectural pattern. The Household Context Service is the first reusable implementation and emits `familyos.household-context` version 1.0. It is deterministic and does not call ChatGPT. Future ChatGPT reasoning may consume the structured output, but recommendations remain proposals requiring human review and acceptance.
 

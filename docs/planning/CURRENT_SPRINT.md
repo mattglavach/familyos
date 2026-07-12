@@ -1,5 +1,15 @@
 # Current Sprint
 
+## Release 2.0.0 architectural release
+
+- [x] Implement Context Engine, standard contributors, and Prompt Builder.
+- [x] Implement AI Workspace, response review, Home AI Brief, and Settings controls.
+- [x] Centralize active prompt creation and preserve manual copy as the only sharing path.
+- [x] Add architecture, module, developer, version, roadmap, status, changelog, and release documentation.
+- [x] Complete final automated, build, bundle, responsive, dark-mode, and accessibility validation.
+
+No push, deployment, tag, migration, provider authentication, or automatic AI write is included.
+
 ## Release 1.8.4 stabilization release
 
 - [x] Consolidate Home attention into Family Snapshot and add Life Lists plus optional greeting weather.

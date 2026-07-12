@@ -1,5 +1,9 @@
 # Architecture Decisions
 
+## 2026-07-12: Separate module context, prompt construction, and provider interaction
+
+Release 2.0.0 establishes three boundaries: modules contribute normalized facts, the Context Engine aggregates permission-aware context, and the Prompt Builder formats provider-neutral prompts after privacy filtering. AI Workspace owns review and manual copy. No module knows about ChatGPT, and no AI response can mutate FamilyOS automatically. Traceability remains device-local metadata to avoid storing conversation content or requiring a migration.
+
 ## 2026-07-11: Provider timestamp is authoritative for Calendar display
 
 Every timed Calendar surface must derive its display date and time from the preserved provider instant using the shared formatter with `timeZone: America/New_York`. Precomputed display strings are compatibility fields only and cannot override the timestamp. Provider offset, timezone, recurrence, and original-start metadata are retained. All-day dates remain date-only.

@@ -25,6 +25,7 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { SectionHeader } from "../../components/ui/section-header";
 import { Select } from "../../components/ui/select";
+import { Switch } from "../../components/ui/switch";
 import { S } from "../../theme";
 import { APP_CONFIG, CONFIG_STATUS } from "../../config";
 import { useHousehold } from "../../context/HouseholdContext";
@@ -40,6 +41,7 @@ import {
   TASK_PRIORITY_OPTIONS,
   localDataSnapshot,
 } from "./localSettings";
+import { readAiSettings, writeAiSettings } from "../../services/aiPreferences";
 
 function formatDateTime(value) {
   if (!value) return "Not synced yet";
@@ -108,6 +110,8 @@ function devicePreferenceLabel(key) {
     familyos_settings_v1: "App preferences",
     familyos_family_members_v1: "Family member backup",
     familyos_task_metadata_v1: "Task backup",
+    familyos_ai_settings_v2: "AI settings",
+    familyos_prompt_trace_v2: "Prompt trace metadata",
   };
   return labels[key] || "Saved preference";
 }
@@ -117,6 +121,7 @@ export function Settings({ auth, gc, secureCalendar }) {
   const family = useFamilyMembers();
   const invitations = useHouseholdInvitations(household);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [aiSettings,setAiSettings]=useState(readAiSettings);
   const [inviteForm, setInviteForm] = useState({ email: "", role: "adult" });
   const [snapshot, setSnapshot] = useState(() => localDataSnapshot());
   const [error, setError] = useState("");
@@ -336,6 +341,11 @@ export function Settings({ auth, gc, secureCalendar }) {
       </div>
 
       {error && <div className="rounded-lg border border-destructive/35 bg-destructive/10 p-3 text-sm leading-5 text-destructive">{error}</div>}
+
+      <Card>
+        <CardHeader className="p-4 pb-2"><CardTitle className="flex items-center gap-2 text-base"><ShieldCheck className="h-4 w-4 text-primary"/>AI Settings</CardTitle><CardDescription>Device-local prompt controls. No API keys or provider authentication.</CardDescription></CardHeader>
+        <CardContent className="space-y-2 px-4 pb-4 pt-0">{[["enabled","Enable AI Workspace"],["promptPreview","Prompt preview"],["copyBeforeSend","Copy before send"],["privacyFiltering","Privacy filtering"],["hideSensitiveFinancialData","Hide sensitive financial data"],["hideChildInformation","Hide child information"]].map(([key,label])=><div key={key} className="flex min-h-11 items-center justify-between gap-3 border-b border-border py-2"><Label htmlFor={`ai-${key}`}>{label}</Label><Switch id={`ai-${key}`} checked={Boolean(aiSettings[key])} onCheckedChange={value=>setAiSettings(previous=>({...previous,[key]:value}))}/></div>)}<FormGroup><Label htmlFor="ai-provider">Default provider</Label><Select id="ai-provider" value={aiSettings.defaultProvider} onChange={event=>setAiSettings(previous=>({...previous,defaultProvider:event.target.value}))}><option>ChatGPT</option><option>Claude</option><option>Other</option></Select></FormGroup><Button type="button" className="w-full" onClick={()=>{writeAiSettings(aiSettings);refreshSnapshot();notify("AI settings saved on this device.");}}><Save className="h-4 w-4"/>Save AI Settings</Button></CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="p-4 pb-2">

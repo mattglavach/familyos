@@ -16,6 +16,8 @@ export const LOCAL_DATA_KEYS = [
   SETTINGS_STORAGE_KEY,
   "familyos_family_members_v1",
   "familyos_task_metadata_v1",
+  "familyos_ai_settings_v2",
+  "familyos_prompt_trace_v2",
 ];
 
 export const TASK_CATEGORY_OPTIONS = ["Home", "Pool", "Yard", "College", "Finance", "Personal", "Work"];

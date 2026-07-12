@@ -54,9 +54,9 @@ async function waitForPageReady(page, text) {
 
 function assertNoRuntimeFailures(failures) {
   expect(failures.page, `Unhandled exceptions:\n${failures.page.join("\n")}`).toEqual([]);
+  expect(failures.responses, `Failed API calls:\n${failures.responses.join("\n")}`).toEqual([]);
   expect(failures.console, `Console errors:\n${failures.console.join("\n")}`).toEqual([]);
   expect(failures.requests, `Network failures:\n${failures.requests.join("\n")}`).toEqual([]);
-  expect(failures.responses, `Failed API calls:\n${failures.responses.join("\n")}`).toEqual([]);
 }
 
 module.exports = { assertNoRuntimeFailures, demoCredentials, loginDemoUser, logoutDemoUser, monitorPage, navigateModule, openMoreModule, waitForPageReady };

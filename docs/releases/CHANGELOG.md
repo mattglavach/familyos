@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.0 - 2026-07-12
+
+- Added the deterministic, permission-aware Context Engine and standard module contribution contract.
+- Added the provider-neutral Prompt Builder with privacy filtering, module/size/exclusion preview, and version metadata.
+- Added AI Workspace under More with suggested questions, prompt preview, Copy Prompt, recent trace metadata, and pasted-response review.
+- Added Home AI Brief and device-local AI Settings without API keys or provider authentication.
+- Removed the active Pool ChatGPT button and the active Finance retirement brief entry point so prompt generation is centralized.
+- Preserved FamilyOS as the system of record with no automatic prompt transmission, AI writes, conversation storage, response storage, migration, or dependency addition.
+
 ## 1.8.4 - 2026-07-12
 
 - Consolidated Home attention items into compact Family Snapshot rows and added the persistent Life Lists entry.

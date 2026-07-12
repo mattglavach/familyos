@@ -1,5 +1,13 @@
 # Release Notes
 
+## Release 2.0.0 - Context Engine and AI Workspace
+
+FamilyOS now aggregates structured context from Tasks, Calendar, Life Lists, Pool, Home, and Financial Planning through a provider-neutral Context Engine. A separate privacy-aware Prompt Builder creates compact prompts and displays included modules, estimated size, excluded sections, privacy notes, and contract versions.
+
+AI Workspace centralizes Ask FamilyOS, suggested questions, prompt preview, Copy Prompt, recent prompt metadata, and optional response review. Prompts are never sent automatically. AI responses and conversation history are not stored. Identified suggestions require explicit review and remain manual until a separately approved owning-module acceptance workflow exists.
+
+Known limitations: traceability is device-local, token size is an estimate, provider launch/authentication is intentionally absent, and Response Review uses deterministic line patterns rather than an AI classifier. No database migration was made.
+
 ## Release 1.8.4 - Core Workflow Stabilization
 
 FamilyOS 1.8.4 makes the daily experience shorter and completes the Pool treatment loop. Home now uses one Family Snapshot with embedded attention details, a stable Life Lists entry, and optional non-blocking weather. Tasks opens to Due and excludes work assigned exclusively to another person from My Tasks. Calendar is limited to Today and This Week and repeats active multi-day events on every applicable local date. Google events retain their verified external source action.

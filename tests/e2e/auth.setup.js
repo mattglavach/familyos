@@ -15,11 +15,10 @@ setup("authenticate dedicated test user", async ({ page }) => {
 
   const navigation = page.getByRole("navigation", { name: "Primary navigation" });
   const authError = page.locator('[role="alert"]');
-  await expect(navigation.or(authError)).toBeVisible();
-  if (await authError.isVisible()) {
+  await expect(navigation).toBeVisible().catch(async () => {
+    await expect(authError).toBeVisible();
     throw new Error(`Dedicated test-user sign-in failed: ${await authError.textContent()}`);
-  }
-  await expect(navigation).toBeVisible();
+  });
   await expect(page.getByText("No active household was found for this account.")).not.toBeVisible();
 
   const relevantFailures = failures.responses.filter(item => {

@@ -1,5 +1,14 @@
 # Roadmap
 
+## Release 2.0.0: Context Engine and AI Workspace
+- [x] Add deterministic module context contributors and normalized aggregation.
+- [x] Add privacy-aware provider-neutral prompt construction and preview metadata.
+- [x] Add a centralized, copy-first AI Workspace and response review.
+- [x] Add Home AI Brief and device-local AI controls.
+- [x] Preserve explicit human review and prohibit automatic AI writes.
+
+Next: validate real household prompt usefulness, then design explicit owning-module acceptance handoffs and optional provider launch methods without weakening preview, permissions, or audit boundaries.
+
 ## Release 1.8.4: Core Workflow Stabilization
 - [x] Consolidate Home attention into Family Snapshot, add Life Lists, and provide optional greeting weather.
 - [x] Remove Shopping from the active product while preserving stored data.

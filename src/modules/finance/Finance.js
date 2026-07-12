@@ -562,7 +562,6 @@ export function Finance(){
               <div style={{fontSize:20,fontWeight:800,marginTop:6,letterSpacing:"-0.3px",color:retProj.gap>0?COLORS.amber:COLORS.green}}>{retProj.gap>0?formatMoneyShort(retProj.gap):" "}</div>
             </div>
           </div>
-          <button onClick={()=>setShowRetBrief(true)} style={{width:"100%",background:COLORS.purple,color:"#fff",border:"none",borderRadius:12,padding:"13px",fontSize:15,fontWeight:700,cursor:"pointer",marginBottom:12}}>  Retirement Brief</button>
           {[
             {key:"analysis",icon:" ",label:"Projection & Readiness",open:showAnalysis,toggle:()=>setShowAnalysis(p=>!p)},
             {key:"bridge",icon:" ",label:`Bridge Years (age ${assump.retirement_age} ${retProj.drawdown.medicareAge})`,open:showBridgeMath,toggle:()=>setShowBridgeMath(p=>!p),badge:retProj.drawdown.bridgeShortfall>0?"   Short":"  Covered",badgeColor:retProj.drawdown.bridgeShortfall>0?COLORS.red:COLORS.green},

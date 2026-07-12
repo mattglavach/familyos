@@ -24,6 +24,11 @@ test("authenticated FamilyOS major-module smoke", async ({ page }) => {
   await expect(page.getByText("Family Goals").first()).toBeVisible();
   await navigateModule(page, "Pool");
   await expect(page.getByText("Pool", { exact: true }).first()).toBeVisible();
+  await openMoreModule(page, "AI Workspace");
+  await expect(page.getByRole("heading", { name: "Ask FamilyOS" })).toBeVisible();
+  await expect(page.getByLabel("Generated FamilyOS prompt")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Copy Prompt" })).toBeEnabled();
+  await expect(page.getByLabel("AI response to review")).toBeVisible();
   await openMoreModule(page, "Meal Planning");
   await openMoreModule(page, "Finance");
   await expect(page.getByText("Monthly Contributions", { exact: true })).toBeVisible();

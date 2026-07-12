@@ -1,10 +1,11 @@
-import { ChevronRight, DollarSign, ListChecks, NotebookTabs, Settings, Utensils, Waves } from "lucide-react";
+import { Bot, ChevronRight, DollarSign, ListChecks, NotebookTabs, Settings, Utensils, Waves } from "lucide-react";
 import { Badge } from "../../components/ui/badge";
 import { Card, CardContent } from "../../components/ui/card";
 import { SectionHeader } from "../../components/ui/section-header";
 import { S } from "../../theme";
 
 const platformGroups = [
+  { title: "AI", items: [{id:"ai-workspace",label:"AI Workspace",detail:"Build and review permission-aware prompts without automatic transmission or writes.",icon:Bot,badge:"New",enabled:true}] },
   {
     title: "Home",
     items: [

@@ -17,5 +17,6 @@ export const TITLES = {
   pool: "Pool",
   "quick-add": "Quick Add",
   settings: "Settings",
+  "ai-workspace": "AI Workspace",
   tasks: "Tasks",
 };

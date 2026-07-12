@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { CalendarDays, ChevronRight, House, Landmark, ListChecks, ListTodo, Waves } from "lucide-react";
+import { Bot, CalendarDays, ChevronRight, House, Landmark, ListChecks, ListTodo, Waves } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { SectionHeader } from "../../components/ui/section-header";
@@ -10,6 +10,7 @@ import { buildHouseholdContext } from "../../services/householdContextService";
 import { S } from "../../theme";
 import { formatCalendarEventTime } from "../../lib/calendarTime";
 import { useGreetingWeather } from "../../services/weatherService";
+import { readAiSettings, readPromptTraces } from "../../services/aiPreferences";
 
 const DAY_MS = 86400000;
 
@@ -55,6 +56,7 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
   const calendar = secureCalendar.connection ? { connected: secureCalendar.connected, events: secureCalendar.events, loading: secureCalendar.loading, updatedAt: secureCalendar.lastFetchedAt } : { connected: Boolean(gc.token), events: gc.events, loading: gc.loading, updatedAt: gc.lastSyncedAt };
   const loading = [tasks, lifeLists, lifeItems, readings, treatments, profiles, equipment, poolMaintenance, poolSchedule, homeMaintenance, retirementAccounts, retirementAssumptions, mortgage].some(table => table.loading) || calendar.loading;
   const weather=useGreetingWeather(household.householdSettings);
+  const aiSettings=readAiSettings(); const lastPrompt=readPromptTraces()[0];
   const context = useMemo(() => {
     const recommendations = readings.data[0] ? getChemRecommendations(readings.data[0], readings.data, null) : [];
     const poolContext = buildPoolContext({ householdIdentifier: household.householdId, profile: profiles.data[0] || null, readings: readings.data, treatments: treatments.data, equipment: equipment.data, maintenance: poolMaintenance.data, schedule: poolSchedule.data, tasks: tasks.data, recommendations });
@@ -116,6 +118,7 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
       {weather&&<div className="mt-1 text-sm font-semibold text-foreground">{weather.temperature}° · {weather.condition} · High {weather.high}° / Low {weather.low}°{weather.note?` · ${weather.note}`:""}</div>}
       <div className="mt-2 text-sm leading-5 text-foreground">{dailySummary}</div>
     </CardContent></Card>
+    {aiSettings.enabled&&<Card><CardContent className="flex items-center gap-3 p-4"><Bot className="h-5 w-5 text-primary"/><div className="min-w-0 flex-1"><div className="text-sm font-bold">AI Brief</div><div className="truncate text-xs text-muted-foreground">{lastPrompt?`Last prompt: ${lastPrompt.question}`:"Try: What needs attention this week?"}</div></div><Button type="button" size="xs" variant="secondary" onClick={()=>onNavigate("ai-workspace")}>Open AI Workspace</Button></CardContent></Card>}
 
     {schedule.length > 0 && <section><SectionHeader title="Today's Schedule" count={allScheduleCount} tone="blue" action={allScheduleCount > 3 ? <Button type="button" variant="ghost" size="xs" onClick={() => onNavigate("calendar")}>View All</Button> : null} />
       <Card><CardContent className="px-4 py-1">{schedule.map(event => <button key={event.id || `${event.date}-${event.title}`} type="button" onClick={() => onNavigate({ tab: "calendar", eventId: event.id })} className="flex min-h-11 w-full items-center gap-3 border-b border-border py-1.5 text-left last:border-0"><CalendarDays className="h-4 w-4 shrink-0 text-primary" /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{event.title || event.summary || "Calendar event"}</span><span className="block truncate text-xs text-muted-foreground">{formatCalendarEventTime(event)}{event.location ? ` · ${event.location}` : ""}</span></span><ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" /></button>)}</CardContent></Card>
