@@ -2,6 +2,8 @@
 
 ## Release 2.4.0 - Smart Planning and Daily Operations
 
+Production compatibility note: release validation identified historical schema variance in `pool_schedule.id` (`text` in fresh baselines and `uuid` in production). The Release 2.3 prerequisite migration now stores maintenance-history schedule identifiers as text without a cross-type foreign key and resolves schedules through a safe textual comparison. This preserves existing records and behavior across both schema shapes.
+
 Release 2.4.0 evolves existing daily-operations foundations into a preparation-focused command center without changing module ownership. Home now combines actionable preparation signals with a compact daily progress readout. AI Workspace offers explicit Morning Brief, Evening Review, and Weekly Planning prompts using structured Tasks, Calendar, Habits, Routines, Home, and recorded Pool context; generation remains user initiated and output remains advisory.
 
 - Habits: count-based weekly/monthly goals, weekday schedules, current and longest streaks, weekly/monthly completion rates, a 28-day completion calendar, and recovery guidance.

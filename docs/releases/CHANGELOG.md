@@ -2,6 +2,7 @@
 
 ## 2.4.0 - 2026-07-12
 
+- Hardened the Release 2.3 Pool maintenance-history migration for production environments where `pool_schedule.id` is UUID rather than text; history keeps a stable textual identifier and the completion RPC compares IDs safely across either schema shape.
 - Added Home preparation intelligence and daily progress across Tasks, Habits, Routines, Calendar, and Needs Attention.
 - Added three user-initiated AI planning modes backed by structured FamilyOS context.
 - Added richer Habit goals, streaks, completion analysis, calendar visualization, and recovery guidance.
