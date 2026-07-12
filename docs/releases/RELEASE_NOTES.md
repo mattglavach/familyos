@@ -1,5 +1,15 @@
 # Release Notes
 
+## Release 1.8.2
+
+Release 1.8.2 is a focused local UX simplification release. Home now behaves as a daily brief instead of a module inventory: it shows up to three upcoming events, five time-sensitive priorities with due-date labels, and three non-duplicative Needs Attention items. Empty Home sections disappear without leaving gaps. Shopping and Meal Planning remain available in their owning modules but no longer appear on Home.
+
+Tasks now defaults to one compact search and primary-filter toolbar. Secondary status, priority, assignee, and due-date controls expand on demand and keep their values when collapsed. Show All still resets the full search and filter state. Assigned by Me uses the existing task creator identifier and introduces no new persistence.
+
+Pool now has one primary status summary with test timing, latest treatment, current chemistry, targets, and exception status. One Recommended Next Step replaces repeated action-plan and recommendation surfaces. Recent tests, treatments, and maintenance appear in a compact combined timeline, and Trends stays collapsed until requested and only appears with adequate history. Existing History, Equipment, Maintenance, drawers, and bottom Add behavior remain available.
+
+Shared empty states use compact spacing and smaller optional actions. Release 1.8.2 adds no modules, dependencies, database changes, migrations, or architecture changes and is not pushed or deployed by this local release scope.
+
 ## Release 1.8.1
 
 Release 1.8.1 is a local UX-polish and stabilization release. Tasks now reliably reveal a newly created item by resetting all filters after save, and Show All resets the complete filter state. Task filters, task rows, Calendar connection status, Calendar event rows, Dashboard cards, shared screen padding, and section spacing are substantially more compact. Completed tasks remain available through the Status filter, while Show All intentionally shows every active household task, including overdue, future, and no-due-date items. No module, schema, migration, integration contract, dependency, or architecture was added or changed.

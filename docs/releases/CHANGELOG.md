@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.8.2 - 2026-07-11
+
+- Redesigned Home as a concise daily brief ordered around Upcoming Schedule, Priorities, and non-duplicative Needs Attention items.
+- Limited Home schedule, task, and attention lists; added concise due-date language; removed module-summary, Pool, Shopping, and Meal Planning content from Home.
+- Converted Tasks filters to a compact default toolbar with Show All, My Tasks, Assigned by Me, and expandable secondary filters that preserve state.
+- Consolidated Pool current condition and chemistry into Pool Status, recommendations into one Recommended Next Step, history into Recent Activity, and trends into a collapsed disclosure.
+- Standardized shared and Life/Shopping empty states on a compact layout with no reserved decorative space.
+- No database, migration, dependency, authentication, permission, integration, deployment, or architecture changes.
+
 ## 1.8.1 - 2026-07-11
 
 - Fixed Tasks Show All so it clears search, status, priority, owner, due-date, workspace, and sort state; successful task creation now returns to the unfiltered active household task list immediately.

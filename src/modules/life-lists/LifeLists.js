@@ -385,7 +385,7 @@ export function LifeLists({ initialView }) {
           </>
         ) : (
           <Card>
-            <EmptyStatePanel title="No Life Lists yet" detail="Create a flexible list for movies, books, trip ideas, gifts, memories, or any future category." action={canCreate ? "Create list" : undefined} onAction={canCreate ? () => openListForm() : undefined} className="py-9" />
+            <EmptyStatePanel title="No Life Lists yet" detail="Create a flexible list for movies, books, trip ideas, gifts, memories, or any future category." action={canCreate ? "Create list" : undefined} onAction={canCreate ? () => openListForm() : undefined} />
           </Card>
         )}
         <ListDrawer open={listDrawer} onOpenChange={setListDrawer} form={listForm} setForm={setListForm} onSave={saveList} error={error} submitting={submitting} canManageSharedLists={canManageSharedLists} />
@@ -427,7 +427,7 @@ export function LifeLists({ initialView }) {
             {visibleItems.map(item => <ItemRow key={item.id} item={item} canEdit={editable} assigneeName={memberName(item.assigned_to_person_id, household.people)} onEdit={() => openItemForm(item)} onToggleComplete={toggleItemComplete} onToggleFavorite={toggleItemFavorite} />)}
           </div>
         ) : (
-          <Card><EmptyStatePanel title="No matching items" detail="Add an item or adjust search, status, sort, and tag filters." action={editable ? "Add item" : undefined} onAction={editable ? () => openItemForm() : undefined} className="py-9" /></Card>
+          <Card><EmptyStatePanel title="No matching items" detail="Add an item or adjust search, status, sort, and tag filters." action={editable ? "Add item" : undefined} onAction={editable ? () => openItemForm() : undefined} /></Card>
         )}
       </section>
       {editable && (

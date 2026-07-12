@@ -15,7 +15,6 @@ import { maintColor, maintStatus, statusColor } from "../../utils/status";
 import { COLORS, S } from "../../theme";
 import { getChemRecommendations, getPoolHealth, getPoolRecommendations, POOL_RULE_CONFIG } from "./actionEngine";
 import { buildPoolReadingRow, hasRainContext, POOL_TEST_ADVANCED_FIELDS, POOL_TEST_CONTEXTS, POOL_TEST_FIELD_LABELS, POOL_TEST_PRIMARY_FIELDS, poolTestFieldError, setRainContext, validatePoolTestForm } from "./poolTestForm";
-import { buildPoolContext } from "./domainService";
 
 export { getChemRecommendations };
 
@@ -89,16 +88,6 @@ function latestReadingValues(readings) {
   };
 }
 
-function metric(label, value, color = COLORS.white, detail = "") {
-  return (
-    <div style={S.statCell(color)}>
-      <div style={{ ...S.statVal, color }}>{value || "--"}</div>
-      <div style={S.statLbl}>{label}</div>
-      {detail && <div style={{ fontSize: 11, color: COLORS.slate, marginTop: 3 }}>{detail}</div>}
-    </div>
-  );
-}
-
 function trend(readings, key) {
   const values = readings.filter(reading => reading[key] !== null && reading[key] !== undefined).slice(0, 2);
   if (values.length < 2) return { label: "No trend", color: COLORS.slate };
@@ -122,20 +111,6 @@ function trendDetail(readings, key, suffix = "") {
     suffix,
     bars: points.map(value => ({ value, pct: max === min ? 55 : 24 + ((value - min) / (max - min)) * 66 })),
   };
-}
-
-function swimReadiness(latest, recommendations) {
-  if (!latest) return { label: "Test first", color: COLORS.amber, detail: "Log current FC and pH before swimming." };
-  const blockers = recommendations.filter(rec => ["critical", "high"].includes(rec.priority));
-  const fc = Number(latest.free_chlorine);
-  const ph = Number(latest.ph);
-  if (blockers.some(rec => ["fc-low", "fc-high", "ph-high", "ph-low", "cc-high"].includes(rec.id))) {
-    return { label: "Hold swim", color: COLORS.red, detail: blockers[0]?.action || "Water needs attention first." };
-  }
-  if (Number.isFinite(fc) && Number.isFinite(ph) && fc >= 3 && fc <= 8 && ph >= 7.2 && ph <= 7.8) {
-    return { label: "Looks swim-ready", color: COLORS.green, detail: "FC and pH are in the operating range." };
-  }
-  return { label: "Use caution", color: COLORS.amber, detail: "Confirm FC and pH before swimming." };
 }
 
 function retestGuidance(latest, recommendations) {
@@ -294,7 +269,6 @@ export function Pool() {
   const equipment = useTable("pool_equipment", "type", true);
   const audits = useTable("pool_action_audits", "created_at");
   const profiles = useTable("pool_profiles", "name", true);
-  const tasks = useTable("tasks", "due_date");
   const household = useHousehold();
   const editable = roleCanManage(household.membership?.role);
   const [tab, setTab] = useState("dashboard");
@@ -308,6 +282,7 @@ export function Pool() {
   const [testSubmitting, setTestSubmitting] = useState(false);
   const [poolActionError, setPoolActionError] = useState("");
   const [reviewRec, setReviewRec] = useState(null);
+  const [showTrends, setShowTrends] = useState(false);
 
   const latest = latestReadingValues(readings.data);
   const recommendations = useMemo(
@@ -318,10 +293,8 @@ export function Pool() {
     }),
     [latest, maintenance.data, readings.data, schedule.data, treatments.data]
   );
-  const poolContext = useMemo(() => buildPoolContext({ householdIdentifier: household.householdId, profile: profiles.data[0] || null, readings: readings.data, treatments: treatments.data, equipment: equipment.data, maintenance: maintenance.data, schedule: schedule.data, tasks: tasks.data, recommendations }), [equipment.data, household.householdId, maintenance.data, profiles.data, readings.data, recommendations, schedule.data, tasks.data, treatments.data]);
   const health = getPoolHealth(latest, recommendations);
   const nextAction = recommendations[0];
-  const readiness = swimReadiness(latest, recommendations);
   const retest = retestGuidance(latest, recommendations);
   const actionPlan = useMemo(() => buildActionPlan(recommendations), [recommendations]);
   const treatmentPlan = useMemo(() => reviewRec ? [reviewRec, ...recommendations.filter(rec => rec.id !== reviewRec.id && rec.category === "Chemical" && rec.priority !== "low")] : [], [recommendations, reviewRec]);
@@ -583,68 +556,42 @@ export function Pool() {
     }
   }
 
-  const loading = readings.loading || treatments.loading || maintenance.loading || schedule.loading || equipment.loading || audits.loading || profiles.loading || tasks.loading;
+  const loading = readings.loading || treatments.loading || maintenance.loading || schedule.loading || equipment.loading || audits.loading || profiles.loading;
 
   return (
     <div style={S.screen}>
-      <div style={{ ...S.statusCard(readiness.color), marginBottom: 12 }}>
+      <div style={{ ...S.statusCard(health.color), marginBottom: 10 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
           <div>
-            <div style={{ fontSize: 12, color: COLORS.slate, fontWeight: 800, textTransform: "uppercase" }}>Pool Advisor</div>
-            <div style={{ fontSize: 26, fontWeight: 900, color: readiness.color, marginTop: 2 }}>{readiness.label}</div>
-            <div style={{ fontSize: 14, color: COLORS.slateLight, lineHeight: 1.5, marginTop: 6 }}>{readiness.detail}</div>
+            <div style={{ fontSize: 12, color: COLORS.slate, fontWeight: 800, textTransform: "uppercase" }}>Pool Status</div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: health.color, marginTop: 2 }}>{health.status}</div>
+            <div style={{ fontSize: 13, color: COLORS.slateLight, lineHeight: 1.45, marginTop: 4 }}>{health.summary}</div>
           </div>
-          <Droplets size={28} color={readiness.color} aria-hidden="true" />
+          <Droplets size={26} color={health.color} aria-hidden="true" />
         </div>
-        <div style={{ ...S.statGrid, marginTop: 14 }}>
-          {metric("Health Score", health.status, health.color, health.summary)}
-          {metric("Last Test", latest ? `${daysAgo(latest.date)}d` : "--", latest && daysAgo(latest.date) <= 2 ? COLORS.green : COLORS.amber, latest ? formatDate(latest.date) : "No test")}
-          {metric("Retest", retest.label, retest.color, retest.detail)}
+        <div style={{ display: "grid", gap: 5, marginTop: 10, fontSize: 12, color: COLORS.slateLight }}>
+          <div><b style={{ color: COLORS.white }}>Last tested:</b> {latest ? `${formatDate(latest.date)} (${daysAgo(latest.date) === 0 ? "today" : `${daysAgo(latest.date)} days ago`})` : "No test logged"}</div>
+          <div><b style={{ color: COLORS.white }}>Next test:</b> {retest.detail}</div>
+          {latest?.water_temp != null && <div><b style={{ color: COLORS.white }}>Water temperature:</b> {latest.water_temp} F</div>}
+          <div><b style={{ color: COLORS.white }}>Last treatment:</b> {latestChemicalText(recentTreatment)}{recentTreatment?.date ? `, ${formatDate(recentTreatment.date)}` : ""}</div>
         </div>
-        <div style={{ ...S.statGrid, marginTop: 10 }}>
-          {metric("FC", latest?.free_chlorine, statusColor(poolStatus("free_chlorine", latest?.free_chlorine)), "ppm")}
-          {metric("pH", latest?.ph, statusColor(poolStatus("ph", latest?.ph)))}
-          {metric("CYA", latest?.cya, statusColor(poolStatus("cya", latest?.cya)), "ppm")}
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(84px, 1fr))", gap: 6, marginTop: 10 }}>
-          {trends.slice(0, 4).map(item => (
-            <div key={item.name} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "8px 6px", textAlign: "center" }}>
-              <div style={{ fontSize: 11, color: COLORS.slate }}>{item.name}</div>
-              <div style={{ fontSize: 13, color: COLORS.white, fontWeight: 900, marginTop: 2 }}>{item.current}{item.suffix ? ` ${item.suffix}` : ""}</div>
-              <div style={{ fontSize: 11, color: item.color, fontWeight: 800, marginTop: 2 }}>{item.label}</div>
+        {latest && <div style={{ marginTop: 10, borderTop: `1px solid ${COLORS.border}` }}>
+          {chemistrySummary(latest).map(([label, value, unit, key]) => {
+            const status = poolStatus(key, value);
+            const targets = { free_chlorine: "3–7", cc: "0–0.2", ph: "7.2–7.6", alkalinity: "80–120", cya: "60–80", salt: "3200–3600", calcium_hardness: "150–300" };
+            return <div key={label} style={{ display: "grid", gridTemplateColumns: "48px 64px 1fr 58px", gap: 8, alignItems: "center", minHeight: 34, borderBottom: `1px solid ${COLORS.border}`, fontSize: 12 }}>
+              <b>{label}</b><span style={{ color: statusColor(status), fontWeight: 900 }}>{value ?? "--"}{unit ? ` ${unit}` : ""}</span><span style={{ color: COLORS.slate }}>Target {targets[key]}</span><span style={{ color: statusColor(status), textAlign: "right", fontWeight: 800 }}>{status === "green" ? "Good" : status === "amber" ? "Watch" : status === "red" ? "Action" : "Unknown"}</span>
             </div>
-          ))}
-        </div>
-        <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 10 }}>Recent chemical: {latestChemicalText(recentTreatment)}{recentTreatment?.date ? ` on ${formatDate(recentTreatment.date)}` : ""}</div>
-        <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 5 }}>Open Pool tasks: {poolContext.openTasks.length} | Context confidence: {poolContext.dataQuality.confidence}</div>
-        <Button type="button" variant="secondary" size="sm" className="mt-3" disabled={!editable} onClick={() => { setForm(profiles.data[0] || { saltwater: true }); setModal("profile"); }}>Pool Profile</Button>
+          })}
+        </div>}
       </div>
 
-      <div style={{ ...S.statusCard(nextAction?.color || COLORS.blue), marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: COLORS.slate, fontWeight: 800, textTransform: "uppercase" }}>Priority Next Action</div>
-        <div style={{ fontSize: 18, color: COLORS.white, fontWeight: 900, lineHeight: 1.35, marginTop: 6 }}>{nextAction?.action}</div>
-        <div style={{ fontSize: 14, color: COLORS.slateLight, lineHeight: 1.5, marginTop: 6 }}>{nextAction?.explanation}</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
-          <div style={{ fontSize: 12, color: COLORS.slate }}><b style={{ color: COLORS.white }}>When:</b> {nextAction?.timing || "Today"}</div>
-          <div style={{ fontSize: 12, color: COLORS.slate }}><b style={{ color: COLORS.white }}>Retest:</b> {nextAction?.retest || retest.detail}</div>
-        </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-          <Button type="button" className="flex-1" onClick={() => openTest()} disabled={!editable}>Log Test</Button>
-          <Button type="button" variant="secondary" className="flex-1" onClick={() => nextAction && openReview(nextAction)} disabled={!editable || !nextAction || nextAction.priority === "low"}>Review</Button>
-        </div>
-        {!editable && <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 10 }}>Viewer access is read-only for Pool actions.</div>}
-      </div>
-
-      <div style={{ ...S.card, marginBottom: 14 }}>
-        <div style={{ fontSize: 16, fontWeight: 900, marginBottom: 10 }}>Operational Intelligence</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 8 }}>
-          {metric("Pending Retests", poolContext.pendingRetests.length, poolContext.pendingRetests.some(item => item.status === "overdue") ? COLORS.red : COLORS.blue, poolContext.pendingRetests.some(item => item.status === "overdue") ? "Follow-up overdue" : "Human follow-up")}
-          {metric("FC Demand", poolContext.chlorineDemandSummary.state === "observed" ? `${poolContext.chlorineDemandSummary.observedDailyFcDemand} ppm/day` : "Unavailable", COLORS.blue, poolContext.chlorineDemandSummary.state.replace(/-/g, " "))}
-          {metric("pH Rise", poolContext.phRiseSummary.state === "observed" ? `${poolContext.phRiseSummary.typicalObservedRise}` : "Unavailable", COLORS.blue, poolContext.phRiseSummary.state.replace(/-/g, " "))}
-          {metric("Data Gaps", poolContext.dataCompletenessFlags.length, poolContext.dataCompletenessFlags.length ? COLORS.amber : COLORS.green, poolContext.dataCompletenessFlags.slice(0, 2).map(item => item.replace(/-/g, " ")).join(", ") || "Complete")}
-        </div>
-        <div style={{ fontSize: 12, color: COLORS.slate, lineHeight: 1.5, marginTop: 10 }}>Trend and demand summaries are observed history, not predictions or automatic dosing instructions. Review current conditions and confirm every action.</div>
-        {poolContext.pendingRetests.slice(0, 3).map(item => <div key={item.treatmentId} style={{ borderLeft: `3px solid ${item.status === "overdue" ? COLORS.red : COLORS.amber}`, padding: "7px 0 7px 10px", marginTop: 8 }}><div style={{ fontSize: 13, fontWeight: 900 }}>Retest {item.status}</div><div style={{ fontSize: 12, color: COLORS.slateLight }}>Expected {item.expectedRetestAt ? new Date(item.expectedRetestAt).toLocaleString() : "after treatment"}. Edit the treatment to record notes and observed outcome.</div></div>)}
+      <div style={{ ...S.statusCard(nextAction?.color || COLORS.green), marginBottom: 10 }}>
+        <div style={{ fontSize: 12, color: COLORS.slate, fontWeight: 800, textTransform: "uppercase" }}>Recommended Next Step</div>
+        <div style={{ fontSize: 17, color: COLORS.white, fontWeight: 900, lineHeight: 1.35, marginTop: 5 }}>{nextAction?.action || "No action needed"}</div>
+        <div style={{ fontSize: 13, color: COLORS.slateLight, lineHeight: 1.45, marginTop: 4 }}>{nextAction?.explanation || `Test again ${retest.detail.toLowerCase()}`}</div>
+        {nextAction?.retest && <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 5 }}>{nextAction.retest}</div>}
+        {editable && <div style={{ display: "flex", gap: 8, marginTop: 8 }}><Button type="button" size="sm" onClick={() => openTest()}>Log Test</Button>{nextAction && nextAction.priority !== "low" && <Button type="button" size="sm" variant="secondary" onClick={() => openReview(nextAction)}>Review Recommendation</Button>}</div>}
       </div>
 
       {poolActionError && (
@@ -668,7 +615,20 @@ export function Pool() {
 
       {loading ? <Loading /> : (
         <>
-          {tab === "dashboard" && (
+          {tab === "dashboard" && <>
+            {history.length > 0 && <div style={{ ...S.card, marginBottom: 10 }}>
+              <div style={{ fontSize: 16, fontWeight: 900, marginBottom: 6 }}>Recent Activity</div>
+              {history.slice(0, 5).map(item => <div key={`recent-${item.kind}-${item.id}`} style={{ display: "grid", gridTemplateColumns: "72px 1fr", gap: 8, borderTop: `1px solid ${COLORS.border}`, padding: "7px 0", fontSize: 12 }}><span style={{ color: COLORS.slate }}>{item.date === TODAY_STR || String(item.sort).slice(0, 10) === TODAY_STR ? "Today" : formatDate(item.date || item.sort)}</span><span style={{ color: COLORS.slateLight }}>{item.kind === "Reading" ? "Water tested" : item.text}</span></div>)}
+              {history.length > 5 && <Button type="button" variant="ghost" size="xs" onClick={() => setTab("history")}>View More Activity</Button>}
+            </div>}
+            {readings.data.length >= 2 && <details open={showTrends} onToggle={event => setShowTrends(event.currentTarget.open)} style={{ ...S.card, marginBottom: 10 }}>
+              <summary style={{ cursor: "pointer", color: COLORS.blue, fontSize: 14, fontWeight: 900 }}>View Trends</summary>
+              <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+                {trends.filter(item => item.bars.length >= 2).map(item => <div key={`trend-${item.name}`} style={{ display: "grid", gridTemplateColumns: "48px 1fr 76px", gap: 8, alignItems: "center" }}><b style={{ fontSize: 12 }}>{item.name}</b><div style={{ display: "flex", alignItems: "end", gap: 3, height: 28, borderBottom: `1px solid ${COLORS.border}` }}>{item.bars.map((bar, index) => <div key={`${item.name}-${index}`} style={{ flex: 1, height: `${bar.pct}%`, minHeight: 4, borderRadius: 3, background: item.color }} />)}</div><span style={{ fontSize: 11, color: item.color, textAlign: "right" }}>{item.label}</span></div>)}
+              </div>
+            </details>}
+          </>}
+          {false && tab === "dashboard" && (
             <>
               <div style={S.card}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>

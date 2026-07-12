@@ -519,7 +519,7 @@ export function Shopping() {
               {filteredItems.map(item => <ShoppingItemRow key={item.id} item={item} canEdit={editable} assigneeName={memberName(item.assigned_to_person_id, household.people)} onEdit={() => openItemForm(item)} onTogglePurchased={togglePurchased} onToggleFavorite={toggleItemFavorite} />)}
             </div>
           ) : (
-            <Card><EmptyStatePanel title="No matching items" detail="Add an item or adjust search, category, status, and sort." action={editable ? "Add item" : undefined} onAction={editable ? () => openItemForm() : undefined} className="py-9" /></Card>
+            <Card><EmptyStatePanel title="No matching items" detail="Add an item or adjust search, category, status, and sort." action={editable ? "Add item" : undefined} onAction={editable ? () => openItemForm() : undefined} /></Card>
           )}
         </section>
 
@@ -605,7 +605,7 @@ export function Shopping() {
             <section><SectionHeader title="Household Lists" count={householdLists.length} tone="blue" /><div className="space-y-2">{householdLists.slice(0, 8).map(list => <ListCard key={list.id} list={list} itemCount={itemCounts[list.id] || 0} neededCount={neededCounts[list.id] || 0} onOpen={() => setSelectedId(list.id)} />)}</div></section>
           </>
         ) : (
-          <Card><EmptyStatePanel title="No shopping lists yet" detail="Create a grocery, Costco, household, or personal shopping list." action={canCreate ? "Create list" : undefined} onAction={canCreate ? () => openListForm() : undefined} className="py-9" /></Card>
+          <Card><EmptyStatePanel title="No shopping lists yet" detail="Create a grocery, Costco, household, or personal shopping list." action={canCreate ? "Create list" : undefined} onAction={canCreate ? () => openListForm() : undefined} /></Card>
         )
       ) : (
         pantry.loading ? (
@@ -613,7 +613,7 @@ export function Shopping() {
         ) : filteredPantry.length ? (
           <section><SectionHeader title="Pantry" count={filteredPantry.length} tone="green" /><div className="space-y-2">{filteredPantry.map(item => <PantryRow key={item.id} item={item} canManage={canManagePantry} onEdit={() => openPantryForm(item)} onToggleFavorite={togglePantryFavorite} />)}</div></section>
         ) : (
-          <Card><EmptyStatePanel title="No pantry items yet" detail="Track staple inventory and reorder thresholds without meal planning." action={canManagePantry ? "Add pantry item" : undefined} onAction={canManagePantry ? () => openPantryForm() : undefined} className="py-9" /></Card>
+          <Card><EmptyStatePanel title="No pantry items yet" detail="Track staple inventory and reorder thresholds without meal planning." action={canManagePantry ? "Add pantry item" : undefined} onAction={canManagePantry ? () => openPantryForm() : undefined} /></Card>
         )
       )}
 

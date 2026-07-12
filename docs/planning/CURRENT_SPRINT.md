@@ -1,5 +1,9 @@
 # Current Sprint
 
+## Release 1.8.2 local release candidate
+
+Release 1.8.2 simplifies the daily operating loop: Home prioritizes schedule, urgent tasks, and unique alerts; Tasks uses progressive filter disclosure; Pool provides one status, one recommendation, one activity timeline, and optional trends; shared empty states collapse compactly. Scope is local only with no schema, dependency, push, or deployment work.
+
 ## Release 1.8.1 local release candidate
 
 - [x] Correct Tasks Show All and post-create filter reset behavior.

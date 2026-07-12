@@ -1,5 +1,7 @@
 # Pool
 
+Release 1.8.2 consolidates the Pool dashboard into Pool Status, Recommended Next Step, Recent Activity, and collapsed Trends. Current chemistry has one home in Pool Status, recommendations render once, and history combines tests, treatments, cleaning, and maintenance. Existing detailed History, Equipment, and Maintenance workspaces remain available.
+
 ## Release 1.8 Optimization Contract
 
 The `familyos.pool-context` contract is version 2.0. It retains compatibility fields while adding profile summary, latest complete test, freshness, chemistry status, pending retests, chlorine-demand summary, pH-rise summary, maintenance and equipment status, open Pool Tasks, data-completeness flags, deterministic attention items, trend summaries, and explicit safety constraints.

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  ChevronDown,
+  ChevronUp,
   Edit3,
   Plus,
   Search,
@@ -391,6 +393,7 @@ export function Tasks({ deps, initialView }) {
   const [statusFilter, setStatusFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
   const [dueFilter, setDueFilter] = useState("all");
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [drawer, setDrawer] = useState({ open: false, mode: "create", task: null });
   const [form, setForm] = useState(emptyTaskForm());
   const [formError, setFormError] = useState("");
@@ -452,6 +455,7 @@ export function Tasks({ deps, initialView }) {
       if (activeFilter === "completed" && task.status !== "Completed") return false;
       if (activeFilter !== "completed" && task.status === "Completed") return false;
       if (activeFilter === "mine" && task.assignee !== defaultMember) return false;
+      if (activeFilter === "assigned-by-me" && task.created_by_user_id !== household.user?.id) return false;
       if (activeFilter === "today" && bucket !== "today") return false;
       if (activeFilter === "upcoming" && bucket !== "upcoming") return false;
       if (activeFilter === "overdue" && bucket !== "overdue") return false;
@@ -462,7 +466,7 @@ export function Tasks({ deps, initialView }) {
       return true;
     });
     return sortTasks(filtered, "due");
-  }, [activeFilter, daysBetween, defaultMember, dueFilter, memberFilter, nextDueDate, priorityFilter, searchTerm, statusFilter, tasks]);
+  }, [activeFilter, daysBetween, defaultMember, dueFilter, household.user?.id, memberFilter, nextDueDate, priorityFilter, searchTerm, statusFilter, tasks]);
 
   function notify(message) {
     setToast({ message });
@@ -629,7 +633,7 @@ export function Tasks({ deps, initialView }) {
   );
 
   const loading = taskTable.loading || family.loading;
-  const hasAdvancedFilters = memberFilter !== "All" || statusFilter !== "All" || priorityFilter !== "All" || dueFilter !== "all" || SECONDARY_WORKSPACE_FILTERS.some(option => option.value === activeFilter);
+  const hasAdvancedFilters = memberFilter !== "All" || statusFilter !== "All" || priorityFilter !== "All" || dueFilter !== "all" || activeFilter === "assigned-by-me" || SECONDARY_WORKSPACE_FILTERS.some(option => option.value === activeFilter);
   const hasAnyFilter = Boolean(searchTerm.trim()) || activeFilter !== "all" || hasAdvancedFilters;
 
   return (
@@ -663,14 +667,20 @@ export function Tasks({ deps, initialView }) {
                   <Input id="task-search" className="h-9 pl-8 text-xs" aria-label="Search tasks" value={searchTerm} placeholder="Search tasks" onChange={event => setSearchTerm(event.target.value)} />
                 </div>
                 <div className="task-filter-controls">
-                  <Select className="h-9 min-w-[112px] px-2 pr-7 text-xs" aria-label="Status" value={statusFilter} onChange={event => { const status = event.target.value; setStatusFilter(status); setActiveFilter(status === "Completed" ? "completed" : activeFilter === "completed" ? "all" : activeFilter); }}><option value="All">All status</option>{STATUS_OPTIONS.map(status => <option key={status} value={status}>{status}</option>)}</Select>
-                  <Select className="h-9 min-w-[105px] px-2 pr-7 text-xs" aria-label="Priority" value={priorityFilter} onChange={event => setPriorityFilter(event.target.value)}><option value="All">All priority</option>{PRIORITY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</Select>
-                  <Select className="h-9 min-w-[105px] px-2 pr-7 text-xs" aria-label="Owner" value={memberFilter} onChange={event => setMemberFilter(event.target.value)}><option value="All">All owners</option><option value="Family">Family</option>{activeMembers.map(member => <option key={member.id} value={member.name}>{member.name}</option>)}</Select>
-                  <Select className="h-9 min-w-[105px] px-2 pr-7 text-xs" aria-label="Due date" value={dueFilter} onChange={event => setDueFilter(event.target.value)}>{DUE_FILTERS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</Select>
                   <Button type="button" variant={activeFilter === "all" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={clearFilters}>Show All</Button>
-                  <Button type="button" variant="ghost" size="xs" className="!min-h-9 px-2.5" onClick={clearFilters} disabled={!hasAnyFilter}>Clear</Button>
+                  <Button type="button" variant={activeFilter === "mine" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("mine")}>My Tasks</Button>
+                  <Button type="button" variant={activeFilter === "assigned-by-me" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("assigned-by-me")}>Assigned by Me</Button>
+                  <Button type="button" variant="ghost" size="xs" className="!min-h-9 px-2.5" aria-expanded={filtersExpanded} aria-controls="task-secondary-filters" onClick={() => setFiltersExpanded(value => !value)}>{filtersExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />} Filters</Button>
                 </div>
               </div>
+              {filtersExpanded && <div id="task-secondary-filters" className="task-secondary-filters">
+                <Select className="h-9 min-w-[112px] px-2 pr-7 text-xs" aria-label="Status" value={statusFilter} onChange={event => { const status = event.target.value; setStatusFilter(status); setActiveFilter(status === "Completed" ? "completed" : activeFilter === "completed" ? "all" : activeFilter); }}><option value="All">All status</option>{STATUS_OPTIONS.map(status => <option key={status} value={status}>{status}</option>)}</Select>
+                <Select className="h-9 min-w-[105px] px-2 pr-7 text-xs" aria-label="Priority" value={priorityFilter} onChange={event => setPriorityFilter(event.target.value)}><option value="All">All priority</option>{PRIORITY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</Select>
+                <Select className="h-9 min-w-[105px] px-2 pr-7 text-xs" aria-label="Assignee" value={memberFilter} onChange={event => setMemberFilter(event.target.value)}><option value="All">All assignees</option><option value="Family">Family</option>{activeMembers.map(member => <option key={member.id} value={member.name}>{member.name}</option>)}</Select>
+                <Select className="h-9 min-w-[105px] px-2 pr-7 text-xs" aria-label="Due date" value={dueFilter} onChange={event => setDueFilter(event.target.value)}>{DUE_FILTERS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</Select>
+                <Button type="button" variant="ghost" size="xs" className="!min-h-9 px-2.5" onClick={clearFilters} disabled={!hasAnyFilter}>Clear Filters</Button>
+                <Button type="button" variant="ghost" size="xs" className="!min-h-9 px-2.5" onClick={() => setFiltersExpanded(false)}><ChevronUp className="h-4 w-4" /> Show Less</Button>
+              </div>}
             </CardContent>
           </Card>
 
