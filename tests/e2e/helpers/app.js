@@ -30,7 +30,8 @@ async function loginDemoUser(page) {
 }
 
 async function logoutDemoUser(page) {
-  await navigateModule(page, "More");
+  await navigateModule(page, "Attention");
+  await page.getByRole("button", { name: "Modules", exact: true }).click();
   await page.getByRole("button", { name: /^Settings Core/ }).click();
   await page.getByRole("button", { name: "Sign Out", exact: true }).click();
   await expect(page.locator('input[type="email"]')).toBeVisible();
@@ -42,7 +43,8 @@ async function navigateModule(page, label) {
 }
 
 async function openMoreModule(page, label) {
-  await navigateModule(page, "More");
+  await navigateModule(page, "Attention");
+  await page.getByRole("button", { name: "Modules", exact: true }).click();
   await page.getByRole("button", { name: new RegExp(`^${label}`) }).click();
   await waitForPageReady(page, label);
 }

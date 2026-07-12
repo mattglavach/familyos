@@ -3,7 +3,7 @@ export const TABS = [
   { id: "tasks", label: "Tasks", iconKey: "tasks" },
   { id: "calendar", label: "Calendar", iconKey: "calendar" },
   { id: "pool", label: "Pool", iconKey: "pool" },
-  { id: "more", label: "More", iconKey: "more" },
+  { id: "needs-attention", label: "Attention", iconKey: "attention" },
 ];
 
 export const TITLES = {
@@ -19,5 +19,7 @@ export const TITLES = {
   settings: "Settings",
   "ai-workspace": "AI Workspace",
   habits: "Habits",
+  routines: "Routines",
+  "needs-attention": "Needs Attention",
   tasks: "Tasks",
 };

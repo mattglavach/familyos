@@ -1,5 +1,7 @@
 # Project Status
 
+Release 2.3.0 is the current validated release candidate. The two release blockers are implemented: My Tasks resolves the authenticated household person deterministically, and Pool Maintenance Done uses one idempotent database transaction for history plus recurrence advancement. Durable Habits, lightweight Routines, global creation, Needs Attention navigation, and additive notification-state foundations are included. The approved non-production migration, authenticated RLS/invariant checks, local gates, and desktop/mobile/tablet/dark-mode workflows pass. Production migration and production verification were not performed.
+
 Release 2.2.0 is the current local release candidate. It introduces the unified Today dashboard, compact module status, seven-path Quick Add, device-local Habits, and expanded daily task workflows. One required, non-destructive Pool optional-field migration is included; no authentication, permission, dependency, push, deployment, or tag change is included.
 
 Release 2.2.0 blocker closeout adds one required, non-destructive Pool Test migration that permits `null` for optional weather and appearance fields. Real authenticated persistence now passes through both Pool and Quick Add on desktop and 390px mobile, including post-refresh ownership verification. RLS is unchanged.

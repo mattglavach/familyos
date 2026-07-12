@@ -4,7 +4,6 @@ import {
   ChevronUp,
   Edit3,
   Pin,
-  Plus,
   Search,
   Trash2,
   UserRound,
@@ -27,7 +26,7 @@ import { COLORS, MEMBER_COLORS, S } from "../../theme";
 import { useHousehold } from "../../context/HouseholdContext";
 import { useFamilyMembers } from "../dashboard/useFamilyMembers";
 import { formatUserFacingError } from "../../lib/userFacingErrors";
-import { isDueTask, isMyTask, sortDueTasks } from "./taskViews";
+import { isAssignedByMe, isDueTask, isMyTask, resolveCurrentPersonId, sortDueTasks } from "./taskViews";
 
 const TASK_METADATA_KEY = "familyos_task_metadata_v1";
 const taskMetadataKey = userId => `${TASK_METADATA_KEY}:${userId || "anonymous"}`;
@@ -50,6 +49,7 @@ const DUE_FILTERS = [
 const WORKSPACE_FILTERS = [
   { value: "all", label: "Show All" },
   { value: "mine", label: "My Tasks" },
+  { value: "assigned-by-me", label: "Assigned by Me" },
   { value: "today", label: "Today" },
   { value: "upcoming", label: "Upcoming" },
   { value: "overdue", label: "Overdue" },
@@ -427,8 +427,7 @@ export function Tasks({ deps, initialView }) {
     () => taskTable.data.map((task, index) => normalizeTask(task, metadata, members, nextDueDate, index)),
     [members, taskTable.data, metadata, nextDueDate]
   );
-
-  const openTaskCount = tasks.filter(task => task.status !== "Completed").length;
+  const currentPersonId = resolveCurrentPersonId({ userId: household.user?.id, preferredPersonId: household.userPreferences?.default_person_id, membershipPersonId: household.membership?.person_id, people: household.people });
   const activeFilterLabel = WORKSPACE_FILTERS.find(option => option.value === activeFilter)?.label || "Tasks";
 
   function clearFilters() {
@@ -470,7 +469,8 @@ export function Tasks({ deps, initialView }) {
       const bucket = dueBucket(task, daysBetween, nextDueDate);
       if (activeFilter === "completed" && task.status !== "Completed") return false;
       if (activeFilter !== "completed" && task.status === "Completed") return false;
-      if (activeFilter === "mine" && !isMyTask(task, { currentPersonId: household.userPreferences?.default_person_id || household.membership?.person_id })) return false;
+      if (activeFilter === "mine" && !isMyTask(task, { currentPersonId, currentUserId: household.user?.id, activeHouseholdId: household.householdId })) return false;
+      if (activeFilter === "assigned-by-me" && !isAssignedByMe(task, { currentUserId: household.user?.id, activeHouseholdId: household.householdId })) return false;
       if (activeFilter === "due" && !isDueTask(task, TODAY_STR)) return false;
       if (activeFilter === "today" && bucket !== "today") return false;
       if (activeFilter === "upcoming" && bucket !== "upcoming") return false;
@@ -485,7 +485,7 @@ export function Tasks({ deps, initialView }) {
     });
     const sorted = activeFilter === "due" ? [...filtered].sort(sortDueTasks) : sortTasks(filtered, "due");
     return sorted.sort((a, b) => Number(b.pinned) - Number(a.pinned));
-  }, [TODAY_STR, activeFilter, daysBetween, dueFilter, household.membership?.person_id, household.userPreferences?.default_person_id, memberFilter, nextDueDate, priorityFilter, searchTerm, statusFilter, tasks]);
+  }, [TODAY_STR, activeFilter, currentPersonId, daysBetween, dueFilter, household.householdId, household.user?.id, memberFilter, nextDueDate, priorityFilter, searchTerm, statusFilter, tasks]);
 
   function notify(message) {
     setToast({ message });
@@ -509,18 +509,6 @@ export function Tasks({ deps, initialView }) {
     for (const task of selected) await completeTask(task);
     setBulkSelected([]);
     notify(`${selected.length} task${selected.length === 1 ? "" : "s"} completed.`);
-  }
-
-  function openCreateTask() {
-    const defaultMember = family.members.find(member => member.id === household.userPreferences?.default_person_id);
-    const defaultAssignee = defaultMember?.name || activeMembers[0]?.name || "Family";
-    const defaultPriority = household.userPreferences?.default_task_priority || household.householdSettings?.default_task_priority;
-    setForm(emptyTaskForm(defaultAssignee, {
-      taskDefaultCategory: household.userPreferences?.default_task_category || household.householdSettings?.default_task_category || "Home",
-      taskDefaultPriority: defaultPriority === "medium" ? "med" : defaultPriority || "med",
-    }));
-    setDrawer({ open: true, mode: "create", task: null });
-    setFormError("");
   }
 
   function openEditTask(task) {
@@ -674,17 +662,6 @@ export function Tasks({ deps, initialView }) {
 
   return (
     <div style={S.screen} className="space-y-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Tasks</div>
-          <div className="mt-1 text-2xl font-extrabold text-foreground">{openTaskCount} open</div>
-        </div>
-        <Button type="button" onClick={openCreateTask}>
-          <Plus className="h-4 w-4" aria-hidden="true" />
-          New Task
-        </Button>
-      </div>
-
       {(metadataError || family.error) && (
         <div className="rounded-lg border border-amber-400/35 bg-amber-400/10 p-3 text-xs leading-5 text-amber-200">
           {metadataError || family.error}
@@ -705,6 +682,7 @@ export function Tasks({ deps, initialView }) {
                 <div className="task-filter-controls">
                   <Button type="button" variant={activeFilter === "due" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("due")}>Due</Button>
                   <Button type="button" variant={activeFilter === "mine" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("mine")}>My Tasks</Button>
+                  <Button type="button" variant={activeFilter === "assigned-by-me" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("assigned-by-me")}>Assigned by Me</Button>
                   <Button type="button" variant={activeFilter === "all" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={clearFilters}>All Tasks</Button>
                   <Button type="button" variant={activeFilter === "completed" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("completed")}>Completed</Button>
                   <Button type="button" variant={activeFilter === "today" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("today")}>Today</Button>

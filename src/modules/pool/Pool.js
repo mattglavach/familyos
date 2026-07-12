@@ -12,6 +12,7 @@ import { roleCanManage } from "../../hooks/useHouseholdCollaboration";
 import { useHousehold } from "../../context/HouseholdContext";
 import { TODAY_STR, daysAgo, daysBetween, formatDate, nextDueDate } from "../../lib/dates";
 import { formatUserFacingError } from "../../lib/userFacingErrors";
+import { supabase } from "../../lib/supabase";
 import { treatmentPrefill } from "./poolWorkflow";
 import { useTable } from "../../hooks/useTable";
 import { maintColor, maintStatus, statusColor } from "../../utils/status";
@@ -269,6 +270,7 @@ export function Pool({ initialView }) {
   const treatments = useTable("pool_treatments", "logged_at");
   const maintenance = useTable("pool_maintenance", "date");
   const schedule = useTable("pool_schedule", "title", true);
+  const maintenanceHistory = useTable("pool_maintenance_history", "completed_at");
   const equipment = useTable("pool_equipment", "type", true);
   const audits = useTable("pool_action_audits", "created_at");
   const profiles = useTable("pool_profiles", "name", true);
@@ -570,14 +572,17 @@ export function Pool({ initialView }) {
   async function markScheduleDone(item) {
     setPoolActionError("");
     try {
-      await schedule.update(item.id, { ...item, last_completed: TODAY_STR });
-      await maintenance.insert({ date: TODAY_STR, type: item.maintenance_type || item.title, equipment_id: item.equipment_id || null, notes: "Completed from Pool maintenance reminders." });
+      const idempotencyKey = `${item.id}:${TODAY_STR}`;
+      const { error } = await supabase.rpc("complete_pool_maintenance", { p_schedule_id: item.id, p_notes: item.notes || "", p_idempotency_key: idempotencyKey });
+      if (error) throw error;
+      await Promise.all([schedule.reload({ throwOnError: true }), maintenanceHistory.reload({ throwOnError: true })]);
+      setTestSaveSuccess(`${item.title} completed. Next due ${formatDate(nextDueDate(TODAY_STR, item.interval_days))}.`);
     } catch (error) {
       showPoolMutationError(error, "Pool reminder could not be completed right now.");
     }
   }
 
-  const loading = readings.loading || treatments.loading || maintenance.loading || schedule.loading || equipment.loading || audits.loading || profiles.loading;
+  const loading = readings.loading || treatments.loading || maintenance.loading || maintenanceHistory.loading || schedule.loading || equipment.loading || audits.loading || profiles.loading;
 
   return (
     <div style={S.screen}>
@@ -843,6 +848,15 @@ export function Pool({ initialView }) {
                   </div>
                 );
               })}
+              {maintenanceHistory.data.length > 0 && <ExpandableSection title="Maintenance History" summary={`${maintenanceHistory.data.length} completion${maintenanceHistory.data.length === 1 ? "" : "s"}`}>
+                <div className="space-y-2">
+                  {maintenanceHistory.data.slice(0, 8).map(item => <div key={item.id} className="border-l-2 border-emerald-400/60 pl-3 py-1">
+                    <div className="text-sm font-bold text-foreground">{item.maintenance_item}</div>
+                    <div className="text-xs text-muted-foreground">{new Date(item.completed_at).toLocaleString()}{item.prior_due_date ? ` · due ${formatDate(item.prior_due_date)}` : ""}</div>
+                    {item.notes && <div className="mt-1 text-xs text-muted-foreground">{item.notes}</div>}
+                  </div>)}
+                </div>
+              </ExpandableSection>}
             </>
           )}
         </>

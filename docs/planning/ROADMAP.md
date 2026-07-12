@@ -1,5 +1,15 @@
 # Roadmap
 
+## Release 2.3.0: Daily Operations Foundation
+- [x] Fix My Tasks assignment and Pool Maintenance completion release blockers.
+- [x] Consolidate Home daily focus and make AI Brief secondary.
+- [x] Establish durable Habits and lightweight Routines foundations.
+- [x] Promote Needs Attention and preserve lower-frequency module access.
+- [x] Expand global creation and add durable notification-state foundations.
+- [ ] Finish database, authenticated permission, desktop, mobile, tablet, and dark-mode release validation.
+
+Deferred: advanced habit analytics and targets, challenges/rewards, pause/vacation mode, smart reminders, AI recommendations, predictive automation, Microsoft 365, Outlook, email, health, wearables, and smart-home integrations.
+
 ## Release 2.2.0: Today, Quick Capture, and Habits
 - [x] Replace Home with a unified, actionable Today dashboard and compact status cards.
 - [x] Add a floating seven-target Quick Add experience with intentionally minimal forms.

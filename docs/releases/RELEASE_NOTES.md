@@ -1,5 +1,17 @@
 # Release Notes
 
+## Release 2.3.0 - Daily Operations Foundation
+
+Date: 2026-07-12
+
+Release 2.3.0 strengthens FamilyOS as the household system of record. My Tasks now resolves the authenticated member reliably, Pool Maintenance completion is atomic and visible, Home is more concise, and the global Add menu is the primary creation surface. Durable Habits and lightweight Routines add recurrence-aware completion history. Needs Attention now occupies the mobile navigation position previously used by More, while lower-frequency modules remain available through the Modules surface and Settings remains in the header.
+
+- Database: `20260712020000_release_2_3_daily_operations.sql` adds non-destructive task lifecycle columns, Habits, Routines, notification state, Pool maintenance history, focused indexes, RLS, grants, and the idempotent `complete_pool_maintenance` RPC.
+- Security: active-household RLS applies to all new household records; personal notification state is user-owned; Pool completion requires owner/adult authorization inside the RPC.
+- Known limitations: advanced habit targets/analytics, pause/vacation modes, smart reminders, full notification delivery scheduling, and advanced routine templates are deferred. Microsoft 365 and Outlook remain future considerations.
+- Validation: approved non-production migration application, authenticated RLS/invariant checks, 99 application tests, 18 seed-safety tests, production build, bundle safety, fresh 15-migration bootstrap, and authenticated desktop/mobile/tablet/dark-mode smoke and Release 2.3 workflows passed. Production migration and production verification were not performed.
+- Test migration history: the approved test project already contained the historical household, Calendar, Life, Shopping, Meal, and Pool structures but lacked their migration-history rows. After direct structure verification, twelve historical versions were marked applied; a dry run then confirmed Release 2.3 was the only pending migration.
+
 ## Release 2.2.0 - Today, Quick Capture, and Habits
 
 Date: 2026-07-12
