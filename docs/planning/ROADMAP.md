@@ -1,5 +1,15 @@
 # Roadmap
 
+## Release 2.5.0: Proactive Planning and Household Automation
+
+Release-candidate scope: member-configured brief schedules, in-app notification preferences and state, Calendar conflict/transition/recurrence visibility, reusable routine templates, and automated accessibility audits.
+
+Deferred to a later release: reliable server-side scheduling, external notification delivery, Calendar series mutation, predictive inventory forecasting, and Financial Planning integration.
+
+## Recommended Release 2.6.0: Reliable Delivery and Planning Operations
+
+Evaluate a secure server scheduler, consent-based notification delivery adapters, write-safe Calendar recurrence contracts, and operational observability. Keep financial data and autonomous actions outside scope unless separately approved.
+
 ## Release 2.4.0: Smart Planning and Daily Operations
 
 Status: released to production on 2026-07-12.

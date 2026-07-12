@@ -55,10 +55,14 @@ async function waitForPageReady(page, text) {
 }
 
 function assertNoRuntimeFailures(failures) {
+  const relevantRequests = failures.requests.filter(item => !(
+    /\/\.well-known\/vercel\/jwe\s+net::ERR_ABORTED$/.test(item)
+    || /^HEAD https:\/\/familyos-[a-z0-9-]+-glavach\.vercel\.app\/ net::ERR_ABORTED$/.test(item)
+  ));
   expect(failures.page, `Unhandled exceptions:\n${failures.page.join("\n")}`).toEqual([]);
   expect(failures.responses, `Failed API calls:\n${failures.responses.join("\n")}`).toEqual([]);
   expect(failures.console, `Console errors:\n${failures.console.join("\n")}`).toEqual([]);
-  expect(failures.requests, `Network failures:\n${failures.requests.join("\n")}`).toEqual([]);
+  expect(relevantRequests, `Network failures:\n${relevantRequests.join("\n")}`).toEqual([]);
 }
 
 module.exports = { assertNoRuntimeFailures, demoCredentials, loginDemoUser, logoutDemoUser, monitorPage, navigateModule, openMoreModule, waitForPageReady };

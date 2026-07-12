@@ -51,7 +51,8 @@ declare
   required_tables text[] := array[
     'households','profiles','household_members','household_invitations',
     'notes','tasks','home_maintenance','pool_readings','pool_action_audits',
-    'calendar_connections','life_lists','shopping_lists','recipes','meal_assignments'
+    'calendar_connections','life_lists','shopping_lists','recipes','meal_assignments',
+    'brief_schedules','brief_generation_history','notification_preferences','notification_states','routine_templates','routine_template_steps'
   ];
   missing text[];
 begin
@@ -69,6 +70,8 @@ begin
   if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='pool_readings' and column_name='recent_weather_notes' and is_nullable='YES') then raise exception 'pool_readings.recent_weather_notes must be nullable'; end if;
   if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='pool_readings' and column_name='test_context' and data_type='text' and is_nullable='NO') then raise exception 'pool_readings.test_context must be required text'; end if;
   if (select count(*) from pg_policies where schemaname='public') = 0 then raise exception 'No public RLS policies found'; end if;
+  if not exists(select 1 from pg_indexes where schemaname='public' and indexname='brief_generation_scheduled_period_unique') then raise exception 'Brief idempotency index missing'; end if;
+  if exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname in ('brief_schedules','brief_generation_history','notification_preferences','routine_templates','routine_template_steps') and not c.relrowsecurity) then raise exception 'Release 2.5 RLS missing'; end if;
 end $$;`;
 
 const sqlPath = path.join(workspace, "verify.sql");

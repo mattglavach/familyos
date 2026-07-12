@@ -1,0 +1,5 @@
+function localDay(value) { if (!value) return null; const d=new Date(String(value).includes("T")?value:`${value}T00:00:00`); if(Number.isNaN(d.getTime()))return null; d.setHours(0,0,0,0); return d; }
+export function dayDistance(value, now=new Date()){const target=localDay(value),today=localDay(now);return target&&today?Math.round((target-today)/86400000):null;}
+export function withinQuietHours(preferences, now=new Date()){const start=preferences?.quiet_hours_start,end=preferences?.quiet_hours_end;if(!start||!end)return false;const clock=`${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;return start<end?clock>=start&&clock<end:clock>=start||clock<end;}
+export function dedupeNotifications(items=[]){return [...new Map(items.map(item=>[item.sourceKey||item.id,item])).values()].sort((a,b)=>(b.priority||0)-(a.priority||0));}
+export function notificationIsEnabled(item, preferences={}){const categories=preferences.enabled_categories||{};return categories[item.category]!==false;}

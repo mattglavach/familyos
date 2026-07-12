@@ -1,4 +1,4 @@
-import { eventMetaLine, formatSyncTime, groupEvents, normalizeEvent } from "./Calendar";
+import { calendarInsights, eventMetaLine, formatSyncTime, groupEvents, normalizeEvent } from "./Calendar";
 import { expandCalendarEventDays } from "../../lib/calendarTime";
 import React, { act } from "react";
 import { Simulate } from "react-dom/test-utils";
@@ -28,6 +28,7 @@ test("timed events span local days and clip to the visible week",()=>{const even
 test("an event beginning before today is active today",()=>{const rows=expandCalendarEventDays({id:"active",start:{date:"2026-07-10"},end:{date:"2026-07-15"}},"2026-07-12","2026-07-18");expect(rows[0].date).toBe("2026-07-12");expect(rows[0].isActiveOccurrence).toBe(true);});
 test("Today occurrences are excluded from This Week while tomorrow remains",()=>{const grouped=groupEvents([{id:"today",start:{date:"2026-07-12"},end:{date:"2026-07-13"}},{id:"tomorrow",start:{dateTime:"2026-07-13T09:00:00-04:00"},end:{dateTime:"2026-07-13T10:00:00-04:00"}}],"2026-07-12");expect(grouped.today.map(event=>event.id)).toEqual(["today"]);expect(grouped.thisWeek.map(event=>event.id)).toEqual(["tomorrow"]);});
 test("recurring occurrence ids remain unique across Today and This Week",()=>{const grouped=groupEvents([{id:"series-20260712",recurringEventId:"series",start:{date:"2026-07-12"},end:{date:"2026-07-13"}},{id:"series-20260713",recurringEventId:"series",start:{date:"2026-07-13"},end:{date:"2026-07-14"}}],"2026-07-12");expect([...grouped.today,...grouped.thisWeek].map(event=>event.id)).toEqual(["series-20260712","series-20260713"]);});
+test("Calendar identifies conflicts and tight transitions",()=>{const flags=calendarInsights([{id:"a",start:"2026-07-12T10:00:00",end:"2026-07-12T11:00:00"},{id:"b",start:"2026-07-12T10:30:00",end:"2026-07-12T11:30:00"},{id:"c",start:"2026-07-12T11:45:00",end:"2026-07-12T12:00:00"}]);expect(flags.a.conflict).toBe(true);expect(flags.b.conflict).toBe(true);expect(flags.c.tight).toBe(true);});
 
 test("event cards expand inline with ARIA state and omit empty details", () => {
   const container = document.createElement("div");

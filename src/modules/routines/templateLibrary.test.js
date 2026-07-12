@@ -1,0 +1,2 @@
+import { BUILT_IN_TEMPLATES, canDeleteTemplate, templateToRoutine } from "./templateLibrary";
+test("built-in library is protected and produces independent routine data",()=>{expect(BUILT_IN_TEMPLATES).toHaveLength(8);expect(canDeleteTemplate(BUILT_IN_TEMPLATES[0])).toBe(false);const routine=templateToRoutine(BUILT_IN_TEMPLATES[0]);expect(routine.name).toBe("Morning routine");expect(routine).not.toHaveProperty("steps");});
