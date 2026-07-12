@@ -5,7 +5,7 @@ This guide configures authenticated FamilyOS browser tests against a dedicated n
 ## One-time test project setup
 
 1. Confirm the target is a dedicated test project. The current approved reference is `lvxsbgrvpfcckqaanowf`.
-2. For an empty project, apply `20260626_baseline_schema.sql` first, then every remaining file in `supabase/migrations/` in ordinal filename order. The baseline is the restored authoritative legacy schema required by the household migration preflight. `20260703000000_bootstrap_pool_action_audits.sql` preserves the canonical text Pool reading relationship for fresh projects.
+2. For an empty project, apply `20260626000000_baseline_schema.sql` first, then every remaining file in `supabase/migrations/` in ordinal filename order. The baseline is the restored authoritative legacy schema required by the household migration preflight. `20260703000000_bootstrap_pool_action_audits.sql` preserves the canonical text Pool reading relationship for fresh projects.
 3. In Supabase Project Settings > API, copy the project URL and browser-safe anonymous/publishable key. Never put the service-role key in a `REACT_APP_*` variable.
 4. Put the variables below in gitignored `.env.test.local`.
 5. Run `pnpm run seed:demo`. The guarded seed verifies the exact target before creating an admin client, then creates a confirmed dedicated user and deterministic demo household.
@@ -17,7 +17,7 @@ pnpm dlx supabase@2.109.1 start
 pnpm run test:db-bootstrap
 ```
 
-Several historical migrations share an eight-digit date prefix. Supabase CLI migration tracking requires unique numeric versions, so the validator uses isolated temporary timestamp names without changing the historical files. Apply the repository files to a new hosted project one at a time in the documented ordinal order and stop on the first error. Existing legacy environments start with `20260627_household_foundation.sql` only when the preflight tables already exist; they must not reapply the baseline.
+Repository migrations use unique 14-digit versions so Supabase CLI ordering is deterministic. Apply them in ordinal filename order and stop on the first error. Existing legacy environments start with `20260627000000_household_foundation.sql` only when the preflight tables already exist; they must not reapply the baseline.
 
 ## Required `.env.test.local` variables
 

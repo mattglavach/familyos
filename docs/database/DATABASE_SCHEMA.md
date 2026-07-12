@@ -4,6 +4,8 @@
 
 `pool_readings.recent_weather_notes` and `pool_readings.water_appearance` are nullable optional text fields. Blank Pool Test form values normalize to `null`. The migration changes no required chemistry fields, ownership columns, grants, or RLS policies.
 
+The optional-field contract is stored in `20260712000000_release_2_2_pool_optional_text_nulls.sql`. Its legacy date-only filename was normalized to a sortable 14-digit version without changing its SQL. Production already had the schema contract before migration-history repair; the repair changes history metadata only.
+
 Production schema drift discovered during the Release 2.2.0 release gate showed that the historical Release 1.7 additions `test_context` and `water_appearance` were missing from production even though they existed in the canonical schema and test project. The later corrective migration `20260712010000_release_2_2_pool_schema_reconciliation.sql` adds either column only when absent, preserves `test_context text not null default 'Routine'`, and makes the two optional context fields nullable. It does not alter RLS, policies, grants, ownership, or existing records.
 
 ## Release 1.8 Context and attention model
@@ -11,7 +13,7 @@ Production schema drift discovered during the Release 2.2.0 release gate showed 
 Household Context, Pool trend summaries, and attention items are derived at runtime from household-scoped source records. No attention table is added because conditions resolve with their source state. Existing Release 1.7 treatment fields support the retest workflow. No Release 1.8 migration is required or applied.
 
 ## Release 1.7 Pool Operations
-Migration `20260711_release_1_7_pool_operations.sql` adds household-scoped `pool_profiles` with member-read and owner/adult-write RLS. It adds test context/water appearance and richer treatment traceability. It is additive and does not rewrite production history.
+Migration `20260711000000_release_1_7_pool_operations.sql` adds household-scoped `pool_profiles` with member-read and owner/adult-write RLS. It adds test context/water appearance and richer treatment traceability. It is additive and does not rewrite production history.
 
 ## Release 0.6C Data Foundation
 
@@ -19,7 +21,7 @@ Release 0.6C starts the migration from Release 0.6B browser-local metadata to du
 
 Release 0.6C has been applied to production. Production now has the user-owned auth baseline plus the household foundation schema.
 
-Milestone 2 added a production migration draft at `supabase/migrations/20260701_release_0_6c_household_foundation.sql`. The migration creates the household foundation tables, adds nullable `household_id` compatibility columns to existing module tables, adds structured task metadata columns, and preserves existing module-table `user_id` RLS behavior for staged rollout.
+Milestone 2 added a production migration draft at `supabase/migrations/20260701010000_release_0_6c_household_foundation.sql`. The migration creates the household foundation tables, adds nullable `household_id` compatibility columns to existing module tables, adds structured task metadata columns, and preserves existing module-table `user_id` RLS behavior for staged rollout.
 
 Milestone 3 adds the dry-run and smoke-test guide at `docs/database/RELEASE_0_6C_MIGRATION_VALIDATION.md`. Milestone 5 executed the draft against the disposable local Supabase database, revised the migration for compatibility with the earlier local-only 20260627 foundation tables, and passed the revised execution, idempotency re-run, validation SQL, and RLS smoke tests.
 
@@ -27,7 +29,7 @@ Milestone 6 validated the revised migration against fresh schema-only and stagin
 
 Milestone 7 ran app smoke tests against the migrated local Supabase API. The smoke test found and fixed missing bootstrap behavior for auth users created after the migration; the migration now adds `public.familyos_bootstrap_auth_user()` and an `auth.users` insert trigger that creates the user's profile, default household, owner membership, household settings, user preferences, and bootstrap mapping.
 
-Production note: the first Release 0.6C production attempt failed safely because production was missing the earlier `user_id` ownership baseline expected by `supabase/schema.sql`. The follow-up migration `supabase/migrations/20260701_release_0_6c_auth_ownership_baseline.sql` added missing `user_id` ownership columns, backfilled existing module rows to the approved owner, added indexes and grants, and replaced public/open policies with `familyos_user_all` policies. The Release 0.6C household foundation migration was then applied successfully.
+Production note: the first Release 0.6C production attempt failed safely because production was missing the earlier `user_id` ownership baseline expected by `supabase/schema.sql`. The follow-up migration `supabase/migrations/20260701000000_release_0_6c_auth_ownership_baseline.sql` added missing `user_id` ownership columns, backfilled existing module rows to the approved owner, added indexes and grants, and replaced public/open policies with `familyos_user_all` policies. The Release 0.6C household foundation migration was then applied successfully.
 
 Release 0.9 readiness note: the 0.6C auth ownership baseline migration now skips the approved-owner preflight only when a disposable/fresh database has zero module rows to backfill. Databases with existing module rows still require the approved owner UUID before backfill proceeds.
 
@@ -79,7 +81,7 @@ Stores server-side Google Calendar connection metadata for Release 0.8.
 
 Rows are owned by both `user_id` and `household_id`. The frontend can see provider, account email, status, expiry, scopes, last sync, and timestamps, but server API responses must not expose `access_token_ciphertext` or `refresh_token_ciphertext`.
 
-Release 0.8 adds `supabase/migrations/20260701_release_0_8_calendar_connections.sql`. The migration creates the table, indexes, updated-at trigger, authenticated grants, and RLS policies requiring the signed-in user to own the connection and belong to the household. OAuth token exchange, refresh, revoke, encrypted token persistence, and event reads run through `api/calendar.js`, not browser storage.
+Release 0.8 adds `supabase/migrations/20260701020000_release_0_8_calendar_connections.sql`. The migration creates the table, indexes, updated-at trigger, authenticated grants, and RLS policies requiring the signed-in user to own the connection and belong to the household. OAuth token exchange, refresh, revoke, encrypted token persistence, and event reads run through `api/calendar.js`, not browser storage.
 
 Release 0.8C uses server-side connection records as the preferred dashboard calendar source. Legacy browser tokens remain only for temporary fallback and are no longer newly persisted by the browser hook.
 
@@ -183,7 +185,7 @@ Stores pool maintenance actions.
 
 ### Release 1.4 Pool Care Assistant
 
-Release 1.4.0 adds `supabase/migrations/20260703_release_1_4_pool_care_assistant.sql`.
+Release 1.4.0 adds `supabase/migrations/20260703010000_release_1_4_pool_care_assistant.sql`. Its legacy date-only filename was normalized without changing SQL so it runs after `20260703000000_bootstrap_pool_action_audits.sql`, which establishes the canonical text reading relationship for fresh projects.
 
 `pool_readings` now includes test source, recent weather notes, recent heavy usage, and timestamps in addition to chemistry readings. Supported test sources are Taylor Kit, Pool Store, Manual, and future-only Pentair/Home Assistant values.
 

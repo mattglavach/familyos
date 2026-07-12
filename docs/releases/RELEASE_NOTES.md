@@ -8,6 +8,7 @@ Release 2.2.0 turns FamilyOS into a faster daily operating surface. Home now pri
 
 - Database changes: the initial additive migration drops historical `NOT NULL` constraints from optional `pool_readings.recent_weather_notes` and `pool_readings.water_appearance`; the later corrective migration safely supplies missing Release 1.7 Pool context columns before enforcing the same final contract. RLS, grants, ownership, required chemistry fields, and existing data are unchanged.
 - Corrective database note: production preflight found that `pool_readings.test_context` and `pool_readings.water_appearance` were missing. A later idempotent migration adds them only when absent, preserves the canonical required `Routine` context default, and makes optional weather and appearance values nullable without changing RLS, grants, policies, ownership, or records.
+- Migration history: the already-applied optional-field contract is recorded as `20260712000000_release_2_2_pool_optional_text_nulls.sql`, normalized from the legacy date-only filename so it sorts before the `20260712010000` corrective migration. The SQL content is unchanged; this is migration-version normalization, not a new schema change.
 - Dependencies: None.
 - Validation: lint, 93 unit/integration tests, 18 seed-safety tests, production build, bundle safety, and 57 authenticated Playwright tests across desktop, 390px mobile, tablet, and dark-mode projects, including real Pool persistence, focus, responsive containment, failure retention, and refresh verification.
 - Known limitation: habits and task pins are authenticated-user-scoped but device-local and do not sync between devices.
@@ -122,7 +123,7 @@ No Release 1.8 migration is required. Existing Release 1.7 traceability fields s
 Lint, 40 automated tests, seed safeguards, production build, and bundle-safety validation passed. Authenticated desktop and 390px browser smoke could not run because local Supabase was unavailable and the separate `agent-browser` executable was not installed. No remote test target, remote Git action, or production action was used.
 
 ## Release 1.7.0: Stabilization and Pool Operations
-Status: local release candidate, not deployed. This release fixes Calendar timezone normalization, removes Household/Health from More, and makes Pool the first focused Home operations workspace. The additive `20260711_release_1_7_pool_operations.sql` migration requires approval before application and does not rewrite existing records. Advanced trends, Gardening, cross-module context, live integrations, automatic control, and broad Home asset management remain deferred.
+Status: local release candidate, not deployed. This release fixes Calendar timezone normalization, removes Household/Health from More, and makes Pool the first focused Home operations workspace. The additive `20260711000000_release_1_7_pool_operations.sql` migration requires approval before application and does not rewrite existing records. Advanced trends, Gardening, cross-module context, live integrations, automatic control, and broad Home asset management remain deferred.
 
 ## Release 1.6
 
@@ -388,7 +389,7 @@ Release 1.4.0 implements the Pool Care Assistant Foundation as the first Home Pl
 - Added Pool tests, treatments, maintenance, equipment, and notes to Universal Search.
 
 ### Database Changes
-- Added `supabase/migrations/20260703_release_1_4_pool_care_assistant.sql`.
+- Added `supabase/migrations/20260703010000_release_1_4_pool_care_assistant.sql`.
 - Added Pool reading context fields, treatment water clarity, maintenance equipment linkage, schedule metadata, `pool_equipment`, and `pool_action_audits`.
 - Added household-aware RLS for Pool readings, treatments, maintenance, reminders, equipment, and action audits so viewers are read-only and owner/adult roles manage Pool operating data.
 - Tightened Pool RLS validation findings so maintenance reminders, schedules, and action audits cannot link to another household's equipment or reading rows.
@@ -397,7 +398,7 @@ Release 1.4.0 implements the Pool Care Assistant Foundation as the first Home Pl
 - Pentair live integration, Home Assistant, Weather integration, Taylor digital import, Pool Store import, image upload/OCR, automatic chemical dosing, automatic equipment control, and AI platform behavior remain deferred.
 
 ### Validation
-- Disposable/local Supabase validation passed for full schema bootstrap, ordered migration chain through `20260703_release_1_4_pool_care_assistant.sql`, migration re-run behavior, Pool tables/columns, `pool_equipment`, `pool_action_audits`, indexes, triggers, grants, RLS enablement, and intended policies.
+- Disposable/local Supabase validation passed for full schema bootstrap, ordered migration chain through `20260703010000_release_1_4_pool_care_assistant.sql`, migration re-run behavior, Pool tables/columns, `pool_equipment`, `pool_action_audits`, indexes, triggers, grants, RLS enablement, and intended policies.
 - RLS matrix validation passed for owner/adult Pool writes, viewer read-only behavior, cross-household denial, Pool tests/history/equipment/actions household isolation, linked-record spoofing denial, and confirmed action audit visibility.
 - Authenticated browser smoke passed for adult Pool creation flows, temporary owner-role writable UI, temporary viewer-role read-only UI, Home Pool card drill-in, Pool dashboard, Pool Test logging, recommendations, confirmed treatment/history, Chemical Added, Maintenance Completed, Pool Note, equipment add, reminder creation, Quick Add Pool targets, Universal Search results, desktop/tablet/390px mobile no-overflow checks, and clean console logs.
 - Action Engine validation passed for high pH, low FC, low salt, stale/no-test, and maintenance-due scenarios with action, explanation, timing, confidence, retest/safety guidance, and no automatic dosing.
@@ -489,7 +490,7 @@ Release 1.3 adds Meal Planning as the third Planning Platform module. It gives t
 - Added compact Home Meal Planning awareness and recent activity entries that drill into Meal Planning.
 
 ### Database Changes
-- Added `supabase/migrations/20260702_release_1_3_meal_planning.sql`.
+- Added `supabase/migrations/20260702030000_release_1_3_meal_planning.sql`.
 - Added `meal_plans`, `recipe_categories`, `recipes`, `recipe_ingredients`, and `meal_assignments`.
 - Added household-aware RLS for personal, household, and shared meal planning visibility and mutation permissions.
 
@@ -527,7 +528,7 @@ Release 1.2 adds Shopping & Pantry as the second Planning Platform module. It gi
 - Prepared database fields for future recipe and meal-plan references without implementing recipes or meal planning.
 
 ### Database Changes
-- Added `supabase/migrations/20260702_release_1_2_shopping.sql`.
+- Added `supabase/migrations/20260702020000_release_1_2_shopping.sql`.
 - Added `shopping_lists`, `shopping_categories`, `shopping_items`, and `pantry_items`.
 - Added household-aware RLS for personal, household, and shared shopping visibility and pantry management.
 
@@ -565,7 +566,7 @@ Release 1.1 adds Life Lists as the first major lifestyle planning module in Fami
 - Added a compact Home Life Lists insight that drills into the module.
 
 ### Database Changes
-- Added `supabase/migrations/20260702_release_1_1_life_lists.sql`.
+- Added `supabase/migrations/20260702010000_release_1_1_life_lists.sql`.
 - Added `life_lists` and `life_list_items`.
 - Added household-aware RLS for personal, household, and shared visibility.
 
@@ -738,7 +739,7 @@ Release 1.0.2 is a reliability and production-readiness release after v1.0.1. It
 ### Configuration Notes
 - Required browser config remains `REACT_APP_SUPABASE_URL` and `REACT_APP_SUPABASE_ANON_KEY`.
 - Server-side Calendar sync requires the Release 0.8 `calendar_connections` schema plus server-only OAuth, encryption, redirect, and Supabase service-role settings.
-- Household invitations require `supabase/migrations/20260702_release_0_9_household_collaboration.sql` in each local/staging/production-like environment.
+- Household invitations require `supabase/migrations/20260702000000_release_0_9_household_collaboration.sql` in each local/staging/production-like environment.
 
 ### Database Changes
 - None.

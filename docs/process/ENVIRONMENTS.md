@@ -22,7 +22,7 @@ It provides specialized environment and deployment detail under `docs/governance
 ## Staging
 - Used for production-like validation.
 - Should mirror production schema and auth configuration as closely as possible without using production data.
-- A brand-new project requires `20260626_baseline_schema.sql` before the dated upgrade chain. An existing legacy project with the preflight tables begins at `20260627_household_foundation.sql`. Demo data is added only afterward with the guarded `pnpm run seed:demo` workflow.
+- A brand-new project requires `20260626000000_baseline_schema.sql` before the dated upgrade chain. An existing legacy project with the preflight tables begins at `20260627000000_household_foundation.sql`. Demo data is added only afterward with the guarded `pnpm run seed:demo` workflow.
 - Required for risky migrations, auth changes, RLS changes, OAuth changes, and integration changes when local validation is insufficient.
 - Must include the full migration chain, including the Release 0.9 household invitation migration, before invite/member smoke testing.
 - Should include Calendar server secrets when validating Google OAuth or server-side event sync.
@@ -53,5 +53,5 @@ It provides specialized environment and deployment detail under `docs/governance
 - AI brief generation depends on `ANTHROPIC_API_KEY`; missing server configuration should be handled as an optional integration failure, not a product-wide outage.
 
 ## Troubleshooting
-- Household invitations showing an environment setup message usually means `supabase/migrations/20260702_release_0_9_household_collaboration.sql` has not been applied, the PostgREST schema cache needs a refresh, or the environment is pointed at the wrong Supabase project.
+- Household invitations showing an environment setup message usually means `supabase/migrations/20260702000000_release_0_9_household_collaboration.sql` has not been applied, the PostgREST schema cache needs a refresh, or the environment is pointed at the wrong Supabase project.
 - Calendar showing a setup message usually means one or more Google OAuth/server secrets are missing, the redirect URI does not match the deployed origin, or the `calendar_connections` schema is not present in that environment.

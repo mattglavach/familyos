@@ -16,7 +16,7 @@ Validation reference:
 
 Created local-only migration file:
 
-- `supabase/migrations/20260627_household_foundation.sql`
+- `supabase/migrations/20260627000000_household_foundation.sql`
 
 The repository did not previously have a `supabase/migrations/` folder, so this task established that folder for local migration work.
 
@@ -37,7 +37,7 @@ Before applying locally:
 - [ ] Confirm local Supabase environment is disposable or backed up.
 - [ ] Confirm local schema baseline matches `supabase/schema.sql`.
 - [ ] Confirm local Supabase provides `auth.uid()`, `anon`, and `authenticated`.
-- [ ] Review `supabase/migrations/20260627_household_foundation.sql` manually.
+- [ ] Review `supabase/migrations/20260627000000_household_foundation.sql` manually.
 - [ ] Confirm null `user_id` rows are acceptable for local dry run.
 - [ ] Confirm every auth user should receive a default household.
 - [ ] Confirm `familyos_internal` should remain inaccessible to `anon` and `authenticated`.
@@ -74,7 +74,7 @@ Do not run commands against a linked production Supabase project.
 Do not update app queries yet.
 
 Use:
-- supabase/migrations/20260627_household_foundation.sql
+- supabase/migrations/20260627000000_household_foundation.sql
 - docs/implementation/household-migration-plan-2026-06-27/13_REAL_MIGRATION_CREATED.md
 
 Tasks:

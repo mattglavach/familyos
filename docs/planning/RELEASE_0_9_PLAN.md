@@ -24,12 +24,12 @@ Setup:
 - Created a minimal local Supabase auth harness with `auth.users` and `auth.uid()`.
 - Seeded local-only validation users for owner, invited adult, and invited viewer.
 - Applied `supabase/schema.sql`.
-- Applied all migrations through `supabase/migrations/20260702_release_0_9_household_collaboration.sql`.
+- Applied all migrations through `supabase/migrations/20260702000000_release_0_9_household_collaboration.sql`.
 
 Migration results:
 - Full scratch migration chain passed.
 - Release 0.9 migration direct re-run passed and is idempotent for table, index, trigger, function, grants, and policy replacement behavior.
-- Validation found and fixed one older local migration PostgreSQL 17 ambiguity in `20260627_household_foundation.sql`.
+- Validation found and fixed one older local migration PostgreSQL 17 ambiguity in `20260627000000_household_foundation.sql`.
 - Validation found and fixed Release 0.9 RPC ambiguity in accept/decline invitation functions.
 - Validation tightened invitation administration from owner/adult to owner-only to match the Release 0.9 validation gate.
 

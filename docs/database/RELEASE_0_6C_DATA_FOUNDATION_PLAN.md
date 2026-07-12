@@ -25,7 +25,7 @@ The executable schema does not currently create:
 
 ## Existing Migration Work To Reuse
 
-Do not duplicate the earlier household foundation work. The existing local-only migration at `supabase/migrations/20260627_household_foundation.sql` already drafts:
+Do not duplicate the earlier household foundation work. The existing local-only migration at `supabase/migrations/20260627000000_household_foundation.sql` already drafts:
 
 - `profiles`
 - `households`
@@ -36,7 +36,7 @@ Do not duplicate the earlier household foundation work. The existing local-only 
 - bootstrap/backfill from current `user_id` data
 - initial RLS helpers and policies for the new foundation tables
 
-That migration is explicitly marked local-only and not production-ready. Release 0.6C Milestone 2 converts the same foundation direction into `supabase/migrations/20260701_release_0_6c_household_foundation.sql` rather than creating a competing household model.
+That migration is explicitly marked local-only and not production-ready. Release 0.6C Milestone 2 converts the same foundation direction into `supabase/migrations/20260701010000_release_0_6c_household_foundation.sql` rather than creating a competing household model.
 
 ## Milestone 2 Production Draft
 
@@ -373,7 +373,7 @@ Confirmed:
 
 - Production backup method: Supabase-managed backup or PITR marker plus schema-only and targeted data exports.
 - Restore/rollback path: full restore from backup/PITR is preferred; partial rollback requires a separately reviewed rollback script and paused writes.
-- Migration file: `supabase/migrations/20260701_release_0_6c_household_foundation.sql`.
+- Migration file: `supabase/migrations/20260701010000_release_0_6c_household_foundation.sql`.
 - Post-migration validation: run the validation SQL and RLS smoke tests from `docs/database/RELEASE_0_6C_MIGRATION_VALIDATION.md`.
 - App smoke checks: login, profile bootstrap, household resolution, preferences/settings, task CRUD, representative module compatibility, new auth user bootstrap, non-member denial, and unchanged localStorage behavior.
 
@@ -389,7 +389,7 @@ The first production attempt was blocked by preflight schema drift after backup 
 Result:
 
 - Target project: `dsowansazqleudupnjug` / `FamilyOS`.
-- Migration attempted: `supabase/migrations/20260701_release_0_6c_household_foundation.sql`.
+- Migration attempted: `supabase/migrations/20260701010000_release_0_6c_household_foundation.sql`.
 - Outcome: failed and rolled back during preflight.
 - Cause: production module tables do not yet have the `user_id` ownership columns expected by the Release 0.6C migration.
 - Follow-up read-only checks confirmed production still has public/open module-table policies rather than the current repo baseline's user-owned `familyos_user_all` policies.
@@ -403,8 +403,8 @@ Release 0.6C production execution is complete.
 
 Final production migration order:
 
-1. `supabase/migrations/20260701_release_0_6c_auth_ownership_baseline.sql`
-2. `supabase/migrations/20260701_release_0_6c_household_foundation.sql`
+1. `supabase/migrations/20260701000000_release_0_6c_auth_ownership_baseline.sql`
+2. `supabase/migrations/20260701010000_release_0_6c_household_foundation.sql`
 
 The auth ownership baseline migration reconciled production drift by adding missing `user_id` columns, backfilling existing module rows to approved owner `fc93e654-0305-4b4e-8c48-9edff3c2e800`, creating ownership indexes, replacing public/open module-table policies with `familyos_user_all`, and granting authenticated module-table DML.
 

@@ -9,6 +9,8 @@
 - Fixed the Pool Test release blocker by allowing optional weather and appearance fields to persist as `null`; added real authenticated desktop/mobile persistence and refresh regression coverage without changing RLS.
 - Scoped device-local habit completion and task pins by authenticated user and removed duplicate Today items across Focus and Needs Attention.
 - Added an idempotent corrective migration after production preflight found missing Release 1.7 Pool context columns; test-context, optional-field nullability, existing records, RLS, policies, grants, and ownership are explicitly validated.
+- Normalized the legacy Pool optional-field migration filename to `20260712000000_release_2_2_pool_optional_text_nulls.sql` so Supabase orders it deterministically before the `20260712010000` corrective migration; the SQL is byte-for-byte unchanged and production schema, data, RLS, policies, grants, and ownership are unaffected by the history repair.
+- Normalized the legacy Release 1.4 Pool migration to `20260703010000_release_1_4_pool_care_assistant.sql`, preserving its SQL byte-for-byte while ordering it after the required Pool audit compatibility bootstrap.
 
 ## 2.1.1 - 2026-07-12
 

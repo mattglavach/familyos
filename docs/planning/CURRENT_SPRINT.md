@@ -11,7 +11,7 @@
 
 One required additive Pool Test migration is included and was validated only against the approved non-production test project. No production migration, push, deployment, or tag is included.
 
-Production preflight subsequently identified missing Release 1.7 Pool context columns. The later idempotent corrective migration now reconciles missing, nullable, and historical `NOT NULL` starting states and has passed clean-database plus authenticated FamilyOS Test validation. Production remains unchanged.
+Production preflight subsequently identified missing Release 1.7 Pool context columns. The later idempotent corrective migration reconciled production without changing existing records or security controls. The legacy date-only optional-field migration is now normalized to `20260712000000_release_2_2_pool_optional_text_nulls.sql` with byte-for-byte identical SQL so future Supabase migration ordering is deterministic.
 
 ## Release 2.1.1 Calendar and Pool stabilization
 

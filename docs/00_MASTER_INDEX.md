@@ -116,7 +116,7 @@ This folder is the operating manual for Family OS.
 ### Releases
 - docs/releases/CHANGELOG.md
 - docs/releases/RELEASE_NOTES.md
-- Release 1.4.0 Pool Care Assistant Foundation: `docs/product/POOL_CARE_ASSISTANT.md`, `docs/modules/POOL.md`, `supabase/migrations/20260703_release_1_4_pool_care_assistant.sql`
+- Release 1.4.0 Pool Care Assistant Foundation: `docs/product/POOL_CARE_ASSISTANT.md`, `docs/modules/POOL.md`, `supabase/migrations/20260703010000_release_1_4_pool_care_assistant.sql`
 
 ### Archive
 - docs/archive/development-baseline/CODING_STANDARDS.md

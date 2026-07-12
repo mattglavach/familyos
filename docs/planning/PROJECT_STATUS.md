@@ -4,7 +4,9 @@ Release 2.2.0 is the current local release candidate. It introduces the unified 
 
 Release 2.2.0 blocker closeout adds one required, non-destructive Pool Test migration that permits `null` for optional weather and appearance fields. Real authenticated persistence now passes through both Pool and Quick Add on desktop and 390px mobile, including post-refresh ownership verification. RLS is unchanged.
 
-Corrective release status: production preflight found `pool_readings.test_context` and `water_appearance` missing. Migration `20260712010000_release_2_2_pool_schema_reconciliation.sql` now safely adds missing canonical columns and normalizes optional-field nullability. It is validated on FamilyOS Test only; production has not been modified and release execution remains pending.
+Corrective release status: production preflight found `pool_readings.test_context` and `water_appearance` missing. Migration `20260712010000_release_2_2_pool_schema_reconciliation.sql` safely reconciled production to the canonical contract without changing records, RLS, policies, grants, or ownership. The already-applied optional-field migration is normalized as `20260712000000_release_2_2_pool_optional_text_nulls.sql`; this is migration-history normalization rather than an additional schema change.
+
+The prior Release 1.4 migration is normalized as `20260703010000_release_1_4_pool_care_assistant.sql` so it deterministically follows `20260703000000_bootstrap_pool_action_audits.sql`. The SQL is byte-for-byte unchanged; only supported migration-history repair is required in existing environments.
 
 Release 2.1.1 is the current local release candidate. It stabilizes partial Pool Test persistence, eliminates Calendar Today/This Week duplication, adds compact inline event details, and condenses Pool entry forms. Outlook Calendar is deferred as a future consideration after core stability and maturity. No schema, migration, authentication, dependency, push, tag, or deployment change is included.
 

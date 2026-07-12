@@ -6,8 +6,8 @@ This guide prepares the Release 0.6C household foundation migration for safe dry
 
 Migration under review:
 
-- `supabase/migrations/20260701_release_0_6c_auth_ownership_baseline.sql`
-- `supabase/migrations/20260701_release_0_6c_household_foundation.sql`
+- `supabase/migrations/20260701000000_release_0_6c_auth_ownership_baseline.sql`
+- `supabase/migrations/20260701010000_release_0_6c_household_foundation.sql`
 
 Release 0.6C has been applied to production after local drift-clone validation, backup capture, target verification, owner approval, and production smoke tests.
 
@@ -258,7 +258,7 @@ Confirmed readiness items:
 
 1. Production backup method: use a Supabase-managed backup or point-in-time recovery marker immediately before the migration, plus `pg_dump --schema-only` and targeted data exports for `auth.users`, existing module tables, and any existing household foundation tables.
 2. Restore/rollback path: prefer full database restore from the pre-migration backup/PITR marker if validation fails. If a full restore is not acceptable, stop app writes and use a separately reviewed rollback script that removes only Release 0.6C-created triggers, functions, policies, indexes, tables, and nullable columns while preserving existing module rows.
-3. Migration file to apply: `supabase/migrations/20260701_release_0_6c_household_foundation.sql`.
+3. Migration file to apply: `supabase/migrations/20260701010000_release_0_6c_household_foundation.sql`.
 4. Validation SQL to run after migration: run the verification queries in this guide covering auth/profile/household/bootstrap counts, duplicate bootstrap guards, duplicate active memberships, module `household_id` backfill, task metadata, expected columns, role/type constraints, and RLS smoke tests.
 5. Post-migration app smoke checks: verify login, profile bootstrap, household/current-household resolution, owner membership bootstrap, user preferences read/write, household settings read/write, task list/create/update/delete, representative module reads/writes, new auth user bootstrap through the trigger, non-member denial, and unchanged localStorage behavior.
 6. Owner go/no-go approval: required before production execution. This document recommends go only after the owner confirms the backup is complete and explicitly approves applying the migration.
@@ -293,7 +293,7 @@ The backup artifacts are stored under the untracked local `backups/` directory a
 
 Result:
 
-- Migration command: `npx supabase db query --linked --file supabase/migrations/20260701_release_0_6c_household_foundation.sql`.
+- Migration command: `npx supabase db query --linked --file supabase/migrations/20260701010000_release_0_6c_household_foundation.sql`.
 - Outcome: failed during the migration preflight and rolled back.
 - Error class: production baseline/schema drift.
 - Preflight failure: all current module tables were missing the expected `user_id` ownership column.
@@ -322,8 +322,8 @@ Release 0.6C production execution completed on July 1, 2026 against the linked S
 
 Migration order:
 
-1. `supabase/migrations/20260701_release_0_6c_auth_ownership_baseline.sql`
-2. `supabase/migrations/20260701_release_0_6c_household_foundation.sql`
+1. `supabase/migrations/20260701000000_release_0_6c_auth_ownership_baseline.sql`
+2. `supabase/migrations/20260701010000_release_0_6c_household_foundation.sql`
 
 Backup artifacts captured before production execution:
 
@@ -423,8 +423,8 @@ Runtime and localStorage behavior:
 
 - [x] Announce migration window and freeze unrelated app/database changes.
 - [x] Capture backups and baseline counts.
-- [x] Apply `supabase/migrations/20260701_release_0_6c_auth_ownership_baseline.sql` once against production.
-- [x] Apply `supabase/migrations/20260701_release_0_6c_household_foundation.sql` once against production.
+- [x] Apply `supabase/migrations/20260701000000_release_0_6c_auth_ownership_baseline.sql` once against production.
+- [x] Apply `supabase/migrations/20260701010000_release_0_6c_household_foundation.sql` once against production.
 - [x] Save command output and any warnings.
 - [ ] Re-run the migration only if the first run fully commits and the team is validating idempotency intentionally.
 - [ ] Do not deploy runtime app changes as part of this migration unless separately approved.
@@ -547,7 +547,7 @@ psql "$env:SUPABASE_DB_URL" -f supabase/schema.sql
 Run only against local or staging:
 
 ```powershell
-psql "$env:SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20260701_release_0_6c_household_foundation.sql
+psql "$env:SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20260701010000_release_0_6c_household_foundation.sql
 ```
 
 Run the same command a second time to test idempotency. The second run should complete without duplicate household, membership, settings, or preference rows.
@@ -578,13 +578,13 @@ psql "$env:SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/schema.sql
 Apply the Release 0.6C migration draft:
 
 ```powershell
-psql "$env:SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20260701_release_0_6c_household_foundation.sql
+psql "$env:SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20260701010000_release_0_6c_household_foundation.sql
 ```
 
 Re-run the migration to test idempotency:
 
 ```powershell
-psql "$env:SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20260701_release_0_6c_household_foundation.sql
+psql "$env:SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20260701010000_release_0_6c_household_foundation.sql
 ```
 
 Run verification queries:

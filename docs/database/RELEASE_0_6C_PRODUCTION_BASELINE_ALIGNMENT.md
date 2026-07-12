@@ -8,7 +8,7 @@ The first production attempt against `dsowansazqleudupnjug` failed safely during
 
 The approved production owner UUID for the alignment backfill was `fc93e654-0305-4b4e-8c48-9edff3c2e800`. The baseline alignment migration now lives at:
 
-- `supabase/migrations/20260701_release_0_6c_auth_ownership_baseline.sql`
+- `supabase/migrations/20260701000000_release_0_6c_auth_ownership_baseline.sql`
 
 ## Current Production Drift
 
