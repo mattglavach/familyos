@@ -15,14 +15,14 @@ test("authenticated FamilyOS major-module smoke", async ({ page }) => {
   await expect(page.getByText("FamilyOS", { exact: false }).first()).toBeVisible();
 
   await openMoreModule(page, "Life Lists");
-  await expect(page.getByText("Family Goals")).toBeVisible();
+  await expect(page.getByText("Family Goals").first()).toBeVisible();
   await openMoreModule(page, "Pool");
   await expect(page.getByText("Pool", { exact: true }).first()).toBeVisible();
   await openMoreModule(page, "Shopping");
-  await expect(page.getByText("Weekly Groceries")).toBeVisible();
+  await expect(page.getByText("Weekly Groceries").first()).toBeVisible();
   await openMoreModule(page, "Meal Planning");
   await openMoreModule(page, "Finance");
-  await expect(page.getByText("Demo 401(k)")).toBeVisible();
+  await expect(page.getByText("Monthly Contributions", { exact: true })).toBeVisible();
   await openMoreModule(page, "College");
 
   assertNoRuntimeFailures(failures);

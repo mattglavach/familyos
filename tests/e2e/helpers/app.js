@@ -1,9 +1,9 @@
 const { expect } = require("@playwright/test");
 
 function demoCredentials() {
-  const email = process.env.DEMO_USER_EMAIL || process.env.REACT_APP_DEMO_EMAIL || "test@familyos.app";
-  const password = process.env.DEMO_USER_PASSWORD || process.env.REACT_APP_DEMO_PASSWORD;
-  if (!password) throw new Error("Set DEMO_USER_PASSWORD in .env.test.local or .env.local before browser tests.");
+  const email = process.env.DEMO_USER_EMAIL;
+  const password = process.env.DEMO_USER_PASSWORD;
+  if (!email || !password) throw new Error("Set DEMO_USER_EMAIL and DEMO_USER_PASSWORD in .env.test.local before browser tests.");
   return { email, password };
 }
 
@@ -21,7 +21,7 @@ function monitorPage(page) {
 async function loginDemoUser(page) {
   const { email, password } = demoCredentials();
   await page.goto("/");
-  if (await page.getByRole("heading", { name: "Sign in" }).isVisible().catch(() => false)) {
+  if (await page.locator('input[type="email"]').isVisible().catch(() => false)) {
     await page.locator('input[type="email"]').fill(email);
     await page.locator('input[type="password"]').fill(password);
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
@@ -31,9 +31,9 @@ async function loginDemoUser(page) {
 
 async function logoutDemoUser(page) {
   await navigateModule(page, "More");
-  await page.getByRole("button", { name: /Settings/ }).click();
-  await page.getByRole("button", { name: /Sign out/i }).click();
-  await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+  await page.getByRole("button", { name: /^Settings Core/ }).click();
+  await page.getByRole("button", { name: "Sign Out", exact: true }).click();
+  await expect(page.locator('input[type="email"]')).toBeVisible();
 }
 
 async function navigateModule(page, label) {
@@ -59,4 +59,4 @@ function assertNoRuntimeFailures(failures) {
   expect(failures.responses, `Failed API calls:\n${failures.responses.join("\n")}`).toEqual([]);
 }
 
-module.exports = { assertNoRuntimeFailures, loginDemoUser, logoutDemoUser, monitorPage, navigateModule, openMoreModule, waitForPageReady };
+module.exports = { assertNoRuntimeFailures, demoCredentials, loginDemoUser, logoutDemoUser, monitorPage, navigateModule, openMoreModule, waitForPageReady };

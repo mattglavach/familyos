@@ -1,5 +1,14 @@
 # Current Sprint
 
+## Playwright authentication infrastructure remediation
+
+- [x] Diagnosed browser, seed, allowlist, and project-target configuration drift.
+- [x] Added fail-fast environment validation and shared regenerated authentication state for desktop and mobile.
+- [x] Added guarded dedicated-user setup and verification documentation.
+- [ ] Apply the migration chain and add the test project's anonymous key to `.env.test.local`; the intended project currently has no `public.households` table, so seed and authenticated browser validation remain blocked.
+
+No production credential, production user, remote Git, deployment, or production database change is in scope.
+
 ## Release 1.8.2 local release candidate
 
 Release 1.8.2 simplifies the daily operating loop: Home prioritizes schedule, urgent tasks, and unique alerts; Tasks uses progressive filter disclosure; Pool provides one status, one recommendation, one activity timeline, and optional trends; shared empty states collapse compactly. Scope is local only with no schema, dependency, push, or deployment work.

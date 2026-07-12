@@ -1,5 +1,7 @@
 # Changelog
 
+- Restored the authoritative legacy Supabase baseline, added fresh-project Pool audit compatibility, and added isolated empty-database migration-chain validation for dedicated non-production environments.
+
 ## 1.8.2 - 2026-07-11
 
 - Redesigned Home as a concise daily brief ordered around Upcoming Schedule, Priorities, and non-duplicative Needs Attention items.
@@ -30,6 +32,7 @@
 - No migration, remote Git action, deployment, or production change was performed.
 
 ## Unreleased
+- Replaced Playwright's implicit demo-email fallback with validated `.env.test.local` configuration, exact Supabase-target checks, and a fresh gitignored authentication state shared by desktop and mobile; added dedicated smoke commands and permanent setup, verification SQL, and troubleshooting documentation.
 - Hardened permanent test infrastructure after security review: deterministic demo-household deletion boundaries, exact pre-client Supabase target verification, production compile-time removal and bundle scanning for auto-login, seed-guard unit tests, and Playwright completion/error/empty/loading/dashboard coverage.
 - Added permanent development testing infrastructure: guarded `test@familyos.app` reset/seed tooling, localhost-only development auto-login, reusable Playwright diagnostics, authenticated major-module smoke tests, task CRUD/auth/responsive regression coverage, 390px coverage, commands, security controls, and operating documentation.
 - Prepared Release 1.7.0 with Calendar America/New_York normalization, More cleanup, Pool profile and operational records, deterministic safety rules, linked Task awareness, and `familyos.pool-context` v1.0.

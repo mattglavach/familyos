@@ -10,13 +10,19 @@ test("authentication can sign out and sign back in", async ({ page }) => {
 test("task completion persists after reload and can be reopened", async ({ page }) => {
   await loginDemoUser(page);
   await navigateModule(page, "Tasks");
-  const title = "Take recycling to curb";
-  await page.getByRole("button", { name: `Complete ${title}` }).click();
+  const title = "Schedule annual physical";
+  const completeResponse = page.waitForResponse(response => response.request().method() === "PATCH" && response.url().includes("/rest/v1/tasks"));
+  await page.getByRole("checkbox", { name: `Complete ${title}` }).click();
+  expect((await completeResponse).ok()).toBe(true);
   await page.reload();
   await navigateModule(page, "Tasks");
-  await page.getByRole("button", { name: "Completed", exact: true }).click();
-  await expect(page.getByRole("button", { name: `Reopen ${title}` })).toBeVisible();
-  await page.getByRole("button", { name: `Reopen ${title}` }).click();
+  await page.getByRole("button", { name: "Filters", exact: true }).click();
+  await page.locator('select[aria-label="Status"]').selectOption({ label: "Completed" });
+  await expect(page.getByRole("checkbox", { name: `Reopen ${title}` })).toBeVisible();
+  const reopenResponse = page.waitForResponse(response => response.request().method() === "PATCH" && response.url().includes("/rest/v1/tasks"));
+  await page.getByRole("checkbox", { name: `Reopen ${title}` }).click();
+  expect((await reopenResponse).ok()).toBe(true);
+  await page.locator('select[aria-label="Status"]').selectOption({ label: "All status" });
   await expect(page.getByText(title)).toBeVisible();
 });
 
@@ -27,7 +33,7 @@ test("task mutation failure shows a controlled error", async ({ page }) => {
     return route.continue();
   });
   await navigateModule(page, "Tasks");
-  await page.getByRole("button", { name: "Complete Take recycling to curb" }).click();
+  await page.getByRole("checkbox", { name: "Complete Take recycling to curb" }).click();
   await expect(page.getByText("Task could not be completed right now.")).toBeVisible();
 });
 
@@ -65,7 +71,7 @@ test("task CRUD round trip", async ({ page }) => {
   await expect(page.getByText(`${title} updated`)).toBeVisible();
   await page.getByRole("button", { name: `Delete ${title} updated` }).click();
   await page.getByRole("button", { name: "Delete task" }).click();
-  await expect(page.getByText(`${title} updated`)).not.toBeVisible();
+  await expect(page.getByRole("button", { name: new RegExp(`^${title} updated`) })).not.toBeVisible();
 });
 
 test("responsive navigation remains usable", async ({ page }) => {

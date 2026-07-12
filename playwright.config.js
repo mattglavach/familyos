@@ -1,19 +1,22 @@
 const { defineConfig, devices } = require("@playwright/test");
-const dotenv = require("dotenv");
+const path = require("path");
+const { loadPlaywrightEnvironment, validatePlaywrightEnvironment } = require("./tests/e2e/helpers/environment");
 
-dotenv.config({ path: ".env.local" });
-dotenv.config({ path: ".env.test.local", override: true });
+loadPlaywrightEnvironment();
+const { baseURL } = validatePlaywrightEnvironment();
+const authFile = path.join(__dirname, "tests", "e2e", ".auth", "user.json");
 
 module.exports = defineConfig({
   testDir: "./tests/e2e",
   timeout: 45_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,
+  workers: 1,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
   reporter: [["list"], ["html", { outputFolder: "playwright-report", open: "never" }]],
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:3000",
+    baseURL,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
@@ -21,7 +24,7 @@ module.exports = defineConfig({
   webServer: process.env.PLAYWRIGHT_SKIP_WEBSERVER === "true" ? undefined : {
     command: "pnpm start",
     url: "http://127.0.0.1:3000",
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 120_000,
     env: {
       ...process.env,
@@ -30,7 +33,8 @@ module.exports = defineConfig({
     },
   },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
-    { name: "mobile-chromium", use: { ...devices["Pixel 5"], viewport: { width: 390, height: 844 } } },
+    { name: "setup", testMatch: /auth\.setup\.js/ },
+    { name: "chromium", testIgnore: /auth\.setup\.js/, dependencies: ["setup"], use: { ...devices["Desktop Chrome"], storageState: authFile } },
+    { name: "mobile-chromium", testIgnore: /auth\.setup\.js/, dependencies: ["setup"], use: { ...devices["Pixel 5"], viewport: { width: 390, height: 844 }, storageState: authFile } },
   ],
 });

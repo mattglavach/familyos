@@ -1,6 +1,7 @@
 node_modules/
 playwright-report/
 test-results/
+tests/e2e/.auth/
 blob-report/
 build/
 .env

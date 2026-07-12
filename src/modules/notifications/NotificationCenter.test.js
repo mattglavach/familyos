@@ -12,7 +12,11 @@ test("generates and deduplicates cross-module notifications including Pool", () 
 });
 
 test("formats Calendar notifications from the provider instant", () => {
-  const today = new Date().toISOString().slice(0, 10);
-  const notifications = buildNotifications([], [{ id: "event", title: "Known event", date: today, start: "2026-07-11T18:00:00Z", time: "6:00 PM" }], {}, { connected: true });
-  expect(notifications.find(item => item.id === "event-today-event")?.detail).toBe("2:00 PM today");
+  jest.useFakeTimers().setSystemTime(new Date("2026-07-11T16:00:00Z"));
+  try {
+    const notifications = buildNotifications([], [{ id: "event", title: "Known event", date: "2026-07-11", start: "2026-07-11T18:00:00Z", time: "6:00 PM" }], {}, { connected: true });
+    expect(notifications.find(item => item.id === "event-today-event")?.detail).toBe("2:00 PM today");
+  } finally {
+    jest.useRealTimers();
+  }
 });

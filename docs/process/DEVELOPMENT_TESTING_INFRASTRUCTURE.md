@@ -11,10 +11,16 @@ This is the permanent operating guide for FamilyOS demo data and automated brows
 
 ## Local Environment
 
-Put secrets in ignored `.env.local` or `.env.test.local`. Never commit populated values.
+Put test secrets in ignored `.env.test.local`. `.env.local` may contain normal local-development settings, but `.env.test.local` overrides them for Playwright and seeding. Never commit populated values. See `docs/setup/playwright-authentication.md` for complete setup and verification SQL.
 
 ```text
 FAMILYOS_ENV=test
+PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000
+PLAYWRIGHT_SKIP_WEBSERVER=false
+REACT_APP_SUPABASE_URL=https://<exact-non-production-project-ref>.supabase.co
+REACT_APP_SUPABASE_ANON_KEY=<non-production anonymous or publishable key>
+REACT_APP_APPROVED_HOUSEHOLD_EMAILS=test@familyos.app
+SUPABASE_URL=https://<exact-non-production-project-ref>.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<non-production service role key>
 DEMO_USER_EMAIL=test@familyos.app
 DEMO_USER_PASSWORD=<strong development-only password>
@@ -22,11 +28,9 @@ DEMO_SEED_ALLOW_REMOTE_TEST=true
 DEMO_SEED_EXPECTED_PROJECT_REF=<exact-non-production-project-ref>
 # Or for local Supabase: DEMO_SEED_EXPECTED_URL=http://127.0.0.1:54321
 REACT_APP_ENABLE_DEMO_AUTO_LOGIN=false
-REACT_APP_DEMO_EMAIL=test@familyos.app
-REACT_APP_DEMO_PASSWORD=<same development-only password>
 ```
 
-`SUPABASE_URL` may be set server-side; otherwise the seed reads `REACT_APP_SUPABASE_URL`. Seeding requires `FAMILYOS_ENV=test` plus an exact `DEMO_SEED_EXPECTED_PROJECT_REF` or `DEMO_SEED_EXPECTED_URL` match. Remote targets additionally require `DEMO_SEED_ALLOW_REMOTE_TEST=true`. Authorization alone never permits an arbitrary project, and target verification completes before the Supabase admin client is created.
+`SUPABASE_URL` may be set server-side; otherwise the seed reads `REACT_APP_SUPABASE_URL`. Both must be API origins, never Dashboard URLs. Seeding requires `FAMILYOS_ENV=test` plus an exact `DEMO_SEED_EXPECTED_PROJECT_REF` or `DEMO_SEED_EXPECTED_URL` match. Remote targets additionally require `DEMO_SEED_ALLOW_REMOTE_TEST=true`. Authorization alone never permits an arbitrary project, and target verification completes before the Supabase admin client is created.
 
 The browser demo password is available only to the local development bundle. Webpack removes the complete development module and import branch from optimized production builds. `pnpm run test:bundle-safety` verifies that production JavaScript contains no demo identity, environment-variable names, error marker, module name, or implementation function marker.
 
@@ -36,6 +40,7 @@ The browser demo password is available only to the local development bundle. Web
 cd "C:\Users\Matt Glavach\Documents\Codex\familyos"
 pnpm run seed:demo
 pnpm run test:seed-guards
+pnpm run test:db-bootstrap
 pnpm exec playwright install chromium
 pnpm run test:smoke
 pnpm run test:regression
@@ -45,7 +50,7 @@ Use `pnpm run test:e2e:ui` for interactive diagnosis. Playwright starts CRA auto
 
 ## Auto-Login Controls
 
-Auto-login is isolated in `src/development/demoAutoLogin.js`. A compile-time `NODE_ENV` branch requires it only in development, allowing the production build to remove the branch and module. At runtime it still requires CRA development mode, a loopback hostname, the explicit enable flag, and both demo email and password. Playwright disables auto-login so smoke tests independently verify real password sign-in.
+Auto-login is isolated in `src/development/demoAutoLogin.js`. A compile-time `NODE_ENV` branch requires it only in development, allowing the production build to remove the branch and module. At runtime it still requires CRA development mode, a loopback hostname, the explicit enable flag, and both demo email and password. Playwright disables auto-login. Its setup project requires explicit `DEMO_USER_EMAIL` and `DEMO_USER_PASSWORD`, verifies real password sign-in, recreates gitignored storage state on every run, and shares it across desktop and mobile. Configuration validation fails before browser launch if the target, allowlist, anonymous key, credentials, or base URL are missing or inconsistent.
 
 ## Seed Deletion Contract
 

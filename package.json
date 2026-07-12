@@ -26,9 +26,12 @@
     "check": "pnpm run lint && pnpm run test && pnpm run test:seed-guards && pnpm run build && pnpm run test:bundle-safety",
     "test:seed-guards": "node --test scripts/lib/demoSeedSafety.test.mjs",
     "test:bundle-safety": "node scripts/check-production-bundle.mjs",
+    "test:db-bootstrap": "node scripts/validate-supabase-bootstrap.mjs",
     "seed:demo": "node scripts/seed-demo.mjs",
-    "test:smoke": "playwright test --project=chromium tests/e2e/smoke.spec.js",
-    "test:regression": "playwright test",
+    "test:smoke": "playwright test tests/e2e/smoke.spec.js",
+    "test:smoke:desktop": "playwright test --project=chromium tests/e2e/smoke.spec.js",
+    "test:smoke:mobile": "playwright test --project=mobile-chromium tests/e2e/smoke.spec.js",
+    "test:regression": "pnpm run seed:demo && playwright test",
     "test:e2e:ui": "playwright test --ui"
   },
   "eslintConfig": {
