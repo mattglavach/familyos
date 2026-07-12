@@ -6,7 +6,8 @@ Date: 2026-07-12
 
 Release 2.2.0 turns FamilyOS into a faster daily operating surface. Home now prioritizes today’s schedule, urgent work, household status, habits, and five direct capture actions. Global Quick Add supports seven minimal capture paths, and Habits introduces lightweight daily consistency tracking.
 
-- Database changes: one additive migration drops historical `NOT NULL` constraints from optional `pool_readings.recent_weather_notes` and `pool_readings.water_appearance`. RLS, grants, ownership, required fields, and existing data are unchanged.
+- Database changes: the initial additive migration drops historical `NOT NULL` constraints from optional `pool_readings.recent_weather_notes` and `pool_readings.water_appearance`; the later corrective migration safely supplies missing Release 1.7 Pool context columns before enforcing the same final contract. RLS, grants, ownership, required chemistry fields, and existing data are unchanged.
+- Corrective database note: production preflight found that `pool_readings.test_context` and `pool_readings.water_appearance` were missing. A later idempotent migration adds them only when absent, preserves the canonical required `Routine` context default, and makes optional weather and appearance values nullable without changing RLS, grants, policies, ownership, or records.
 - Dependencies: None.
 - Validation: lint, 93 unit/integration tests, 18 seed-safety tests, production build, bundle safety, and 57 authenticated Playwright tests across desktop, 390px mobile, tablet, and dark-mode projects, including real Pool persistence, focus, responsive containment, failure retention, and refresh verification.
 - Known limitation: habits and task pins are authenticated-user-scoped but device-local and do not sync between devices.

@@ -27,6 +27,7 @@
     "test:seed-guards": "node --test scripts/lib/demoSeedSafety.test.mjs",
     "test:bundle-safety": "node scripts/check-production-bundle.mjs",
     "test:db-bootstrap": "node scripts/validate-supabase-bootstrap.mjs",
+    "test:pool-migration": "node scripts/validate-pool-schema-reconciliation.mjs",
     "seed:demo": "node scripts/seed-demo.mjs",
     "test:smoke": "playwright test tests/e2e/smoke.spec.js",
     "test:smoke:desktop": "playwright test --project=chromium tests/e2e/smoke.spec.js",

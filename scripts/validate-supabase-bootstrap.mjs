@@ -65,6 +65,9 @@ begin
   if (select format_type(atttypid, atttypmod) from pg_attribute where attrelid='public.pool_action_audits'::regclass and attname='reading_id') <> 'text' then
     raise exception 'pool_action_audits.reading_id must be text';
   end if;
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='pool_readings' and column_name='water_appearance' and data_type='text' and is_nullable='YES') then raise exception 'pool_readings.water_appearance must be nullable text'; end if;
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='pool_readings' and column_name='recent_weather_notes' and is_nullable='YES') then raise exception 'pool_readings.recent_weather_notes must be nullable'; end if;
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='pool_readings' and column_name='test_context' and data_type='text' and is_nullable='NO') then raise exception 'pool_readings.test_context must be required text'; end if;
   if (select count(*) from pg_policies where schemaname='public') = 0 then raise exception 'No public RLS policies found'; end if;
 end $$;`;
 

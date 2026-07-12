@@ -8,6 +8,7 @@
 - Lazy loaded Habits and retained the existing module-level lazy-loading strategy; no RLS or dependency changes.
 - Fixed the Pool Test release blocker by allowing optional weather and appearance fields to persist as `null`; added real authenticated desktop/mobile persistence and refresh regression coverage without changing RLS.
 - Scoped device-local habit completion and task pins by authenticated user and removed duplicate Today items across Focus and Needs Attention.
+- Added an idempotent corrective migration after production preflight found missing Release 1.7 Pool context columns; test-context, optional-field nullability, existing records, RLS, policies, grants, and ownership are explicitly validated.
 
 ## 2.1.1 - 2026-07-12
 

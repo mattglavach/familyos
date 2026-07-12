@@ -4,6 +4,8 @@ Release 2.1.1 stabilizes partial Pool Test saves. A valid date and at least one 
 
 Release 2.2.0 removes historical `NOT NULL` drift from optional Pool Test weather and appearance fields. Both authenticated entry paths are regression-tested against real Supabase persistence, including numeric zero, decimal values, ownership, immediate activity/status refresh, full browser reload, duplicate prevention, failure retention, and authenticated cleanup of only the created test row.
 
+The production release preflight also found that production had missed the Release 1.7 `test_context` and `water_appearance` columns. The idempotent Release 2.2 corrective migration adds those canonical text columns only when absent, retains the required `Routine` test-context default, and leaves weather and appearance nullable. No Pool permissions or ownership behavior changes.
+
 Release 1.8.4 keeps the consolidated Pool Status and promotes Pool into primary bottom navigation. History combines tests, treatments, cleaning, and maintenance in compact cards with visible accessible Edit/Delete actions. History no longer uses swipe gestures, and deletion requires confirmation. Equipment and Maintenance retain their existing workflows.
 
 ## Release 1.8 Optimization Contract

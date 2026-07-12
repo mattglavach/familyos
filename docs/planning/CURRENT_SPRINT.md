@@ -11,6 +11,8 @@
 
 One required additive Pool Test migration is included and was validated only against the approved non-production test project. No production migration, push, deployment, or tag is included.
 
+Production preflight subsequently identified missing Release 1.7 Pool context columns. The later idempotent corrective migration now reconciles missing, nullable, and historical `NOT NULL` starting states and has passed clean-database plus authenticated FamilyOS Test validation. Production remains unchanged.
+
 ## Release 2.1.1 Calendar and Pool stabilization
 
 - [x] Correct partial Pool Test saves, zero handling, validation, errors, refresh, and duplicate-submit protection.

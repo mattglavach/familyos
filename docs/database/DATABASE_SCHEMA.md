@@ -4,6 +4,8 @@
 
 `pool_readings.recent_weather_notes` and `pool_readings.water_appearance` are nullable optional text fields. Blank Pool Test form values normalize to `null`. The migration changes no required chemistry fields, ownership columns, grants, or RLS policies.
 
+Production schema drift discovered during the Release 2.2.0 release gate showed that the historical Release 1.7 additions `test_context` and `water_appearance` were missing from production even though they existed in the canonical schema and test project. The later corrective migration `20260712010000_release_2_2_pool_schema_reconciliation.sql` adds either column only when absent, preserves `test_context text not null default 'Routine'`, and makes the two optional context fields nullable. It does not alter RLS, policies, grants, ownership, or existing records.
+
 ## Release 1.8 Context and attention model
 
 Household Context, Pool trend summaries, and attention items are derived at runtime from household-scoped source records. No attention table is added because conditions resolve with their source state. Existing Release 1.7 treatment fields support the retest workflow. No Release 1.8 migration is required or applied.

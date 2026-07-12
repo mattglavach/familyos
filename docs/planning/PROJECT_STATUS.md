@@ -4,6 +4,8 @@ Release 2.2.0 is the current local release candidate. It introduces the unified 
 
 Release 2.2.0 blocker closeout adds one required, non-destructive Pool Test migration that permits `null` for optional weather and appearance fields. Real authenticated persistence now passes through both Pool and Quick Add on desktop and 390px mobile, including post-refresh ownership verification. RLS is unchanged.
 
+Corrective release status: production preflight found `pool_readings.test_context` and `water_appearance` missing. Migration `20260712010000_release_2_2_pool_schema_reconciliation.sql` now safely adds missing canonical columns and normalizes optional-field nullability. It is validated on FamilyOS Test only; production has not been modified and release execution remains pending.
+
 Release 2.1.1 is the current local release candidate. It stabilizes partial Pool Test persistence, eliminates Calendar Today/This Week duplication, adds compact inline event details, and condenses Pool entry forms. Outlook Calendar is deferred as a future consideration after core stability and maturity. No schema, migration, authentication, dependency, push, tag, or deployment change is included.
 
 Release 2.1.0 is the current local release candidate. It adds explicit guided acceptance into existing module forms, favorite/recent AI prompts, collapsible prompt preview metadata, a priorities-first configurable Home briefing, and deterministic Context Engine deduplication and prioritization. No migration, authentication, permission, dependency, automatic prompt transmission, or automatic AI write is included.
