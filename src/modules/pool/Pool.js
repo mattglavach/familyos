@@ -4,6 +4,7 @@ import { EmptyState, Loading, Modal, SwipeCard, SwipeHint } from "../../componen
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
+import { ExpandableSection } from "../../components/ui/expandable-section";
 import { DateTimeField, FormGroup, FormRow, FormSection, NotesField, NumberField, SaveCancelFooter, ToggleField, ValidationSummary } from "../../components/ui/form";
 import { ChipGroup, SegmentedControl } from "../../components/ui/segmented-control";
 import { roleCanManage } from "../../hooks/useHouseholdCollaboration";
@@ -282,7 +283,6 @@ export function Pool() {
   const [testSubmitting, setTestSubmitting] = useState(false);
   const [poolActionError, setPoolActionError] = useState("");
   const [reviewRec, setReviewRec] = useState(null);
-  const [showTrends, setShowTrends] = useState(false);
 
   const latest = latestReadingValues(readings.data);
   const recommendations = useMemo(
@@ -575,7 +575,14 @@ export function Pool() {
           {latest?.water_temp != null && <div><b style={{ color: COLORS.white }}>Water temperature:</b> {latest.water_temp} F</div>}
           <div><b style={{ color: COLORS.white }}>Last treatment:</b> {latestChemicalText(recentTreatment)}{recentTreatment?.date ? `, ${formatDate(recentTreatment.date)}` : ""}</div>
         </div>
-        {latest && <div style={{ marginTop: 10, borderTop: `1px solid ${COLORS.border}` }}>
+        <div style={{ borderTop: `1px solid ${COLORS.border}`, marginTop: 10, paddingTop: 10 }}>
+          <div style={{ fontSize: 12, color: COLORS.slate, fontWeight: 800, textTransform: "uppercase" }}>Recommended next step</div>
+          <div style={{ fontSize: 16, color: COLORS.white, fontWeight: 900, lineHeight: 1.35, marginTop: 4 }}>{nextAction?.action || "No action needed"}</div>
+          <div style={{ fontSize: 12, color: COLORS.slateLight, lineHeight: 1.45, marginTop: 3 }}>{nextAction?.explanation || `Test again ${retest.detail.toLowerCase()}`}</div>
+          {nextAction?.retest && <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 4 }}>{nextAction.retest}</div>}
+          {editable && <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}><Button type="button" size="sm" onClick={() => openTest()}>Log Test</Button>{nextAction && nextAction.priority !== "low" && <Button type="button" size="sm" variant="secondary" onClick={() => openReview(nextAction)}>Review Recommendation</Button>}</div>}
+        </div>
+        {latest && <ExpandableSection title="Water Test Results" preferenceKey="familyos.pool.water-test-results.expanded" className="mt-3 bg-transparent">
           {chemistrySummary(latest).map(([label, value, unit, key]) => {
             const status = poolStatus(key, value);
             const targets = { free_chlorine: "3–7", cc: "0–0.2", ph: "7.2–7.6", alkalinity: "80–120", cya: "60–80", salt: "3200–3600", calcium_hardness: "150–300" };
@@ -583,15 +590,7 @@ export function Pool() {
               <b>{label}</b><span style={{ color: statusColor(status), fontWeight: 900 }}>{value ?? "--"}{unit ? ` ${unit}` : ""}</span><span style={{ color: COLORS.slate }}>Target {targets[key]}</span><span style={{ color: statusColor(status), textAlign: "right", fontWeight: 800 }}>{status === "green" ? "Good" : status === "amber" ? "Watch" : status === "red" ? "Action" : "Unknown"}</span>
             </div>
           })}
-        </div>}
-      </div>
-
-      <div style={{ ...S.statusCard(nextAction?.color || COLORS.green), marginBottom: 10 }}>
-        <div style={{ fontSize: 12, color: COLORS.slate, fontWeight: 800, textTransform: "uppercase" }}>Recommended Next Step</div>
-        <div style={{ fontSize: 17, color: COLORS.white, fontWeight: 900, lineHeight: 1.35, marginTop: 5 }}>{nextAction?.action || "No action needed"}</div>
-        <div style={{ fontSize: 13, color: COLORS.slateLight, lineHeight: 1.45, marginTop: 4 }}>{nextAction?.explanation || `Test again ${retest.detail.toLowerCase()}`}</div>
-        {nextAction?.retest && <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 5 }}>{nextAction.retest}</div>}
-        {editable && <div style={{ display: "flex", gap: 8, marginTop: 8 }}><Button type="button" size="sm" onClick={() => openTest()}>Log Test</Button>{nextAction && nextAction.priority !== "low" && <Button type="button" size="sm" variant="secondary" onClick={() => openReview(nextAction)}>Review Recommendation</Button>}</div>}
+        </ExpandableSection>}
       </div>
 
       {poolActionError && (
@@ -616,17 +615,15 @@ export function Pool() {
       {loading ? <Loading /> : (
         <>
           {tab === "dashboard" && <>
-            {history.length > 0 && <div style={{ ...S.card, marginBottom: 10 }}>
-              <div style={{ fontSize: 16, fontWeight: 900, marginBottom: 6 }}>Recent Activity</div>
+            {history.length > 0 && <ExpandableSection title="Recent Activity" preferenceKey="familyos.pool.recent-activity.expanded" className="mb-2.5">
               {history.slice(0, 5).map(item => <div key={`recent-${item.kind}-${item.id}`} style={{ display: "grid", gridTemplateColumns: "72px 1fr", gap: 8, borderTop: `1px solid ${COLORS.border}`, padding: "7px 0", fontSize: 12 }}><span style={{ color: COLORS.slate }}>{item.date === TODAY_STR || String(item.sort).slice(0, 10) === TODAY_STR ? "Today" : formatDate(item.date || item.sort)}</span><span style={{ color: COLORS.slateLight }}>{item.kind === "Reading" ? "Water tested" : item.text}</span></div>)}
               {history.length > 5 && <Button type="button" variant="ghost" size="xs" onClick={() => setTab("history")}>View More Activity</Button>}
-            </div>}
-            {readings.data.length >= 2 && <details open={showTrends} onToggle={event => setShowTrends(event.currentTarget.open)} style={{ ...S.card, marginBottom: 10 }}>
-              <summary style={{ cursor: "pointer", color: COLORS.blue, fontSize: 14, fontWeight: 900 }}>View Trends</summary>
+            </ExpandableSection>}
+            {readings.data.length >= 2 && <ExpandableSection title="Trend Charts" preferenceKey="familyos.pool.trend-charts.expanded" className="mb-2.5">
               <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
                 {trends.filter(item => item.bars.length >= 2).map(item => <div key={`trend-${item.name}`} style={{ display: "grid", gridTemplateColumns: "48px 1fr 76px", gap: 8, alignItems: "center" }}><b style={{ fontSize: 12 }}>{item.name}</b><div style={{ display: "flex", alignItems: "end", gap: 3, height: 28, borderBottom: `1px solid ${COLORS.border}` }}>{item.bars.map((bar, index) => <div key={`${item.name}-${index}`} style={{ flex: 1, height: `${bar.pct}%`, minHeight: 4, borderRadius: 3, background: item.color }} />)}</div><span style={{ fontSize: 11, color: item.color, textAlign: "right" }}>{item.label}</span></div>)}
               </div>
-            </details>}
+            </ExpandableSection>}
           </>}
           {false && tab === "dashboard" && (
             <>

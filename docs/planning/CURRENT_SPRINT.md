@@ -1,11 +1,22 @@
 # Current Sprint
 
+## Release 1.8.3 local release candidate
+
+- [x] Add a compact, meaningful Family Snapshot to Home.
+- [x] Remove duplicate Calendar header refresh and render events in the user's local timezone.
+- [x] Consolidate Pool guidance and persist collapsed-section preferences.
+- [x] Remove non-value placeholder destinations from More.
+- [x] Preserve database, authentication, integration, and architecture contracts.
+- [x] Pass lint, automated tests, production build, bundle safety, and diff validation.
+
+No database change, migration, dependency, push, deployment, or production mutation is included.
+
 ## Playwright authentication infrastructure remediation
 
 - [x] Diagnosed browser, seed, allowlist, and project-target configuration drift.
 - [x] Added fail-fast environment validation and shared regenerated authentication state for desktop and mobile.
 - [x] Added guarded dedicated-user setup and verification documentation.
-- [ ] Apply the migration chain and add the test project's anonymous key to `.env.test.local`; the intended project currently has no `public.households` table, so seed and authenticated browser validation remain blocked.
+- [x] Provision the approved test target and pass authenticated desktop and mobile browser validation.
 
 No production credential, production user, remote Git, deployment, or production database change is in scope.
 

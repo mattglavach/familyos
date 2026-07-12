@@ -263,7 +263,7 @@ export function Calendar({ calendar = {}, deps = {}, initialView }) {
 
   return (
     <div style={S.screen} className="min-w-0 max-w-full space-y-4 overflow-x-hidden">
-      <div className="flex items-start justify-between gap-3">
+      <div>
         <div>
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
             <CalendarDays className="h-4 w-4" aria-hidden="true" />
@@ -271,10 +271,6 @@ export function Calendar({ calendar = {}, deps = {}, initialView }) {
           </div>
           <div className="mt-1 text-2xl font-extrabold text-foreground">Today & Upcoming</div>
         </div>
-        <Button type="button" variant="secondary" size="xs" onClick={safeCalendar.connected ? safeCalendar.refresh : safeCalendar.checkConnection} loading={safeCalendar.loading} disabled={safeCalendar.loading}>
-          <RefreshCw className="h-4 w-4" aria-hidden="true" />
-          {safeCalendar.connected ? "Refresh" : "Check"}
-        </Button>
       </div>
 
       {safeCalendar.connected && !safeCalendar.error && !status.needsAttention ? (

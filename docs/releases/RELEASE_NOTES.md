@@ -1,5 +1,15 @@
 # Release Notes
 
+## Release 1.8.3
+
+Release 1.8.3 continues the focused UX cleanup. Home adds a compact Family Snapshot below Needs Attention and only shows Pool, Retirement, or Home rows when their source data produces a useful status. Each row routes to the owning Pool or Finance workspace.
+
+Calendar removes the duplicate page-header Refresh button while retaining the connected Calendar refresh/status control, connection recovery actions, empty-state refresh, and existing pull-to-refresh behavior. Timed events now render in the user's browser-local timezone across Calendar consumers. All-day dates remain date-only.
+
+Pool keeps Pool Status visible, incorporates the recommendation into that status card, and collapses Water Test Results, Recent Activity, and Trend Charts by default. Expansion preferences are saved locally per browser using one shared expandable-section component. More no longer shows placeholder destinations. Settings remains the household-management surface.
+
+Validation passed for lint, 62 application tests, 18 seed-safety tests, production build, bundle safety, authenticated desktop Chromium, and authenticated 390px mobile Chromium. This release adds no database changes, migrations, dependencies, authentication changes, or architecture changes. It is committed locally only and is not pushed or deployed.
+
 ## Release 1.8.2
 
 Release 1.8.2 is a focused local UX simplification release. Home now behaves as a daily brief instead of a module inventory: it shows up to three upcoming events, five time-sensitive priorities with due-date labels, and three non-duplicative Needs Attention items. Empty Home sections disappear without leaving gaps. Shopping and Meal Planning remain available in their owning modules but no longer appear on Home.

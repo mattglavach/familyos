@@ -1,7 +1,6 @@
-import { CalendarDays, ChevronRight, DollarSign, Home, ListChecks, NotebookTabs, Settings, ShoppingCart, Sparkles, Utensils, Waves } from "lucide-react";
+import { ChevronRight, DollarSign, ListChecks, NotebookTabs, Settings, ShoppingCart, Utensils, Waves } from "lucide-react";
 import { Badge } from "../../components/ui/badge";
 import { Card, CardContent } from "../../components/ui/card";
-import { EmptyStatePanel } from "../../components/ui/empty-state";
 import { SectionHeader } from "../../components/ui/section-header";
 import { S } from "../../theme";
 
@@ -10,8 +9,6 @@ const platformGroups = [
     title: "Home",
     items: [
       { id: "pool", label: "Pool", detail: "Existing pool care workspace.", icon: Waves, badge: "Existing", enabled: true },
-      { label: "Maintenance", detail: "Future home maintenance workspace.", icon: Home, badge: "Future", enabled: false },
-      { label: "Smart Home", detail: "Future integrations area.", icon: Sparkles, badge: "Future", enabled: false },
     ],
   },
   {
@@ -82,14 +79,6 @@ export function More({ onNavigate }) {
         </section>
       ))}
 
-      <Card>
-        <EmptyStatePanel
-          icon={<CalendarDays className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />}
-          title="More is growing carefully"
-          detail="Smart Home and other larger areas will be added after the active household tools feel solid."
-          className="py-7"
-        />
-      </Card>
     </div>
   );
 }

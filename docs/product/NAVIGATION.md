@@ -71,7 +71,7 @@ Release 1.0 should not require breadcrumbs for the current shallow app structure
 2. Evolve toward Dashboard, Calendar, Tasks, Life, Home, and Financial Planning without presenting unfinished destinations as complete.
 3. Treat Quick Add and Search as cross-module capabilities, not business-domain modules.
 4. Move Shopping under Life when the target architecture is implemented unless a later architecture decision changes ownership.
-5. Group or retain More, Household, and Settings as management/navigation surfaces based on the approved transition design.
+5. Use Settings as the household-management surface and reserve More for implemented, useful destinations.
 6. Promote or relabel a module only when it is active, documented, validated, and migration impact is understood.
 
 ## Release 1.0 Alignment

@@ -1,7 +1,7 @@
 import { FAMILYOS_TIME_ZONE, formatCalendarEventDateTime, formatCalendarEventTime, normalizeCalendarEvent, normalizeCalendarEventTime } from "./calendarTime";
 
 describe("FamilyOS Calendar timezone contract", () => {
-  test("uses America/New_York", () => expect(FAMILYOS_TIME_ZONE).toBe("America/New_York"));
+  test("uses the browser local timezone", () => expect(FAMILYOS_TIME_ZONE).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"));
   test.each([
     ["standard time", "2026-01-15T14:00:00Z", "9:00 AM"],
     ["daylight time", "2026-07-15T13:00:00Z", "9:00 AM"],

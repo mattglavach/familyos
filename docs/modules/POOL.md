@@ -1,6 +1,6 @@
 # Pool
 
-Release 1.8.2 consolidates the Pool dashboard into Pool Status, Recommended Next Step, Recent Activity, and collapsed Trends. Current chemistry has one home in Pool Status, recommendations render once, and history combines tests, treatments, cleaning, and maintenance. Existing detailed History, Equipment, and Maintenance workspaces remain available.
+Release 1.8.3 consolidates the recommendation into the always-visible Pool Status card. Water Test Results, Recent Activity, and Trend Charts are collapsed by default and remember their expanded state in browser-local preferences. History combines tests, treatments, cleaning, and maintenance. Existing detailed History, Equipment, and Maintenance workspaces remain available.
 
 ## Release 1.8 Optimization Contract
 

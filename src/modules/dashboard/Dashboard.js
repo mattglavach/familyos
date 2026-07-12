@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { CalendarDays, ChevronRight, ListTodo } from "lucide-react";
+import { CalendarDays, ChevronRight, House, Landmark, ListTodo, Waves } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { SectionHeader } from "../../components/ui/section-header";
@@ -36,7 +36,7 @@ function priorityRank(task, today) {
 }
 
 export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
-  const { TODAY_STR, useTable, getChemRecommendations } = deps;
+  const { TODAY_STR, useTable, getChemRecommendations, formatMoneyShort } = deps;
   const household = useHousehold();
   const tasks = useTable("tasks", "due_date", true);
   const readings = useTable("pool_readings", "logged_at");
@@ -46,8 +46,11 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
   const poolMaintenance = useTable("pool_maintenance", "date");
   const poolSchedule = useTable("pool_schedule", "last_completed");
   const homeMaintenance = useTable("home_maintenance", "last_completed");
+  const retirementAccounts = useTable("retirement_accounts", "name", true);
+  const retirementAssumptions = useTable("retirement_assumptions", "id", true);
+  const mortgage = useTable("mortgage", "id", true);
   const calendar = secureCalendar.connection ? { connected: secureCalendar.connected, events: secureCalendar.events, loading: secureCalendar.loading, updatedAt: secureCalendar.lastFetchedAt } : { connected: Boolean(gc.token), events: gc.events, loading: gc.loading, updatedAt: gc.lastSyncedAt };
-  const loading = [tasks, readings, treatments, profiles, equipment, poolMaintenance, poolSchedule, homeMaintenance].some(table => table.loading) || calendar.loading;
+  const loading = [tasks, readings, treatments, profiles, equipment, poolMaintenance, poolSchedule, homeMaintenance, retirementAccounts, retirementAssumptions, mortgage].some(table => table.loading) || calendar.loading;
   const context = useMemo(() => {
     const recommendations = readings.data[0] ? getChemRecommendations(readings.data[0], readings.data, null) : [];
     const poolContext = buildPoolContext({ householdIdentifier: household.householdId, profile: profiles.data[0] || null, readings: readings.data, treatments: treatments.data, equipment: equipment.data, maintenance: poolMaintenance.data, schedule: poolSchedule.data, tasks: tasks.data, recommendations });
@@ -58,6 +61,29 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
   const priorities = [...tasks.data].filter(task => priorityRank(task, TODAY_STR) < 99).sort((a, b) => priorityRank(a, TODAY_STR) - priorityRank(b, TODAY_STR) || String(a.due_date || "9999").localeCompare(String(b.due_date || "9999"))).slice(0, 5);
   const qualifyingPriorityCount = tasks.data.filter(task => priorityRank(task, TODAY_STR) < 99).length;
   const attention = context.attentionItems.filter(item => !["tasks", "calendar", "shopping", "meal-planning"].includes(item.sourceModule)).slice(0, 3);
+  const familySnapshot = useMemo(() => {
+    const rows = [];
+    if (profiles.data.length || readings.data.length) {
+      const freshness = context.poolSummary.testFreshness?.state;
+      const warnings = context.poolSummary.chemistryStatus?.warnings?.length || 0;
+      const detail = warnings ? `${warnings} water condition${warnings === 1 ? "" : "s"} need review` : freshness === "stale" ? "Water test is due" : freshness === "current" ? "Water test is current" : "Pool setup is ready";
+      rows.push({ label: "Pool", detail, tab: "pool", icon: Waves });
+    }
+    if (retirementAccounts.data.length || retirementAssumptions.data.length) {
+      const balance = retirementAccounts.data.reduce((sum, account) => sum + Number(account.balance || 0), 0);
+      const age = retirementAssumptions.data[0]?.retirement_age;
+      const detail = balance > 0 ? `${formatMoneyShort(balance)} saved${age ? ` · target age ${age}` : ""}` : age ? `Target retirement age ${age}` : "Retirement plan available";
+      rows.push({ label: "Retirement", detail, tab: "finance", icon: Landmark });
+    }
+    const mortgageRecord = mortgage.data[0];
+    const dueMaintenance = homeMaintenance.data.filter(item => item.due_date && item.due_date <= TODAY_STR).length;
+    if (mortgageRecord || homeMaintenance.data.length) {
+      const equity = mortgageRecord ? Number(mortgageRecord.home_value || 0) - Number(mortgageRecord.current_balance || 0) : 0;
+      const detail = dueMaintenance ? `${dueMaintenance} maintenance item${dueMaintenance === 1 ? "" : "s"} due` : equity > 0 ? `${formatMoneyShort(equity)} home equity` : "Home records are current";
+      rows.push({ label: "Home", detail, tab: "finance", icon: House });
+    }
+    return rows;
+  }, [TODAY_STR, context.poolSummary, formatMoneyShort, homeMaintenance.data, mortgage.data, profiles.data.length, readings.data.length, retirementAccounts.data, retirementAssumptions.data]);
 
   if (loading) return <div style={S.screen} className="space-y-3"><Skeleton className="h-24" /><Skeleton className="h-32" /><Skeleton className="h-20" /></div>;
   return <div style={S.screen} className="space-y-3 overflow-x-hidden">
@@ -71,6 +97,10 @@ export function Dashboard({ onNavigate, gc, secureCalendar, deps }) {
 
     {attention.length > 0 && <section><SectionHeader title="Needs Attention" count={attention.length} tone={attention.some(item => ["Critical", "High"].includes(item.severity)) ? "red" : "amber"} />
       <Card><CardContent className="px-4 py-1">{attention.map(item => <button key={item.deduplicationKey} type="button" onClick={() => onNavigate(item.navigationDestination)} className="flex min-h-11 w-full items-start gap-3 border-b border-border py-2 text-left last:border-0"><span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: item.severity === "High" || item.severity === "Critical" ? COLORS.red : COLORS.amber }} /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{item.title}</span><span className="line-clamp-2 text-xs leading-5 text-muted-foreground">{item.message}</span></span><ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" /></button>)}</CardContent></Card>
+    </section>}
+
+    {familySnapshot.length > 0 && <section><SectionHeader title="Family Snapshot" tone="neutral" />
+      <Card><CardContent className="px-4 py-1">{familySnapshot.map(row => { const Icon = row.icon; return <button key={row.label} type="button" onClick={() => onNavigate(row.tab)} className="flex min-h-11 w-full items-center gap-3 border-b border-border py-1.5 text-left last:border-0"><Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{row.label}</span><span className="block truncate text-xs text-muted-foreground">{row.detail}</span></span><ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" /></button>; })}</CardContent></Card>
     </section>}
   </div>;
 }

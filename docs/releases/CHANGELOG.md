@@ -2,6 +2,16 @@
 
 - Restored the authoritative legacy Supabase baseline, added fresh-project Pool audit compatibility, and added isolated empty-database migration-chain validation for dedicated non-production environments.
 
+## 1.8.3 - 2026-07-11
+
+- Added a compact Family Snapshot below Needs Attention with meaningful Pool, Retirement, and Home summaries that route to their owning workspaces.
+- Removed Calendar's duplicate page-header refresh while retaining connected Calendar status/refresh and pull-to-refresh behavior.
+- Consolidated the Pool recommendation into Pool Status and made Water Test Results, Recent Activity, and Trend Charts collapsed by default with saved browser preferences.
+- Removed remaining placeholder destinations from More and retained Settings as the household-management surface.
+- Changed timed Calendar event formatting from a fixed Eastern timezone to the user's browser-local timezone across Calendar consumers while preserving date-only all-day events.
+- Added a shared expandable-section component and tightened touched spacing, typography, and icon sizing.
+- No database, migration, authentication, dependency, or architecture changes.
+
 ## 1.8.2 - 2026-07-11
 
 - Redesigned Home as a concise daily brief ordered around Upcoming Schedule, Priorities, and non-duplicative Needs Attention items.

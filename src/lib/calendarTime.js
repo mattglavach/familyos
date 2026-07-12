@@ -1,4 +1,4 @@
-export const FAMILYOS_TIME_ZONE = "America/New_York";
+export const FAMILYOS_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
 const dateFormatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: FAMILYOS_TIME_ZONE,
