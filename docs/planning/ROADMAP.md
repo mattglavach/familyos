@@ -1,5 +1,9 @@
 # Roadmap
 
+## Future consideration after core stability
+
+- Reconsider Outlook Calendar and other Microsoft 365 integrations only after the core application is stable and mature. These integrations are not a committed near-term release, current dependency, core architecture requirement, or blocker for Calendar improvements.
+
 ## Release 2.1.0: Guided Workflows & Product Polish
 - [x] Convert reviewed AI suggestions into prefilled existing forms for Tasks, Calendar, Pool, Life Lists, and Financial Planning.
 - [x] Add favorite/recent prompts and progressive-disclosure prompt metadata.

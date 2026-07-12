@@ -123,16 +123,18 @@ function ToggleField({ checked, label, description, onChange, disabled = false, 
   );
 }
 
-function DateTimeField({ dateLabel = "Date", timeLabel = "Time", date, time, onDateChange, onTimeChange, required = false }) {
+function DateTimeField({ dateLabel = "Date", timeLabel = "Time", date, time, onDateChange, onTimeChange, required = false, dateError = "", timeError = "", className }) {
   return (
-    <FormRow>
+    <FormRow className={className}>
       <FormGroup>
         <FieldLabel htmlFor="form-date" label={dateLabel} required={required} />
-        <Input id="form-date" type="date" value={date || ""} onChange={event => onDateChange(event.target.value, event)} />
+        <Input id="form-date" type="date" value={date || ""} aria-invalid={Boolean(dateError) || undefined} aria-describedby={dateError ? "form-date-error" : undefined} onChange={event => onDateChange(event.target.value, event)} />
+        {dateError && <FormError id="form-date-error">{dateError}</FormError>}
       </FormGroup>
       <FormGroup>
         <FieldLabel htmlFor="form-time" label={timeLabel} />
-        <Input id="form-time" type="time" value={time || ""} onChange={event => onTimeChange(event.target.value, event)} />
+        <Input id="form-time" type="time" value={time || ""} aria-invalid={Boolean(timeError) || undefined} aria-describedby={timeError ? "form-time-error" : undefined} onChange={event => onTimeChange(event.target.value, event)} />
+        {timeError && <FormError id="form-time-error">{timeError}</FormError>}
       </FormGroup>
     </FormRow>
   );

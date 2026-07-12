@@ -1,5 +1,7 @@
 # Project Status
 
+Release 2.1.1 is the current local release candidate. It stabilizes partial Pool Test persistence, eliminates Calendar Today/This Week duplication, adds compact inline event details, and condenses Pool entry forms. Outlook Calendar is deferred as a future consideration after core stability and maturity. No schema, migration, authentication, dependency, push, tag, or deployment change is included.
+
 Release 2.1.0 is the current local release candidate. It adds explicit guided acceptance into existing module forms, favorite/recent AI prompts, collapsible prompt preview metadata, a priorities-first configurable Home briefing, and deterministic Context Engine deduplication and prioritization. No migration, authentication, permission, dependency, automatic prompt transmission, or automatic AI write is included.
 
 Release 2.0.0 is the current local release candidate. It adds a deterministic Context Engine, provider-neutral Prompt Builder, centralized AI Workspace, device-local prompt trace metadata, privacy controls, Home AI Brief, and optional response review. FamilyOS remains the system of record and performs no automatic prompt transmission or AI-originated database writes. No schema, authentication, dependency, or provider-credential change is included.

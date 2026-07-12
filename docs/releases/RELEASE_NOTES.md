@@ -1,5 +1,13 @@
 # Release Notes
 
+## Release 2.1.1 - Calendar and Pool Stabilization
+
+FamilyOS 2.1.1 corrects Pool Test validation and persistence for partial measurement sets, including zero values, while retaining entered data on failure and protecting against duplicate submissions. Pool Test and related Pool entry forms use a more compact responsive layout, refresh saved readings immediately, and provide specific field and safe persistence feedback.
+
+Calendar now keeps today's local-time occurrences exclusively in Today, begins This Week tomorrow, and expands compact event cards inline with keyboard and ARIA support. Empty event details are omitted and existing external Calendar actions remain available. Outlook Calendar is not part of this release or a near-term dependency; Microsoft integrations remain a future consideration after the core application is stable and mature.
+
+No database migration, authentication change, dependency addition, push, tag, or deployment is included.
+
 ## Release 2.1.0 - Guided Workflows & Product Polish
 
 AI recommendations can now become guided proposals for Tasks, Calendar, Pool, Life Lists, and Financial Planning. Choosing a proposal opens the owning module's existing form with suggested values. Calendar opens Google Calendar's existing event template. In every case, the user reviews and explicitly saves or cancels; FamilyOS performs no automatic database write.

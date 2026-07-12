@@ -534,7 +534,7 @@ export function QuickAdd({onNavigate, openSignal = 0, initialMode = null}){
               <Label className="mb-0">FC entry</Label>
               <SegmentedControl value={form._drops?"drops":"ppm"} options={[{value:"ppm",label:"ppm"},{value:"drops",label:"K-2006"}]} ariaLabel="Free chlorine entry mode" onValueChange={v=>setField("_drops",v==="drops")}/>
             </div>
-            <FormSection title="Chemistry" description="Add any tested values or context from the pool check.">
+            <FormSection title="Chemistry" description="Add at least one chemistry or water measurement from the pool check.">
               <FormRow>{POOL_TEST_PRIMARY_FIELDS.slice(0,2).map(renderPoolNumberField)}</FormRow>
               <FormRow>{POOL_TEST_PRIMARY_FIELDS.slice(2,4).map(renderPoolNumberField)}</FormRow>
               <FormRow>{POOL_TEST_PRIMARY_FIELDS.slice(4,6).map(renderPoolNumberField)}</FormRow>

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.1 - 2026-07-12
+
+- Fixed Pool Test partial saves, zero-value handling, blank normalization, field validation, safe persistence errors, duplicate-submit protection, immediate refresh, and success confirmation.
+- Removed Calendar duplication between Today and This Week using local occurrence dates.
+- Replaced default expanded Calendar detail layout with compact, accessible inline expansion.
+- Condensed Pool Test, chemical addition, and related entry layouts responsively.
+- Moved Outlook Calendar integration to future consideration after core stability and maturity.
+
 ## 2.1.0 - 2026-07-12
 
 - Added explicit guided acceptance from AI response review into prefilled Tasks, Google Calendar, Pool, Life Lists, and Financial Planning forms.

@@ -80,7 +80,7 @@ describe("QuickAdd Pool Test", () => {
     expect(text.indexOf("CC ppm")).toBeLessThan(text.indexOf("pH"));
   });
 
-  test("blocks Pool Test creation when no test value or context is provided", async () => {
+  test("blocks Pool Test creation when no measurement is provided", async () => {
     act(() => root.render(React.createElement(QuickAdd, { openSignal: 1, onNavigate: jest.fn() })));
     clickByText(container, "Pool Test");
 
@@ -89,7 +89,7 @@ describe("QuickAdd Pool Test", () => {
     });
 
     expect(poolReadings.insert).not.toHaveBeenCalled();
-    expect(container.textContent).toContain("Add at least one test result");
+    expect(container.textContent).toContain("Add at least one chemistry or water measurement");
   });
 
   test("creates a partial Pool Test without pH or FC", async () => {
@@ -142,6 +142,7 @@ describe("QuickAdd Pool Test", () => {
   test("saves Party and Rain context fields", async () => {
     act(() => root.render(React.createElement(QuickAdd, { openSignal: 1, onNavigate: jest.fn() })));
     clickByText(container, "Pool Test");
+    changeInput(container.querySelector('input[aria-label="pH"]'), "7.4");
     clickByText(container, "Party");
     clickByText(container, "Rain");
 
@@ -198,7 +199,7 @@ describe("Pool Test form helpers", () => {
   test("validatePoolTestForm blocks completely empty Pool Tests", () => {
     expect(validatePoolTestForm({})).toEqual({
       valid: false,
-      message: "Add at least one test result, note, rain, or party/heavy-use context before saving.",
+      message: "Add at least one chemistry or water measurement before saving.",
       fields: [],
     });
   });

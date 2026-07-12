@@ -1,5 +1,16 @@
 # Current Sprint
 
+## Release 2.1.1 Calendar and Pool stabilization
+
+- [x] Correct partial Pool Test saves, zero handling, validation, errors, refresh, and duplicate-submit protection.
+- [x] Keep Today events out of This Week across all-day, timed, recurring, and local-time occurrences.
+- [x] Add compact accessible inline Calendar event details.
+- [x] Condense responsive Pool data-entry forms without removing fields.
+- [x] Move Outlook Calendar integration to future consideration.
+- [x] Complete final lint, automated, seed-safety, build, bundle-safety, responsive, dark-mode, accessibility, console, and Git validation.
+
+No dependency, authentication, schema, migration, push, tag, or deployment work is included.
+
 ## Release 2.1.0 guided workflows and polish
 
 - [x] Add guided, prefilled, confirmation-required acceptance for Tasks, Calendar, Pool, Life Lists, and Financial Planning.

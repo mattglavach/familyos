@@ -132,6 +132,29 @@ describe("Pool Test persistence UI", () => {
     }));
   });
 
+  test("saves combined chlorine zero and normalizes blank optional values", async () => {
+    act(() => root.render(React.createElement(Pool)));
+    clickByText(container, "Log Test");
+    const ccInput = [...container.querySelectorAll("input")].find(input => input.closest("label")?.textContent?.includes("CC ppm"))
+      || [...container.querySelectorAll("input")].find(input => input.getAttribute("max") === "20");
+    act(() => Simulate.change(ccInput, { target: { value: "0" } }));
+    await act(async () => Simulate.click([...container.querySelectorAll("button")].find(item => item.textContent.includes("Save Test"))));
+    expect(tables.pool_readings.insert).toHaveBeenCalledTimes(1);
+    expect(tables.pool_readings.insert).toHaveBeenCalledWith(expect.objectContaining({ cc: 0, ph: null, free_chlorine: null, notes: null }));
+  });
+
+  test("persistence failure retains entered values and shows a safe message", async () => {
+    tables.pool_readings.insert.mockRejectedValue(new Error("database secret detail"));
+    act(() => root.render(React.createElement(Pool)));
+    clickByText(container, "Log Test");
+    const phInput = container.querySelector('input[aria-label="pH"]');
+    act(() => Simulate.change(phInput, { target: { value: "7.4" } }));
+    await act(async () => Simulate.click([...container.querySelectorAll("button")].find(item => item.textContent.includes("Save Test"))));
+    expect(phInput.value).toBe("7.4");
+    expect(container.textContent).toContain("Pool test could not be saved right now.");
+    expect(container.textContent).not.toContain("database secret detail");
+  });
+
   test("blocks empty Pool module Pool Test saves", async () => {
     act(() => root.render(React.createElement(Pool)));
     clickByText(container, "Log Test");
@@ -141,7 +164,7 @@ describe("Pool Test persistence UI", () => {
     });
 
     expect(tables.pool_readings.insert).not.toHaveBeenCalled();
-    expect(container.textContent).toContain("Add at least one test result");
+    expect(container.textContent).toContain("Add at least one chemistry or water measurement");
   });
 
   test("fetched partial Pool Test appears in history and updates current status after reload", () => {

@@ -95,19 +95,26 @@ export function setRainContext(form, enabled) {
 }
 
 export function hasMeaningfulPoolTestEntry(form) {
-  const hasNumber = Object.keys(POOL_TEST_FIELD_RANGES).some(key => {
+  return Object.keys(POOL_TEST_FIELD_RANGES).some(key => {
     const value = form[key];
     return value !== "" && value !== undefined && value !== null;
   });
-  return Boolean(
-    hasNumber
-    || String(form.notes || "").trim()
-    || String(form.recent_weather_notes || "").trim()
-    || form.recent_heavy_usage
-  );
+}
+
+function validDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))) return false;
+  const date = new Date(`${value}T12:00:00`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+function validTime(value) {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(String(value || ""));
 }
 
 export function validatePoolTestForm(form) {
+  const date = form.date || TODAY_STR;
+  if (!validDate(date)) return { valid: false, message: "Enter a valid test date.", fields: ["date"] };
+  if (form.time && !validTime(form.time)) return { valid: false, message: "Enter a valid test time.", fields: ["time"] };
   const invalidFields = Object.keys(POOL_TEST_FIELD_RANGES).filter(key => poolTestFieldError(key, form));
   if (invalidFields.length) {
     return {
@@ -120,7 +127,7 @@ export function validatePoolTestForm(form) {
   if (!hasMeaningfulPoolTestEntry(form)) {
     return {
       valid: false,
-      message: "Add at least one test result, note, rain, or party/heavy-use context before saving.",
+      message: "Add at least one chemistry or water measurement before saving.",
       fields: [],
     };
   }
@@ -150,10 +157,10 @@ export function buildPoolReadingRow(form, options = {}) {
     filter_pressure: poolTestNumber(form.filter_pressure),
     swg_setting: poolTestNumber(form.swg_setting),
     pump_hours: poolTestNumber(form.pump_hours),
-    recent_weather_notes: form.recent_weather_notes || "",
+    recent_weather_notes: String(form.recent_weather_notes || "").trim() || null,
     recent_heavy_usage: Boolean(form.recent_heavy_usage),
     test_context: form.test_context || "Routine",
-    water_appearance: form.water_appearance || "",
-    notes: form.notes || "",
+    water_appearance: String(form.water_appearance || "").trim() || null,
+    notes: String(form.notes || "").trim() || null,
   };
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, CalendarClock, CheckCircle2, ClipboardList, Droplets, FlaskConical, HelpCircle, History, Pencil, Settings2, ThermometerSun, Trash2, Wrench } from "lucide-react";
 import { EmptyState, Loading, Modal, SwipeCard, SwipeHint } from "../../components/common";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
@@ -282,7 +282,10 @@ export function Pool({ initialView }) {
   const [sourceMode, setSourceMode] = useState("Taylor Kit");
   const [showAdvancedTest, setShowAdvancedTest] = useState(false);
   const [testSaveError, setTestSaveError] = useState("");
+  const [testInvalidFields, setTestInvalidFields] = useState([]);
   const [testSubmitting, setTestSubmitting] = useState(false);
+  const testSubmissionRef = useRef(false);
+  const [testSaveSuccess, setTestSaveSuccess] = useState("");
   const [poolActionError, setPoolActionError] = useState("");
   const [reviewRec, setReviewRec] = useState(null);
   const [treatmentSubmitting,setTreatmentSubmitting]=useState(false);
@@ -352,6 +355,7 @@ export function Pool({ initialView }) {
 
   function setTestField(key, value) {
     setTestSaveError("");
+    setTestInvalidFields(previous => previous.filter(field => field !== key));
     setForm(previous => ({ ...previous, [key]: value }));
   }
 
@@ -393,6 +397,8 @@ export function Pool({ initialView }) {
 
   function openTest(row = null) {
     setTestSaveError("");
+    setTestInvalidFields([]);
+    setTestSaveSuccess("");
     setPoolActionError("");
     setForm(row ? { ...row, time: row.logged_at ? new Date(row.logged_at).toTimeString().slice(0, 5) : "" } : { date: TODAY_STR, test_source: "Taylor Kit" });
     setSourceMode(row?.test_source || "Taylor Kit");
@@ -400,23 +406,28 @@ export function Pool({ initialView }) {
   }
 
   async function saveTest() {
-    if (testSubmitting) return;
+    if (testSubmissionRef.current) return;
     setTestSaveError("");
     setPoolActionError("");
     const validation = validatePoolTestForm(form);
     if (!validation.valid) {
       setTestSaveError(validation.message);
+      setTestInvalidFields(validation.fields);
       return;
     }
     const row = buildPoolReadingRow(form, { testSource: sourceMode, time: form.time });
     try {
+      testSubmissionRef.current = true;
       setTestSubmitting(true);
       if (form.id) await readings.update(form.id, row);
       else await readings.insert(row);
+      await readings.reload?.();
+      setTestSaveSuccess(form.id ? "Pool test updated." : "Pool test saved.");
       setModal(null); setForm({});
     } catch (error) {
       setTestSaveError(formatUserFacingError(error, "Pool test could not be saved right now."));
     } finally {
+      testSubmissionRef.current = false;
       setTestSubmitting(false);
     }
   }
@@ -570,6 +581,7 @@ export function Pool({ initialView }) {
 
   return (
     <div style={S.screen}>
+      {testSaveSuccess && <div className="mb-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm font-semibold text-emerald-700 dark:text-emerald-300" role="status">{testSaveSuccess}</div>}
       <div style={{ ...S.statusCard(health.color), marginBottom: 10 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
           <div>
@@ -883,17 +895,20 @@ export function Pool({ initialView }) {
         <Modal title={form.id ? "Edit Pool Test" : "Log Pool Test"} onClose={() => { setModal(null); setForm({}); }}>
           <FormSection>
             <DateTimeField
+              required
               date={form.date || TODAY_STR}
               time={form.time || new Date().toTimeString().slice(0, 5)}
+              dateError={testInvalidFields.includes("date") ? "Enter a valid test date." : ""}
+              timeError={testInvalidFields.includes("time") ? "Enter a valid test time." : ""}
               onDateChange={date => setTestField("date", date)}
               onTimeChange={time => setTestField("time", time)}
             />
             <FormGroup><Label>Test Source</Label><SegmentedControl value={sourceMode} options={TEST_SOURCES.map(value => ({ value, label: value }))} ariaLabel="Test source" onValueChange={setSourceMode} /></FormGroup>
             <FormGroup><Label>Test Context</Label><select className="flex h-11 w-full rounded-md border border-input bg-secondary px-3 py-2 text-sm text-foreground" value={form.test_context || "Routine"} onChange={e => setTestField("test_context", e.target.value)}>{POOL_TEST_CONTEXTS.map(value => <option key={value}>{value}</option>)}</select></FormGroup>
-            <FormSection title="Chemistry" description="Log any tested values. At least one result, note, rain, or party context is needed.">
+            <FormSection title="Chemistry" description="Log any tested values. At least one chemistry or water measurement is needed.">
               <FormRow>{POOL_TEST_PRIMARY_FIELDS.slice(0, 2).map(renderPoolNumberField)}</FormRow>
               <FormRow>{POOL_TEST_PRIMARY_FIELDS.slice(2, 4).map(renderPoolNumberField)}</FormRow>
-              <FormRow>{POOL_TEST_PRIMARY_FIELDS.slice(4, 6).map(renderPoolNumberField)}</FormRow>
+              <div className="grid gap-3 sm:grid-cols-3">{POOL_TEST_PRIMARY_FIELDS.slice(4, 6).map(renderPoolNumberField)}{renderPoolNumberField(POOL_TEST_ADVANCED_FIELDS[3])}</div>
               {renderPoolNumberField(POOL_TEST_PRIMARY_FIELDS[6])}
             </FormSection>
             <NotesField label="Notes" value={form.notes || ""} placeholder="Clarity, swimmer load, dosing context..." onChange={value => setTestField("notes", value)} />
@@ -908,7 +923,7 @@ export function Pool({ initialView }) {
             {showAdvancedTest && (
               <FormSection>
                 <FormRow>{POOL_TEST_ADVANCED_FIELDS.slice(0, 2).map(renderPoolNumberField)}</FormRow>
-                <FormRow>{POOL_TEST_ADVANCED_FIELDS.slice(2, 4).map(renderPoolNumberField)}</FormRow>
+                {renderPoolNumberField(POOL_TEST_ADVANCED_FIELDS[2])}
                 <FormGroup><Label>Recent Weather</Label><Input value={form.recent_weather_notes || ""} placeholder="Heat, rain, storms..." onChange={e => setTestField("recent_weather_notes", e.target.value)} /></FormGroup>
               </FormSection>
             )}
@@ -921,9 +936,9 @@ export function Pool({ initialView }) {
       {modal === "treatment" && (
         <Modal title="Chemical Added" onClose={() => { setModal(null); setForm({}); }}>
           <FormSection>
-            <FormRow><FormGroup><Label>Treatment</Label><Input value={form.treatment || ""} placeholder="Liquid chlorine" onChange={e => setForm(p => ({ ...p, treatment: e.target.value }))} /></FormGroup><FormGroup><Label>Reason</Label><Input value={form.reason || ""} onChange={e => setForm(p => ({ ...p, reason: e.target.value }))} /></FormGroup></FormRow>
-            <FormRow><FormGroup><Label>Amount</Label><Input type="number" value={form.amount || ""} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} /></FormGroup><FormGroup><Label>Unit / Concentration</Label><Input value={form.unit || ""} placeholder="oz at 10%" onChange={e => setForm(p => ({ ...p, unit: e.target.value }))} /></FormGroup></FormRow>
             <FormRow><FormGroup><Label>Date</Label><Input type="date" value={form.date || TODAY_STR} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} /></FormGroup><FormGroup><Label>Time</Label><Input type="time" value={form.time || new Date().toTimeString().slice(0, 5)} onChange={e => setForm(p => ({ ...p, time: e.target.value }))} /></FormGroup></FormRow>
+            <div className="grid gap-3 sm:grid-cols-3"><FormGroup><Label>Treatment</Label><Input value={form.treatment || ""} placeholder="Liquid chlorine" onChange={e => setForm(p => ({ ...p, treatment: e.target.value }))} /></FormGroup><FormGroup><Label>Amount</Label><Input type="number" value={form.amount || ""} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} /></FormGroup><FormGroup><Label>Unit / Concentration</Label><Input value={form.unit || ""} placeholder="oz at 10%" onChange={e => setForm(p => ({ ...p, unit: e.target.value }))} /></FormGroup></div>
+            <FormGroup><Label>Reason</Label><Input value={form.reason || ""} onChange={e => setForm(p => ({ ...p, reason: e.target.value }))} /></FormGroup>
             <FormRow><FormGroup><Label>Muriatic Acid (oz)</Label><Input type="number" value={form.muriatic_acid_oz || ""} onChange={e => setForm(p => ({ ...p, muriatic_acid_oz: e.target.value }))} /></FormGroup><FormGroup><Label>Salt (lb)</Label><Input type="number" value={form.salt_lbs || ""} onChange={e => setForm(p => ({ ...p, salt_lbs: e.target.value }))} /></FormGroup></FormRow>
             <FormRow><FormGroup><Label>CYA (oz)</Label><Input type="number" value={form.cya_oz || ""} onChange={e => setForm(p => ({ ...p, cya_oz: e.target.value }))} /></FormGroup><FormGroup><Label>Chlorine (oz)</Label><Input type="number" value={form.liquid_chlorine_oz || ""} onChange={e => setForm(p => ({ ...p, liquid_chlorine_oz: e.target.value }))} /></FormGroup></FormRow>
             <FormRow><FormGroup><Label>SWG Before</Label><Input type="number" value={form.swg_pct_before || ""} onChange={e => setForm(p => ({ ...p, swg_pct_before: e.target.value }))} /></FormGroup><FormGroup><Label>SWG After</Label><Input type="number" value={form.swg_pct_after || ""} onChange={e => setForm(p => ({ ...p, swg_pct_after: e.target.value }))} /></FormGroup></FormRow>
@@ -957,10 +972,8 @@ export function Pool({ initialView }) {
       {modal === "maintenance" && (
         <Modal title="Maintenance or Pool Note" onClose={() => { setModal(null); setForm({}); }}>
           <FormSection>
-            <FormGroup><Label>Date</Label><Input type="date" value={form.date || TODAY_STR} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} /></FormGroup>
-            <FormGroup><Label>Type</Label><Input value={form.type || ""} placeholder="Filter cleaning, pool party, weather note..." onChange={e => setForm(p => ({ ...p, type: e.target.value }))} /></FormGroup>
-            <FormGroup><Label>Equipment</Label><select className="flex h-11 w-full rounded-md border border-input bg-secondary px-3 py-2 text-sm text-foreground" value={form.equipment_id || ""} onChange={e => setForm(p => ({ ...p, equipment_id: e.target.value }))}><option value="">None</option>{equipment.data.map(item => <option key={item.id} value={item.id}>{item.name || item.type}</option>)}</select></FormGroup>
-            <FormGroup><Label>Water Clarity</Label><Input value={form.water_clarity || ""} onChange={e => setForm(p => ({ ...p, water_clarity: e.target.value }))} /></FormGroup>
+            <FormRow><FormGroup><Label>Date</Label><Input type="date" value={form.date || TODAY_STR} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} /></FormGroup><FormGroup><Label>Type</Label><Input value={form.type || ""} placeholder="Filter cleaning, pool party, weather note..." onChange={e => setForm(p => ({ ...p, type: e.target.value }))} /></FormGroup></FormRow>
+            <FormRow><FormGroup><Label>Equipment</Label><select className="flex h-11 w-full rounded-md border border-input bg-secondary px-3 py-2 text-sm text-foreground" value={form.equipment_id || ""} onChange={e => setForm(p => ({ ...p, equipment_id: e.target.value }))}><option value="">None</option>{equipment.data.map(item => <option key={item.id} value={item.id}>{item.name || item.type}</option>)}</select></FormGroup><FormGroup><Label>Water Clarity</Label><Input value={form.water_clarity || ""} onChange={e => setForm(p => ({ ...p, water_clarity: e.target.value }))} /></FormGroup></FormRow>
             <FormGroup><Label>Notes</Label><Input value={form.notes || ""} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} /></FormGroup>
             <Button type="button" className="w-full" onClick={saveMaintenance}>Save Entry</Button>
           </FormSection>
