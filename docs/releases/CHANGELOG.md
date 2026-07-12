@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.1.0 - 2026-07-12
+
+- Added explicit guided acceptance from AI response review into prefilled Tasks, Google Calendar, Pool, Life Lists, and Financial Planning forms.
+- Added favorite and recent prompts, selectable recent history, and a compact collapsible prompt preview with contract and privacy metadata.
+- Refined Home with an explicit Top Priorities section, useful empty states, configurable card order, optional AI Brief visibility, and a configurable default prompt.
+- Improved Context Engine output with deterministic deduplication, priority ordering, and bounded section sizes.
+- Improved responsive wrapping, touch-friendly actions, and rendering efficiency across Home and AI Workspace.
+- Fixed optional Home weather handling when a household has no settings row.
+- Preserved manual confirmation, existing permissions, authentication, schema, and dependencies. No automatic AI write or database migration was added.
+
 ## 2.0.0 - 2026-07-12
 
 - Added the deterministic, permission-aware Context Engine and standard module contribution contract.

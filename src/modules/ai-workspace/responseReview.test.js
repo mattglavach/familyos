@@ -1,1 +1,2 @@
 import{identifySuggestions}from"./responseReview";test("response review identifies supported suggestions without writing anything",()=>{expect(identifySuggestions("Task: Call school\nEvent: Dentist Friday\nPool: Retest chlorine").map(x=>x.type)).toEqual(["task","calendar","pool"]);});
+test("response review covers every guided destination",()=>{expect(identifySuggestions("Task: Call school\nCalendar: Dentist\nPool: Retest\nLife List: Visit Maine\nFinance: Increase savings").map(x=>x.type)).toEqual(["task","calendar","pool","life","finance"]);});

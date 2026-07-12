@@ -1,5 +1,16 @@
 # Current Sprint
 
+## Release 2.1.0 guided workflows and polish
+
+- [x] Add guided, prefilled, confirmation-required acceptance for Tasks, Calendar, Pool, Life Lists, and Financial Planning.
+- [x] Add favorite/recent prompts and collapsible preview metadata in AI Workspace.
+- [x] Add Home Top Priorities, improved empty states, card ordering, AI Brief visibility, and default prompt settings.
+- [x] Add Context Engine deduplication, priority ordering, and bounded output.
+- [x] Improve responsive layouts and update release, architecture, module, roadmap, status, changelog, and developer documentation.
+- [x] Complete lint, automated tests, production build, bundle safety, Playwright desktop/tablet/mobile/dark-mode, accessibility, and final Git validation.
+
+No push, deployment, tag, migration, authentication, permission, dependency, provider authentication, or automatic AI write is included.
+
 ## Release 2.0.0 architectural release
 
 - [x] Implement Context Engine, standard contributors, and Prompt Builder.

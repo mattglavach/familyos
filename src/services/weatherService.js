@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 const CACHE_MS=30*60*1000;
-export function configuredWeatherLocation(settings={}) { return settings.weather_location || settings.location || settings.postal_code || settings.zip_code || ""; }
+export function configuredWeatherLocation(settings={}) { const safe=settings||{}; return safe.weather_location || safe.location || safe.postal_code || safe.zip_code || ""; }
 export function useGreetingWeather(settings) {
   const location=configuredWeatherLocation(settings); const [weather,setWeather]=useState(null);
   useEffect(()=>{ if(!location)return; const key=`familyos_weather:${location}`; try{const cached=JSON.parse(sessionStorage.getItem(key)||"null");if(cached&&Date.now()-cached.savedAt<CACHE_MS){setWeather(cached.data);return;}}catch{}

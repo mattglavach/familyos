@@ -165,12 +165,19 @@ export function LifeLists({ initialView }) {
   const selectedList = visibleLists.find(list => list.id === selectedId) || null;
   const editable = canEditList(selectedList, household);
   const canManageSharedLists = roleCanManage(household.membership?.role);
+  const activeLists = visibleLists.filter(list => !list.archived);
 
   useEffect(() => {
     if (!initialView?.ts) return;
     if (initialView.listId) setSelectedId(initialView.listId);
     if (initialView.search) setQuery(initialView.search);
-  }, [initialView]);
+    if (initialView.workflow === "item") {
+      if (!selectedId && activeLists[0]) setSelectedId(activeLists[0].id);
+      setError("");
+      setItemForm({ title: initialView.prefill?.title || "", description: initialView.prefill?.description || "", priority: "med", status: "planned", favorite: false, archived: false, assigned_to_person_id: "", tags: "", link_url: "", image_url: "" });
+      setItemDrawer(true);
+    }
+  }, [activeLists, initialView, selectedId]);
   const canCreate = Boolean(household.user?.id);
   const normalizedQuery = query.trim().toLowerCase();
   const allItems = items.data.filter(item => item.list_id === selectedList?.id);
@@ -187,7 +194,6 @@ export function LifeLists({ initialView }) {
     itemSort
   );
   const listCounts = useMemo(() => items.data.reduce((acc, item) => ({ ...acc, [item.list_id]: (acc[item.list_id] || 0) + 1 }), {}), [items.data]);
-  const activeLists = visibleLists.filter(list => !list.archived);
 
   function openListForm(list = null) {
     setError("");

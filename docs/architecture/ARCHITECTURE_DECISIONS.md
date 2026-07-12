@@ -1,5 +1,9 @@
 # Architecture Decisions
 
+## 2026-07-12: Guided AI acceptance reuses owning-module forms
+
+Release 2.1.0 represents reviewed AI suggestions as transient navigation payloads. Tasks, Pool, Life Lists, and Financial Planning open their existing forms with proposed values; Calendar uses Google Calendar's existing event template. Payloads are not persisted, permissions are unchanged, and only the form's explicit save action may write. This avoids duplicate workflows, schema changes, and an unsafe AI mutation layer.
+
 ## 2026-07-12: Separate module context, prompt construction, and provider interaction
 
 Release 2.0.0 establishes three boundaries: modules contribute normalized facts, the Context Engine aggregates permission-aware context, and the Prompt Builder formats provider-neutral prompts after privacy filtering. AI Workspace owns review and manual copy. No module knows about ChatGPT, and no AI response can mutate FamilyOS automatically. Traceability remains device-local metadata to avoid storing conversation content or requiring a migration.

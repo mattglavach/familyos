@@ -430,12 +430,12 @@ function AuthenticatedApp({ auth }) {
         maintStatus,maintColor,useTable,
       }}/>} 
       {tab==="pool"&&<Pool initialView={navigationContext?.tab === "pool" ? navigationContext : null}/>}
-      {tab==="finance"&&<Finance/>}
+      {tab==="finance"&&<Finance initialView={navigationContext?.tab === "finance" ? navigationContext : null}/>}
       {tab==="life-lists"&&<LifeLists initialView={navigationContext?.tab === "life-lists" ? navigationContext : null}/>}
       {tab==="meal-planning"&&<MealPlanning/>}
       {tab==="more"&&<More onNavigate={switchTab}/>}
       {tab==="settings"&&<Settings auth={auth} gc={gc} secureCalendar={secureCalendar}/>}
-      {tab==="ai-workspace"&&<AIWorkspace calendarEvents={headerCalendar.events}/>}
+      {tab==="ai-workspace"&&<AIWorkspace calendarEvents={headerCalendar.events} onNavigate={switchTab}/>}
       </Suspense>
       </AppErrorBoundary>
 

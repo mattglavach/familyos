@@ -285,7 +285,7 @@ Write a brief with these EXACT sections, bullets only, under 200 words total:
   );
 }
 
-export function Finance(){
+export function Finance({ initialView }){
   const accounts    = useTable("retirement_accounts","name",true);
   const assumptions = useTable("retirement_assumptions","id",true);
   const collegeSav  = useTable("college_savings","id",true);
@@ -314,6 +314,14 @@ export function Finance(){
 
   function openEdit(modal,item){ setEditItem(item); setForm({...item}); setShowModal(modal); setActiveSwipe(null); }
   function closeModal(){ setShowModal(null); setEditItem(null); setForm({}); }
+
+  useEffect(() => {
+    if (initialView?.workflow !== "action" || !initialView?.ts) return;
+    setTab("summary");
+    setEditItem(null);
+    setForm({ title: initialView.prefill?.title || "", category: "other", priority: "med" });
+    setShowModal("action");
+  }, [initialView]);
 
   const assump = assumptions.data[0];
   const collegeS = collegeSav.data[0];

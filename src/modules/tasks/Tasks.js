@@ -442,7 +442,18 @@ export function Tasks({ deps, initialView }) {
     if (initialView.status) {
       setStatusFilter(initialView.status);
     }
-  }, [initialView]);
+    if (initialView.workflow === "create") {
+      const defaultMember = family.members.find(member => member.id === household.userPreferences?.default_person_id);
+      const defaultAssignee = defaultMember?.name || family.activeMembers[0]?.name || "Family";
+      const defaults = emptyTaskForm(defaultAssignee, {
+        taskDefaultCategory: household.userPreferences?.default_task_category || household.householdSettings?.default_task_category || "Home",
+        taskDefaultPriority: household.userPreferences?.default_task_priority || household.householdSettings?.default_task_priority || "med",
+      });
+      setForm({ ...defaults, title: initialView.prefill?.title || "", description: initialView.prefill?.description || "", due_date: initialView.prefill?.due_date || "" });
+      setDrawer({ open: true, mode: "create", task: null });
+      setFormError("");
+    }
+  }, [family.activeMembers, family.members, household.householdSettings?.default_task_category, household.householdSettings?.default_task_priority, household.userPreferences?.default_person_id, household.userPreferences?.default_task_category, household.userPreferences?.default_task_priority, initialView]);
 
   const filteredTasks = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();

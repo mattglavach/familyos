@@ -5,7 +5,7 @@ test("authenticated FamilyOS major-module smoke", async ({ page }) => {
   const failures = monitorPage(page);
   await loginDemoUser(page);
   await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
-  await expect(page.getByText("Schedule annual physical")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Schedule annual physical/ }).first()).toBeVisible();
 
   await page.keyboard.press("Control+K");
   await expect(page.getByText("Search Family OS", { exact: true })).toBeVisible();
@@ -26,9 +26,13 @@ test("authenticated FamilyOS major-module smoke", async ({ page }) => {
   await expect(page.getByText("Pool", { exact: true }).first()).toBeVisible();
   await openMoreModule(page, "AI Workspace");
   await expect(page.getByRole("heading", { name: "Ask FamilyOS" })).toBeVisible();
+  await page.getByRole("button", { name: /Full generated prompt/ }).click();
   await expect(page.getByLabel("Generated FamilyOS prompt")).toBeVisible();
   await expect(page.getByRole("button", { name: "Copy Prompt" })).toBeEnabled();
   await expect(page.getByLabel("AI response to review")).toBeVisible();
+  await page.getByLabel("AI response to review").fill("Task: Schedule follow-up 2026-07-20\nCalendar: Dentist 2026-07-21\nPool: Retest chlorine\nLife List: Visit Maine\nFinance: Review contribution rate");
+  await expect(page.getByRole("button", { name: "Review prefilled form" })).toHaveCount(4);
+  await expect(page.getByRole("link", { name: "Review in Calendar" })).toHaveAttribute("href", /calendar\.google\.com/);
   await openMoreModule(page, "Meal Planning");
   await openMoreModule(page, "Finance");
   await expect(page.getByText("Monthly Contributions", { exact: true })).toBeVisible();

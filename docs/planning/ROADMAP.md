@@ -1,5 +1,14 @@
 # Roadmap
 
+## Release 2.1.0: Guided Workflows & Product Polish
+- [x] Convert reviewed AI suggestions into prefilled existing forms for Tasks, Calendar, Pool, Life Lists, and Financial Planning.
+- [x] Add favorite/recent prompts and progressive-disclosure prompt metadata.
+- [x] Refine Home around Top Priorities, meaningful empty states, and device-local personalization.
+- [x] Deduplicate and prioritize Context Engine output.
+- [x] Improve Home and AI Workspace performance, accessibility, and mobile behavior without schema, auth, permission, or dependency changes.
+
+Next: validate the guided workflows with household usage before expanding suggestion parsing or adding any provider integration.
+
 ## Release 2.0.0: Context Engine and AI Workspace
 - [x] Add deterministic module context contributors and normalized aggregation.
 - [x] Add privacy-aware provider-neutral prompt construction and preview metadata.
@@ -7,7 +16,7 @@
 - [x] Add Home AI Brief and device-local AI controls.
 - [x] Preserve explicit human review and prohibit automatic AI writes.
 
-Next: validate real household prompt usefulness, then design explicit owning-module acceptance handoffs and optional provider launch methods without weakening preview, permissions, or audit boundaries.
+Completed in Release 2.1.0: explicit owning-module acceptance handoffs. Optional provider integrations remain deferred.
 
 ## Release 1.8.4: Core Workflow Stabilization
 - [x] Consolidate Home attention into Family Snapshot, add Life Lists, and provide optional greeting weather.
@@ -16,9 +25,9 @@ Next: validate real household prompt usefulness, then design explicit owning-mod
 - [x] Simplify Calendar to Today and This Week and correct multi-day event behavior.
 - [x] Complete Pool Confirm and Log and add a reviewed, copy-only ChatGPT handoff.
 
-## Next: Release 2.0.0
+## Next Product Direction
 
-Define the cross-module Context Engine and Release 2.0 architecture before adding new modules. Preserve human review, household permissions, privacy filtering, traceable context, and FamilyOS ownership of accepted records. Gardening Operations and broader Financial Planning remain separately scoped candidates.
+Validate Release 2.1.0 with real household workflows. Preserve human review, household permissions, privacy filtering, traceable context, and FamilyOS ownership of accepted records. Gardening Operations and broader Financial Planning remain separately scoped candidates.
 
 ## Release 1.8.0: Household Context, Dashboard Intelligence, and Pool Optimization
 - [x] Implement the versioned Household Context Service and deterministic cross-module attention framework.

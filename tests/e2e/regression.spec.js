@@ -84,6 +84,21 @@ test("responsive navigation remains usable", async ({ page }) => {
   expect(overflow).toBe(false);
 });
 
+test("Home and AI Workspace retain accessible names, focus, and responsive containment", async ({ page }) => {
+  await loginDemoUser(page);
+  await expect(page.getByText(/Top Priorities/).first()).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
+  await page.keyboard.press("Tab");
+  expect(await page.evaluate(() => document.activeElement !== document.body)).toBe(true);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
+  expect(overflow).toBe(false);
+  await navigateModule(page, "More");
+  await page.getByRole("button", { name: /AI Workspace/ }).click();
+  await expect(page.getByRole("heading", { name: "Ask FamilyOS" })).toBeVisible();
+  await expect(page.getByLabel("Favorite current prompt")).toBeVisible();
+  await expect(page.getByLabel("AI response to review")).toBeVisible();
+});
+
 test("global Add and Pool History expose the refined actions", async ({ page }) => {
   await loginDemoUser(page);
   const nav = page.getByRole("navigation", { name: "Primary navigation" });

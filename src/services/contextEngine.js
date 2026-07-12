@@ -5,9 +5,12 @@ const SECTIONS=["summary","importantItems","upcomingItems","recommendations","me
 
 function populated(value){return Array.isArray(value)?value.length>0:value&&typeof value==="object"?Object.keys(value).length>0:Boolean(value);}
 function clean(value){if(Array.isArray(value))return value.map(clean).filter(populated);if(value&&typeof value==="object")return Object.fromEntries(Object.entries(value).filter(([key])=>!/[Ii]d$|household|user|token|secret|auth/.test(key)).map(([key,item])=>[key,clean(item)]).filter(([,item])=>populated(item)));return value;}
+function itemKey(value){if(typeof value==="string")return value.trim().toLowerCase();return [value?.title,value?.action,value?.date,value?.dueDate,value?.status].filter(Boolean).join("|").trim().toLowerCase()||JSON.stringify(value);}
+function priority(value){const label=String(value?.priority||value?.severity||"").toLowerCase();return label==="critical"?0:label==="high"?1:label==="medium"||label==="med"?2:3;}
+function prioritizedUnique(value){if(!Array.isArray(value))return value;const seen=new Set();return [...value].sort((a,b)=>priority(a)-priority(b)).filter(item=>{const key=itemKey(item);if(seen.has(key))return false;seen.add(key);return true;}).slice(0,12);}
 export function createModuleContext(module,input={},options={}){
   if(options.allowed===false)return null;
-  const body=Object.fromEntries(SECTIONS.map(section=>[section,clean(input[section])]).filter(([,value])=>populated(value)));
+  const body=Object.fromEntries(SECTIONS.map(section=>[section,prioritizedUnique(clean(input[section]))]).filter(([,value])=>populated(value)));
   if(!Object.keys(body).length)return null;
   return {module,version:MODULE_CONTEXT_VERSION,...body};
 }

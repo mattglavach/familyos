@@ -1,5 +1,15 @@
 # Release Notes
 
+## Release 2.1.0 - Guided Workflows & Product Polish
+
+AI recommendations can now become guided proposals for Tasks, Calendar, Pool, Life Lists, and Financial Planning. Choosing a proposal opens the owning module's existing form with suggested values. Calendar opens Google Calendar's existing event template. In every case, the user reviews and explicitly saves or cancels; FamilyOS performs no automatic database write.
+
+AI Workspace now supports device-local favorite prompts, recent prompt reuse, collapsible privacy and full-prompt sections, and richer version and size metadata. Home now leads with Top Priorities, has stronger schedule and household empty states, and supports device-local card ordering, AI Brief visibility, and a default prompt template.
+
+The Context Engine deterministically removes duplicate items, orders high-priority facts first, and bounds each repeated section. Responsive layouts avoid narrow-screen action collisions and long-text overflow. No schema migration, authentication change, permission change, dependency addition, automatic prompt transmission, or automatic AI-originated write is included.
+
+Validation: ESLint, 78 application tests, seed-safety tests, production build, bundle-safety scan, authenticated Playwright desktop/tablet/mobile/dark-mode coverage, accessibility regression checks, and Git whitespace validation.
+
 ## Release 2.0.0 - Context Engine and AI Workspace
 
 FamilyOS now aggregates structured context from Tasks, Calendar, Life Lists, Pool, Home, and Financial Planning through a provider-neutral Context Engine. A separate privacy-aware Prompt Builder creates compact prompts and displays included modules, estimated size, excluded sections, privacy notes, and contract versions.

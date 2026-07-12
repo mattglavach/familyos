@@ -290,6 +290,11 @@ export function Pool({ initialView }) {
 
   useEffect(() => {
     if (initialView?.view === "history") setTab("history");
+    if (initialView?.workflow === "note" && initialView?.ts) {
+      setTab("history");
+      setForm({ date: initialView.prefill?.date || TODAY_STR, type: "AI recommendation review", notes: initialView.prefill?.description || initialView.prefill?.title || "" });
+      setModal("maintenance");
+    }
   }, [initialView]);
 
   const latest = latestReadingValues(readings.data);
