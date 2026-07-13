@@ -1,5 +1,9 @@
 # Roadmap
 
+## Release 2.6.0: Focused Daily Operations
+
+Status: local release candidate. Scope includes simplified primary navigation, consolidated Home priorities, progressive task and habit filters, day-grouped Calendar scanning, reduced Pool/History duplication, ordered Quick Add, and one-level checklist habits with threshold-based daily completion.
+
 ## Release 2.5.0: Proactive Planning and Household Automation
 
 Release-candidate scope: member-configured brief schedules, in-app notification preferences and state, Calendar conflict/transition/recurrence visibility, reusable routine templates, and automated accessibility audits.

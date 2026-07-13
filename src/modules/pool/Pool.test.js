@@ -96,75 +96,12 @@ describe("Pool Test persistence UI", () => {
     expect(container.querySelector('button[aria-label="Delete Reading entry"]')).not.toBeNull();
   });
 
-  test("renders the shared partial Pool Test form with CC after FC and context fields", () => {
+  test("removes Pool Test creation from the Pool page and keeps results collapsed", () => {
+    tables.pool_readings=table([{id:"reading-1",date:"2026-07-12",logged_at:"2026-07-12T13:00:00Z",ph:7.4,free_chlorine:5}]);
     act(() => root.render(React.createElement(Pool)));
-    clickByText(container, "Log Test");
-
-    const text = container.textContent;
-    const fcInput = container.querySelector('input[aria-label="FC ppm"]');
-    const phInput = container.querySelector('input[aria-label="pH"]');
-    const ccInput = [...container.querySelectorAll("input")].find(input => input.getAttribute("min") === "0" && input.getAttribute("max") === "20");
-    expect(text).toContain("Chemistry");
-    expect(text).toContain("Party");
-    expect(text).toContain("Rain");
-    expect(text).not.toContain("FC ppm *");
-    expect(text).not.toContain("pH *");
-    expect(fcInput.compareDocumentPosition(ccInput) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(ccInput.compareDocumentPosition(phInput) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  test("saves a partial Pool Test without pH or FC", async () => {
-    act(() => root.render(React.createElement(Pool)));
-    clickByText(container, "Log Test");
-
-    const ccInput = [...container.querySelectorAll("input")].find(input => input.closest("label")?.textContent?.includes("CC ppm"))
-      || [...container.querySelectorAll("input")].find(input => input.getAttribute("min") === "0" && input.getAttribute("max") === "20");
-    act(() => Simulate.change(ccInput, { target: { value: "0.5" } }));
-
-    await act(async () => {
-      Simulate.click([...container.querySelectorAll("button")].find(item => item.textContent.includes("Save Test")));
-    });
-
-    expect(tables.pool_readings.insert).toHaveBeenCalledWith(expect.objectContaining({
-      free_chlorine: null,
-      ph: null,
-      cc: 0.5,
-    }));
-  });
-
-  test("saves combined chlorine zero and normalizes blank optional values", async () => {
-    act(() => root.render(React.createElement(Pool)));
-    clickByText(container, "Log Test");
-    const ccInput = [...container.querySelectorAll("input")].find(input => input.closest("label")?.textContent?.includes("CC ppm"))
-      || [...container.querySelectorAll("input")].find(input => input.getAttribute("max") === "20");
-    act(() => Simulate.change(ccInput, { target: { value: "0" } }));
-    await act(async () => Simulate.click([...container.querySelectorAll("button")].find(item => item.textContent.includes("Save Test"))));
-    expect(tables.pool_readings.insert).toHaveBeenCalledTimes(1);
-    expect(tables.pool_readings.insert).toHaveBeenCalledWith(expect.objectContaining({ cc: 0, ph: null, free_chlorine: null, notes: null }));
-  });
-
-  test("persistence failure retains entered values and shows a safe message", async () => {
-    tables.pool_readings.insert.mockRejectedValue(new Error("database secret detail"));
-    act(() => root.render(React.createElement(Pool)));
-    clickByText(container, "Log Test");
-    const phInput = container.querySelector('input[aria-label="pH"]');
-    act(() => Simulate.change(phInput, { target: { value: "7.4" } }));
-    await act(async () => Simulate.click([...container.querySelectorAll("button")].find(item => item.textContent.includes("Save Test"))));
-    expect(phInput.value).toBe("7.4");
-    expect(container.textContent).toContain("Pool test could not be saved right now.");
-    expect(container.textContent).not.toContain("database secret detail");
-  });
-
-  test("blocks empty Pool module Pool Test saves", async () => {
-    act(() => root.render(React.createElement(Pool)));
-    clickByText(container, "Log Test");
-
-    await act(async () => {
-      Simulate.click([...container.querySelectorAll("button")].find(item => item.textContent.includes("Save Test")));
-    });
-
-    expect(tables.pool_readings.insert).not.toHaveBeenCalled();
-    expect(container.textContent).toContain("Add at least one chemistry or water measurement");
+    expect([...container.querySelectorAll("button")].some(button=>button.textContent.includes("Log Test"))).toBe(false);
+    const results=[...container.querySelectorAll("button")].find(button=>button.textContent.includes("Water Test Results"));
+    expect(results?.getAttribute("aria-expanded")).toBe("false");
   });
 
   test("fetched partial Pool Test appears in history and updates current status after reload", () => {

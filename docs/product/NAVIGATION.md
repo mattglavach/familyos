@@ -1,12 +1,16 @@
 # Product Navigation
 
+## Release 2.6 current navigation
+
+Mobile primary navigation is Home, Habits, Calendar, Tasks, and More. Pool remains available from More. Quick Add is a single global top-bar control; the duplicate floating add button was removed.
+
 ## Purpose
 Navigation should help household members move quickly between daily context, action capture, and management surfaces. Canonical current and target architecture is governed by `docs/governance/FamilyOS_Project_Instructions.md`. Engineering implementation details are in `docs/process/UI_GUIDELINES.md` and `docs/ui/DESIGN_SYSTEM.md`.
 
 ## Desktop
 - Use a stable app shell with clear current-location state.
 - Prefer a left rail or wider tab treatment when the viewport supports it.
-- Keep Home, Tasks, Calendar, Quick Add, and More visible or immediately reachable.
+- Keep Home, Habits, Calendar, Tasks, and More visible or immediately reachable; keep Quick Add in the global header.
 - Avoid exposing future modules as if they are complete.
 
 ## Tablet
@@ -18,7 +22,7 @@ Navigation should help household members move quickly between daily context, act
 - Use bottom navigation for primary destinations.
 - Keep labels short.
 - Keep tap targets large enough for one-handed use.
-- Avoid more than five primary bottom actions long-term: Home, Tasks, Calendar, Quick Add, More.
+- Keep five primary bottom actions: Home, Habits, Calendar, Tasks, and More.
 - Ensure fixed navigation never covers page actions or drawer buttons.
 
 ## Global Search
@@ -67,7 +71,7 @@ Release 1.0 should not require breadcrumbs for the current shallow app structure
 - Household switching should refresh the current surface without confusing route jumps.
 
 ## Transition to the Approved Architecture
-1. Preserve the implemented Home, Tasks, Calendar, Pool, and More shell until a navigation release is explicitly approved; Quick Add remains a global top-bar action.
+1. Preserve the implemented Home, Habits, Calendar, Tasks, and More shell; Quick Add remains a global top-bar action and Pool remains in More.
 2. Evolve toward Dashboard, Calendar, Tasks, Life, Home, and Financial Planning without presenting unfinished destinations as complete.
 3. Treat Quick Add and Search as cross-module capabilities, not business-domain modules.
 4. Move Shopping under Life when the target architecture is implemented unless a later architecture decision changes ownership.

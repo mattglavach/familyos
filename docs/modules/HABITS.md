@@ -1,5 +1,11 @@
 # Habits
 
+## Release 2.6.0 scope
+
+Habits now support simple completion and one-level checklist habits. Checklist actions retain name, display order, required/optional designation, and active state. The parent has no manual bypass: daily completion is calculated using an `any`, `count`, or `all` threshold, while displayed progress includes every active action. Daily snapshots preserve total active actions, completed count, threshold result, and completed action IDs without overwriting prior dates. Existing habits remain simple by default.
+
+The workspace uses compact Today, Active, Routines, and Needs Completion filters with expanded status, frequency, and habit-type filters.
+
 ## Release 2.3.0 scope
 
 Habits are now durable household-scoped records with daily, weekly, or monthly periods, personal or household visibility, one completion per applicable period, undo, current streaks, and history-preserving archive behavior. Global Add creates habits without navigating first.

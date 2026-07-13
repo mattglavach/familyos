@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.6.0 - 2026-07-12
+
+- Simplified primary navigation to Home, Habits, Calendar, Tasks, and More; moved Pool to More and removed the duplicate floating Quick Add control.
+- Consolidated Home priorities into Today’s Focus, included due dates and correct maintenance routing, moved Daily Progress to the bottom, and replaced duplicate status cards with Finance and College summaries.
+- Added progressive task and habit filters, dated Calendar week grouping, streamlined Pool and History controls, and reordered Quick Add.
+- Added backward-compatible checklist habits with one-level actions, configurable completion thresholds, calculated parent state, daily reset semantics, and retained daily history.
+- Added the Release 2.6 migration, regression coverage, versioning, and documentation.
+
 ## 2.5.0 - 2026-07-12
 
 - Added member-level Morning Brief, Evening Review, and Weekly Planning schedules with day/time controls, missed-window handling, persisted generation history, manual refresh, and scheduled-period idempotency.

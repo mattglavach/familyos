@@ -6,7 +6,12 @@ test("authenticated FamilyOS major-module smoke", async ({ page }) => {
   await loginDemoUser(page);
   await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
   await expect(page.getByRole("main", { name: "Today dashboard" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Quick Add" })).toBeVisible();
+  const primary=page.getByRole("navigation",{name:"Primary navigation"});
+  await expect(primary.getByRole("button")).toHaveText(["Home","Habits","Calendar","Tasks","More"]);
+  await expect(primary.getByRole("button",{name:"Pool"})).toHaveCount(0);
+  await expect(primary.getByRole("button",{name:"Attention"})).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Add" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Quick Add" })).toHaveCount(0);
   await expect(page.getByText(/today's focus/i, { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /Schedule annual physical/ }).first()).toBeVisible();
 
@@ -17,8 +22,13 @@ test("authenticated FamilyOS major-module smoke", async ({ page }) => {
   await page.getByRole("button", { name: "Close" }).last().click();
 
   await navigateModule(page, "Tasks");
+  await expect(page.getByRole("button", { name: "My Tasks", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Overdue", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Upcoming", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "More Filters" }).click();
   await expect(page.getByRole("button", { name: "Today", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "This Week", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Select visible/i })).toHaveCount(0);
   await expect(page.getByText("Schedule annual physical")).toBeVisible();
   await navigateModule(page, "Calendar");
   await expect(page.getByText("Calendar", { exact: true }).first()).toBeVisible();
@@ -27,7 +37,7 @@ test("authenticated FamilyOS major-module smoke", async ({ page }) => {
 
   await openMoreModule(page, "Life Lists");
   await expect(page.getByText("Family Goals").first()).toBeVisible();
-  await navigateModule(page, "Pool");
+  await openMoreModule(page, "Pool");
   await expect(page.getByText("Pool", { exact: true }).first()).toBeVisible();
   await openMoreModule(page, "AI Workspace");
   await expect(page.getByRole("heading", { name: "Ask FamilyOS" })).toBeVisible();

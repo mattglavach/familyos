@@ -43,8 +43,7 @@ async function navigateModule(page, label) {
 }
 
 async function openMoreModule(page, label) {
-  await navigateModule(page, "Attention");
-  await page.getByRole("button", { name: "Modules", exact: true }).click();
+  await navigateModule(page, "More");
   await page.getByRole("button", { name: new RegExp(`^${label}`) }).click();
   await waitForPageReady(page, label);
 }

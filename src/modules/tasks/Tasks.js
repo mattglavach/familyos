@@ -395,7 +395,7 @@ export function Tasks({ deps, initialView }) {
 
   const [metadata, setMetadata] = useState({});
   const [metadataError] = useState("");
-  const [activeFilter, setActiveFilter] = useState("due");
+  const [activeFilter, setActiveFilter] = useState("mine");
   const [memberFilter, setMemberFilter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -680,20 +680,14 @@ export function Tasks({ deps, initialView }) {
                   <Input id="task-search" className="h-9 pl-8 text-xs" aria-label="Search tasks" value={searchTerm} placeholder="Search tasks" onChange={event => setSearchTerm(event.target.value)} />
                 </div>
                 <div className="task-filter-controls">
-                  <Button type="button" variant={activeFilter === "due" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("due")}>Due</Button>
                   <Button type="button" variant={activeFilter === "mine" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("mine")}>My Tasks</Button>
-                  <Button type="button" variant={activeFilter === "assigned-by-me" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("assigned-by-me")}>Assigned by Me</Button>
-                  <Button type="button" variant={activeFilter === "all" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={clearFilters}>All Tasks</Button>
-                  <Button type="button" variant={activeFilter === "completed" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("completed")}>Completed</Button>
-                  <Button type="button" variant={activeFilter === "today" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("today")}>Today</Button>
-                  <Button type="button" variant={activeFilter === "upcoming" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("upcoming")}>Upcoming</Button>
-                  <Button type="button" variant={activeFilter === "this-week" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("this-week")}>This Week</Button>
                   <Button type="button" variant={activeFilter === "overdue" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("overdue")}>Overdue</Button>
-                  <Button type="button" variant={activeFilter === "someday" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("someday")}>Someday</Button>
-                  <Button type="button" variant="ghost" size="xs" className="!min-h-9 px-2.5" aria-expanded={filtersExpanded} aria-controls="task-secondary-filters" onClick={() => setFiltersExpanded(value => !value)}>{filtersExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />} Filters</Button>
+                  <Button type="button" variant={activeFilter === "upcoming" ? "default" : "secondary"} size="xs" className="!min-h-9 px-2.5" onClick={() => setActiveFilter("upcoming")}>Upcoming</Button>
+                  <Button type="button" variant="ghost" size="xs" className="!min-h-9 px-2.5" aria-expanded={filtersExpanded} aria-controls="task-secondary-filters" onClick={() => setFiltersExpanded(value => !value)}>{filtersExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />} More Filters</Button>
                 </div>
               </div>
               {filtersExpanded && <div id="task-secondary-filters" className="task-secondary-filters">
+                {[{value:"all",label:"All Tasks"},{value:"today",label:"Today"},{value:"this-week",label:"This Week"},{value:"someday",label:"Someday"},{value:"completed",label:"Completed"},{value:"assigned-by-me",label:"Assigned by Me"}].map(option=><Button key={option.value} type="button" variant={activeFilter===option.value?"default":"secondary"} size="xs" className="!min-h-9 px-2.5" onClick={()=>setActiveFilter(option.value)}>{option.label}</Button>)}
                 <Select className="h-9 min-w-[112px] px-2 pr-7 text-xs" aria-label="Status" value={statusFilter} onChange={event => { const status = event.target.value; setStatusFilter(status); setActiveFilter(status === "Completed" ? "completed" : activeFilter === "completed" ? "all" : activeFilter); }}><option value="All">All status</option>{STATUS_OPTIONS.map(status => <option key={status} value={status}>{status}</option>)}</Select>
                 <Select className="h-9 min-w-[105px] px-2 pr-7 text-xs" aria-label="Priority" value={priorityFilter} onChange={event => setPriorityFilter(event.target.value)}><option value="All">All priority</option>{PRIORITY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</Select>
                 <Select className="h-9 min-w-[105px] px-2 pr-7 text-xs" aria-label="Assignee" value={memberFilter} onChange={event => setMemberFilter(event.target.value)}><option value="All">All assignees</option><option value="Family">Family</option>{activeMembers.map(member => <option key={member.id} value={member.name}>{member.name}</option>)}</Select>
@@ -704,7 +698,7 @@ export function Tasks({ deps, initialView }) {
             </CardContent>
           </Card>
 
-          {activeFilter !== "completed" && filteredTasks.length > 0 && <div className="flex flex-wrap items-center gap-2"><Button type="button" size="xs" variant="secondary" aria-pressed={bulkSelected.length === filteredTasks.length} onClick={() => setBulkSelected(bulkSelected.length === filteredTasks.length ? [] : filteredTasks.map(task => task.id))}>{bulkSelected.length === filteredTasks.length ? "Clear selection" : "Select visible"}</Button>{bulkSelected.length > 0 && <Button type="button" size="xs" onClick={bulkComplete}>Complete selected ({bulkSelected.length})</Button>}</div>}
+          {bulkSelected.length > 0 && <div className="flex flex-wrap items-center gap-2"><Button type="button" size="xs" variant="secondary" onClick={()=>setBulkSelected([])}>Clear selection</Button><Button type="button" size="xs" onClick={bulkComplete}>Complete selected ({bulkSelected.length})</Button></div>}
 
           <TaskList
             title={activeFilterLabel}

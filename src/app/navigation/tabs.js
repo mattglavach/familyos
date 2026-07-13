@@ -1,9 +1,9 @@
 export const TABS = [
   { id: "home", label: "Home", iconKey: "home" },
-  { id: "tasks", label: "Tasks", iconKey: "tasks" },
+  { id: "habits", label: "Habits", iconKey: "habits" },
   { id: "calendar", label: "Calendar", iconKey: "calendar" },
-  { id: "pool", label: "Pool", iconKey: "pool" },
-  { id: "needs-attention", label: "Attention", iconKey: "attention" },
+  { id: "tasks", label: "Tasks", iconKey: "tasks" },
+  { id: "more", label: "More", iconKey: "more" },
 ];
 
 export const TITLES = {

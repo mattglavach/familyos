@@ -1,5 +1,9 @@
 # Project Status
 
+## Release 2.6.0 local release candidate
+
+FamilyOS 2.6.0 is implemented locally. It simplifies daily navigation and duplicate controls, consolidates Home priorities, improves task/habit filtering and Calendar scanning, and adds one-level checklist habits through an additive household-scoped migration. Production migration and deployment are not part of this local release commit.
+
 ## Release 2.5.0 production
 
 FamilyOS 2.5.0 is deployed to production from `main` at merge commit `209404e`. The production Supabase project `dsowansazqleudupnjug` has all 17 migrations through Release 2.5, and the Vercel production deployment is READY at `https://familyos-glavach.vercel.app`. Public sign-in smoke, mobile containment, runtime console, and production error-log review passed. The release extends existing household-scoped architecture rather than adding a parallel planning system. Brief scheduling uses authenticated-open due evaluation; notifications remain in-app; AI output remains advisory; and Calendar recurrence writes remain provider-owned.

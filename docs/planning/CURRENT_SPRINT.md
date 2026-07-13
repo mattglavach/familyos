@@ -1,5 +1,9 @@
 # Current Sprint
 
+## Release 2.6.0 release candidate
+
+Completed scope: navigation simplification, Home prioritization, compact task and habit filters, Calendar week grouping, Pool/History and Quick Add cleanup, and checklist habit actions with threshold-based daily history. Local release validation is recorded in the completion summary and release commit.
+
 ## Release 2.5.0 production closeout
 
 Status: released to production from `main` at merge commit `209404e` on 2026-07-12. Production migration and deployment verification passed.

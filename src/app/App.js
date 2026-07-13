@@ -458,7 +458,6 @@ function AuthenticatedApp({ auth }) {
       />
       </Suspense>
       <QuickAdd onNavigate={switchTab} openSignal={quickAddRequest.signal} initialMode={quickAddRequest.mode}/>
-      <Button type="button" size="icon" aria-label="Quick Add" title="Quick Add" onClick={() => setQuickAddRequest(previous => ({ signal: previous.signal + 1, mode: null }))} className="fixed bottom-[calc(72px+env(safe-area-inset-bottom))] right-4 z-20 h-14 w-14 rounded-full shadow-soft sm:bottom-6 sm:right-6"><Plus className="h-6 w-6" aria-hidden="true"/></Button>
       <BottomNavigation tab={tab} onNavigate={switchTab}/>
     </div>
   );

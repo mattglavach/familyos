@@ -397,16 +397,6 @@ export function Pool({ initialView }) {
     }
   }
 
-  function openTest(row = null) {
-    setTestSaveError("");
-    setTestInvalidFields([]);
-    setTestSaveSuccess("");
-    setPoolActionError("");
-    setForm(row ? { ...row, time: row.logged_at ? new Date(row.logged_at).toTimeString().slice(0, 5) : "" } : { date: TODAY_STR, test_source: "Taylor Kit" });
-    setSourceMode(row?.test_source || "Taylor Kit");
-    setModal("test");
-  }
-
   async function saveTest() {
     if (testSubmissionRef.current) return;
     setTestSaveError("");
@@ -607,7 +597,7 @@ export function Pool({ initialView }) {
           <div style={{ fontSize: 16, color: COLORS.white, fontWeight: 900, lineHeight: 1.35, marginTop: 4 }}>{nextAction?.action || "No action needed"}</div>
           <div style={{ fontSize: 12, color: COLORS.slateLight, lineHeight: 1.45, marginTop: 3 }}>{nextAction?.explanation || `Test again ${retest.detail.toLowerCase()}`}</div>
           {nextAction?.retest && <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 4 }}>{nextAction.retest}</div>}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>{editable&&<Button type="button" size="sm" onClick={() => openTest()}>Log Test</Button>}{editable&&nextAction&&nextAction.priority!=="low"&&<Button type="button" size="sm" variant="secondary" onClick={() => openReview(nextAction)}>Review Recommendation</Button>}</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>{editable&&nextAction&&nextAction.priority!=="low"&&<Button type="button" size="sm" variant="secondary" onClick={() => openReview(nextAction)}>Review Recommendation</Button>}</div>
         </div>
         {latest && <ExpandableSection title="Water Test Results" preferenceKey="familyos.pool.water-test-results.expanded" className="mt-3 bg-transparent">
           {chemistrySummary(latest).map(([label, value, unit, key]) => {
@@ -743,14 +733,6 @@ export function Pool({ initialView }) {
           {tab === "history" && (
             <>
               <ChipGroup value={historyFilter} options={HISTORY_FILTERS} ariaLabel="History filter" onValueChange={setHistoryFilter} />
-              {editable && (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-                  <Button type="button" onClick={() => openTest()}>Pool Test</Button>
-                  <Button type="button" variant="secondary" onClick={() => { setForm({ date: TODAY_STR }); setModal("treatment"); }}>Chemical Added</Button>
-                  <Button type="button" variant="secondary" onClick={() => { setForm({ date: TODAY_STR, type: "Maintenance Completed" }); setModal("maintenance"); }}>Maintenance</Button>
-                  <Button type="button" variant="secondary" onClick={() => { setForm({ date: TODAY_STR, type: "Pool Note" }); setModal("maintenance"); }}>Pool Note</Button>
-                </div>
-              )}
               {!history.length && <EmptyState title="No pool history yet" detail="Log a test, treatment, maintenance item, or pool note to build the timeline." />}
               {Object.entries(groupedHistory).map(([date, items]) => (
                 <section key={date} style={{ marginBottom: 12 }}>

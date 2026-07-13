@@ -1,5 +1,13 @@
 # Release Notes
 
+## Release 2.6.0 - Focused Daily Operations
+
+Release 2.6 simplifies the daily shell around Home, Habits, Calendar, Tasks, and More. Home now uses one prioritized focus list, week events scan by day, task and habit controls use progressive filters, Pool and History remove duplicate creation controls, and Quick Add has one ordered capture surface.
+
+Checklist habits add one level of actions beneath a habit, with `any`, `count`, and `all` thresholds. Parent completion is calculated from the daily action snapshot, not manually bypassed. The additive migration preserves existing simple habits and adds household-scoped action definitions and lightweight daily history.
+
+Local validation includes lint, 107 unit tests, 18 seed-safety tests, production build, bundle safety, fresh 18-migration bootstrap, and authenticated desktop, 390 px mobile, tablet, and dark-mode smoke. The additive 2.6 migration was also applied to the verified non-production demo project for browser validation. Production migration and deployment were not performed.
+
 ## Release 2.5.0 - Proactive Planning and Household Automation
 
 Release 2.5 makes planning proactive without allowing FamilyOS or AI to make autonomous record changes. Household members can configure brief schedules, see a restrained notification queue, understand calendar conflicts and recurring events, and create routines from reusable templates.

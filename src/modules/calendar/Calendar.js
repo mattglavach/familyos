@@ -127,6 +127,15 @@ function EventSection({ title, events, emptyTitle, emptyDetail, todayString, for
   );
 }
 
+export function groupWeekEventsByDay(events) {
+  return events.reduce((result,event)=>{const key=dateKey(event.date);(result[key]??=[]).push(event);return result;},{});
+}
+
+function WeekEventSection(props) {
+  const groups = groupWeekEventsByDay(props.events);
+  return <section className="min-w-0 max-w-full"><SectionHeader title="This Week" count={props.events.length} tone="neutral" />{Object.entries(groups).map(([date, events], index)=><div key={date} className={index?"mt-4":""}><h3 className="mb-2 text-sm font-extrabold text-foreground">{date===addDays(props.todayString,1)?"Tomorrow · ":""}{props.formatDateFull?props.formatDateFull(date):date}</h3><div className="space-y-1.5">{events.map(event=><EventCard key={event.occurrenceKey||event.id} event={event} selected={props.selectedId===(event.occurrenceKey||event.id)} onSelect={props.onSelect} todayString={props.todayString} formatDateFull={props.formatDateFull} insight={props.insights[event.id]}/>)}</div></div>)}</section>;
+}
+
 function EventDetails({ id, event, todayString, formatDateFull }) {
   const detailRows = [
     { label: "When", value: eventMetaLine(event, todayString, formatDateFull) },
@@ -289,7 +298,7 @@ export function Calendar({ calendar = {}, deps = {}, initialView }) {
         visibleGroupCount ? (
           <div className="min-w-0 max-w-full space-y-3">
               <EventSection title="Today" events={grouped.today} emptyTitle="Nothing scheduled today" emptyDetail="Connected calendar events for today will appear here." selectedId={selectedEventId} onSelect={setSelectedEventId} todayString={TODAY_STR} formatDateFull={formatDateFull} insights={insights}/>
-              <EventSection title={`This Week · ${eventDateLabel(addDays(TODAY_STR,1),TODAY_STR,formatDateFull)} - ${eventDateLabel(addDays(TODAY_STR,6),TODAY_STR,formatDateFull)}`} events={grouped.thisWeek} emptyTitle="Nothing else scheduled this week" emptyDetail="Events from tomorrow through the end of this view will appear here." selectedId={selectedEventId} onSelect={setSelectedEventId} todayString={TODAY_STR} formatDateFull={formatDateFull} insights={insights}/>
+              {grouped.thisWeek.length>0&&<WeekEventSection events={grouped.thisWeek} selectedId={selectedEventId} onSelect={setSelectedEventId} todayString={TODAY_STR} formatDateFull={formatDateFull} insights={insights}/>}
           </div>
         ) : (
           <Card>

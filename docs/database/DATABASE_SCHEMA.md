@@ -1,5 +1,9 @@
 # Database Schema
 
+## Release 2.6 checklist habits
+
+Migration `20260712050000_release_2_6_habit_actions.sql` adds backward-compatible habit type and threshold columns plus household-scoped `habit_actions` and `habit_action_history` tables. Definitions cascade from the parent habit; history retains one snapshot per habit and date. Existing habit rows require no backfill because they default to `simple`.
+
 ## Release 2.5 proactive planning
 
 Migration `20260712040000_release_2_5_proactive_planning.sql` adds `brief_schedules`, `brief_generation_history`, `notification_preferences`, `routine_templates`, and `routine_template_steps`. Existing `notification_states` continues to own per-user read/dismiss state.
