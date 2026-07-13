@@ -99,4 +99,3 @@ export function generateRecommendations(data = {}, options = {}) {
     .filter(item => item && !dismissed.has(item.id))
     .sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity] || a.id.localeCompare(b.id));
 }
-
