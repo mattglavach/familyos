@@ -1,5 +1,9 @@
 # Roadmap
 
+## Release 2.7.0: Dashboard and Workflow Refinements
+
+Status: local release candidate. Scope improves Home prioritization and shortcuts, primary navigation, habit and routine configuration, Calendar provider handoff and privacy, and Pool progressive disclosure without changing schemas or ownership contracts.
+
 ## Release 2.6.1: Usability Refinement
 
 Status: local release candidate. Scope is limited to Home event labels, Habits-page checklist/routine usability, and progressive-disclosure Pool recommendations.

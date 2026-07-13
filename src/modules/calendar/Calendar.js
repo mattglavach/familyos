@@ -56,6 +56,11 @@ export function eventMetaLine(event, todayString, formatDateFull) {
   return `${eventDateLabel(event.date, todayString, formatDateFull)} - ${formatCalendarEventTime(event)}`;
 }
 
+export function calendarDisplayName(value) {
+  const text=String(value||"").trim();
+  return text && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text) ? text : "";
+}
+
 export function normalizeEvent(event, index, sourceLabel) {
   const calendarEvent = normalizeCalendarEvent(event);
   return {
@@ -63,7 +68,7 @@ export function normalizeEvent(event, index, sourceLabel) {
     id: calendarEvent.id || `${calendarEvent.date || "event"}-${index}`,
     title: calendarEvent.title || "Untitled event",
     member: calendarEvent.member || calendarEvent.owner || "Family",
-    source: calendarEvent.source || calendarEvent.calendar || sourceLabel || "Calendar",
+    source: calendarDisplayName(calendarEvent.calendarDisplayName || calendarEvent.calendar_name || calendarEvent.source || calendarEvent.calendar || sourceLabel) || "Calendar",
     attendees: Array.isArray(calendarEvent.attendees) ? calendarEvent.attendees : [],
     notes: calendarEvent.notes || calendarEvent.description || "",
   };
@@ -78,10 +83,11 @@ export function calendarInsights(events = []) {
 
 function EventCard({ event, todayString, formatDateFull, selected, onSelect, insight }) {
   const panelId = `calendar-event-${String(event.occurrenceKey || event.id).replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+  const openEvent=()=>{if(event.htmlLink){window.open(event.htmlLink,"_blank","noopener,noreferrer");return;}onSelect(selected ? "" : (event.occurrenceKey || event.id));};
   return (
     <Card className={`min-w-0 max-w-full overflow-hidden ${selected ? "border-primary" : ""}`} style={{ borderLeft: `3px solid ${COLORS.blue}` }}>
       <CardContent className="min-w-0 p-0">
-        <button type="button" onClick={() => onSelect(selected ? "" : (event.occurrenceKey || event.id))} aria-expanded={selected} aria-controls={panelId} className="block min-h-12 w-full px-3 py-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+        <button type="button" onClick={openEvent} aria-expanded={event.htmlLink?undefined:selected} aria-controls={event.htmlLink?undefined:panelId} aria-label={event.htmlLink?`Open ${event.title || "event"} in Google Calendar`:undefined} className="block min-h-12 w-full px-3 py-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="truncate text-sm font-bold text-foreground">{event.title || "Untitled event"}</div>
@@ -91,7 +97,7 @@ function EventCard({ event, todayString, formatDateFull, selected, onSelect, ins
               {event.source && event.source !== "Calendar" && <div className="mt-0.5 text-[11px] text-muted-foreground">{event.source}</div>}
               <div className="mt-1 flex flex-wrap gap-1"><Badge variant="slate">{event.allDay?"All day":"Timed"}</Badge>{event.recurringEventId&&<Badge variant="purple">Recurring series</Badge>}{insight?.conflict&&<Badge variant="red">Overlaps another event</Badge>}{insight?.tight&&!insight.conflict&&<Badge variant="amber">Tight transition</Badge>}</div>
             </div>
-            <ChevronDown className={`mt-1 h-4 w-4 shrink-0 transition-transform ${selected ? "rotate-180" : ""}`} aria-hidden="true" />
+            {event.htmlLink?<ExternalLink className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true"/>:<ChevronDown className={`mt-1 h-4 w-4 shrink-0 transition-transform ${selected ? "rotate-180" : ""}`} aria-hidden="true" />}
           </div>
         </button>
         {selected && <EventDetails id={panelId} event={event} todayString={todayString} formatDateFull={formatDateFull} />}

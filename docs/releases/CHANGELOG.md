@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.7.0 - 2026-07-12
+
+- Personalized the Home greeting from the Settings profile name, limited Today’s Focus to three items until expanded, improved maintenance drill-down metadata, moved Upcoming above Status, and added accessible Calendar and Tasks AI Brief shortcuts.
+- Updated bottom navigation to Home, Life Lists, Quick Add, Finance, and More while retaining Calendar, Tasks, Habits, and all direct destinations elsewhere in the application.
+- Repaired existing habit and routine management so simple habits are editable and checklist actions or ordered routine steps are visibly nested under their parent while configuration changes retain completion history.
+- Made synced Google event rows open their provider link safely in a new tab, retained inline details for events without a provider link, and removed syncing account email addresses from event calendar labels.
+- Kept Pool Status focused on current conditions, expanded Recommended Next Step inline with direct action logging, aligned responsive history filters, and removed Note as a selectable filter without removing records.
+- Preserved existing schemas, RLS, API contracts, calculations, completion history, and authentication. No database migration was required.
+
 ## 2.6.1 - 2026-07-12
 
 - Added standalone weekday and calendar-date labels to every Home Upcoming event, including `Tomorrow` context.

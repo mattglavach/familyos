@@ -1,4 +1,4 @@
-import { calendarInsights, eventMetaLine, formatSyncTime, groupEvents, groupWeekEventsByDay, normalizeEvent } from "./Calendar";
+import { calendarDisplayName, calendarInsights, eventMetaLine, formatSyncTime, groupEvents, groupWeekEventsByDay, normalizeEvent } from "./Calendar";
 import { expandCalendarEventDays } from "../../lib/calendarTime";
 import React, { act } from "react";
 import { Simulate } from "react-dom/test-utils";
@@ -31,20 +31,24 @@ test("recurring occurrence ids remain unique across Today and This Week",()=>{co
 test("This Week events are grouped under dated day headings",()=>expect(Object.keys(groupWeekEventsByDay([{id:"a",date:"2026-07-13"},{id:"b",date:"2026-07-14"},{id:"c",date:"2026-07-14"}]))).toEqual(["2026-07-13","2026-07-14"]));
 test("Calendar identifies conflicts and tight transitions",()=>{const flags=calendarInsights([{id:"a",start:"2026-07-12T10:00:00",end:"2026-07-12T11:00:00"},{id:"b",start:"2026-07-12T10:30:00",end:"2026-07-12T11:30:00"},{id:"c",start:"2026-07-12T11:45:00",end:"2026-07-12T12:00:00"}]);expect(flags.a.conflict).toBe(true);expect(flags.b.conflict).toBe(true);expect(flags.c.tight).toBe(true);});
 
-test("event cards expand inline with ARIA state and omit empty details", () => {
+test("synced event cards open Google Calendar while local events expand inline", () => {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
-  act(() => root.render(<Calendar deps={{ TODAY_STR: "2026-07-12", formatDateFull: value => value }} calendar={{ connected: true, status: "connected", events: [{ id: "event-1", title: "Piano lesson", start: { dateTime: "2026-07-12T14:00:00-04:00" }, end: { dateTime: "2026-07-12T15:00:00-04:00" }, location: "Music school", htmlLink: "https://calendar.google.com/event" }] }} />));
+  const open=jest.spyOn(window,"open").mockImplementation(()=>null);
+  act(() => root.render(<Calendar deps={{ TODAY_STR: "2026-07-12", formatDateFull: value => value }} calendar={{ connected: true, status: "connected", events: [{ id: "event-1", title: "Piano lesson", start: { dateTime: "2026-07-12T14:00:00-04:00" }, end: { dateTime: "2026-07-12T15:00:00-04:00" }, location: "Music school", htmlLink: "https://calendar.google.com/event" },{id:"local-1",title:"Family planning",start:{dateTime:"2026-07-12T16:00:00-04:00"},end:{dateTime:"2026-07-12T17:00:00-04:00"},location:"Home"}] }} />));
   const button = [...container.querySelectorAll("button")].find(item => item.textContent.includes("Piano lesson"));
-  expect(button.getAttribute("aria-expanded")).toBe("false");
   act(() => Simulate.click(button));
-  expect(button.getAttribute("aria-expanded")).toBe("true");
-  expect(container.textContent).toContain("Music school");
+  expect(open).toHaveBeenCalledWith("https://calendar.google.com/event","_blank","noopener,noreferrer");
+  const localButton=[...container.querySelectorAll("button")].find(item=>item.textContent.includes("Family planning"));
+  expect(localButton.getAttribute("aria-expanded")).toBe("false");
+  act(()=>Simulate.click(localButton));
+  expect(localButton.getAttribute("aria-expanded")).toBe("true");
+  expect(container.textContent).toContain("Home");
   expect(container.textContent).not.toContain("No attendees listed");
-  expect(container.querySelector('a[href="https://calendar.google.com/event"]')).not.toBeNull();
-  act(() => Simulate.click(button));
-  expect(button.getAttribute("aria-expanded")).toBe("false");
+  open.mockRestore();
   act(() => root.unmount());
   document.body.removeChild(container);
 });
+
+test("calendar display names omit syncing account email addresses",()=>{expect(calendarDisplayName("family@example.com")).toBe("");expect(calendarDisplayName("Family Calendar")).toBe("Family Calendar");});

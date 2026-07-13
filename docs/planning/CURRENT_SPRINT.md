@@ -1,5 +1,9 @@
 # Current Sprint
 
+## Release 2.7.0 dashboard and workflow refinements
+
+Completed scope: personalized Home greeting, progressive Today’s Focus, direct maintenance routing, AI Brief shortcuts, Life Lists and Finance primary navigation, repaired habit/routine editing and nested actions, direct Google event links with calendar-email privacy, and streamlined Pool status, recommendation, and history filters. No schema change is required.
+
 ## Release 2.6.1 usability release
 
 Completed scope: standalone Home Upcoming dates, unified Habits-page checklist/routine execution and management, and concise expandable Pool recommendations. No schema change is required.

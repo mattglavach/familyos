@@ -1,5 +1,9 @@
 # Project Status
 
+## Release 2.7.0 local release candidate
+
+FamilyOS 2.7.0 is the current local usability release candidate. It makes common Home, Habits, Calendar, Pool, Life Lists, and Finance workflows more direct while preserving authentication, household isolation, history, provider links, calculations, Quick Add, and deep-link destinations. No database migration is included. Publication and production deployment are not part of this local release.
+
 ## Release 2.6.1 local release candidate
 
 FamilyOS 2.6.1 is the current local usability release candidate. It refines Home event clarity, completes checklist/routine interaction from Habits, and makes Pool recommendations concise by default with full guidance on expansion. No database migration is included.

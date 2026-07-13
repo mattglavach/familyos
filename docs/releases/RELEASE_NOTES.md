@@ -1,5 +1,15 @@
 # Release Notes
 
+## Release 2.7.0 - Dashboard and Workflow Refinements
+
+Release 2.7.0 reduces routine navigation. Home now greets the signed-in profile by first name when available, initially shows three focus items, drills maintenance toward the owning record, places Upcoming before Status, and provides compact accessible Calendar and Tasks shortcuts. The primary bottom navigation is Home, Life Lists, Quick Add, Finance, and More.
+
+Habits uses the existing Release 2.6.1 tables and history contracts. Simple habits can be edited, checklist actions remain visibly nested, and routine steps are shown in order. Existing controls support renaming, reordering, required or optional state, activation, addition, and deletion without rewriting historical completion rows.
+
+Synced Google Calendar events open their existing provider URL in a new tab with safe opener isolation. Events without a provider URL retain FamilyOS inline details, and account email addresses are no longer used as visible calendar labels. Pool status now contains current-state language only; the operational recommendation expands inline and can be logged directly. Pool history filters are compact, aligned, responsive, and no longer offer Note as a filter. Existing note records remain available in the broader All history view.
+
+No database migration, dependency change, production mutation, push, tag, or deployment is included.
+
 ## Release 2.6.1 - Usability Refinement
 
 Release 2.6.1 improves clarity without changing the database. Home Upcoming entries now include their own weekday and date. The Habits page becomes the direct work surface for simple habits, checklist habits, and routines: checklist rows remain compact until expanded, child actions update calculated progress, basic actions can be added inline, and advanced configuration/action management remains available through details.

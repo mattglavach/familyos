@@ -7,7 +7,7 @@ async function audit(page,label){const results=await new AxeBuilder({page}).with
 test("Release 2.5 representative authenticated accessibility audit",async({page})=>{
  await loginDemoUser(page); await audit(page,"Home");
  await page.getByRole("button",{name:/Notifications/}).click(); await expect(page.getByText("Notification preferences",{exact:true})).toBeVisible(); await audit(page,"Notifications"); await page.getByRole("button",{name:"Close",exact:true}).last().click();
- await navigateModule(page,"Calendar"); await audit(page,"Calendar");
+ await page.getByRole("button",{name:"Open Calendar"}).click(); await audit(page,"Calendar");
  await openMoreModule(page,"Habits"); await audit(page,"Habits");
  await openMoreModule(page,"Routines"); await audit(page,"Routines"); await page.getByRole("button",{name:/Templates/}).click(); await audit(page,"Routine Templates");
  await page.keyboard.press("Control+K"); await audit(page,"Search"); await page.getByRole("button",{name:"Close"}).last().click();

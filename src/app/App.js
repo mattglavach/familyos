@@ -244,12 +244,12 @@ function AppHeader({tab, auth, unreadCount, onSettings, onSearch, onNotification
 function BottomNavigation({tab,onNavigate}){
   return <nav className="fixed bottom-0 left-1/2 z-20 flex w-full max-w-[430px] -translate-x-1/2 border-t border-border bg-card pb-[env(safe-area-inset-bottom)]" aria-label="Primary navigation">
     {TABS.map(t=>{
-      const active = tab===t.id;
+      const active = !t.central && tab===t.id;
       return (
       <button
         key={t.id}
         type="button"
-        className={`flex min-h-[56px] flex-1 flex-col items-center justify-center gap-1 border-t-2 px-0.5 pb-2 pt-2 text-[10px] font-semibold transition-colors ${active?"border-primary text-primary":"border-transparent text-muted-foreground"}`}
+        className={`flex min-h-[56px] flex-1 flex-col items-center justify-center gap-1 border-t-2 px-0.5 pb-2 pt-2 text-[10px] font-semibold transition-colors ${active?"border-primary text-primary":"border-transparent text-muted-foreground"} ${t.central?"text-primary":""}`}
         aria-current={active?"page":undefined}
         onClick={()=>onNavigate(t.id)}
       >

@@ -41,7 +41,7 @@ export function poolStatus(param, value) {
 }
 
 const TEST_SOURCES = ["Taylor Kit", "Pool Store", "Manual"];
-const HISTORY_FILTERS = ["All", "Chemical", "Reading", "Maintenance", "Note"];
+const HISTORY_FILTERS = ["All", "Chemical", "Reading", "Maintenance"];
 const EQUIPMENT_TYPES = ["Pump", "Salt Cell (SWG)", "Filter", "Heater", "Robot Cleaner", "Betta Skimmer", "Solar Cover", "Test Kit"];
 const HELP_COPY = [
   ["FC", "Free chlorine is the active sanitizer. Keep it high enough for current CYA before swimming."],
@@ -303,6 +303,7 @@ export function Pool({ initialView }) {
 
   useEffect(() => {
     if (initialView?.view === "history") setTab("history");
+    if (initialView?.section === "maintenance") setTab("maintenance");
     if (initialView?.workflow === "note" && initialView?.ts) {
       setTab("history");
       setForm({ date: initialView.prefill?.date || TODAY_STR, type: "AI recommendation review", notes: initialView.prefill?.description || initialView.prefill?.title || "" });
@@ -590,7 +591,7 @@ export function Pool({ initialView }) {
           <div>
             <div style={{ fontSize: 12, color: COLORS.slate, fontWeight: 800, textTransform: "uppercase" }}>Pool Status</div>
             <div style={{ fontSize: 22, fontWeight: 900, color: health.color, marginTop: 2 }}>{health.status}</div>
-            <div style={{ fontSize: 13, color: COLORS.slateLight, lineHeight: 1.45, marginTop: 4 }}>{health.status==="Good"?health.summary:"A concise recommendation is ready below."}</div>
+            <div style={{ fontSize: 13, color: COLORS.slateLight, lineHeight: 1.45, marginTop: 4 }}>{health.summary}</div>
           </div>
           <Droplets size={26} color={health.color} aria-hidden="true" />
         </div>
@@ -610,7 +611,7 @@ export function Pool({ initialView }) {
             {nextAction?.safetyNote&&<section><h3 className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground">Swimming guidance</h3><p className="mt-1 leading-5">{nextAction.safetyNote}</p></section>}
             {nextAction?.expectedOutcome&&<section><h3 className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground">Follow-up</h3><p className="mt-1 leading-5">{nextAction.expectedOutcome}</p></section>}
           </div>
-          {editable&&nextAction&&nextAction.priority!=="low"&&<Button type="button" size="sm" variant="secondary" className="mt-4" onClick={()=>openReview(nextAction)}>Review Recommendation</Button>}
+          {editable&&nextAction&&nextAction.priority!=="low"&&<Button type="button" size="sm" variant="secondary" className="mt-4" onClick={()=>{setForm({_recommendation:nextAction,treatment:nextAction.action,amount:nextAction.amount,reason:nextAction.explanation,notes:nextAction.safetyNote});setModal("treatment");}}>Log This Action</Button>}
         </ExpandableSection>
         {latest && <ExpandableSection title="Water Test Results" preferenceKey="familyos.pool.water-test-results.expanded" className="mt-3 bg-transparent">
           {chemistrySummary(latest).map(([label, value, unit, key]) => {
@@ -745,7 +746,7 @@ export function Pool({ initialView }) {
 
           {tab === "history" && (
             <>
-              <ChipGroup value={historyFilter} options={HISTORY_FILTERS} ariaLabel="History filter" onValueChange={setHistoryFilter} />
+              <ChipGroup value={historyFilter} options={HISTORY_FILTERS} ariaLabel="History filter" className="pool-history-filters" onValueChange={setHistoryFilter} />
               {!history.length && <EmptyState title="No pool history yet" detail="Log a test, treatment, maintenance item, or pool note to build the timeline." />}
               {Object.entries(groupedHistory).map(([date, items]) => (
                 <section key={date} style={{ marginBottom: 12 }}>

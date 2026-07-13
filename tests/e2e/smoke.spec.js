@@ -7,11 +7,13 @@ test("authenticated FamilyOS major-module smoke", async ({ page }, testInfo) => 
   await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
   await expect(page.getByRole("main", { name: "Today dashboard" })).toBeVisible();
   const primary=page.getByRole("navigation",{name:"Primary navigation"});
-  await expect(primary.getByRole("button")).toHaveText(["Home","Habits","Calendar","Tasks","More"]);
+  await expect(primary.getByRole("button")).toHaveText(["Home","Life Lists","Quick Add","Finance","More"]);
   await expect(primary.getByRole("button",{name:"Pool"})).toHaveCount(0);
   await expect(primary.getByRole("button",{name:"Attention"})).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Add" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Quick Add" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Add", exact: true })).toBeVisible();
+  await expect(primary.getByRole("button", { name: "Quick Add" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open Calendar" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open Tasks" })).toBeVisible();
   await expect(page.getByText(/today's focus/i, { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /Schedule annual physical/ }).first()).toBeVisible();
 
@@ -21,7 +23,7 @@ test("authenticated FamilyOS major-module smoke", async ({ page }, testInfo) => 
   await expect(page.getByText("Schedule annual physical", { exact: true }).first()).toBeVisible();
   await page.getByRole("button", { name: "Close" }).last().click();
 
-  await navigateModule(page, "Tasks");
+  await page.getByRole("button", { name: "Open Tasks" }).click();
   await expect(page.getByRole("button", { name: "My Tasks", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Overdue", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Upcoming", exact: true })).toBeVisible();
@@ -30,14 +32,15 @@ test("authenticated FamilyOS major-module smoke", async ({ page }, testInfo) => 
   await expect(page.getByRole("button", { name: "This Week", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /Select visible/i })).toHaveCount(0);
   await expect(page.getByText("Schedule annual physical")).toBeVisible();
-  await navigateModule(page, "Calendar");
+  await navigateModule(page, "Home");
+  await page.getByRole("button", { name: "Open Calendar" }).click();
   await expect(page.getByText("Calendar", { exact: true }).first()).toBeVisible();
   await navigateModule(page, "Home");
   await expect(page.getByText("FamilyOS", { exact: false }).first()).toBeVisible();
 
-  await navigateModule(page,"Habits");
+  await openMoreModule(page,"Habits");
   await expect(page.getByText("Morning checklist",{exact:true})).toBeVisible();
-  const checklistSummary=page.getByRole("button",{name:/^Morning checklist \d+ of \d+ completed/});
+  const checklistSummary=page.getByRole("button",{name:/^Morning checklist Checklist · \d+ of \d+ completed/});
   await expect(checklistSummary).toBeVisible();
   await page.getByRole("button",{name:"Expand Morning checklist"}).click();
   await expect(page.getByRole("checkbox",{name:"Take vitamins"})).toBeVisible();
