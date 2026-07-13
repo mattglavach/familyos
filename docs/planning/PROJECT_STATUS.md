@@ -2,7 +2,7 @@
 
 ## Current Release
 
-FamilyOS 2.9.0 Unified Context remains the current production release. Release 2.10.0 Core Experience Maturity is release-ready after complete local validation and focuses on the existing daily loop: Home, Family Brief, Habits and Routines, Calendar, Tasks, navigation, deep linking, reliability, accessibility, and responsive quality. No unrelated module expansion is included. Production backup, migration, publication, and alignment verification are in progress.
+FamilyOS 2.10.0 Core Experience Maturity is the current production release. It focuses on the existing daily loop: Home, Family Brief, Habits and Routines, Calendar, Tasks, navigation, deep linking, reliability, accessibility, and responsive quality. No unrelated module expansion is included. The production database is migrated through all 21 migrations, the Vercel deployment is READY on `familyos-pi-seven.vercel.app`, and production desktop/mobile, weather, console, bundle-secret, schema, migration-history, source-alignment, and runtime-log checks passed. The production schema and public-data backups are retained in the local temporary backup directory for short-term recovery support.
 
 ## Release 2.7.0 local release candidate
 

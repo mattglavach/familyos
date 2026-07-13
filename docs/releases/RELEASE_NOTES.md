@@ -10,6 +10,8 @@ The additive migration adds practical category metadata, routine-item guidance a
 
 Release validation completed: lint; declaration type checking; 35 unit suites and 134 tests; Release 2.10 migration assertions; 18 seed-safety tests; production build and bundle-safety scan; a 21-migration blank-database rebuild; and 73 authenticated Playwright tests across desktop, 390px mobile, tablet, and dark mode. The browser matrix covers navigation, persistence, failure handling, accessibility, responsive containment, Habits/Routines, Quick Add, and the established release regression suite.
 
+Production closeout completed after schema and public-data backups. All 21 migrations are aligned, the additive v2.10 columns, indexes, and status constraints are present, and the application is READY at `familyos-pi-seven.vercel.app`. Immutable application deployment: `familyos-76i5h82az-glavach.vercel.app`. Desktop/mobile unauthenticated, weather, console, and bundle-secret checks passed. Runtime review found no application error cluster; Vercel still reports the known non-blocking Node `url.parse()` deprecation warning on serverless calendar/weather routes.
+
 ## Release 2.9.0 - Unified Context
 
 FamilyOS now combines household signals into a prioritized, explainable view without relying on AI. A dedicated Household Timeline provides a bounded chronological record; Family Brief and Notifications reuse the same scored recommendations; Global Search and Smart Quick Add reduce navigation; and household location drives cached server-side weather context. Dashboard layout is recoverable and per-user. Managed images and PDFs use private Supabase Storage and signed access.

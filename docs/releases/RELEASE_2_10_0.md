@@ -32,4 +32,8 @@ Rollback is application-first: redeploy the v2.9.0 release and retain the additi
 - Production build and bundle-secret scan passed.
 - 73 authenticated Playwright tests passed across desktop, 390px mobile, tablet, and dark mode, including accessibility, persistence, failure paths, navigation, Quick Add, Habits/Routines, and established release regressions.
 
-Production migration, deployment, tag, and post-deployment evidence are recorded during release closeout in the sprint status and release notes.
+## Production closeout
+
+The production schema and public application data were backed up before migration. The single v2.10 migration was applied to project `dsowansazqleudupnjug`; migration history, status constraints, and new indexes were verified from a post-migration schema dump. The Git-integrated production deployment is READY at `familyos-pi-seven.vercel.app`; immutable application deployment `familyos-76i5h82az-glavach.vercel.app` was built from release commit `c8e2c2a`.
+
+Post-deployment desktop/mobile unauthenticated, weather, console, and bundle-secret checks passed. Runtime review found only the known non-blocking Node `url.parse()` deprecation warning on calendar/weather serverless routes. Authenticated production mutation testing was not performed because automation has no approved production user session; authenticated persistence and RLS workflows passed against the dedicated non-production project across the full browser matrix.
