@@ -43,8 +43,14 @@ async function navigateModule(page, label) {
 }
 
 async function openMoreModule(page, label) {
+  const primary=page.getByRole("navigation",{name:"Primary navigation"}).getByRole("button",{name:label,exact:true});
+  if(await primary.count()){
+    await primary.click();
+    await waitForPageReady(page,label);
+    return;
+  }
   await navigateModule(page, "More");
-  await page.getByRole("button", { name: new RegExp(`^${label}`) }).click();
+  await page.getByRole("button", { name: new RegExp(`^${label}`) }).first().click();
   await waitForPageReady(page, label);
 }
 

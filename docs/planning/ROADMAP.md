@@ -1,5 +1,9 @@
 # Roadmap
 
+## Release 2.6.1: Usability Refinement
+
+Status: local release candidate. Scope is limited to Home event labels, Habits-page checklist/routine usability, and progressive-disclosure Pool recommendations.
+
 ## Release 2.6.0: Focused Daily Operations
 
 Status: local release candidate. Scope includes simplified primary navigation, consolidated Home priorities, progressive task and habit filters, day-grouped Calendar scanning, reduced Pool/History duplication, ordered Quick Add, and one-level checklist habits with threshold-based daily completion.

@@ -184,6 +184,14 @@ function latestChemicalText(treatment) {
   ].filter(Boolean).join(", ") || treatment.notes || "Treatment logged";
 }
 
+export function buildRecommendationSummary(rec, fallbackRetest="Retest after circulation.") {
+  if(!rec)return "No recommendation is available. Log a current water test before making a treatment decision.";
+  const action=rec.action||"No action needed.";
+  const amount=rec.amount&&!action.toLowerCase().includes(String(rec.amount).toLowerCase())?` ${rec.amount}.`:"";
+  const followUp=rec.retest||fallbackRetest;
+  return `${action}${amount} ${followUp}`.replace(/\.\s*\./g,".").replace(/\s+/g," ").trim();
+}
+
 function maintenanceGuidance(latest, dueMaintenance, equipment) {
   const guidance = [];
   const pumpHours = num(latest?.pump_hours);
@@ -582,7 +590,7 @@ export function Pool({ initialView }) {
           <div>
             <div style={{ fontSize: 12, color: COLORS.slate, fontWeight: 800, textTransform: "uppercase" }}>Pool Status</div>
             <div style={{ fontSize: 22, fontWeight: 900, color: health.color, marginTop: 2 }}>{health.status}</div>
-            <div style={{ fontSize: 13, color: COLORS.slateLight, lineHeight: 1.45, marginTop: 4 }}>{health.summary}</div>
+            <div style={{ fontSize: 13, color: COLORS.slateLight, lineHeight: 1.45, marginTop: 4 }}>{health.status==="Good"?health.summary:"A concise recommendation is ready below."}</div>
           </div>
           <Droplets size={26} color={health.color} aria-hidden="true" />
         </div>
@@ -592,13 +600,18 @@ export function Pool({ initialView }) {
           {latest?.water_temp != null && <div><b style={{ color: COLORS.white }}>Water temperature:</b> {latest.water_temp} F</div>}
           <div><b style={{ color: COLORS.white }}>Last treatment:</b> {latestChemicalText(recentTreatment)}{recentTreatment?.date ? `, ${formatDate(recentTreatment.date)}` : ""}</div>
         </div>
-        <div style={{ borderTop: `1px solid ${COLORS.border}`, marginTop: 10, paddingTop: 10 }}>
-          <div style={{ fontSize: 12, color: COLORS.slate, fontWeight: 800, textTransform: "uppercase" }}>Recommended next step</div>
-          <div style={{ fontSize: 16, color: COLORS.white, fontWeight: 900, lineHeight: 1.35, marginTop: 4 }}>{nextAction?.action || "No action needed"}</div>
-          <div style={{ fontSize: 12, color: COLORS.slateLight, lineHeight: 1.45, marginTop: 3 }}>{nextAction?.explanation || `Test again ${retest.detail.toLowerCase()}`}</div>
-          {nextAction?.retest && <div style={{ fontSize: 12, color: COLORS.slate, marginTop: 4 }}>{nextAction.retest}</div>}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>{editable&&nextAction&&nextAction.priority!=="low"&&<Button type="button" size="sm" variant="secondary" onClick={() => openReview(nextAction)}>Review Recommendation</Button>}</div>
-        </div>
+        <ExpandableSection title="Recommended Next Step" summary={buildRecommendationSummary(nextAction,retest.detail)} defaultExpanded={false} className="mt-3 bg-transparent">
+          <div className="mt-4 grid gap-3 text-sm">
+            {nextAction?.explanation&&<section><h3 className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground">Current condition</h3><p className="mt-1 leading-5">{nextAction.explanation}</p></section>}
+            {nextAction&&<section><h3 className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground">Recommended action</h3><p className="mt-1 leading-5">{nextAction.action}{nextAction.amount?` Quantity: ${nextAction.amount}.`:""}</p></section>}
+            {nextAction?.howToAdd&&<section><h3 className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground">How to apply</h3><p className="mt-1 leading-5">{nextAction.howToAdd}</p></section>}
+            {(nextAction?.timing||nextAction?.warnings?.length>0)&&<section><h3 className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground">After adding</h3><p className="mt-1 leading-5">{nextAction.timing}</p>{nextAction.warnings?.map(warning=><p key={warning} className="mt-1 leading-5 text-amber-300">{warning}</p>)}</section>}
+            {nextAction?.retest&&<section><h3 className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground">Retest</h3><p className="mt-1 leading-5">{nextAction.retest}</p></section>}
+            {nextAction?.safetyNote&&<section><h3 className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground">Swimming guidance</h3><p className="mt-1 leading-5">{nextAction.safetyNote}</p></section>}
+            {nextAction?.expectedOutcome&&<section><h3 className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground">Follow-up</h3><p className="mt-1 leading-5">{nextAction.expectedOutcome}</p></section>}
+          </div>
+          {editable&&nextAction&&nextAction.priority!=="low"&&<Button type="button" size="sm" variant="secondary" className="mt-4" onClick={()=>openReview(nextAction)}>Review Recommendation</Button>}
+        </ExpandableSection>
         {latest && <ExpandableSection title="Water Test Results" preferenceKey="familyos.pool.water-test-results.expanded" className="mt-3 bg-transparent">
           {chemistrySummary(latest).map(([label, value, unit, key]) => {
             const status = poolStatus(key, value);

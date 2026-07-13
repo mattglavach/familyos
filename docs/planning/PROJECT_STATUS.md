@@ -1,5 +1,9 @@
 # Project Status
 
+## Release 2.6.1 local release candidate
+
+FamilyOS 2.6.1 is the current local usability release candidate. It refines Home event clarity, completes checklist/routine interaction from Habits, and makes Pool recommendations concise by default with full guidance on expansion. No database migration is included.
+
 ## Release 2.6.0 local release candidate
 
 FamilyOS 2.6.0 is implemented locally. It simplifies daily navigation and duplicate controls, consolidates Home priorities, improves task/habit filtering and Calendar scanning, and adds one-level checklist habits through an additive household-scoped migration. Production migration and deployment are not part of this local release commit.

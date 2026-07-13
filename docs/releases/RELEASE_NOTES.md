@@ -1,5 +1,11 @@
 # Release Notes
 
+## Release 2.6.1 - Usability Refinement
+
+Release 2.6.1 improves clarity without changing the database. Home Upcoming entries now include their own weekday and date. The Habits page becomes the direct work surface for simple habits, checklist habits, and routines: checklist rows remain compact until expanded, child actions update calculated progress, basic actions can be added inline, and advanced configuration/action management remains available through details.
+
+Pool Recommended Next Step now starts collapsed with a concise action, supported quantity, and follow-up. Expansion reveals only relevant structured sections for condition, application, timing, retesting, safety, and follow-up while preserving the existing chemistry engine.
+
 ## Release 2.6.0 - Focused Daily Operations
 
 Release 2.6 simplifies the daily shell around Home, Habits, Calendar, Tasks, and More. Home now uses one prioritized focus list, week events scan by day, task and habit controls use progressive filters, Pool and History remove duplicate creation controls, and Quick Add has one ordered capture surface.

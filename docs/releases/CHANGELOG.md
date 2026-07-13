@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.6.1 - 2026-07-12
+
+- Added standalone weekday and calendar-date labels to every Home Upcoming event, including `Tomorrow` context.
+- Made checklist habits and routines directly usable from Habits with compact collapsed progress, inline expansion, child completion, quick action creation, and full details/action management.
+- Reworked Pool Recommended Next Step into a concise collapsed operational summary with structured expandable guidance.
+- Preserved existing habit, routine, Pool calculation, history, navigation, and responsive behavior without a database migration.
+
 ## 2.6.0 - 2026-07-12
 
 - Simplified primary navigation to Home, Habits, Calendar, Tasks, and More; moved Pool to More and removed the duplicate floating Quick Add control.

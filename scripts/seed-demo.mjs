@@ -98,6 +98,22 @@ await insert("tasks", [
   { ...base, title: "Replace HVAC filter", category: "Home", priority: "med", due_date: iso(30), recurring_interval_days: 90, last_completed: iso(-60), status: "not_started", completed: false, assigned_person_id: people[0].id, is_important: false, created_by_user_id: userId },
   { ...base, title: "Submit school permission form", category: "School", priority: "low", due_date: iso(-1), last_completed: iso(-1), status: "completed", completed: true, completed_at: stamp(-1), assigned_person_id: people[2].id, is_important: false, created_by_user_id: userId },
 ]);
+const demoHabits=await insert("habits",[
+  {...base,owner_user_id:userId,assigned_person_id:people[0].id,name:"Read for 20 minutes",description:"Daily reading",frequency:"daily",active_days:[],start_date:iso(-30),status:"active",visibility:"household",archived:false,habit_type:"simple",completion_threshold_mode:"all"},
+  {...base,owner_user_id:userId,assigned_person_id:people[0].id,name:"Morning checklist",description:"Start the day prepared",frequency:"daily",active_days:[],start_date:iso(-30),status:"active",visibility:"household",archived:false,habit_type:"checklist",completion_threshold_mode:"count",completion_threshold_count:2},
+]);
+const checklistHabit=demoHabits.find(item=>item.name==="Morning checklist");
+await insert("habit_actions",[
+  {household_id:householdId,habit_id:checklistHabit.id,name:"Take vitamins",display_order:0,required:true,active:true},
+  {household_id:householdId,habit_id:checklistHabit.id,name:"Drink water",display_order:1,required:true,active:true},
+  {household_id:householdId,habit_id:checklistHabit.id,name:"Review calendar",display_order:2,required:false,active:true},
+]);
+const demoRoutines=await insert("routines",[{...base,owner_user_id:userId,assigned_person_id:people[0].id,name:"Evening routine",description:"Close out the day",recurrence:"daily",visibility:"household",archived:false}]);
+await insert("routine_steps",[
+  {household_id:householdId,routine_id:demoRoutines[0].id,title:"Prepare coffee",sort_order:0,optional:false},
+  {household_id:householdId,routine_id:demoRoutines[0].id,title:"Set out clothes",sort_order:1,optional:false},
+  {household_id:householdId,routine_id:demoRoutines[0].id,title:"Check tomorrow's weather",sort_order:2,optional:true},
+]);
 await insert("notes", [
   { ...base, title: "Family meeting notes", body: "Vacation dates, summer routines, and school supply planning.", tag: "Family" },
   { ...base, title: "Emergency contacts", body: "Pediatrician, veterinarian, neighbors, and utility contacts.", tag: "Important" },

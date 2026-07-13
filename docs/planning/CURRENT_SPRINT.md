@@ -1,5 +1,9 @@
 # Current Sprint
 
+## Release 2.6.1 usability release
+
+Completed scope: standalone Home Upcoming dates, unified Habits-page checklist/routine execution and management, and concise expandable Pool recommendations. No schema change is required.
+
 ## Release 2.6.0 release candidate
 
 Completed scope: navigation simplification, Home prioritization, compact task and habit filters, Calendar week grouping, Pool/History and Quick Add cleanup, and checklist habit actions with threshold-based daily history. Local release validation is recorded in the completion summary and release commit.

@@ -1,5 +1,9 @@
 # Habits
 
+## Release 2.6.1 usability
+
+Habits is the unified daily work surface for simple habits, checklist habits, and routines. Checklist and routine rows show progress and calculated state while collapsed, expand inline for child checkboxes and quick action creation, and provide a details dialog for parent configuration, assignment, thresholds, action editing, ordering, required/optional state, activation, and deletion. Child changes reuse durable daily completion records; there is no parent-completion bypass.
+
 ## Release 2.6.0 scope
 
 Habits now support simple completion and one-level checklist habits. Checklist actions retain name, display order, required/optional designation, and active state. The parent has no manual bypass: daily completion is calculated using an `any`, `count`, or `all` threshold, while displayed progress includes every active action. Daily snapshots preserve total active actions, completed count, threshold result, and completed action IDs without overwriting prior dates. Existing habits remain simple by default.

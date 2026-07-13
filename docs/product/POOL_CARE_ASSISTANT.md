@@ -1,5 +1,9 @@
 # Pool Care Assistant
 
+## Release 2.6.1 recommendation presentation
+
+Recommended Next Step starts collapsed and summarizes the action, supported quantity, and immediate retest/follow-up. Expansion organizes the existing rule-engine output into relevant condition, action, application, timing, retest, swimming/safety, and follow-up sections. Presentation never invents a quantity when the action engine cannot calculate one, and Water Test Results remains independently collapsed.
+
 ## Purpose
 Pool should become a Pool Care Assistant, not only a chemistry tracker.
 

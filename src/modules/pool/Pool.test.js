@@ -16,7 +16,7 @@ jest.mock("../../hooks/useHouseholdCollaboration", () => ({
   roleCanManage: jest.fn(() => true),
 }));
 
-const { Pool } = require("./Pool");
+const { Pool, buildRecommendationSummary } = require("./Pool");
 const { useHousehold } = require("../../context/HouseholdContext");
 const { useTable } = require("../../hooks/useTable");
 const { roleCanManage } = require("../../hooks/useHouseholdCollaboration");
@@ -104,6 +104,18 @@ describe("Pool Test persistence UI", () => {
     expect(results?.getAttribute("aria-expanded")).toBe("false");
   });
 
+  test("recommendation starts collapsed with an operational summary and expands to structured guidance", () => {
+    tables.pool_readings=table([{id:"reading-high-ph",date:"2026-07-12",logged_at:"2026-07-12T13:00:00Z",ph:8.0,alkalinity:100,free_chlorine:5,cya:70,salt:3400}]);
+    act(()=>root.render(React.createElement(Pool)));
+    const disclosure=[...container.querySelectorAll("button")].find(button=>button.textContent.includes("Recommended Next Step"));
+    expect(disclosure?.getAttribute("aria-expanded")).toBe("false");
+    expect(disclosure.textContent).toMatch(/Add .* oz muriatic acid.*Retest/i);
+    act(()=>Simulate.click(disclosure));
+    expect(container.textContent).toContain("Current condition");
+    expect(container.textContent).toContain("How to apply");
+    expect(container.textContent).toContain("Swimming guidance");
+  });
+
   test("fetched partial Pool Test appears in history and updates current status after reload", () => {
     tables.pool_readings = table([
       {
@@ -139,4 +151,8 @@ describe("Pool Test persistence UI", () => {
     expect(container.querySelectorAll('button[aria-label="Edit Reading entry"]')).toHaveLength(2);
   });
 
+});
+
+test("recommendation summary never invents a missing quantity",()=>{
+  expect(buildRecommendationSummary({action:"Retest CYA before adding stabilizer.",amount:"",retest:"Repeat CYA with a reliable test."})).toBe("Retest CYA before adding stabilizer. Repeat CYA with a reliable test.");
 });

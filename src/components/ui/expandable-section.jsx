@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
 
-export function ExpandableSection({ title, preferenceKey, defaultExpanded = false, children, className = "" }) {
+export function ExpandableSection({ title, summary, preferenceKey, defaultExpanded = false, children, className = "" }) {
   const [expanded, setExpanded] = useState(() => {
     if (!preferenceKey || typeof window === "undefined") return defaultExpanded;
     const saved = window.localStorage.getItem(preferenceKey);
@@ -20,7 +20,7 @@ export function ExpandableSection({ title, preferenceKey, defaultExpanded = fals
         aria-expanded={expanded}
         onClick={() => setExpanded(value => !value)}
       >
-        <span>{title}</span>
+        <span className="min-w-0"><span className="block">{title}</span>{summary&&<span className="mt-1 block text-xs font-medium leading-5 text-muted-foreground">{summary}</span>}</span>
         <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`} aria-hidden="true" />
       </button>
       {expanded && <div className="border-t border-border px-4 py-3">{children}</div>}

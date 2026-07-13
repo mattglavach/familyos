@@ -1,7 +1,7 @@
 const { test, expect } = require("@playwright/test");
 const { assertNoRuntimeFailures, loginDemoUser, monitorPage, navigateModule, openMoreModule } = require("./helpers/app");
 
-test("authenticated FamilyOS major-module smoke", async ({ page }) => {
+test("authenticated FamilyOS major-module smoke", async ({ page }, testInfo) => {
   const failures = monitorPage(page);
   await loginDemoUser(page);
   await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
@@ -35,10 +35,34 @@ test("authenticated FamilyOS major-module smoke", async ({ page }) => {
   await navigateModule(page, "Home");
   await expect(page.getByText("FamilyOS", { exact: false }).first()).toBeVisible();
 
+  await navigateModule(page,"Habits");
+  await expect(page.getByText("Morning checklist",{exact:true})).toBeVisible();
+  const checklistSummary=page.getByRole("button",{name:/^Morning checklist \d+ of \d+ completed/});
+  await expect(checklistSummary).toBeVisible();
+  await page.getByRole("button",{name:"Expand Morning checklist"}).click();
+  await expect(page.getByRole("checkbox",{name:"Take vitamins"})).toBeVisible();
+  const vitamins=page.getByRole("checkbox",{name:"Take vitamins"}),before=await vitamins.getAttribute("aria-checked");
+  await vitamins.click();
+  await expect(vitamins).toHaveAttribute("aria-checked",before==="true"?"false":"true");
+  await page.getByRole("button",{name:/Add action/}).first().click();
+  await page.getByLabel("New action for Morning checklist").fill(`Smoke ${testInfo.project.name}`);
+  await page.getByRole("main").getByRole("button",{name:"Add",exact:true}).click();
+  await expect(page.getByText(`Smoke ${testInfo.project.name}`,{exact:true})).toBeVisible();
+  await page.getByRole("button",{name:"View details for Morning checklist"}).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("button",{name:"Close"}).click();
+  await expect(page.getByText("Evening routine",{exact:true})).toBeVisible();
+  await page.getByRole("button",{name:"Expand Evening routine"}).click();
+  await expect(page.getByRole("checkbox",{name:"Prepare coffee"})).toBeVisible();
+
   await openMoreModule(page, "Life Lists");
   await expect(page.getByText("Family Goals").first()).toBeVisible();
   await openMoreModule(page, "Pool");
   await expect(page.getByText("Pool", { exact: true }).first()).toBeVisible();
+  const recommendation=page.getByRole("button",{name:/Recommended Next Step/});
+  await expect(recommendation).toHaveAttribute("aria-expanded","false");
+  await recommendation.click();
+  await expect(page.getByText("Current condition",{exact:true})).toBeVisible();
   await openMoreModule(page, "AI Workspace");
   await expect(page.getByRole("heading", { name: "Ask FamilyOS" })).toBeVisible();
   await page.getByRole("button", { name: /Full generated prompt/ }).click();
