@@ -1,5 +1,11 @@
 # Habits
 
+## Release 2.10.0 core experience maturity
+
+Habits is the daily work surface for simple habits and multi-step routines. Routine cards show today’s progress and state, persist partial completion, derive overall completion from required active steps, and reopen when a required step is unchecked. The detail view prioritizes today’s action before assignment, category, schedule, history, streak, seven-day completion, step guidance, ordering, required/optional state, archiving, and removal.
+
+Existing habits remain simple by default and can become routines without losing history. Household-wide means one shared household completion unless a specific member is assigned. `skipped` and `not_applicable` are neutral scheduled-day states: neither counts as completed, and neither breaks streak calculations because streaks count completed applicable periods only.
+
 ## Release 2.6.1 usability
 
 Habits is the unified daily work surface for simple habits, checklist habits, and routines. Checklist and routine rows show progress and calculated state while collapsed, expand inline for child checkboxes and quick action creation, and provide a details dialog for parent configuration, assignment, thresholds, action editing, ordering, required/optional state, activation, and deletion. Child changes reuse durable daily completion records; there is no parent-completion bypass.

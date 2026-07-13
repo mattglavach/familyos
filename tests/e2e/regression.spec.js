@@ -16,13 +16,13 @@ test("task completion persists after reload and can be reopened", async ({ page 
   expect((await completeResponse).ok()).toBe(true);
   await page.reload();
   await navigateModule(page, "Tasks");
-  await page.getByRole("button", { name: "Filters", exact: true }).click();
-  await page.locator('select[aria-label="Status"]').selectOption({ label: "Completed" });
+  await page.getByRole("button", { name: "More Filters", exact: true }).click();
+  await page.getByRole("button", { name: "Completed", exact: true }).click();
   await expect(page.getByRole("checkbox", { name: `Reopen ${title}` })).toBeVisible();
   const reopenResponse = page.waitForResponse(response => response.request().method() === "PATCH" && response.url().includes("/rest/v1/tasks"));
   await page.getByRole("checkbox", { name: `Reopen ${title}` }).click();
   expect((await reopenResponse).ok()).toBe(true);
-  await page.locator('select[aria-label="Status"]').selectOption({ label: "All status" });
+  await page.getByRole("button", { name: "All Tasks", exact: true }).click();
   await expect(page.getByText(title)).toBeVisible();
 });
 
@@ -33,6 +33,8 @@ test("task mutation failure shows a controlled error", async ({ page }) => {
     return route.continue();
   });
   await navigateModule(page, "Tasks");
+  await page.getByRole("button", { name: "More Filters", exact: true }).click();
+  await page.getByRole("button", { name: "All Tasks", exact: true }).click();
   await page.getByRole("checkbox", { name: "Complete Take recycling to curb" }).click();
   await expect(page.getByText("Task could not be completed right now.")).toBeVisible();
 });
@@ -60,7 +62,7 @@ test("tasks exposes a loading state during a delayed request", async ({ page }) 
 test("task CRUD round trip", async ({ page }) => {
   await loginDemoUser(page);
   const title = `Playwright task ${Date.now()}`;
-  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("button", { name: "Add household item", exact: true }).click();
   await page.getByRole("button", { name: "Task Ready", exact: true }).click();
   await page.getByLabel("Title").fill(title);
   await page.getByRole("button", { name: "Add Task", exact: true }).click();
@@ -76,7 +78,7 @@ test("task CRUD round trip", async ({ page }) => {
 
 test("responsive navigation remains usable", async ({ page }) => {
   await loginDemoUser(page);
-  for (const label of ["Home", "Tasks", "Calendar", "Pool", "Attention"]) {
+  for (const label of ["Home", "Habits", "Calendar", "Tasks", "More"]) {
     await navigateModule(page, label);
     await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
   }
@@ -86,7 +88,7 @@ test("responsive navigation remains usable", async ({ page }) => {
 
 test("Home and AI Workspace retain accessible names, focus, and responsive containment", async ({ page }) => {
   await loginDemoUser(page);
-  await expect(page.getByText(/Today's Focus/i).first()).toBeVisible();
+  await expect(page.getByText(/Family Brief/i).first()).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
   await page.keyboard.press("Tab");
   expect(await page.evaluate(() => document.activeElement !== document.body)).toBe(true);
@@ -102,11 +104,11 @@ test("global Add and Pool History expose the refined actions", async ({ page }) 
   await loginDemoUser(page);
   const nav = page.getByRole("navigation", { name: "Primary navigation" });
   await expect(nav.getByRole("button", { name: "Add", exact: true })).toHaveCount(0);
-  await expect(nav.getByRole("button", { name: "Pool", exact: true })).toBeVisible();
+  await expect(nav.getByRole("button", { name: "Habits", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Calendar status:/ })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Settings", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  for (const action of ["Task Ready", "Calendar Event Google", "Pool Test Ready", "Maintenance Ready", "Shopping Item Ready", "Life Item Ready", "Note Ready"]) await expect(page.getByRole("button", { name: action, exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Add household item", exact: true }).click();
+  for (const action of ["Task Ready", "Calendar Event Google", "Pool Test Ready", "Maintenance Ready", "Life Item Ready", "Note Ready"]) await expect(page.getByRole("button", { name: action, exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Close" }).click();
   await navigateModule(page, "Pool");
   await page.getByRole("button", { name: "History", exact: true }).click();

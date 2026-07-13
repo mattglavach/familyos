@@ -1,5 +1,15 @@
 # Release Notes
 
+## Release 2.10.0 - Core Experience Maturity
+
+FamilyOS now centers the daily experience on “What should I do next?” Family Brief recommendations are compact action surfaces that open the most specific available record and fall back safely when a record is stale or unavailable. Upcoming Calendar rows retain event-level navigation. Primary mobile navigation is Home, Habits, Calendar, Tasks, and More; Quick Add remains available through one global header Add control.
+
+Habits supports simple one-action habits and multi-step routines in one workspace. Routines persist partial progress, derive completion from required active steps, reopen when a required step is unchecked, and provide skip or not-applicable states that do not count as completion or break streak calculations. Household-wide habits use one shared household completion; a specific household member can be assigned. Existing habit records remain simple by default.
+
+The additive migration adds practical category metadata, routine-item guidance and lifecycle timestamps, active/archive support for legacy routine steps, and explicit completion statuses. Existing RLS and owner/adult write enforcement remain unchanged. Rollback is application-first: redeploy v2.9.0 and retain additive columns and statuses to avoid data loss.
+
+Release validation completed: lint; declaration type checking; 35 unit suites and 134 tests; Release 2.10 migration assertions; 18 seed-safety tests; production build and bundle-safety scan; a 21-migration blank-database rebuild; and 73 authenticated Playwright tests across desktop, 390px mobile, tablet, and dark mode. The browser matrix covers navigation, persistence, failure handling, accessibility, responsive containment, Habits/Routines, Quick Add, and the established release regression suite.
+
 ## Release 2.9.0 - Unified Context
 
 FamilyOS now combines household signals into a prioritized, explainable view without relying on AI. A dedicated Household Timeline provides a bounded chronological record; Family Brief and Notifications reuse the same scored recommendations; Global Search and Smart Quick Add reduce navigation; and household location drives cached server-side weather context. Dashboard layout is recoverable and per-user. Managed images and PDFs use private Supabase Storage and signed access.

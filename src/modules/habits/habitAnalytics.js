@@ -1,6 +1,8 @@
 import { habitDateKey } from "./habitStore";
 
-const completed = (habit, rows, key) => rows.some(row => row.habit_id === habit.id && row.period_key === key && row.status === "completed");
+const rowFor = (habit, rows, key) => rows.find(row => row.habit_id === habit.id && row.period_key === key);
+const completed = (habit, rows, key) => rowFor(habit,rows,key)?.status === "completed";
+const neutral = (habit, rows, key) => ["skipped","not_applicable"].includes(rowFor(habit,rows,key)?.status);
 export function habitGoalLabel(habit) {
   if ((habit.active_days || []).length === 5 && [1,2,3,4,5].every(day => habit.active_days.includes(day))) return "Every weekday";
   const target = Number(habit.target_count) || 1;
@@ -11,7 +13,7 @@ export function completionRate(habit, rows, days, now = new Date()) {
   for (let offset = 0; offset < days; offset += 1) {
     const date = new Date(now); date.setHours(12,0,0,0); date.setDate(date.getDate() - offset);
     if ((habit.active_days || []).length && !habit.active_days.includes(date.getDay())) continue;
-    due += 1; if (completed(habit, rows, habitDateKey(date))) done += 1;
+    const key=habitDateKey(date);if(neutral(habit,rows,key))continue;due += 1; if (completed(habit, rows, key)) done += 1;
   }
   return { done, due, percent: due ? Math.round(done / due * 100) : 0 };
 }
@@ -20,7 +22,7 @@ export function longestHabitStreak(habit, rows, now = new Date()) {
   for (let offset = 365; offset >= 0; offset -= 1) {
     const date = new Date(now); date.setHours(12,0,0,0); date.setDate(date.getDate() - offset);
     if ((habit.active_days || []).length && !habit.active_days.includes(date.getDay())) continue;
-    if (completed(habit, rows, habitDateKey(date))) { current += 1; longest = Math.max(longest, current); } else current = 0;
+    const key=habitDateKey(date);if(completed(habit, rows, key)) { current += 1; longest = Math.max(longest, current); } else if(!neutral(habit,rows,key)) current = 0;
   }
   return longest;
 }

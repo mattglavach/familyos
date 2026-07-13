@@ -77,20 +77,21 @@ test("full Pool form saves one real reading and persists through refresh", async
   const failures = monitorPage(page);
   await loginDemoUser(page);
   await navigateModule(page, "Pool");
-  await page.getByRole("button", { name: "Log Test", exact: true }).click();
+  await page.getByRole("button", { name: "Add household item", exact: true }).click();
+  await page.getByRole("button", { name: "Pool Test Ready", exact: true }).click();
   await fillPoolValues(page);
   const insert = poolInsert(page);
-  await page.getByRole("button", { name: "Save Test", exact: true }).click();
+  await page.getByRole("button", { name: "Save Reading", exact: true }).click();
   const response = await insert;
   { const details = await responseDetails(response); expect(details.status, JSON.stringify(details)).toBe(201); }
-  await expect(page.getByRole("status")).toHaveText("Pool test saved.");
+  await expect(page.getByRole("status")).toContainText("Pool reading saved.");
   await assertPersistedRecord(page, response, failures);
 });
 
 test("Quick Add Pool Test saves one real reading and persists through refresh", async ({ page }) => {
   const failures = monitorPage(page);
   await loginDemoUser(page);
-  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("button", { name: "Add household item", exact: true }).click();
   await page.getByRole("button", { name: "Pool Test Ready", exact: true }).click();
   await fillPoolValues(page);
   const insert = poolInsert(page);
@@ -109,10 +110,11 @@ test("full Pool form retains values on persistence failure and blocks duplicate 
     if (route.request().method() === "POST") { posts += 1; await new Promise(resolve => setTimeout(resolve, 300)); return route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ code: "TEST_FAILURE", message: "Controlled persistence failure", details: "Regression coverage", hint: "No database mutation occurred" }) }); }
     return route.continue();
   });
-  await page.getByRole("button", { name: "Log Test", exact: true }).click();
+  await page.getByRole("button", { name: "Add household item", exact: true }).click();
+  await page.getByRole("button", { name: "Pool Test Ready", exact: true }).click();
   await fillPoolValues(page);
-  await page.getByRole("button", { name: "Save Test", exact: true }).dblclick();
-  await expect(page.getByText("Pool test could not be saved right now.")).toBeVisible();
+  await page.getByRole("button", { name: "Save Reading", exact: true }).dblclick();
+  await expect(page.getByText("Pool reading could not be saved right now.")).toBeVisible();
   expect(posts).toBe(1);
   await expect(page.getByLabel("CC ppm")).toHaveValue("0");
   await expect(page.getByLabel("pH", { exact: true })).toHaveValue("7.7");
@@ -125,7 +127,7 @@ test("Quick Add retains values on persistence failure and blocks duplicate submi
     if (route.request().method() === "POST") { posts += 1; await new Promise(resolve => setTimeout(resolve, 300)); return route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ code: "TEST_FAILURE", message: "Controlled persistence failure", details: "Regression coverage", hint: "No database mutation occurred" }) }); }
     return route.continue();
   });
-  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("button", { name: "Add household item", exact: true }).click();
   await page.getByRole("button", { name: "Pool Test Ready", exact: true }).click();
   await fillPoolValues(page);
   await page.getByRole("button", { name: "Save Reading", exact: true }).dblclick();

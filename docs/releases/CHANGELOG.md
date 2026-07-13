@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.10.0 - 2026-07-13
+
+- Replaced Family Brief Take Action and Completed buttons with compact, keyboard-accessible recommendation card navigation and a centralized resolver that safely handles specific, missing, deleted, and unavailable targets.
+- Renamed Upcoming to Upcoming Calendar and retained specific event opening.
+- Set mobile navigation to Home, Habits, Calendar, Tasks, and More while preserving one global header Add entry point and every existing Quick Add workflow.
+- Matured Habits and Routines with practical categories, household assignment semantics, action-first details, step guidance/order/archive/removal, persistent partial progress, derived completion/reopen behavior, skip and not-applicable states, streak and seven-day context, and calm empty states.
+- Added the backward-compatible `20260713010000_release_2_10_core_experience.sql` migration for category and routine-item metadata plus explicit completion statuses; existing habits remain simple habits without user migration.
+
 ## 2.9.0 - 2026-07-13
 
 - Added the typed, deterministic Unified Household Context contract with household load, freshness, evidence, missing-data, current, upcoming, and recent-activity sections.

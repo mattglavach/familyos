@@ -231,7 +231,7 @@ function AppHeader({tab, auth, unreadCount, onSettings, onSearch, onNotification
           <Bell className="h-4 w-4" aria-hidden="true" />
           {unreadCount > 0 && <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-400 px-1 text-[10px] font-extrabold text-slate-950">{unreadCount}</span>}
         </HeaderIconButton>
-        <HeaderIconButton label="Add" tooltip="Add household item" onClick={onAdd} className="border-primary/50 bg-primary text-primary-foreground hover:bg-primary/90">
+        <HeaderIconButton label="Add household item" tooltip="Add household item" onClick={onAdd} className="border-primary/50 bg-primary text-primary-foreground hover:bg-primary/90">
           <Plus className="h-5 w-5" aria-hidden="true" />
         </HeaderIconButton>
         <Button type="button" variant="secondary" size="xs" className="hidden sm:inline-flex" onClick={auth.signOut}>Sign out</Button>
@@ -441,8 +441,8 @@ function AuthenticatedApp({ auth }) {
       {tab==="needs-attention"&&<NeedsAttention onNavigate={switchTab} calendarEvents={headerCalendar.events}/>}
       {tab==="settings"&&<Settings auth={auth} gc={gc} secureCalendar={secureCalendar}/>}
       {tab==="ai-workspace"&&<AIWorkspace calendarEvents={headerCalendar.events} onNavigate={switchTab} initialView={navigationContext?.tab === "ai-workspace" ? navigationContext : null}/>}
-      {tab==="habits"&&<Habits/>}
-      {tab==="home-assets"&&<HomeAssets/>}
+      {tab==="habits"&&<Habits initialView={navigationContext?.tab === "habits" ? navigationContext : null}/>}
+      {tab==="home-assets"&&<HomeAssets initialView={navigationContext?.tab === "home-assets" ? navigationContext : null}/>}
       {tab==="timeline"&&<HouseholdTimeline calendarEvents={headerCalendar.events} onNavigate={switchTab}/>}
       {tab==="routines"&&<Routines/>}
       </Suspense>

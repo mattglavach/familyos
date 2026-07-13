@@ -1,5 +1,11 @@
 # Roadmap
 
+## Release 2.10.0 - Core Experience Maturity
+
+FamilyOS should help the household understand what needs attention and what to do next. The immediate product priority is maturity of the existing core experience before further module expansion: Home and Family Brief, Habits and Routines, Calendar usability, Task usability, navigation consistency, cross-module deep linking, reliability, accessibility, and responsive quality.
+
+This release makes recommendation cards direct action paths, restores the core five-item navigation, and evolves Habits into a flexible simple-habit and routine system with persistent step progress, clear daily states, household assignment, history, and skip/not-applicable handling. Unrelated modules, speculative capabilities, gamification, coaching, health integrations, and autonomous actions remain subordinate until the core loop is demonstrably mature.
+
 ## Release 2.9.0 - Unified Context
 
 Connect module-owned household facts through deterministic context, chronology, discovery, entry, and prioritization. Keep AI optional and advisory. Remove Shopping from the intended experience without deleting historical data. Future releases may extend the shared attachment component and context providers, but must preserve owning-module boundaries and explicit human control.
@@ -92,7 +98,7 @@ Completed in Release 2.1.0: explicit owning-module acceptance handoffs. Optional
 
 ## Next Product Direction
 
-Validate Release 2.1.0 with real household workflows. Preserve human review, household permissions, privacy filtering, traceable context, and FamilyOS ownership of accepted records. Gardening Operations and broader Financial Planning remain separately scoped candidates.
+Validate the core daily loop with real household workflows. Preserve human review, household permissions, privacy filtering, traceable context, and FamilyOS ownership of accepted records. Further module expansion, Gardening Operations, and broader Financial Planning remain subordinate to core-experience quality.
 
 ## Release 1.8.0: Household Context, Dashboard Intelligence, and Pool Optimization
 - [x] Implement the versioned Household Context Service and deterministic cross-module attention framework.

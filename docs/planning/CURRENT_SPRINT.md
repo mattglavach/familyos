@@ -1,5 +1,17 @@
 # Current Sprint
 
+## Release 2.10.0 - Core Experience Maturity
+
+Status: release-ready after complete local validation; production publication in progress.
+
+- [x] Make Family Brief cards compact, action-first, keyboard accessible, and specifically deep-linked without Take Action or Completed buttons.
+- [x] Rename Upcoming to Upcoming Calendar and preserve event-level navigation.
+- [x] Restore Home, Habits, Calendar, Tasks, More bottom navigation and keep one global header Add entry point.
+- [x] Mature simple habits and routines with categories, assignments, step guidance/order/archive, partial progress, derived completion, skip/not-applicable, history, and action-first details.
+- [x] Add the backward-compatible Release 2.10 migration, focused unit coverage, and release documentation.
+- [x] Complete the 21-migration blank-database rebuild, full automated checks, and 73-test desktop/mobile/tablet/dark browser matrix.
+- [ ] Complete the production backup, migration, deployment, tag, and source/deployment alignment verification.
+
 ## Release 2.9.0 - Unified Context
 
 Status: released to production on 2026-07-13.

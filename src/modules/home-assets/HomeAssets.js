@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Home, Plus, Wrench } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
@@ -18,11 +18,12 @@ export const HOME_CATEGORIES=["hvac","appliance","filter","warranty","vehicle","
 const emptyForm={name:"",category:"hvac",status:"active",next_maintenance:"",notes:"",recurrence_days:"",attachments:[]};
 const label=value=>String(value||"").replace(/_/g," ").replace(/\b\w/g,char=>char.toUpperCase());
 
-export function HomeAssets(){
+export function HomeAssets({initialView}){
   const household=useHousehold();
   const assets=useTable("home_assets","next_maintenance",true),history=useTable("home_asset_history","completed_at");
   const [category,setCategory]=useState("all"),[open,setOpen]=useState(false),[form,setForm]=useState(emptyForm),[error,setError]=useState(""),[saving,setSaving]=useState(false);
   const visible=useMemo(()=>assets.data.filter(item=>category==="all"||item.category===category),[assets.data,category]);
+  useEffect(()=>{if(!initialView?.ts)return;const item=initialView.assetId&&assets.data.find(row=>row.id===initialView.assetId);if(item){setForm({...item});setError("");setOpen(true);}else if(initialView.category)setCategory(initialView.category);},[assets.data,initialView]);
   function edit(item=null){setForm(item?{...item}:emptyForm);setError("");setOpen(true);}
   async function save(){if(!form.name.trim()){setError("Name is required.");return;}setSaving(true);setError("");try{const row={name:form.name.trim(),category:form.category,status:form.status,next_maintenance:form.next_maintenance||null,notes:form.notes||"",recurrence_days:form.recurrence_days?Number(form.recurrence_days):null,attachments:Array.isArray(form.attachments)?form.attachments:[]};if(form.id)await assets.update(form.id,row);else await assets.insert(row);setOpen(false);}catch(e){setError(e.message||"Could not save this home item.");}finally{setSaving(false);}}
   async function complete(item){const completedAt=new Date().toISOString();await history.insert({asset_id:item.id,event_type:"maintenance_completed",completed_at:completedAt,notes:"Completed from Home"});const next=item.recurrence_days?new Date(Date.now()+Number(item.recurrence_days)*86400000).toISOString().slice(0,10):null;await assets.update(item.id,{last_maintenance:completedAt.slice(0,10),next_maintenance:next});}

@@ -1,5 +1,9 @@
 # Database Schema
 
+## Release 2.10.0 additions
+
+`habits` and legacy `routines` gain a practical category. `habit_actions` and `routine_steps` gain optional guidance plus update timestamps; legacy routine steps also gain active/archive state. Habit completions support `completed`, `skipped`, and `not_applicable`; legacy routine completions support `in_progress`, `completed`, `skipped`, and `not_applicable`. Existing unique parent-period completion constraints prevent duplicate daily rows. Existing household RLS and owner/adult write policies remain unchanged.
+
 ## Release 2.9.0 additions
 
 - `household_settings`: normalized `location`, `timezone`, and safe dashboard defaults.

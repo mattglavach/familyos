@@ -2,7 +2,7 @@
 
 ## Current Release
 
-FamilyOS 2.9.0 Unified Context is released to production. It unifies deterministic context, timeline, recommendations, weather, search, entry, secure attachments, dashboard preferences, notifications, and Settings. The production migration, private Storage configuration, READY Vercel deployment, weather endpoint, desktop/mobile unauthenticated checks, and non-production authenticated multi-viewport smoke are verified.
+FamilyOS 2.9.0 Unified Context remains the current production release. Release 2.10.0 Core Experience Maturity is release-ready after complete local validation and focuses on the existing daily loop: Home, Family Brief, Habits and Routines, Calendar, Tasks, navigation, deep linking, reliability, accessibility, and responsive quality. No unrelated module expansion is included. Production backup, migration, publication, and alignment verification are in progress.
 
 ## Release 2.7.0 local release candidate
 

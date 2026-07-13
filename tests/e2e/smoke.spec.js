@@ -7,12 +7,13 @@ test("authenticated FamilyOS major-module smoke", async ({ page }, testInfo) => 
   await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
   await expect(page.getByRole("main", { name: "Today dashboard" })).toBeVisible();
   const primary=page.getByRole("navigation",{name:"Primary navigation"});
-  await expect(primary.getByRole("button")).toHaveText(["Home","Life Lists","Quick Add","Finance","More"]);
+  await expect(primary.getByRole("button")).toHaveText(["Home","Habits","Calendar","Tasks","More"]);
+  await expect(page.getByRole("button", { name: "Add household item" })).toBeVisible();
   await expect(primary.getByRole("button",{name:"Pool"})).toHaveCount(0);
   await expect(primary.getByRole("button",{name:"Attention"})).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Add", exact: true })).toBeVisible();
-  await expect(primary.getByRole("button", { name: "Quick Add" })).toBeVisible();
-  await primary.getByRole("button", { name: "Quick Add" }).click();
+  await expect(page.getByRole("button", { name: "Add household item" })).toBeVisible();
+  await expect(primary.getByRole("button", { name: "Quick Add" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Add household item" }).click();
   await page.getByLabel("Describe one household item").fill("Replace HVAC filter next month");
   await page.getByRole("button", { name: "Review detected item" }).click();
   await expect(page.getByText(/maintenance · Replace HVAC filter/i)).toBeVisible();
@@ -44,9 +45,9 @@ test("authenticated FamilyOS major-module smoke", async ({ page }, testInfo) => 
   await navigateModule(page, "Home");
   await expect(page.getByText("FamilyOS", { exact: false }).first()).toBeVisible();
 
-  await openMoreModule(page,"Habits");
+  await navigateModule(page,"Habits");
   await expect(page.getByText("Morning checklist",{exact:true})).toBeVisible();
-  const checklistSummary=page.getByRole("button",{name:/^Morning checklist Checklist · \d+ of \d+ completed/});
+  const checklistSummary=page.getByRole("button",{name:/^Morning checklist Routine · \d+ of \d+ complete/});
   await expect(checklistSummary).toBeVisible();
   await page.getByRole("button",{name:"Expand Morning checklist"}).click();
   await expect(page.getByRole("checkbox",{name:"Take vitamins"})).toBeVisible();
