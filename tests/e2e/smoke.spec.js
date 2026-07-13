@@ -14,8 +14,8 @@ test("authenticated FamilyOS major-module smoke", async ({ page }, testInfo) => 
   await expect(primary.getByRole("button", { name: "Quick Add" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Open Calendar" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Open Tasks" })).toBeVisible();
-  await expect(page.getByText(/today's focus/i, { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Schedule annual physical/ }).first()).toBeVisible();
+  await expect(page.getByText(/family brief/i, { exact: true })).toBeVisible();
+  await expect(page.getByText(/Schedule annual physical/).first()).toBeVisible();
 
   await page.keyboard.press("Control+K");
   await expect(page.getByText("Search Family OS", { exact: true })).toBeVisible();
@@ -66,6 +66,10 @@ test("authenticated FamilyOS major-module smoke", async ({ page }, testInfo) => 
   await expect(recommendation).toHaveAttribute("aria-expanded","false");
   await recommendation.click();
   await expect(page.getByText("Current condition",{exact:true})).toBeVisible();
+  await openMoreModule(page, "Home Operations");
+  await expect(page.getByRole("heading", { name: "Assets & Maintenance" })).toBeVisible();
+  await openMoreModule(page, "Shopping");
+  await expect(page.getByText("Shared household shopping lists and pantry inventory.")).toBeVisible();
   await openMoreModule(page, "AI Workspace");
   await expect(page.getByRole("heading", { name: "Ask FamilyOS" })).toBeVisible();
   await page.getByRole("button", { name: /Full generated prompt/ }).click();

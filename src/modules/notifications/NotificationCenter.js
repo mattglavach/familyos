@@ -13,6 +13,7 @@ import { buildPoolContext } from "../pool/domainService";
 import { formatCalendarEventTime, normalizeCalendarEvent } from "../../lib/calendarTime";
 import { dedupeNotifications, notificationIsEnabled } from "./notificationEngine";
 import { briefLabel, dueBriefs } from "../../services/briefScheduling";
+import { generateRecommendations, SEVERITY_ORDER } from "../../services/recommendations/engine";
 
 const STORAGE_KEY = "familyos_notification_read_ids_v1";
 const NOTIFICATION_VIEWS = [
@@ -21,7 +22,7 @@ const NOTIFICATION_VIEWS = [
   { value: "week", label: "This Week" },
   { value: "archive", label: "Archive" },
 ];
-const DEFAULT_NOTIFICATION_CATEGORIES={tasks:true,calendar:true,habits:true,routines:true,briefs:true,home:true,pool:true};
+const DEFAULT_NOTIFICATION_CATEGORIES={tasks:true,calendar:true,habits:true,routines:true,briefs:true,home:true,pool:true,maintenance:true,shopping:true,life:true,system:true};
 
 function readStoredIds() {
   try {
@@ -106,6 +107,7 @@ export function NotificationCenter({ open, onOpenChange, calendarEvents, househo
   const equipment = useTable("pool_equipment", "updated_at");
   const schedule = useTable("pool_schedule", "last_completed");
   const habits=useTable("habits","created_at",true),routines=useTable("routines","created_at",true);
+  const habitCompletions=useTable("habit_completions","completed_at"),homeAssets=useTable("home_assets","next_maintenance",true),shoppingItems=useTable("shopping_items","updated_at");
   const briefSchedules=useTable("brief_schedules","created_at",true),briefHistory=useTable("brief_generation_history","generated_at");
   const notificationStates=useTable("notification_states","updated_at"),notificationPreferences=useTable("notification_preferences","updated_at");
   const poolContext = useMemo(() => buildPoolContext({ householdIdentifier: household.householdId, profile: profiles.data[0] || null, readings: readings.data, treatments: treatments.data, equipment: equipment.data, schedule: schedule.data, tasks: taskTable.data }), [equipment.data, household.householdId, profiles.data, readings.data, schedule.data, taskTable.data, treatments.data]);
@@ -113,10 +115,11 @@ export function NotificationCenter({ open, onOpenChange, calendarEvents, househo
   const [view, setView] = useState("unread");
   const scheduleMap=useMemo(()=>Object.fromEntries(briefSchedules.data.map(item=>[item.brief_type,{enabled:item.enabled,time:String(item.preferred_time).slice(0,5),days:item.active_days||[]}])) ,[briefSchedules.data]);
   const preferences=useMemo(()=>notificationPreferences.data[0]||{},[notificationPreferences.data]);
+  const smartNotifications=useMemo(()=>generateRecommendations({tasks:taskTable.data,events:calendarEvents,habits:habits.data,habitCompletions:habitCompletions.data,poolReadings:readings.data,poolSchedule:schedule.data,maintenance:homeAssets.data,gardenReminders:homeAssets.data.filter(item=>item.category==="garden"),shoppingItems:shoppingItems.data}).filter(item=>item.severity!=="info").map(item=>({id:`insight-${item.id}`,sourceKey:`insight-${item.id}`,category:item.category,priority:100-(SEVERITY_ORDER[item.severity]*15),kind:item.category,tone:["critical","high"].includes(item.severity)?"urgent":"warning",title:item.title,detail:item.recommendedAction,nav:item.nav})),[calendarEvents,habitCompletions.data,habits.data,homeAssets.data,readings.data,schedule.data,shoppingItems.data,taskTable.data]);
   const [preferenceDraft,setPreferenceDraft]=useState({enabled_categories:DEFAULT_NOTIFICATION_CATEGORIES,quiet_hours_start:"21:00",quiet_hours_end:"07:00"});
   useEffect(()=>{if(notificationPreferences.data[0])setPreferenceDraft({...notificationPreferences.data[0],enabled_categories:{...DEFAULT_NOTIFICATION_CATEGORIES,...notificationPreferences.data[0].enabled_categories}});},[notificationPreferences.data]);
   const persistedRead=notificationStates.data.filter(s=>s.read_at).map(s=>s.source_key),dismissed=notificationStates.data.filter(s=>s.dismissed_at).map(s=>s.source_key);
-  const notifications = useMemo(() => buildNotifications(taskTable.data, calendarEvents, household, calendar, poolContext,{habits:habits.data,routines:routines.data,dueBriefTypes:dueBriefs(scheduleMap,briefHistory.data)}).filter(item=>notificationIsEnabled(item,preferences)&&!dismissed.includes(item.id)), [briefHistory.data, calendar, calendarEvents, dismissed, habits.data, household, poolContext, preferences, routines.data, scheduleMap, taskTable.data]);
+  const notifications = useMemo(() => dedupeNotifications([...buildNotifications(taskTable.data, calendarEvents, household, calendar, poolContext,{habits:habits.data,routines:routines.data,dueBriefTypes:dueBriefs(scheduleMap,briefHistory.data)}),...smartNotifications]).filter(item=>notificationIsEnabled(item,preferences)&&!dismissed.includes(item.id)), [briefHistory.data, calendar, calendarEvents, dismissed, habits.data, household, poolContext, preferences, routines.data, scheduleMap, smartNotifications, taskTable.data]);
   const effectiveRead=[...new Set([...readIds,...persistedRead])];
   const unreadCount = notifications.filter(item => !effectiveRead.includes(item.id) && item.id !== "all-clear").length;
   const visibleNotifications = notifications.filter(item => {

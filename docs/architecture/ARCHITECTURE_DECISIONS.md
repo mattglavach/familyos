@@ -1,5 +1,11 @@
 # Architecture Decisions
 
+## 2026-07-12 - Modular advisory recommendation registry
+
+Decision: implement household intelligence as pure, registered domain providers returning a normalized recommendation contract. Dashboard and Notifications consume the same output. Providers do not write source records, and completion/dismissal remains an explicit user action.
+
+Why: this preserves module ownership, avoids duplicated prioritization logic, keeps rule output testable, and creates a controlled extension point for future AI providers. The release also advances the requested version from 2.6.0 to 2.8.0 because 2.7.0 already exists on `main`; reusing an older version would corrupt release ordering.
+
 ## 2026-07-12 - Release 2.5 proactive planning uses persisted, authenticated-open orchestration
 
 Decision: store member-level brief schedules, generation history, notification preferences/state, and household routine templates in Supabase. When no reliable server scheduler is configured, evaluate due briefs after authenticated app open and require the user to prepare/review the brief. Do not use a browser timer or autonomous record mutation.

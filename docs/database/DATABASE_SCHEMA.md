@@ -1,5 +1,12 @@
 # Database Schema
 
+## Release 2.8.0 additions
+
+- `home_assets`: household-owned HVAC, appliance, filter, warranty, vehicle, lawn, garden, and project records with status, next/last maintenance, recurrence, notes, and attachment metadata.
+- `home_asset_history`: immutable maintenance and status history linked to a Home asset, with notes and attachment metadata.
+- `shopping_items`: additive `recurring`, `recurrence_days`, `store_group`, `meal_group`, `inventory_flag`, and `purchase_count` fields.
+- Active household members can read Home records; owner/adult roles can manage them. Existing Shopping policies continue to enforce list visibility and management rights.
+
 ## Release 2.6 checklist habits
 
 Migration `20260712050000_release_2_6_habit_actions.sql` adds backward-compatible habit type and threshold columns plus household-scoped `habit_actions` and `habit_action_history` tables. Definitions cascade from the parent habit; history retains one snapshot per habit and date. Existing habit rows require no backfill because they default to `simple`.

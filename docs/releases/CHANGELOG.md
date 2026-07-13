@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.8.0 - 2026-07-12
+
+- Made the Family Brief the actionable Home intelligence hub with severity-ranked recommendation cards, supporting evidence, direct actions, dismissal, and completion acknowledgement.
+- Added a provider registry for Calendar, Tasks, Habits, Pool, Home Maintenance, Garden, Shopping, Life events, and recent accomplishments; future rule-based or AI providers can use the same normalized contract.
+- Expanded durable notification categories and reused recommendation output for priority, read, archive, dismiss, and deep-link workflows.
+- Added Home Operations for HVAC, appliances, filters, warranties, vehicles, lawn, garden, and projects, including status, maintenance dates, recurrence, notes, attachments, and immutable history foundations.
+- Enhanced Shopping with recurring items, store and meal grouping, favorites/frequency foundations, quick add, and inventory flags.
+- Added the additive, idempotent `20260712060000_release_2_8_family_intelligence.sql` migration with active-household RLS and no destructive data changes.
+- Version note: the attached scope named v2.6.0 after repository v2.7.0 already existed. It is released as v2.8.0 to preserve valid release ordering.
+
 ## 2.7.0 - 2026-07-12
 
 - Personalized the Home greeting from the Settings profile name, limited Today’s Focus to three items until expanded, improved maintenance drill-down metadata, moved Upcoming above Status, and added accessible Calendar and Tasks AI Brief shortcuts.

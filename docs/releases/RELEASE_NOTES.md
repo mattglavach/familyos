@@ -1,5 +1,17 @@
 # Release Notes
 
+## Release 2.8.0 - From Tracking to Intelligence
+
+FamilyOS now opens with a concise Family Brief that explains what needs attention, what is due today or this week, and the recommended next action. Recommendations remain advisory: users must explicitly open the owning module or acknowledge completion, and no AI output automatically mutates household records.
+
+The shared recommendation registry includes Calendar, Tasks, Habits, Pool, Home Maintenance, Garden, Shopping, Life events, and recent accomplishment providers. Each result includes severity, category, action, evidence, navigation, and stable identity for dismissal. Notifications reuse these results instead of duplicating domain rules.
+
+Home Operations adds structured household assets and schedules across HVAC, appliances, filters, warranties, vehicles, lawn, garden, and projects. Shopping adds recurring-item, store-group, meal-group, purchase-frequency, and inventory-aware fields while preserving all existing lists and pantry records.
+
+Database changes are additive and household-scoped. The migration creates `home_assets` and `home_asset_history`, extends `shopping_items`, enables RLS, and can be safely re-run through `IF NOT EXISTS` operations. Rollback is application-first: redeploy v2.7.0 and leave additive tables/columns in place to avoid data loss.
+
+Validation: unit/regression tests, lint, production build, bundle-safety scan, database migration checks, desktop/tablet/390px/dark Playwright smoke, deployment verification, and production console checks are required for release closeout.
+
 ## Release 2.7.0 - Dashboard and Workflow Refinements
 
 Release 2.7.0 reduces routine navigation. Home now greets the signed-in profile by first name when available, initially shows three focus items, drills maintenance toward the owning record, places Upcoming before Status, and provides compact accessible Calendar and Tasks shortcuts. The primary bottom navigation is Home, Life Lists, Quick Add, Finance, and More.

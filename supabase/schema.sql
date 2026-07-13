@@ -379,3 +379,5 @@ begin
     );
   end if;
 end $$;
+-- Release 2.8 Family Intelligence additions are applied after the household
+-- foundation below. See the matching migration for RLS and upgrade behavior.

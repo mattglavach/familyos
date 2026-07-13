@@ -40,6 +40,8 @@ const GlobalSearch = lazy(() => import("../modules/search/GlobalSearch").then(mo
 const Settings = lazy(() => import("../modules/settings/Settings").then(module => ({ default: module.Settings })));
 const AIWorkspace = lazy(() => import("../modules/ai-workspace/AIWorkspace").then(module => ({ default: module.AIWorkspace })));
 const Habits = lazy(() => import("../modules/habits/Habits").then(module => ({ default: module.Habits })));
+const HomeAssets = lazy(() => import("../modules/home-assets/HomeAssets").then(module => ({ default: module.HomeAssets })));
+const Shopping = lazy(() => import("../modules/shopping/Shopping").then(module => ({ default: module.Shopping })));
 function SetupRequired(){
   return(
     <div style={S.app} className="px-5 py-10">
@@ -352,7 +354,6 @@ function AuthenticatedApp({ auth }) {
       return;
     }
     if (!nextTab) return;
-    if (nextTab === "shopping") { setNavigationContext(null); setTab("more"); window.scrollTo({top:0,behavior:"auto"}); return; }
     setNavigationContext(typeof target === "string" ? null : { ...target, ts: Date.now() });
     setTab(nextTab);
     window.scrollTo({top:0,behavior:"auto"});
@@ -441,6 +442,8 @@ function AuthenticatedApp({ auth }) {
       {tab==="settings"&&<Settings auth={auth} gc={gc} secureCalendar={secureCalendar}/>}
       {tab==="ai-workspace"&&<AIWorkspace calendarEvents={headerCalendar.events} onNavigate={switchTab} initialView={navigationContext?.tab === "ai-workspace" ? navigationContext : null}/>}
       {tab==="habits"&&<Habits/>}
+      {tab==="home-assets"&&<HomeAssets/>}
+      {tab==="shopping"&&<Shopping initialView={navigationContext?.tab === "shopping" ? navigationContext : null}/>}
       {tab==="routines"&&<Routines/>}
       </Suspense>
       </AppErrorBoundary>

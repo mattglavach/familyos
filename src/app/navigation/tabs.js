@@ -19,6 +19,8 @@ export const TITLES = {
   settings: "Settings",
   "ai-workspace": "AI Workspace",
   habits: "Habits",
+  "home-assets": "Home Operations",
+  shopping: "Shopping",
   routines: "Routines",
   "needs-attention": "Needs Attention",
   tasks: "Tasks",

@@ -1,5 +1,9 @@
 # Roadmap
 
+## Release 2.8.0 - From Tracking to Intelligence
+
+Deliver the daily Family Brief, modular cross-domain recommendation providers, notification reuse, Home Operations, and Shopping intelligence without autonomous household record changes. Future AI providers may register with the engine only when their evidence, confidence, privacy, and human-acceptance controls meet canonical governance.
+
 ## Release 2.7.0: Dashboard and Workflow Refinements
 
 Status: local release candidate. Scope improves Home prioritization and shortcuts, primary navigation, habit and routine configuration, Calendar provider handoff and privacy, and Pool progressive disclosure without changing schemas or ownership contracts.

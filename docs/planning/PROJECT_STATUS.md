@@ -1,5 +1,9 @@
 # Project Status
 
+## Current Release
+
+FamilyOS 2.8.0 is in release validation. It adds the Family Brief intelligence hub, shared recommendation providers, durable notification integration, Home Operations, and Shopping intelligence foundations. Existing 2.6.0 and 2.7.0 history is preserved; the originally requested 2.6.0 label was advanced to 2.8.0 because 2.7.0 was already on `main`.
+
 ## Release 2.7.0 local release candidate
 
 FamilyOS 2.7.0 is the current local usability release candidate. It makes common Home, Habits, Calendar, Pool, Life Lists, and Finance workflows more direct while preserving authentication, household isolation, history, provider links, calculations, Quick Add, and deep-link destinations. No database migration is included. Publication and production deployment are not part of this local release.

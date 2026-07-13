@@ -291,6 +291,11 @@ export function Shopping({ initialView }) {
       favorite: false,
       assigned_to_person_id: "",
       pantry_item_id: "",
+      recurring: false,
+      recurrence_days: "",
+      store_group: selectedList?.category || "",
+      meal_group: "",
+      inventory_flag: false,
       archived: false,
     });
     setItemDrawer(true);
@@ -382,6 +387,12 @@ export function Shopping({ initialView }) {
       purchased_at: purchased ? (itemForm.purchased_at || new Date().toISOString()) : null,
       recipe_ref: itemForm.recipe_ref || null,
       meal_plan_ref: itemForm.meal_plan_ref || null,
+      recurring: Boolean(itemForm.recurring),
+      recurrence_days: itemForm.recurring && itemForm.recurrence_days ? Number(itemForm.recurrence_days) : null,
+      store_group: itemForm.store_group || "",
+      meal_group: itemForm.meal_group || "",
+      inventory_flag: Boolean(itemForm.inventory_flag),
+      purchase_count: Number(itemForm.purchase_count || 0),
       updated_at: new Date().toISOString(),
     };
     try {
@@ -661,6 +672,10 @@ function ItemDrawer({ open, onOpenChange, form, setForm, people, pantryItems, ca
         <FormGroup><Label>Priority</Label><SegmentedControl value={form.priority || "med"} options={PRIORITIES.map(priority => ({ value: priority, label: labelize(priority) }))} ariaLabel="Shopping item priority" onValueChange={priority => setForm(previous => ({ ...previous, priority }))} /></FormGroup>
         <FormGroup><Label>Assigned To</Label><Select value={form.assigned_to_person_id || ""} onChange={event => setForm(previous => ({ ...previous, assigned_to_person_id: event.target.value }))}><option value="">Unassigned</option>{people.map(person => <option key={person.id} value={person.id}>{person.display_name}</option>)}</Select></FormGroup>
         <FormGroup><Label>Pantry Link</Label><Select value={form.pantry_item_id || ""} onChange={event => setForm(previous => ({ ...previous, pantry_item_id: event.target.value }))}><option value="">No pantry link</option>{pantryItems.filter(item => !item.archived).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</Select><FormHelp>Optional link for future pantry and meal planning workflows.</FormHelp></FormGroup>
+        <FormRow><FormGroup><Label>Store group</Label><Input value={form.store_group||""} onChange={event=>setForm(previous=>({...previous,store_group:event.target.value}))} placeholder="Costco, Sam's, Grocery"/></FormGroup><FormGroup><Label>Meal group</Label><Input value={form.meal_group||""} onChange={event=>setForm(previous=>({...previous,meal_group:event.target.value}))} placeholder="Taco night"/></FormGroup></FormRow>
+        <ToggleField checked={Boolean(form.recurring)} label="Recurring grocery item" onChange={recurring=>setForm(previous=>({...previous,recurring}))}/>
+        {form.recurring&&<NumberField label="Repeat every (days)" min="1" value={form.recurrence_days||""} onChange={recurrence_days=>setForm(previous=>({...previous,recurrence_days}))}/>}
+        <ToggleField checked={Boolean(form.inventory_flag)} label="Inventory item needs restock" onChange={inventory_flag=>setForm(previous=>({...previous,inventory_flag}))}/>
         <NotesField value={form.notes || ""} onChange={notes => setForm(previous => ({ ...previous, notes }))} placeholder="Brand, size, store note..." />
         <ToggleField checked={Boolean(form.purchased)} label="Purchased" onChange={purchased => setForm(previous => ({ ...previous, purchased }))} />
         <ToggleField checked={Boolean(form.favorite)} label="Favorite" onChange={favorite => setForm(previous => ({ ...previous, favorite }))} />

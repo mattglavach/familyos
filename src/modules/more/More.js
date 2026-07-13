@@ -1,4 +1,4 @@
-import { Bot, ChevronRight, DollarSign, ListChecks, NotebookTabs, Repeat2, Settings, Utensils, Waves } from "lucide-react";
+import { Bot, ChevronRight, DollarSign, Home, ListChecks, NotebookTabs, Repeat2, Settings, ShoppingCart, Utensils, Waves } from "lucide-react";
 import { Badge } from "../../components/ui/badge";
 import { Card, CardContent } from "../../components/ui/card";
 import { SectionHeader } from "../../components/ui/section-header";
@@ -11,6 +11,7 @@ const platformGroups = [
     title: "Home",
     items: [
       { id: "pool", label: "Pool", detail: "Existing pool care workspace.", icon: Waves, badge: "Existing", enabled: true },
+      { id: "home-assets", label: "Home Operations", detail: "Assets, maintenance, warranties, vehicles, lawn, garden, and projects.", icon: Home, badge: "New", enabled: true },
     ],
   },
   {
@@ -25,6 +26,7 @@ const platformGroups = [
       { id: "college", label: "College", detail: "Existing college planning workspace.", icon: NotebookTabs, badge: "Existing", enabled: true },
       { id: "meal-planning", label: "Meal Planning", detail: "Recipes, weekly meal plans, pantry checks, and shopping review.", icon: Utensils, badge: "New", enabled: true },
       { id: "life-lists", label: "Life Lists", detail: "Flexible lists for ideas, media, places, gifts, and family plans.", icon: ListChecks, badge: "New", enabled: true },
+      { id: "shopping", label: "Shopping", detail: "Recurring groceries, store grouping, favorites, and inventory-aware lists.", icon: ShoppingCart, badge: "Enhanced", enabled: true },
     ],
   },
   {
