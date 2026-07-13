@@ -7,7 +7,8 @@ test("generates and ranks cross-module recommendations", () => {
     shoppingItems: [{ id: "s1", name: "Milk", inventory_flag: true }],
   }, { today: "2026-07-12" });
   expect(recommendations[0]).toMatchObject({ id: "tasks-overdue", severity: "critical", category: "tasks" });
-  expect(recommendations.map(item => item.id)).toEqual(expect.arrayContaining(["calendar-today", "shopping-needed"]));
+  expect(recommendations.map(item => item.id)).toEqual(expect.arrayContaining(["calendar-today"]));
+  expect(recommendations.map(item => item.id)).not.toContain("shopping-needed");
 });
 
 test("supports provider registration and dismissed insights", () => {

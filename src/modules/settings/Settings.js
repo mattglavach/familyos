@@ -138,6 +138,13 @@ export function Settings({ auth, gc, secureCalendar }) {
       defaultFamilyMember: defaultMember?.id || "Family",
       taskDefaultCategory: household.userPreferences?.default_task_category || household.householdSettings?.default_task_category || DEFAULT_SETTINGS.taskDefaultCategory,
       taskDefaultPriority: defaultPriority === "medium" ? "med" : defaultPriority || DEFAULT_SETTINGS.taskDefaultPriority,
+      locationCity: household.householdSettings?.location?.city || "Ravenel",
+      locationRegion: household.householdSettings?.location?.region || household.householdSettings?.location?.state || "South Carolina",
+      locationPostalCode: household.householdSettings?.location?.postal_code || "",
+      locationCountry: household.householdSettings?.location?.country || "US",
+      locationLatitude: household.householdSettings?.location?.latitude ?? "",
+      locationLongitude: household.householdSettings?.location?.longitude ?? "",
+      timezone: household.householdSettings?.timezone || "America/New_York",
     });
   }, [family.members, household.household, household.householdSettings, household.profile, household.userPreferences]);
 
@@ -173,6 +180,8 @@ export function Settings({ auth, gc, secureCalendar }) {
           household_id: household.householdId,
           default_task_category: settings.taskDefaultCategory,
           default_task_priority: taskPriority,
+          timezone: settings.timezone || "America/New_York",
+          location: {city:settings.locationCity.trim(),region:settings.locationRegion.trim(),postal_code:settings.locationPostalCode.trim(),country:settings.locationCountry.trim()||"US",latitude:settings.locationLatitude===""?null:Number(settings.locationLatitude),longitude:settings.locationLongitude===""?null:Number(settings.locationLongitude),display_label:[settings.locationCity,settings.locationRegion].filter(Boolean).join(", ")},
         }),
         supabase.from("user_preferences").upsert({
           user_id: auth.session.user.id,
@@ -412,6 +421,12 @@ export function Settings({ auth, gc, secureCalendar }) {
                 {TASK_PRIORITY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
               </Select>
             </FormGroup>
+            <FormSection title="Household Location" description="Used for weather, time-sensitive context, and outdoor recommendations. Ravenel, South Carolina is only the fallback until this is saved.">
+              <FormRow><FormGroup><Label htmlFor="location-city">City</Label><Input id="location-city" value={settings.locationCity||""} onChange={event=>setSettings(previous=>({...previous,locationCity:event.target.value}))}/></FormGroup><FormGroup><Label htmlFor="location-region">State or region</Label><Input id="location-region" value={settings.locationRegion||""} onChange={event=>setSettings(previous=>({...previous,locationRegion:event.target.value}))}/></FormGroup></FormRow>
+              <FormRow><FormGroup><Label htmlFor="location-postal">Postal code</Label><Input id="location-postal" value={settings.locationPostalCode||""} onChange={event=>setSettings(previous=>({...previous,locationPostalCode:event.target.value}))}/></FormGroup><FormGroup><Label htmlFor="location-country">Country</Label><Input id="location-country" value={settings.locationCountry||"US"} onChange={event=>setSettings(previous=>({...previous,locationCountry:event.target.value}))}/></FormGroup></FormRow>
+              <FormRow><FormGroup><Label htmlFor="location-latitude">Latitude (optional)</Label><Input id="location-latitude" type="number" step="any" value={settings.locationLatitude??""} onChange={event=>setSettings(previous=>({...previous,locationLatitude:event.target.value}))}/></FormGroup><FormGroup><Label htmlFor="location-longitude">Longitude (optional)</Label><Input id="location-longitude" type="number" step="any" value={settings.locationLongitude??""} onChange={event=>setSettings(previous=>({...previous,locationLongitude:event.target.value}))}/></FormGroup></FormRow>
+              <FormGroup><Label htmlFor="household-timezone">Timezone</Label><Select id="household-timezone" value={settings.timezone||"America/New_York"} onChange={event=>setSettings(previous=>({...previous,timezone:event.target.value}))}>{["America/New_York","America/Chicago","America/Denver","America/Los_Angeles","America/Phoenix","America/Anchorage","Pacific/Honolulu"].map(value=><option key={value} value={value}>{value}</option>)}</Select></FormGroup>
+            </FormSection>
             <Button type="button" className="w-full" onClick={saveSettings}>
               <Save className="h-4 w-4" aria-hidden="true" />
               Save Settings

@@ -1,7 +1,7 @@
 # FamilyOS Version
 
-Current version: **2.4.0**
+Current version: **2.9.0**
 
-Release date: 2026-07-12
+Release date: 2026-07-13
 
-Release 2.4.0 evolves FamilyOS into a preparation-focused daily planning assistant while preserving FamilyOS as the system of record. Home adds preparation alerts and daily progress, AI Workspace adds user-triggered Morning, Evening, and Weekly planning context, Habits and Routines add richer goals and history, and Needs Attention plus Search improve prioritization and discovery. Release 2.4.0 includes one additive database migration; AI output remains advisory and requires explicit user review.
+Release 2.9.0, Unified Context, connects household records through a typed deterministic Context Engine, a dedicated Timeline, explainable recommendation scoring, server-side weather, broader global search, Smart Quick Add, secure managed attachments, dashboard personalization, improved notifications, and organized location-aware settings. Shopping remains inactive and its historical data is preserved.

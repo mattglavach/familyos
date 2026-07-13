@@ -1,5 +1,9 @@
 # Roadmap
 
+## Release 2.9.0 - Unified Context
+
+Connect module-owned household facts through deterministic context, chronology, discovery, entry, and prioritization. Keep AI optional and advisory. Remove Shopping from the intended experience without deleting historical data. Future releases may extend the shared attachment component and context providers, but must preserve owning-module boundaries and explicit human control.
+
 ## Release 2.8.0 - From Tracking to Intelligence
 
 Deliver the daily Family Brief, modular cross-domain recommendation providers, notification reuse, Home Operations, and Shopping intelligence without autonomous household record changes. Future AI providers may register with the engine only when their evidence, confidence, privacy, and human-acceptance controls meet canonical governance.

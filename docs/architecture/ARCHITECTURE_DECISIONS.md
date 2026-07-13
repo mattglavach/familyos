@@ -1,5 +1,15 @@
 # Architecture Decisions
 
+## 2026-07-13 - Unified context remains deterministic and module-owned
+
+Decision: derive one typed, evidence-backed household context and bounded Timeline from module-owned records; use an additive activity log only for transitions that source tables cannot reconstruct. Use one transparent recommendation scoring model for Family Brief and Notifications. Keep AI optional, advisory, and outside persistence.
+
+Weather: use Open-Meteo server-side with coordinates, caching, timeout handling, attribution, and graceful degradation. Ravenel, South Carolina is only the fallback when no household location is saved.
+
+Files: use a private Supabase Storage bucket with authenticated signed URLs, household path prefixes, metadata RLS, explicit MIME/size limits, and compensating cleanup when metadata persistence fails.
+
+Shopping: remove it from active navigation and every v2.9 context surface, but preserve all historical data and schema because no destructive removal strategy is approved.
+
 ## 2026-07-12 - Modular advisory recommendation registry
 
 Decision: implement household intelligence as pure, registered domain providers returning a normalized recommendation contract. Dashboard and Notifications consume the same output. Providers do not write source records, and completion/dismissal remains an explicit user action.

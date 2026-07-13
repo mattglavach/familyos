@@ -8,9 +8,10 @@ const eventDate = event => dateOnly(event.start?.dateTime || event.start?.date |
 const active = item => !item.archived && !item.completed && String(item.status || "").toLowerCase() !== "completed";
 
 export function insight(input) {
+  const severity=input.severity||"info",urgency=input.urgency||(["critical","high"].includes(severity)?"immediate":severity==="medium"?"soon":"when practical"),confidence=input.confidence||"high";
   return {
     id: input.id,
-    severity: input.severity || "info",
+    severity,
     category: input.category,
     title: input.title,
     recommendedAction: input.recommendedAction,
@@ -18,8 +19,21 @@ export function insight(input) {
     nav: input.nav || input.category,
     completable: input.completable !== false,
     sourceIds: input.sourceIds || [],
+    urgency,
+    confidence,
+    impact: input.impact||severity,
+    estimatedEffort: input.estimatedEffort||"quick",
+    estimatedTime: input.estimatedTime||"5 to 15 minutes",
+    consequenceIfIgnored: input.consequenceIfIgnored||"The issue may remain unresolved or become harder to address.",
+    evidence: input.evidence||input.supportingData||[],
+    createdAt: input.createdAt||null,
+    expiresAt: input.expiresAt||null,
+    deduplicationKey: input.deduplicationKey||input.id,
+    rationale: input.rationale||`${severity[0].toUpperCase()+severity.slice(1)} priority based on timing, impact, and available evidence.`,
   };
 }
+
+export function priorityScore(item,context={}){const severity={critical:60,high:45,medium:30,low:15,info:5}[item.severity]||0;const urgency={immediate:20,soon:12,"when practical":4}[item.urgency]||0;const confidence={high:10,moderate:5,low:0}[item.confidence]||0;const effort={quick:6,moderate:3,significant:0}[item.estimatedEffort]||0;const load=context.householdLoad==="high"&&item.severity!=="critical"?-4:0;return Math.max(0,severity+urgency+confidence+effort+load);}
 
 export function CalendarProvider(data, context) {
   const events = (data.events || []).filter(event => { const days = distance(eventDate(event), context.today); return days !== null && days >= 0 && days <= 7; });
@@ -84,18 +98,22 @@ export function GardenProvider(data, context) {
   return due.map(item => insight({ id: `garden-${item.id}`, category: "garden", severity: "medium", title: `${item.name || item.title || "Garden care"} is due.`, recommendedAction: item.recommended_action || "Complete and log the garden task.", supportingData: [item.notes].filter(Boolean), nav: "home-assets", sourceIds: [item.id] }));
 }
 
+export function WeatherProvider(data){const weather=data.weather;if(!weather||weather.stale)return[];const results=[];const evidence=[`${weather.location||"Household location"} · ${weather.generatedAt||"freshness unavailable"}`];if(Number(weather.precipitationProbability)>=70)results.push(insight({id:"weather-heavy-rain",category:"weather",severity:"medium",title:"Heavy rain may affect outdoor household plans.",recommendedAction:"Review outdoor events, garden watering, pool level, and weather-sensitive maintenance.",supportingData:[...evidence,`${weather.precipitationProbability}% precipitation`],consequenceIfIgnored:"Outdoor work may be disrupted and watering or pool plans may be unnecessary.",nav:"calendar"}));if(Number(weather.low)<=32)results.push(insight({id:"weather-freeze",category:"weather",severity:"high",title:"Freezing conditions are forecast.",recommendedAction:"Protect exposed plumbing and sensitive plants, and review outdoor plans.",supportingData:[...evidence,`Forecast low ${weather.low}°F`],consequenceIfIgnored:"Freeze exposure may damage plumbing, plants, or outdoor equipment.",nav:"home-assets"}));if(Number(weather.high)>=95)results.push(insight({id:"weather-heat",category:"weather",severity:"high",title:"Extreme heat may increase household and outdoor-system stress.",recommendedAction:"Review hydration, outdoor timing, HVAC, pool, and garden needs.",supportingData:[...evidence,`Forecast high ${weather.high}°F`],consequenceIfIgnored:"Heat exposure may affect people, plants, and equipment.",nav:"home-assets"}));return results;}
+
 export function ActivityProvider(data, context) {
   const completed = (data.tasks || []).filter(item => item.completed && distance(item.completed_at || item.updated_at, context.today) >= -7);
   return completed.length ? [insight({ id: "recent-accomplishments", category: "activity", severity: "info", title: `${completed.length} task${completed.length === 1 ? " was" : "s were"} completed recently.`, recommendedAction: "Acknowledge progress and carry forward only what still matters.", supportingData: completed.map(item => item.title).slice(0, 5), nav: { tab: "tasks", filter: "completed" }, completable: false })] : [];
 }
 
-export const DEFAULT_PROVIDERS = [CalendarProvider, TaskProvider, HabitProvider, PoolProvider, MaintenanceProvider, ShoppingProvider, GardenProvider, ActivityProvider];
+export const DEFAULT_PROVIDERS = [CalendarProvider, TaskProvider, HabitProvider, PoolProvider, MaintenanceProvider, GardenProvider, WeatherProvider, ActivityProvider];
 
 export function generateRecommendations(data = {}, options = {}) {
   const context = { today: options.today || new Date().toISOString().slice(0, 10) };
   const dismissed = new Set(options.dismissedIds || []);
   return (options.providers || DEFAULT_PROVIDERS)
     .flatMap(provider => provider(data, context) || [])
-    .filter(item => item && !dismissed.has(item.id))
-    .sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity] || a.id.localeCompare(b.id));
+    .filter(item => item && !dismissed.has(item.id) && (!item.expiresAt||item.expiresAt>=context.today))
+    .map(item=>({...item,priorityScore:priorityScore(item,options)}))
+    .filter((item,index,list)=>list.findIndex(other=>other.deduplicationKey===item.deduplicationKey)===index)
+    .sort((a, b) => b.priorityScore-a.priorityScore || a.id.localeCompare(b.id));
 }

@@ -1,0 +1,3 @@
+import {normalizeDashboardPreferences} from "./dashboardPreferences";
+test("repairs invalid preferences and appends newly introduced sections",()=>expect(normalizeDashboardPreferences({layout:["status","bogus","status"],hidden:["brief","bogus"],pinned:["progress"],density:"dense"})).toEqual({layout:["progress","status","brief","upcoming"],hidden:["brief"],pinned:["progress"],density:"comfortable"}));
+test("supports compact density and reset defaults",()=>{expect(normalizeDashboardPreferences({density:"compact"}).density).toBe("compact");expect(normalizeDashboardPreferences().layout).toEqual(["brief","upcoming","status","progress"]);});

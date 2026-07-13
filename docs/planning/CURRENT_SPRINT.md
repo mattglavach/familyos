@@ -1,5 +1,14 @@
 # Current Sprint
 
+## Release 2.9.0 - Unified Context
+
+Status: released to production on 2026-07-13.
+
+- [x] Unified Context Engine, Timeline, recommendation prioritization, weather, search, Smart Quick Add, attachments, dashboard preferences, notifications, and Settings implementation.
+- [x] Additive migration with RLS, private storage policies, indexes, and Shopping preservation.
+- [x] Unit tests and release documentation.
+- [x] Full local database chain, production migration, READY deployment, and post-deployment verification.
+
 ## Release 2.8.0 - From Tracking to Intelligence
 
 Status: released to production on 2026-07-12.

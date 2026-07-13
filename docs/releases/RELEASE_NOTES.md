@@ -1,5 +1,13 @@
 # Release Notes
 
+## Release 2.9.0 - Unified Context
+
+FamilyOS now combines household signals into a prioritized, explainable view without relying on AI. A dedicated Household Timeline provides a bounded chronological record; Family Brief and Notifications reuse the same scored recommendations; Global Search and Smart Quick Add reduce navigation; and household location drives cached server-side weather context. Dashboard layout is recoverable and per-user. Managed images and PDFs use private Supabase Storage and signed access.
+
+Shopping is no longer part of the active FamilyOS experience and is excluded from Timeline, Search, Smart Quick Add, recommendations, notifications, and navigation. Historical Shopping data and schema remain intact. Full architecture, migration, rollback, provider selection, and limitations are documented in `docs/releases/RELEASE_2_9_0.md`.
+
+Validation completed: lint; TypeScript declaration checks; 32 unit suites and 126 tests; migration/RLS/storage policy assertions; 20-migration empty-database rebuild; direct local and production schema/policy/bucket verification; authenticated private upload/signed URL test; seed safety; production build; bundle safety; authenticated desktop, tablet, 390px mobile, and dark smoke; accessibility checks in the same viewport matrix; production database backup and migration; READY Vercel deployment; production desktop/mobile unauthenticated and weather checks; bundle secret scan; and Vercel log review with no application runtime errors. Vercel records one non-blocking Node deprecation warning from the server runtime. Production: `familyos-pi-seven.vercel.app`, immutable deployment `familyos-6b4byrzhn-glavach.vercel.app`.
+
 ## Release 2.8.0 - From Tracking to Intelligence
 
 FamilyOS now opens with a concise Family Brief that explains what needs attention, what is due today or this week, and the recommended next action. Recommendations remain advisory: users must explicitly open the owning module or acknowledge completion, and no AI output automatically mutates household records.

@@ -1,5 +1,14 @@
 # Database Schema
 
+## Release 2.9.0 additions
+
+- `household_settings`: normalized `location`, `timezone`, and safe dashboard defaults.
+- `user_preferences`: per-user dashboard layout, hidden sections, pinned sections, and density.
+- `household_activity`: optional idempotent household transition log with bounded metadata and active-household RLS.
+- `attachments`: household/entity metadata for private Storage objects, signed access, MIME/size checks, and owner/adult mutation controls.
+- `storage.buckets` and `storage.objects`: private `household-attachments` bucket with 10 MB and MIME restrictions plus household path-based select/insert/delete policies.
+- Trigram indexes support bounded household search. Shopping data and schema are unchanged.
+
 ## Release 2.8.0 additions
 
 - `home_assets`: household-owned HVAC, appliance, filter, warranty, vehicle, lawn, garden, and project records with status, next/last maintenance, recurrence, notes, and attachment metadata.

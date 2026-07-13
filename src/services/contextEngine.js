@@ -1,5 +1,5 @@
 export const CONTEXT_ENGINE_CONTRACT="familyos.context-engine";
-export const CONTEXT_ENGINE_VERSION="2.0";
+export const CONTEXT_ENGINE_VERSION="2.9";
 export const MODULE_CONTEXT_VERSION="1.0";
 const SECTIONS=["summary","importantItems","upcomingItems","recommendations","metrics","recentActivity"];
 
@@ -17,6 +17,36 @@ export function createModuleContext(module,input={},options={}){
 export function buildContextEngine(moduleContexts=[],metadata={}){
   const modules=(moduleContexts||[]).filter(Boolean).sort((a,b)=>a.module.localeCompare(b.module));
   return {contract:CONTEXT_ENGINE_CONTRACT,version:CONTEXT_ENGINE_VERSION,generatedAt:metadata.generatedAt||new Date().toISOString(),timezone:metadata.timezone||Intl.DateTimeFormat().resolvedOptions().timeZone,permissions:{role:metadata.role||"viewer",financialContextAllowed:metadata.financialContextAllowed!==false,childContextAllowed:metadata.childContextAllowed!==false},modules:Object.fromEntries(modules.map(item=>[item.module,item]))};
+}
+
+/**
+ * @typedef {Object} UnifiedHouseholdContext
+ * @property {string} generatedAt
+ * @property {string} timezone
+ * @property {Object|null} householdLocation
+ * @property {string} summary
+ * @property {'low'|'normal'|'high'|'critical'} householdLoad
+ * @property {Array<Object>} importantNow
+ * @property {Object} today
+ * @property {Array<Object>} upcoming
+ * @property {Array<Object>} recentActivity
+ * @property {Object} moduleSummaries
+ * @property {Object|null} weather
+ * @property {Array<Object>} recommendations
+ * @property {Object} dataFreshness
+ * @property {Array<Object>} evidence
+ */
+export function buildUnifiedHouseholdContext(input={},options={}){
+  const householdId=options.householdId||null,timezone=options.timezone||"America/New_York",now=options.now?new Date(options.now):new Date();
+  const scoped=rows=>(rows||[]).filter(row=>!row.household_id||row.household_id===householdId);
+  const today=new Intl.DateTimeFormat("en-CA",{timeZone:timezone,year:"numeric",month:"2-digit",day:"2-digit"}).format(now);
+  const tasks=scoped(input.tasks),events=scoped(input.calendar),open=tasks.filter(row=>!row.completed&&row.status!=="completed"),overdue=open.filter(row=>row.due_date&&row.due_date<today),dueToday=open.filter(row=>String(row.due_date||"").slice(0,10)===today),todayEvents=events.filter(row=>String(row.start?.dateTime||row.start?.date||row.date||"").slice(0,10)===today);
+  const recommendations=scoped(input.recommendations),importantNow=[...overdue.map(row=>({source:"tasks",id:row.id,title:row.title,reason:"Overdue",date:row.due_date})),...recommendations.filter(row=>["critical","high"].includes(row.severity))];
+  const loadScore=overdue.length*3+dueToday.length+todayEvents.length+recommendations.filter(row=>["critical","high"].includes(row.severity)).length*2;
+  const householdLoad=loadScore>=12?"critical":loadScore>=8?"high":loadScore>=3?"normal":"low";
+  const latest=(rows,key)=>scoped(rows).map(row=>row[key]).filter(Boolean).sort().at(-1)||null;
+  const dataFreshness={tasks:latest(tasks,"updated_at"),calendar:options.calendarUpdatedAt||null,habits:latest(input.habitCompletions,"completed_at"),pool:latest(input.poolReadings,"logged_at"),home:latest(input.homeAssets,"updated_at"),weather:input.weather?.generatedAt||null};
+  return {contract:CONTEXT_ENGINE_CONTRACT,version:CONTEXT_ENGINE_VERSION,generatedAt:now.toISOString(),timezone,householdLocation:options.householdLocation||null,summary:`${importantNow.length} important item${importantNow.length===1?"":"s"}; household load is ${householdLoad}.`,householdLoad,importantNow,today:{date:today,events:todayEvents,tasksDue:dueToday,overdueTasks:overdue},upcoming:[...open.filter(row=>row.due_date&&row.due_date>today),...events.filter(row=>String(row.start?.dateTime||row.start?.date||row.date||"").slice(0,10)>today)].slice(0,30),recentActivity:scoped(input.recentActivity).slice(0,30),moduleSummaries:{tasks:{open:open.length,overdue:overdue.length,dueToday:dueToday.length},calendar:{today:todayEvents.length},habits:{active:scoped(input.habits).filter(row=>!row.archived).length},pool:{latestReadingAt:dataFreshness.pool},home:{tracked:scoped(input.homeAssets).length}},weather:input.weather||null,recommendations,dataFreshness,missingCriticalData:Object.entries(dataFreshness).filter(([,value])=>!value).map(([source])=>source),evidence:importantNow.map(item=>({source:item.source||item.category,sourceId:item.id||null,reason:item.reason||item.rationale||"Prioritized household signal"}))};
 }
 
 export function taskContext(tasks=[],today=new Date().toISOString().slice(0,10)){const open=tasks.filter(x=>!x.completed&&x.status!=="completed");return createModuleContext("tasks",{summary:`${open.length} open tasks`,importantItems:open.filter(x=>x.due_date&&x.due_date<=today).map(x=>({title:x.title,dueDate:x.due_date,priority:x.priority})),upcomingItems:open.filter(x=>x.due_date&&x.due_date>today).slice(0,10).map(x=>({title:x.title,dueDate:x.due_date})),metrics:{open:open.length,completed:tasks.length-open.length},recentActivity:tasks.filter(x=>x.completed).slice(0,5).map(x=>({title:x.title,status:"completed"}))});}

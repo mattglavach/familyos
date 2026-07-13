@@ -1,0 +1,2 @@
+export interface TimelineItem{id:string;sourceType:string;sourceId:string;title:string;summary:string;timestamp:string;effectiveDate:string;status:string;actor?:string;deepLink:string|Record<string,unknown>;metadata:Record<string,unknown>;evidence:Record<string,unknown>[];isUpcoming:boolean;isCompleted:boolean}
+export function normalizeTimeline(input?:Record<string,unknown>,options?:Record<string,unknown>):TimelineItem[];

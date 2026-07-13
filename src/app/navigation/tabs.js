@@ -20,8 +20,8 @@ export const TITLES = {
   "ai-workspace": "AI Workspace",
   habits: "Habits",
   "home-assets": "Home Operations",
-  shopping: "Shopping",
   routines: "Routines",
   "needs-attention": "Needs Attention",
+  timeline: "Household Timeline",
   tasks: "Tasks",
 };

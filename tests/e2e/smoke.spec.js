@@ -12,6 +12,12 @@ test("authenticated FamilyOS major-module smoke", async ({ page }, testInfo) => 
   await expect(primary.getByRole("button",{name:"Attention"})).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Add", exact: true })).toBeVisible();
   await expect(primary.getByRole("button", { name: "Quick Add" })).toBeVisible();
+  await primary.getByRole("button", { name: "Quick Add" }).click();
+  await page.getByLabel("Describe one household item").fill("Replace HVAC filter next month");
+  await page.getByRole("button", { name: "Review detected item" }).click();
+  await expect(page.getByText(/maintenance · Replace HVAC filter/i)).toBeVisible();
+  await expect(page.getByText(/Resolved date:/)).toBeVisible();
+  await page.getByRole("button", { name: "Cancel" }).click();
   await expect(page.getByRole("button", { name: "Open Calendar" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Open Tasks" })).toBeVisible();
   await expect(page.getByText(/family brief/i, { exact: true })).toBeVisible();
@@ -50,7 +56,7 @@ test("authenticated FamilyOS major-module smoke", async ({ page }, testInfo) => 
   await page.getByRole("button",{name:/Add action/}).first().click();
   await page.getByLabel("New action for Morning checklist").fill(`Smoke ${testInfo.project.name}`);
   await page.getByRole("main").getByRole("button",{name:"Add",exact:true}).click();
-  await expect(page.getByText(`Smoke ${testInfo.project.name}`,{exact:true})).toBeVisible();
+  await expect(page.getByText(`Smoke ${testInfo.project.name}`,{exact:true}).first()).toBeVisible();
   await page.getByRole("button",{name:"View details for Morning checklist"}).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByRole("button",{name:"Close"}).click();
@@ -68,8 +74,11 @@ test("authenticated FamilyOS major-module smoke", async ({ page }, testInfo) => 
   await expect(page.getByText("Current condition",{exact:true})).toBeVisible();
   await openMoreModule(page, "Home Operations");
   await expect(page.getByRole("heading", { name: "Assets & Maintenance" })).toBeVisible();
-  await openMoreModule(page, "Shopping");
-  await expect(page.getByText("Shared household shopping lists and pantry inventory.")).toBeVisible();
+  await openMoreModule(page, "Household Timeline");
+  await expect(page.getByRole("main", { name: "Household Timeline" })).toBeVisible();
+  await expect(page.getByText(/Shopping is intentionally excluded/)).toBeVisible();
+  await navigateModule(page,"More");
+  await expect(page.getByRole("button", { name: /^Shopping/ })).toHaveCount(0);
   await openMoreModule(page, "AI Workspace");
   await expect(page.getByRole("heading", { name: "Ask FamilyOS" })).toBeVisible();
   await page.getByRole("button", { name: /Full generated prompt/ }).click();

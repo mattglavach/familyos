@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.9.0 - 2026-07-13
+
+- Added the typed, deterministic Unified Household Context contract with household load, freshness, evidence, missing-data, current, upcoming, and recent-activity sections.
+- Added a dedicated, searchable, filterable, bounded Household Timeline that excludes Shopping and deep-links to owning modules.
+- Added configurable household location/timezone and cached server-side Open-Meteo current/seven-day forecasts with evidence-backed weather recommendations.
+- Added explainable recommendation priority scoring, deterministic Smart Quick Add with confirmation, broader household search, private managed attachments, persisted dashboard personalization, and improved notification reuse.
+- Removed Shopping from active navigation and all new v2.9 surfaces while preserving every Shopping record, table, policy, and historical migration.
+- Added migration `20260713000000_release_2_9_unified_context.sql` for location, dashboard preferences, durable activity, attachment metadata, a private Storage bucket, RLS/storage policies, and search indexes.
+
 ## 2.8.0 - 2026-07-12
 
 - Made the Family Brief the actionable Home intelligence hub with severity-ranked recommendation cards, supporting evidence, direct actions, dismissal, and completion acknowledgement.

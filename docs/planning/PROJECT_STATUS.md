@@ -2,7 +2,7 @@
 
 ## Current Release
 
-FamilyOS 2.8.0 is released to production. It adds the Family Brief intelligence hub, shared recommendation providers, durable notification integration, Home Operations, and Shopping intelligence foundations. Existing 2.6.0 and 2.7.0 history is preserved; the originally requested 2.6.0 label was advanced to 2.8.0 because 2.7.0 was already on `main`.
+FamilyOS 2.9.0 Unified Context is released to production. It unifies deterministic context, timeline, recommendations, weather, search, entry, secure attachments, dashboard preferences, notifications, and Settings. The production migration, private Storage configuration, READY Vercel deployment, weather endpoint, desktop/mobile unauthenticated checks, and non-production authenticated multi-viewport smoke are verified.
 
 ## Release 2.7.0 local release candidate
 

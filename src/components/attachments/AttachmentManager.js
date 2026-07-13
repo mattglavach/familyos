@@ -1,0 +1,18 @@
+import { useCallback,useEffect,useState } from "react";
+import { Download,FileText,Image as ImageIcon,Trash2,Upload } from "lucide-react";
+import { Button } from "../ui/button";
+import { Card,CardContent } from "../ui/card";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { supabase } from "../../lib/supabase";
+import { deleteAttachment,signedAttachmentUrl,uploadAttachment,validateAttachment } from "../../services/attachments";
+
+export function AttachmentManager({householdId,entityType,entityId}){const [items,setItems]=useState([]),[loading,setLoading]=useState(true),[progress,setProgress]=useState(0),[error,setError]=useState("");
+  const load=useCallback(async()=>{if(!entityId)return;setLoading(true);const result=await supabase.from("attachments").select("*").eq("household_id",householdId).eq("entity_type",entityType).eq("entity_id",entityId).order("created_at",{ascending:false});setItems(result.data||[]);setError(result.error?"Attachments could not be loaded.":"");setLoading(false);},[entityId,entityType,householdId]);
+  useEffect(()=>{load();},[load]);
+  async function choose(event){const file=event.target.files?.[0];const issue=validateAttachment(file);if(issue){setError(issue);return;}try{setError("");await uploadAttachment({file,householdId,entityType,entityId,onProgress:setProgress});await load();}catch(e){setError(e.message||"Upload failed.");}finally{setProgress(0);event.target.value="";}}
+  async function open(item){try{window.open(await signedAttachmentUrl(item),"_blank","noopener,noreferrer");}catch{setError("A secure download link could not be created.");}}
+  async function remove(item){try{await deleteAttachment(item);await load();}catch{setError("The attachment could not be deleted.");}}
+  if(!entityId)return <p className="text-xs text-muted-foreground">Save this record before adding files.</p>;
+  return <section className="space-y-3" aria-label="Attachments"><div className="flex items-center justify-between gap-3"><Label htmlFor={`attachment-${entityId}`}>Attachments</Label><Button asChild type="button" size="xs" variant="secondary"><label htmlFor={`attachment-${entityId}`} className="cursor-pointer"><Upload className="h-3.5 w-3.5"/>Upload</label></Button><Input id={`attachment-${entityId}`} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" capture="environment" onChange={choose}/></div>{progress>0&&<div className="h-2 overflow-hidden rounded bg-secondary" role="progressbar" aria-valuenow={progress}><div className="h-full bg-primary" style={{width:`${progress}%`}}/></div>}{error&&<p className="text-sm text-destructive" role="alert">{error}</p>}{loading?<p className="text-sm text-muted-foreground">Loading attachments...</p>:items.length?<div className="space-y-2">{items.map(item=>{const Icon=item.mime_type.startsWith("image/")?ImageIcon:FileText;return <Card key={item.id}><CardContent className="flex items-center gap-3 p-3"><Icon className="h-4 w-4 text-primary"/><button type="button" className="min-w-0 flex-1 truncate text-left text-sm font-semibold" onClick={()=>open(item)}>{item.display_name}</button><Button type="button" variant="ghost" size="icon-xs" aria-label={`Download ${item.display_name}`} onClick={()=>open(item)}><Download className="h-4 w-4"/></Button><Button type="button" variant="ghost" size="icon-xs" aria-label={`Delete ${item.display_name}`} onClick={()=>remove(item)}><Trash2 className="h-4 w-4"/></Button></CardContent></Card>})}</div>:<p className="text-xs text-muted-foreground">No files attached. JPEG, PNG, WebP, and PDF up to 10 MB are supported.</p>}</section>;
+}

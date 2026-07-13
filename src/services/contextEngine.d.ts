@@ -1,0 +1,4 @@
+export type HouseholdLoad="low"|"normal"|"high"|"critical";
+export interface ContextEvidence{source:string;sourceId:string|null;reason:string}
+export interface UnifiedHouseholdContext{contract:"familyos.context-engine";version:string;generatedAt:string;timezone:string;householdLocation:Record<string,unknown>|null;summary:string;householdLoad:HouseholdLoad;importantNow:Record<string,unknown>[];today:{date:string;events:Record<string,unknown>[];tasksDue:Record<string,unknown>[];overdueTasks:Record<string,unknown>[]};upcoming:Record<string,unknown>[];recentActivity:Record<string,unknown>[];moduleSummaries:Record<string,unknown>;weather:Record<string,unknown>|null;recommendations:Record<string,unknown>[];dataFreshness:Record<string,string|null>;missingCriticalData:string[];evidence:ContextEvidence[]}
+export function buildUnifiedHouseholdContext(input?:Record<string,unknown>,options?:Record<string,unknown>):UnifiedHouseholdContext;

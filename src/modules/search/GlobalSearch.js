@@ -12,7 +12,7 @@ const navigationTargets = [
   { label: "Home dashboard", detail: "Morning briefing and household priorities", nav: "home", type: "Navigation" },
   { label: "Tasks", detail: "Create, filter, assign, and complete household tasks", nav: "tasks", type: "Navigation" },
   { label: "Calendar", detail: "Today and upcoming household schedule", nav: "calendar", type: "Navigation" },
-  { label: "Meal Planning", detail: "Recipes, meal plans, assignments, and shopping prep", nav: "meal-planning", type: "Navigation" },
+  { label: "Meal Planning", detail: "Recipes, meal plans, assignments, and pantry checks", nav: "meal-planning", type: "Navigation" },
   { label: "Life Lists", detail: "Lists for ideas, media, places, gifts, and future plans", nav: "life-lists", type: "Navigation" },
   { label: "Pool", detail: "Pool tests, recommendations, equipment, and maintenance", nav: "pool", type: "Navigation" },
   { label: "Household settings", detail: "Members, invites, roles, and defaults", nav: "settings", type: "Navigation" },
@@ -53,6 +53,8 @@ export function GlobalSearch({ open, onOpenChange, calendarEvents, onNavigate })
   const habits = useTable("habits", "created_at", true);
   const routines = useTable("routines", "created_at", true);
   const homeMaintenance = useTable("home_maintenance", "last_completed");
+  const homeAssets = useTable("home_assets", "updated_at");
+  const notes = useTable("notes", "created_at");
   const family = useFamilyMembers();
   const reloadTasks = taskTable.reload;
   const reloadLists = listTable.reload;
@@ -64,7 +66,7 @@ export function GlobalSearch({ open, onOpenChange, calendarEvents, onNavigate })
   const reloadPoolTreatments = poolTreatments.reload;
   const reloadPoolMaintenance = poolMaintenance.reload;
   const reloadPoolEquipment = poolEquipment.reload;
-  const reloadHabits=habits.reload,reloadRoutines=routines.reload,reloadHomeMaintenance=homeMaintenance.reload;
+  const reloadHabits=habits.reload,reloadRoutines=routines.reload,reloadHomeMaintenance=homeMaintenance.reload,reloadHomeAssets=homeAssets.reload,reloadNotes=notes.reload;
   const normalizedQuery = query.trim().toLowerCase();
 
   useEffect(() => {
@@ -79,8 +81,8 @@ export function GlobalSearch({ open, onOpenChange, calendarEvents, onNavigate })
     reloadPoolTreatments();
     reloadPoolMaintenance();
     reloadPoolEquipment();
-    reloadHabits();reloadRoutines();reloadHomeMaintenance();
-  }, [open, reloadHabits,reloadHomeMaintenance,reloadRoutines,reloadItems, reloadLists, reloadMealAssignments, reloadMealPlans, reloadPoolEquipment, reloadPoolMaintenance, reloadPoolTests, reloadPoolTreatments, reloadRecipes, reloadTasks]);
+    reloadHabits();reloadRoutines();reloadHomeMaintenance();reloadHomeAssets();reloadNotes();
+  }, [open, reloadHabits,reloadHomeAssets,reloadHomeMaintenance,reloadNotes,reloadRoutines,reloadItems, reloadLists, reloadMealAssignments, reloadMealPlans, reloadPoolEquipment, reloadPoolMaintenance, reloadPoolTests, reloadPoolTreatments, reloadRecipes, reloadTasks]);
 
   const results = useMemo(() => {
     if (!normalizedQuery) return [];
@@ -135,12 +137,14 @@ export function GlobalSearch({ open, onOpenChange, calendarEvents, onNavigate })
     const habitResults=habits.data.filter(item=>!item.archived&&includesQuery(`${item.name} ${item.description} ${item.frequency}`,normalizedQuery)).slice(0,6).map(item=>({type:"Habits",label:item.name,detail:`${item.frequency} habit`,nav:"habits"}));
     const routineResults=routines.data.filter(item=>!item.archived&&includesQuery(`${item.name} ${item.description} ${item.recurrence}`,normalizedQuery)).slice(0,6).map(item=>({type:"Routines",label:item.name,detail:`${item.recurrence} routine`,nav:"routines"}));
     const maintenanceResults=homeMaintenance.data.filter(item=>includesQuery(`${item.title} ${item.category} ${item.notes}`,normalizedQuery)).slice(0,6).map(item=>({type:"Maintenance",label:item.title||"Maintenance",detail:item.category||"Home maintenance",nav:{tab:"tasks",search:item.title||""}}));
+    const homeResults=homeAssets.data.filter(item=>item.status!=="completed"&&includesQuery(`${item.name} ${item.category} ${item.status} ${item.notes}`,normalizedQuery)).slice(0,6).map(item=>({type:"Home Operations",label:item.name,detail:`${item.category} · ${item.status}`,nav:"home-assets"}));
+    const noteResults=notes.data.filter(item=>includesQuery(`${item.title} ${item.content} ${item.notes}`,normalizedQuery)).slice(0,6).map(item=>({type:"Notes",label:item.title||"Household note",detail:String(item.content||item.notes||"").slice(0,80),nav:"timeline"}));
     const navResults = navigationTargets
       .filter(item => includesQuery(`${item.label} ${item.detail}`, normalizedQuery));
-    return [...taskResults, ...eventResults,...habitResults,...routineResults,...maintenanceResults, ...memberResults, ...listResults, ...itemResults, ...mealPlanResults, ...recipeResults, ...mealAssignmentResults, ...poolTestResults, ...poolTreatmentResults, ...poolMaintenanceResults, ...poolEquipmentResults, ...navResults].slice(0, 30);
-  }, [calendarEvents, family.members,habits.data,homeMaintenance.data,routines.data, itemTable.data, listTable.data, mealAssignmentTable.data, mealPlanTable.data, normalizedQuery, poolEquipment.data, poolMaintenance.data, poolTests.data, poolTreatments.data, recipeTable.data, taskTable.data]);
+    return [...taskResults, ...eventResults,...habitResults,...routineResults,...maintenanceResults,...homeResults,...noteResults, ...memberResults, ...listResults, ...itemResults, ...mealPlanResults, ...recipeResults, ...mealAssignmentResults, ...poolTestResults, ...poolTreatmentResults, ...poolMaintenanceResults, ...poolEquipmentResults, ...navResults].slice(0, 40);
+  }, [calendarEvents, family.members,habits.data,homeAssets.data,homeMaintenance.data,notes.data,routines.data, itemTable.data, listTable.data, mealAssignmentTable.data, mealPlanTable.data, normalizedQuery, poolEquipment.data, poolMaintenance.data, poolTests.data, poolTreatments.data, recipeTable.data, taskTable.data]);
   const groupedResults = useMemo(() => {
-    const order = ["Tasks", "Calendar", "Habits", "Routines", "Maintenance", "Pool", "Life Lists", "Meal Planning", "Household", "Navigation"];
+    const order = ["Tasks", "Calendar", "Habits", "Routines", "Maintenance", "Home Operations", "Pool", "Notes", "Life Lists", "Meal Planning", "Household", "Navigation"];
     return order
       .map(type => ({ type, items: results.filter(result => result.type === type) }))
       .filter(group => group.items.length);
