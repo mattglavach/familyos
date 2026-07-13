@@ -2,7 +2,7 @@
 
 ## Current Release
 
-FamilyOS 2.8.0 is in release validation. It adds the Family Brief intelligence hub, shared recommendation providers, durable notification integration, Home Operations, and Shopping intelligence foundations. Existing 2.6.0 and 2.7.0 history is preserved; the originally requested 2.6.0 label was advanced to 2.8.0 because 2.7.0 was already on `main`.
+FamilyOS 2.8.0 is released to production. It adds the Family Brief intelligence hub, shared recommendation providers, durable notification integration, Home Operations, and Shopping intelligence foundations. Existing 2.6.0 and 2.7.0 history is preserved; the originally requested 2.6.0 label was advanced to 2.8.0 because 2.7.0 was already on `main`.
 
 ## Release 2.7.0 local release candidate
 

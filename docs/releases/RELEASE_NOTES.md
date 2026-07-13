@@ -10,7 +10,9 @@ Home Operations adds structured household assets and schedules across HVAC, appl
 
 Database changes are additive and household-scoped. The migration creates `home_assets` and `home_asset_history`, extends `shopping_items`, enables RLS, and can be safely re-run through `IF NOT EXISTS` operations. Rollback is application-first: redeploy v2.7.0 and leave additive tables/columns in place to avoid data loss.
 
-Validation: unit/regression tests, lint, production build, bundle-safety scan, database migration checks, desktop/tablet/390px/dark Playwright smoke, deployment verification, and production console checks are required for release closeout.
+Validation completed: lint; 28 unit suites and 115 tests; seed safety; production build; bundle-safety; 19-migration empty-database chain and direct schema/RLS assertions; authenticated desktop, tablet, 390px mobile, and dark Playwright smoke; production database migration; READY Vercel deployment; desktop and 390px production HTTP/content/console verification; and clean Vercel error-log scan.
+
+Production deployment: `familyos-ar8prbn46-glavach.vercel.app`, aliased to `familyos-pi-seven.vercel.app`. Post-deployment checks returned HTTP 200 with no browser errors or framework overlays. Release tag: `v2.8.0`.
 
 ## Release 2.7.0 - Dashboard and Workflow Refinements
 

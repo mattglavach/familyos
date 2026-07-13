@@ -2,7 +2,7 @@
 
 ## Release 2.8.0 - From Tracking to Intelligence
 
-Status: implementation complete; release validation and production lifecycle in progress.
+Status: released to production on 2026-07-12.
 
 - [x] Modular recommendation registry and normalized insight contract.
 - [x] Family Brief landing experience with evidence and human-controlled actions.
@@ -10,7 +10,7 @@ Status: implementation complete; release validation and production lifecycle in 
 - [x] Home Operations data model and responsive workspace.
 - [x] Shopping recurrence, grouping, frequency, and inventory foundations.
 - [x] Additive RLS migration, automated unit coverage, and release documentation.
-- [ ] Production migration, deployment, tag, and post-deployment verification.
+- [x] Production migration, deployment, tag, and post-deployment verification.
 
 ## Release 2.7.0 dashboard and workflow refinements
 
