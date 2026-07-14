@@ -23,7 +23,11 @@ The additive routine lifecycle migration adds `routines.status`, backfills exist
 
 ## Validation
 
-Release validation includes lint, type checking, the full Jest suite, database migration safety checks, seed guards, production build, bundle safety, Playwright desktop/mobile/tablet/dark/accessibility coverage, Git checks, deployment verification, and production smoke. Final evidence is recorded during release closeout.
+Release validation passed lint, type checking, 36 Jest suites with 139 tests, database migration safety, 22-migration clean rebuild, seed guards, production build, bundle safety, and `git diff --check`. The Playwright run passed 65 scenarios initially; eight stale-selector failures caused by intentional label changes were updated and the affected release/smoke workflows then passed across desktop, 390px mobile, tablet, and dark mode. Accessibility, authenticated Pool persistence, auth, task CRUD, keyboard focus, responsive containment, console, and page-error checks passed.
+
+Production database schema and data backups are retained in the local temporary recovery directory. The v2.10.1 migration is applied and all 22 migration versions align. Vercel deployment `dpl_3LcUnTBGxPCL4USa2cEBkq9rdjxj` is READY and aliased to `https://familyos-pi-seven.vercel.app`. Desktop/mobile unauthenticated, weather, route, console, and bundle-secret production checks passed. Authenticated production mutation testing was not performed because no approved production browser session was available; authenticated validation was completed against the approved non-production project.
+
+The known Node `url.parse()`/deprecation warning remains non-blocking and produced no functional error.
 
 ## Rollback
 

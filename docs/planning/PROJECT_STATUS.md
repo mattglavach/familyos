@@ -2,7 +2,7 @@
 
 ## Current Release
 
-FamilyOS 2.10.0 Core Experience Maturity is the current production release. Release 2.10.1 Usability Stabilization is in release validation and stays focused on Home, Family Brief, Calendar scanability, Habits and Routines workflows, Pool clarity, AI Workspace onboarding, accessibility, and responsive quality. Microsoft To Do synchronization is deferred to Release 2.11.0, and no unrelated module expansion is included.
+FamilyOS 2.10.1 Usability Stabilization is the current production release. It stays focused on Home, Family Brief, Calendar scanability, Habits and Routines workflows, Pool clarity, AI Workspace onboarding, accessibility, and responsive quality. Microsoft To Do synchronization is deferred to Release 2.11.0, and no unrelated module expansion is included. Production migration history is aligned through all 22 migrations, deployment `dpl_3LcUnTBGxPCL4USa2cEBkq9rdjxj` is READY at `familyos-pi-seven.vercel.app`, and desktop/mobile unauthenticated, weather, console, route, bundle-secret, schema, and migration-alignment checks passed.
 
 ## Release 2.7.0 local release candidate
 

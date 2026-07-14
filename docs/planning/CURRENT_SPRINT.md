@@ -2,7 +2,7 @@
 
 ## Release 2.10.1 - Usability Stabilization
 
-Status: release validation in progress.
+Status: released to production on 2026-07-14.
 
 - [x] Simplify the Home header and replace Personalize and AI Brief text controls with shared accessible icon actions.
 - [x] Remove confidence, engine metadata, and generic instructions from Family Brief cards.
@@ -15,7 +15,7 @@ Status: release validation in progress.
 - [x] Add concise AI Workspace onboarding, interaction intent, and seven starter prompts.
 - [x] Add the additive routine lifecycle migration and automated migration safety validation.
 - [x] Defer Microsoft To Do synchronization to Release 2.11.0.
-- [ ] Complete the full validation matrix, production migration, deployment, and production smoke.
+- [x] Complete the full validation matrix, production migration, deployment, and production smoke.
 
 ## Release 2.10.0 - Core Experience Maturity
 
