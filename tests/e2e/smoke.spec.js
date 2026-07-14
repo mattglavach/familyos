@@ -47,7 +47,7 @@ test("authenticated FamilyOS major-module smoke", async ({ page }, testInfo) => 
 
   await navigateModule(page,"Habits");
   await expect(page.getByText("Morning checklist",{exact:true})).toBeVisible();
-  const checklistSummary=page.getByRole("button",{name:/^Morning checklist Routine · \d+ of \d+ complete/});
+  const checklistSummary=page.getByText("Morning checklist",{exact:true}).locator("..");
   await expect(checklistSummary).toBeVisible();
   await page.getByRole("button",{name:"Expand Morning checklist"}).click();
   await expect(page.getByRole("checkbox",{name:"Take vitamins"})).toBeVisible();
@@ -58,7 +58,7 @@ test("authenticated FamilyOS major-module smoke", async ({ page }, testInfo) => 
   await page.getByLabel("New action for Morning checklist").fill(`Smoke ${testInfo.project.name}`);
   await page.getByRole("main").getByRole("button",{name:"Add",exact:true}).click();
   await expect(page.getByText(`Smoke ${testInfo.project.name}`,{exact:true}).first()).toBeVisible();
-  await page.getByRole("button",{name:"View details for Morning checklist"}).click();
+  await checklistSummary.click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByRole("button",{name:"Close"}).click();
   await expect(page.getByText("Evening routine",{exact:true})).toBeVisible();

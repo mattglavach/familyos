@@ -1,6 +1,6 @@
 # FamilyOS Version
 
-Current version: **2.9.0**
+Current version: **2.10.1**
 
 Release date: 2026-07-13
 

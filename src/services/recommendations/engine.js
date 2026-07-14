@@ -72,7 +72,7 @@ export function TaskProvider(data, context) {
 }
 
 export function HabitProvider(data, context) {
-  const habits = (data.habits || []).filter(item => !item.archived && scheduledToday(item,context.today));
+  const habits = (data.habits || []).filter(item => !item.archived && item.status!=="paused" && item.status!=="archived" && scheduledToday(item,context.today));
   const completions = data.habitCompletions || [];
   return habits.flatMap(habit => {
     const completion=completions.find(item=>item.habit_id===habit.id&&item.period_key===habitPeriod(habit,context.today));
@@ -81,7 +81,8 @@ export function HabitProvider(data, context) {
     const history=(data.habitActionHistory||[]).find(item=>item.habit_id===habit.id&&dateOnly(item.habit_date)===context.today);
     const completed=(history?.completed_action_ids||[]).filter(id=>actions.some(action=>action.id===id)).length;
     const partial=actions.length>0&&completed>0;
-    return [insight({id:`habit-${habit.id}`,category:"habits",severity:partial?"medium":habit.important?"medium":"low",title:habit.name,recommendedAction:partial?`${completed} of ${actions.length} complete. Finish today's routine.`:"Due today.",supportingData:[habit.category,habit.assigned_person_id?"Assigned":"Household"].filter(Boolean),target:{type:"habit",id:habit.id},sourceIds:[habit.id],urgency:partial?"soon":"when practical",deduplicationKey:`habit:${habit.id}`})];
+    const routine=habit.habit_type==="checklist"||actions.length>0;
+    return [insight({id:`habit-${habit.id}`,category:"habits",severity:partial?"medium":habit.important?"medium":"low",title:`${routine?"Finish":"Complete"} ${habit.name}`,recommendedAction:partial?`${completed} of ${actions.length} steps complete`:"Due today",supportingData:[],target:{type:"habit",id:habit.id},sourceIds:[habit.id],urgency:partial?"soon":"when practical",deduplicationKey:`habit:${habit.id}`})];
   });
 }
 
@@ -123,10 +124,12 @@ export const DEFAULT_PROVIDERS = [CalendarProvider, TaskProvider, HabitProvider,
 export function generateRecommendations(data = {}, options = {}) {
   const context = { today: options.today || new Date().toISOString().slice(0, 10) };
   const dismissed = new Set(options.dismissedIds || []);
-  return (options.providers || DEFAULT_PROVIDERS)
+  const ranked=(options.providers || DEFAULT_PROVIDERS)
     .flatMap(provider => provider(data, context) || [])
     .filter(item => item && !dismissed.has(item.id) && (!item.expiresAt||item.expiresAt>=context.today))
     .map(item=>({...item,priorityScore:priorityScore(item,options)}))
     .filter((item,index,list)=>list.findIndex(other=>other.deduplicationKey===item.deduplicationKey)===index)
     .sort((a, b) => b.priorityScore-a.priorityScore || a.id.localeCompare(b.id));
+  let normalHabits=0;
+  return ranked.filter(item=>item.category!=="habits"||item.severity==="high"||item.severity==="critical"||normalHabits++<2);
 }

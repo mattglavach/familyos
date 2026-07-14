@@ -1,5 +1,9 @@
 # Database Schema
 
+## Release 2.10.1 routine lifecycle
+
+Migration `20260714000000_release_2_10_1_routine_lifecycle.sql` adds `routines.status` with `active`, `paused`, and `archived` values. Existing archived routines are backfilled to `archived`; completion history, assignment, schedule, RLS, and household scoping are unchanged. The existing `archived` boolean remains for backward compatibility.
+
 ## Release 2.10.0 additions
 
 `habits` and legacy `routines` gain a practical category. `habit_actions` and `routine_steps` gain optional guidance plus update timestamps; legacy routine steps also gain active/archive state. Habit completions support `completed`, `skipped`, and `not_applicable`; legacy routine completions support `in_progress`, `completed`, `skipped`, and `not_applicable`. Existing unique parent-period completion constraints prevent duplicate daily rows. Existing household RLS and owner/adult write policies remain unchanged.

@@ -1,5 +1,22 @@
 # Current Sprint
 
+## Release 2.10.1 - Usability Stabilization
+
+Status: release validation in progress.
+
+- [x] Simplify the Home header and replace Personalize and AI Brief text controls with shared accessible icon actions.
+- [x] Remove confidence, engine metadata, and generic instructions from Family Brief cards.
+- [x] Group the next three Calendar events under relative day headings with a compact Calendar handoff.
+- [x] Keep routine steps collapsed by default and allow inline accessible step completion when expanded.
+- [x] Add Active, Paused, Archived, and All lifecycle filtering with archive confirmation and history preservation.
+- [x] Sort unfinished and in-progress daily Habits work ahead of completed work.
+- [x] Limit relevant Home habit recommendations and exclude completed, paused, and archived records.
+- [x] Reuse the shared icon-action primitive in affected Home and Pool actions.
+- [x] Add concise AI Workspace onboarding, interaction intent, and seven starter prompts.
+- [x] Add the additive routine lifecycle migration and automated migration safety validation.
+- [x] Defer Microsoft To Do synchronization to Release 2.11.0.
+- [ ] Complete the full validation matrix, production migration, deployment, and production smoke.
+
 ## Release 2.10.0 - Core Experience Maturity
 
 Status: released to production on 2026-07-13.

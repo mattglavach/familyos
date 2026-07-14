@@ -21,7 +21,7 @@ test("Release 2.3 Home, navigation, task views, Habits, and Routines", async ({ 
   const admin = adminClient();
   const marker = `R23 ${Date.now()}`;
   await loginDemoUser(page);
-  await expect(page.getByRole("button", { name: "AI Brief", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open AI Brief", exact: true })).toBeVisible();
   await expect(page.getByText(/Family Brief/, { exact: true })).toBeVisible();
   const nav = page.getByRole("navigation", { name: "Primary navigation" });
   await expect(nav.getByRole("button", { name: "Habits", exact: true })).toBeVisible();

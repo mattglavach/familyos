@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.10.1 - 2026-07-14
+
+- Simplified the Home greeting and replaced Personalize and AI Brief text actions with shared accessible icon controls.
+- Removed confidence, consequence, engine-category, and generic instruction metadata from normal Family Brief cards while retaining prioritization evidence internally.
+- Grouped the next three Home Calendar events by Today, Tomorrow, or weekday with chronological deep links and View Calendar.
+- Made routine steps a quiet, accessible disclosure with inline completion, preserved derived completion/reopening, and improved default daily ordering.
+- Added visible Active, Paused, and Archived lifecycle controls, archive confirmation, status filters, and direct empty states for Habits and Routines.
+- Limited Home habit recommendations to relevant unfinished work and excluded completed, paused, archived, and duplicate items.
+- Reused the shared icon-action primitive for affected Home and Pool actions and retained 44px touch targets.
+- Added concise AI Workspace onboarding, Ask/Plan/Take Action guidance, seven starter prompts, and explicit approval language.
+- Added an additive routine lifecycle migration that preserves history, RLS, household scope, and existing archive state.
+- Deferred Microsoft To Do synchronization to Release 2.11.0.
+
 ## 2.10.0 - 2026-07-13
 
 - Replaced Family Brief Take Action and Completed buttons with compact, keyboard-accessible recommendation card navigation and a centralized resolver that safely handles specific, missing, deleted, and unavailable targets.

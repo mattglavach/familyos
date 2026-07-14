@@ -1,5 +1,7 @@
 # Pool
 
+Release 2.10.1 keeps Needs Attention focused on the measured condition and Recommended Next Step focused on the action. Affected low-risk Pool actions reuse the shared accessible icon-action primitive; destructive history actions remain confirmation-protected.
+
 Release 2.1.1 stabilizes partial Pool Test saves. A valid date and at least one chemistry or water measurement are required; every other value is optional, numeric zero is valid, and blank optional values normalize to `null`. Invalid fields are identified directly, failed writes retain the form, duplicate submissions are blocked, successful writes refresh Pool data immediately, and Pool entry forms use the shared compact responsive grid pattern.
 
 Release 2.2.0 removes historical `NOT NULL` drift from optional Pool Test weather and appearance fields. Both authenticated entry paths are regression-tested against real Supabase persistence, including numeric zero, decimal values, ownership, immediate activity/status refresh, full browser reload, duplicate prevention, failure retention, and authenticated cleanup of only the created test row.

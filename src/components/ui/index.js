@@ -11,6 +11,7 @@ export * from "./empty-state";
 export * from "./error-state";
 export * from "./form";
 export * from "./input";
+export * from "./icon-action";
 export * from "./label";
 export * from "./popover";
 export * from "./section-header";

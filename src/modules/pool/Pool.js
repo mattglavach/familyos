@@ -3,6 +3,7 @@ import { AlertTriangle, CalendarClock, CheckCircle2, ClipboardList, Droplets, Fl
 import { EmptyState, Loading, Modal, SwipeCard, SwipeHint } from "../../components/common";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { Button } from "../../components/ui/button";
+import { IconAction } from "../../components/ui/icon-action";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { ExpandableSection } from "../../components/ui/expandable-section";
@@ -767,7 +768,7 @@ export function Pool({ initialView }) {
                             {item.notes && <div className="mt-0.5 line-clamp-2 text-xs leading-5 text-muted-foreground">{item.notes}</div>}
                           </div>
                           {editable && <div className="flex shrink-0 gap-1">
-                            <Button type="button" variant="ghost" size="icon-xs" aria-label={`Edit ${item.kind} entry`} title="Edit" onClick={() => { setForm({ ...item }); setModal(item.kind === "Reading" ? "test" : item.kind === "Chemical" ? "treatment" : "maintenance"); }}><Pencil aria-hidden="true" /></Button>
+                            <IconAction label={`Edit ${item.kind} entry`} icon={Pencil} onClick={() => { setForm({ ...item }); setModal(item.kind === "Reading" ? "test" : item.kind === "Chemical" ? "treatment" : "maintenance"); }}/>
                             <Button type="button" variant="ghost" size="icon-xs" className="text-destructive hover:text-destructive" aria-label={`Delete ${item.kind} entry`} title="Delete" onClick={() => setDeleteHistoryItem(item)}><Trash2 aria-hidden="true" /></Button>
                           </div>}
                         </div>

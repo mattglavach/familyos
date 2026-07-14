@@ -1,5 +1,7 @@
 # Habits
 
+Release 2.10.1 makes Active the default lifecycle view, adds Paused, Archived, and All filters, and requires confirmation before archival. Paused and archived records keep history but do not create daily work or Home recommendations. Routine cards remain collapsed by default and expose keyboard-accessible inline step completion through a disclosure control. In-progress work sorts ahead of not-started and completed work.
+
 ## Release 2.10.0 core experience maturity
 
 Habits is the daily work surface for simple habits and multi-step routines. Routine cards show today’s progress and state, persist partial completion, derive overall completion from required active steps, and reopen when a required step is unchecked. The detail view prioritizes today’s action before assignment, category, schedule, history, streak, seven-day completion, step guidance, ordering, required/optional state, archiving, and removal.

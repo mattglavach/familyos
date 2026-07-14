@@ -1,5 +1,7 @@
 # AI Workspace
 
+Release 2.10.1 adds a concise first-use explanation, seven household starter prompts, and plain-language Ask, Plan, and Take Action intent. All generated changes remain proposals. The owning FamilyOS form and explicit user approval remain the only record-write boundary.
+
 The Release 2.0.0 AI Workspace is reached through More and is the single active prompt-generation surface. It provides suggested questions, Ask FamilyOS, prompt preview, Copy Prompt, device-local recent prompt metadata, and optional pasted-response review.
 
 Copy is the default and only sharing behavior. FamilyOS does not transmit prompts, authenticate providers, store conversation history, or accept AI output into the database automatically. Response Review identifies possible tasks, calendar events, reminders, shopping items, and Pool recommendations. Marking an item accepted records only the current-screen review state; manual record creation remains a separate explicit action.

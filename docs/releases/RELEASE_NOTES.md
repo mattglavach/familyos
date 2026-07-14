@@ -1,5 +1,11 @@
 # Release Notes
 
+## Release 2.10.1 - Usability Stabilization
+
+FamilyOS 2.10.1 reduces visual and instructional noise across the core daily loop. Home actions are compact and accessible, Family Brief shows only information needed to act, Upcoming Calendar is grouped by day, routines expand inline, lifecycle state is explicit and filterable, Pool uses the shared icon-action pattern where appropriate, and AI Workspace explains its safe proposal-and-approval model on first use.
+
+The release adds one backward-compatible database change: `routines.status` supports Active, Paused, and Archived while preserving the existing `archived` flag, completion history, household ownership, and RLS. Microsoft To Do synchronization remains deferred to 2.11.0.
+
 ## Release 2.10.0 - Core Experience Maturity
 
 FamilyOS now centers the daily experience on “What should I do next?” Family Brief recommendations are compact action surfaces that open the most specific available record and fall back safely when a record is stale or unavailable. Upcoming Calendar rows retain event-level navigation. Primary mobile navigation is Home, Habits, Calendar, Tasks, and More; Quick Add remains available through one global header Add control.

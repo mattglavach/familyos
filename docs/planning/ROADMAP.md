@@ -1,5 +1,11 @@
 # Roadmap
 
+## Release 2.10.1 - Usability Stabilization
+
+Release 2.10.1 keeps the current priority on core-experience maturity. It simplifies Home and Family Brief, groups the next three Calendar events by day, improves Habits and Routines completion and lifecycle visibility, removes duplicated Pool guidance, and clarifies first use of AI Workspace. No unrelated module expansion is included.
+
+Microsoft To Do synchronization is explicitly deferred to Release 2.11.0. No module expansion should precede completion and production validation of this stabilization cycle.
+
 ## Release 2.10.0 - Core Experience Maturity
 
 FamilyOS should help the household understand what needs attention and what to do next. The immediate product priority is maturity of the existing core experience before further module expansion: Home and Family Brief, Habits and Routines, Calendar usability, Task usability, navigation consistency, cross-module deep linking, reliability, accessibility, and responsive quality.
