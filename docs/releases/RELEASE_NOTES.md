@@ -6,7 +6,7 @@ FamilyOS 2.10.1 reduces visual and instructional noise across the core daily loo
 
 The release adds one backward-compatible database change: `routines.status` supports Active, Paused, and Archived while preserving the existing `archived` flag, completion history, household ownership, and RLS. Microsoft To Do synchronization remains deferred to 2.11.0.
 
-Production release: migration history is aligned through 22 versions and Vercel deployment `dpl_3LcUnTBGxPCL4USa2cEBkq9rdjxj` is READY at `familyos-pi-seven.vercel.app`. Authenticated production mutation testing was not run because no approved production browser session was available; the approved non-production authenticated matrix passed. The known Node deprecation warning remains non-blocking.
+Production release: migration history is aligned through 22 versions and the final Vercel deployment is READY at `familyos-pi-seven.vercel.app`. Authenticated production mutation testing was not run because no approved production browser session was available; the approved non-production authenticated matrix passed. The known Node deprecation warning remains non-blocking.
 
 ## Release 2.10.0 - Core Experience Maturity
 
