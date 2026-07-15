@@ -1,5 +1,9 @@
 # Database Schema
 
+## Release 3.2.0 AI Planning and Advisory
+
+Migration `20260714030000_release_3_2_ai_planning.sql` adds `ai_preferences`, `ai_recommendations`, `ai_proposed_actions`, and `ai_feedback`. Records are household-scoped and user-attributed. RLS limits each user to their own records in an active household and limits writes to owner/adult roles. Anonymous and public privileges are explicitly revoked. The migration is additive, performs no backfill, and stores no full prompts, context payloads, attachments, or conversation history.
+
 ## Release 3.1.0 Relationship OS
 
 Migration `20260714010000_release_3_1_relationship_os.sql` adds:

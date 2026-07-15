@@ -50,7 +50,7 @@ It provides specialized environment and deployment detail under `docs/governance
 
 ## Optional Integrations
 - Google Calendar must fail closed: if OAuth or server secrets are missing, users should see setup guidance and the rest of Family OS should remain usable.
-- AI brief generation depends on `ANTHROPIC_API_KEY`; missing server configuration should be handled as an optional integration failure, not a product-wide outage.
+- Family Assistant uses `AI_PROVIDER`, `AI_PROVIDER_MODEL`, and `AI_PROVIDER_API_KEY`, with `ANTHROPIC_API_KEY` as a compatibility fallback. Missing configuration returns deterministic advisory content and is not a product-wide outage.
 
 ## Troubleshooting
 - Household invitations showing an environment setup message usually means `supabase/migrations/20260702000000_release_0_9_household_collaboration.sql` has not been applied, the PostgREST schema cache needs a refresh, or the environment is pointed at the wrong Supabase project.

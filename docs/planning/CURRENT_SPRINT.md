@@ -1,5 +1,20 @@
 # Current Sprint
 
+## Release 3.2.0 - AI Planning and Advisory
+
+Status: implemented and in release validation on 2026-07-14.
+
+- [x] Add provider-neutral structured completion, timeout, normalized errors, usage metadata, and deterministic mock/fallback behavior.
+- [x] Authenticate server advisory requests, enforce active-household membership, minimize selected context, redact identifiers, and treat household text as untrusted.
+- [x] Upgrade Home Family Brief with a progressive executive summary while deterministic recommendations render first.
+- [x] Replace copy-only AI Workspace with Family Assistant, session conversation, context controls, structured cards, source indicators, and concise fallback.
+- [x] Add weekly planning mode, deterministic Calendar analysis, and existing deterministic Pool context integration.
+- [x] Add reviewable proposed actions that hand off to owning FamilyOS forms; no AI response writes records directly.
+- [x] Add recommendation feedback, reminder suppression, cross-surface deduplication, and reset controls.
+- [x] Add additive household/user-scoped AI preference, recommendation, proposed-action audit, and feedback tables with RLS and anonymous denial.
+- [x] Add unit, migration-security, accessibility, responsive, dark-mode, and Playwright release coverage.
+- [ ] Capture production backups, apply the migration, deploy, run production-safe verification, tag, and synchronize Git.
+
 ## Release 3.1.0 - Relationship OS
 
 Status: released to production on 2026-07-14.

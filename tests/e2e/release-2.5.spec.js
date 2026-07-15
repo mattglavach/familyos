@@ -8,7 +8,7 @@ test("Release 2.5 brief, notification, and template workflows",async({page})=>{
  await expect(page.getByLabel("Quiet hours start")).toBeVisible();
  await page.getByRole("button",{name:"Save notification preferences"}).click();
  await page.getByRole("button",{name:"Close",exact:true}).last().click();
- await openMoreModule(page,"AI Workspace");
+ await openMoreModule(page,"Family Assistant");
  await expect(page.getByText("FamilyOS prepares due briefs when you open",{exact:false})).toBeVisible();
  await expect(page.getByLabel("Enable Morning Brief")).toBeVisible();
  await page.getByRole("button",{name:"Save brief schedule"}).click();

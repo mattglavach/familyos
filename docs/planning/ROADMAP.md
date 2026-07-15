@@ -1,5 +1,9 @@
 # Roadmap
 
+## Release 3.2.0 - AI Planning and Advisory
+
+Release 3.2.0 turns the existing context and recommendation foundations into an integrated advisory workflow. Family Assistant and the AI Family Brief use permission-scoped server context, validated structured responses, deterministic Calendar and Pool logic, explicit source indicators, and human-reviewed proposed actions. Provider failure never blocks core FamilyOS. Autonomous agents, automatic scheduling, automatic dosing, general internet search, and unrestricted tools remain excluded.
+
 ## Release 3.1.0 - Relationship OS
 
 Release 3.1.0 makes intentional relationships a first-class FamilyOS domain without creating another task manager. It delivers lightweight profiles, editable prompts and ideas, quick activity history, planned time, goals, birthdays, transparent health, Home focus, weekly brief, Search, and Timeline integration. Health remains deterministic and explainable; AI scoring and autonomous outreach are excluded.

@@ -388,3 +388,7 @@ end $$;
 -- triggers, grants, and household RLS policies.
 -- 20260714020000_release_3_1_relationship_security_hardening.sql then
 -- revokes project-default anonymous table privileges.
+-- Release 3.2 AI Planning and Advisory is applied by
+-- 20260714030000_release_3_2_ai_planning.sql. The additive migration stores
+-- only advisory preferences, recommendations, proposed-action audit records,
+-- and feedback. Full prompts and household context are not stored.

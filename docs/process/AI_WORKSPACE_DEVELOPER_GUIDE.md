@@ -1,5 +1,7 @@
 # AI Workspace Developer Guide
 
+Release 3.2 supersedes the copy-only runtime with Family Assistant. The server advisory boundary, structured response validator, feedback/deduplication services, and owning-form handoff are documented in `docs/architecture/AI_PLANNING_ADVISORY.md`. The historical guided-navigation contract below remains the write-safety boundary: confirmation opens an owning workflow and never mutates a record directly.
+
 1. Add or update a pure module contributor in `src/services/contextEngine.js`.
 2. Return only normalized, permission-appropriate facts in the standard module sections.
 3. Never generate provider prompts inside a module.

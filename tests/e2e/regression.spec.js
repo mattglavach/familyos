@@ -86,7 +86,7 @@ test("responsive navigation remains usable", async ({ page }) => {
   expect(overflow).toBe(false);
 });
 
-test("Home and AI Workspace retain accessible names, focus, and responsive containment", async ({ page }) => {
+test("Home and Family Assistant retain accessible names, focus, and responsive containment", async ({ page }) => {
   await loginDemoUser(page);
   await expect(page.getByText(/Family Brief/i).first()).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
@@ -94,10 +94,9 @@ test("Home and AI Workspace retain accessible names, focus, and responsive conta
   expect(await page.evaluate(() => document.activeElement !== document.body)).toBe(true);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
   expect(overflow).toBe(false);
-  await openMoreModule(page, "AI Workspace");
-  await expect(page.getByRole("heading", { name: "Ask FamilyOS" })).toBeVisible();
-  await expect(page.getByLabel("Favorite current prompt")).toBeVisible();
-  await expect(page.getByLabel("AI response to review")).toBeVisible();
+  await openMoreModule(page, "Family Assistant");
+  await expect(page.getByRole("main", { name: "Family Assistant" })).toBeVisible();
+  await expect(page.getByLabel("Ask Family Assistant")).toBeVisible();
 });
 
 test("global Add and Pool History expose the refined actions", async ({ page }) => {

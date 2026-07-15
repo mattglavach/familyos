@@ -91,7 +91,7 @@ export function buildNotifications(tasks, calendarEvents, household, calendar, p
   }));
   (extra.habits||[]).filter(h=>h.status==="active"&&!h.archived&&h.reminder_time).forEach(h=>notifications.push({id:`habit-risk-${h.id}`,category:"habits",priority:45,kind:"habit",tone:"warning",title:`${h.name} needs a check-in`,detail:`Scheduled target at ${String(h.reminder_time).slice(0,5)}`,nav:"habits"}));
   (extra.routines||[]).filter(r=>!r.archived&&["daily","weekly"].includes(r.recurrence)).forEach(r=>notifications.push({id:`routine-due-${r.id}`,category:"routines",priority:55,kind:"routine",tone:"warning",title:`${r.name} is due`,detail:`Open the ${r.recurrence} checklist`,nav:"routines"}));
-  (extra.dueBriefTypes||[]).forEach(type=>notifications.push({id:`brief-due-${type}`,category:"briefs",priority:type==="weekly"?65:60,kind:"brief",tone:"important",title:`${briefLabel(type)} is ready to prepare`,detail:"Open AI Workspace to review current FamilyOS context. Nothing is changed automatically.",nav:{tab:"ai-workspace",briefType:type}}));
+  (extra.dueBriefTypes||[]).forEach(type=>notifications.push({id:`brief-due-${type}`,category:"briefs",priority:type==="weekly"?65:60,kind:"brief",tone:"important",title:`${briefLabel(type)} is ready to prepare`,detail:"Open Family Assistant to review current FamilyOS context. Nothing is changed automatically.",nav:{tab:"ai-workspace",briefType:type}}));
   const deduplicated = dedupeNotifications(notifications.map(item=>({...item,sourceKey:item.sourceKey||item.id,timestamp:item.timestamp||new Date().toISOString()})));
   if (!deduplicated.length) {
     deduplicated.push({ id: "all-clear", kind: "success", tone: "success", title: "All clear", detail: "No urgent household notifications right now.", nav: "home" });

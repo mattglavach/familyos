@@ -1,5 +1,5 @@
 export const AI_SETTINGS_KEY="familyos_ai_settings_v2";export const PROMPT_TRACE_KEY="familyos_prompt_trace_v2";
-export const DEFAULT_AI_SETTINGS={enabled:true,promptPreview:true,copyBeforeSend:true,privacyFiltering:true,hideSensitiveFinancialData:true,hideChildInformation:true,defaultProvider:"ChatGPT",homeAiBriefVisible:true,homeCardOrder:["priorities","schedule","snapshot"],defaultPromptTemplate:"What needs attention this week?",favoritePrompts:[]};
+export const DEFAULT_AI_SETTINGS={enabled:true,familyBriefEnabled:true,promptPreview:true,copyBeforeSend:true,privacyFiltering:true,hideSensitiveFinancialData:true,hideChildInformation:true,homeAiBriefVisible:true,responseLength:"concise",recommendationFrequency:"normal",defaultModules:["calendar","tasks"],homeCardOrder:["priorities","schedule","snapshot"],defaultPromptTemplate:"What needs attention this week?",favoritePrompts:[]};
 export function readAiSettings(){try{return{...DEFAULT_AI_SETTINGS,...JSON.parse(localStorage.getItem(AI_SETTINGS_KEY)||"{}")};}catch{return DEFAULT_AI_SETTINGS;}}
 export function writeAiSettings(value){const normalized={...DEFAULT_AI_SETTINGS,...value};localStorage.setItem(AI_SETTINGS_KEY,JSON.stringify(normalized));return normalized;}
 export function readPromptTraces(){try{return JSON.parse(localStorage.getItem(PROMPT_TRACE_KEY)||"[]");}catch{return[];}}

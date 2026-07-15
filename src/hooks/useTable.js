@@ -12,6 +12,7 @@ function notifyTableChanged(table) {
 }
 
 export function useTable(table,orderCol,orderAsc=false,options={}){
+  const optionalLocalFallback = table === "ai_feedback" && process.env.NODE_ENV === "development" && process.env.REACT_APP_ENABLE_ADVISORY_API !== "true";
   const household = useHousehold();
   const {
     householdId = household.householdId,
@@ -21,6 +22,7 @@ export function useTable(table,orderCol,orderAsc=false,options={}){
   const [data,setData]=useState(null),[loading,setLoading]=useState(true);
   const load=useCallback(async(options={})=>{
     setLoading(true);
+    if(optionalLocalFallback){setData([]);setLoading(false);return;}
     try{
       let query = supabase.from(table).select("*").order(orderCol,{ascending:orderAsc});
       if (householdScoped && householdId) query = query.eq("household_id", householdId);
@@ -36,7 +38,7 @@ export function useTable(table,orderCol,orderAsc=false,options={}){
       setData(SEED[table]||[]);
     }
     setLoading(false);
-  },[table,orderCol,orderAsc,householdId,householdScoped]);
+  },[table,orderCol,orderAsc,householdId,householdScoped,optionalLocalFallback]);
   useEffect(()=>{load();},[load]);
   useEffect(()=>{
     if (typeof window === "undefined") return undefined;
@@ -53,6 +55,7 @@ export function useTable(table,orderCol,orderAsc=false,options={}){
     return next;
   }
   async function insert(row){
+    if(optionalLocalFallback)throw new Error("Optional advisory persistence is not enabled in local development.");
     const nextRow=withOwnership(row);
     const{data:r,error}=await supabase.from(table).insert(nextRow).select().single();
     if(error){

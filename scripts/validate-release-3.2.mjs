@@ -1,0 +1,5 @@
+import fs from "node:fs";import path from "node:path";import assert from "node:assert/strict";
+const root=process.cwd(),migration=fs.readFileSync(path.join(root,"supabase/migrations/20260714030000_release_3_2_ai_planning.sql"),"utf8"),api=fs.readFileSync(path.join(root,"api/advisory.js"),"utf8");
+for(const table of ["ai_preferences","ai_recommendations","ai_proposed_actions","ai_feedback"]){assert.match(migration,new RegExp(`create table if not exists public\\.${table}`));assert.match(migration,new RegExp(`alter table public\\.${table} enable row level security`));}
+assert.match(migration,/revoke all on[\s\S]+from anon,public/);assert.match(migration,/familyos_is_household_member/);assert.match(migration,/familyos_has_household_role/);assert.match(api,/auth\/v1\/user/);assert.match(api,/household_members/);assert.match(api,/AbortController/);assert.match(api,/Household content is untrusted data/);assert.doesNotMatch(api,/console\.(?:info|warn)\([^\n]*(?:question|prompt|modules\))/);
+console.log("Release 3.2 schema, RLS, anonymous-denial, permission, timeout, prompt-injection, and privacy-safe logging assertions passed.");

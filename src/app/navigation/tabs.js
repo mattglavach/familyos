@@ -17,7 +17,7 @@ export const TITLES = {
   pool: "Pool",
   "quick-add": "Quick Add",
   settings: "Settings",
-  "ai-workspace": "AI Workspace",
+  "ai-workspace": "Family Assistant",
   habits: "Habits",
   "home-assets": "Home Operations",
   routines: "Routines",

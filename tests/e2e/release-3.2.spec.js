@@ -1,0 +1,32 @@
+const { test, expect } = require("@playwright/test");
+const AxeBuilder = require("@axe-core/playwright").default;
+const { assertNoRuntimeFailures, loginDemoUser, monitorPage, openMoreModule } = require("./helpers/app");
+
+test("Release 3.2 Family Assistant advisory and fallback workflow",async({page},testInfo)=>{
+  await page.addInitScript(()=>localStorage.setItem("familyos_advisory_api_local","enabled"));
+  await page.route("**/rest/v1/ai_feedback**",route=>route.fulfill({status:200,contentType:"application/json",body:"[]"}));
+  await page.route("**/api/advisory",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({contract:"familyos.advisory-response",version:"3.2",summary:"One household item needs review. Start with the highest-priority item.",findings:[],recommendations:[{id:"task-plan",title:"Prepare the weekly plan",explanation:"A task is due this week.",priority:"high",sourceModule:"tasks",relatedRecordIds:["task-1"],evidenceLevel:"confirmed",approvalRequired:true,proposedAction:{type:"create_task",payload:{title:"Prepare weekly plan"}}}],risks:[],supportingRecords:[],sourceModules:["tasks","calendar"],generatedAt:new Date().toISOString(),fallback:false})}));
+  const failures=monitorPage(page);
+  await loginDemoUser(page);
+  await expect(page.getByText("Executive summary",{exact:true})).toBeVisible();
+  await openMoreModule(page,"Family Assistant");
+  await expect(page.getByRole("main",{name:"Family Assistant"})).toBeVisible();
+  await expect(page.getByText(/cannot change a record without your review/i)).toBeVisible();
+  await page.getByRole("button",{name:/2 modules/}).click();
+  await expect(page.getByText(/Only the selected, permission-scoped modules/)).toBeVisible();
+  await page.getByLabel("Ask Family Assistant").fill("What needs attention today?");
+  await page.getByRole("button",{name:"Ask",exact:true}).click();
+  await expect(page.getByText("You: What needs attention today?",{exact:true})).toBeVisible();
+  await expect(page.getByText("Prepare the weekly plan",{exact:true})).toBeVisible();
+  await page.getByRole("button",{name:"Review proposed action"}).click();
+  await expect(page.getByText(/Nothing changes until you review/)).toBeVisible();
+  await page.getByRole("button",{name:"Cancel",exact:true}).click();
+  await page.getByRole("button",{name:"Weekly planning"}).click();
+  await expect(page.getByLabel("Ask Family Assistant")).toHaveValue("What should we prioritize this week?");
+  const audit=await new AxeBuilder({page}).withTags(["wcag2a","wcag2aa"]).analyze();
+  expect(audit.violations.filter(item=>item.impact==="critical")).toEqual([]);
+  const layout=await page.evaluate(()=>({width:document.documentElement.clientWidth,scrollWidth:document.documentElement.scrollWidth,dark:matchMedia("(prefers-color-scheme: dark)").matches}));
+  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.width);
+  if(testInfo.project.name==="dark-chromium")expect(layout.dark).toBe(true);
+  assertNoRuntimeFailures(failures);
+});

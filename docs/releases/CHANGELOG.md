@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.2.0 - 2026-07-14
+- Added permission-scoped Family Assistant, AI Family Brief, weekly planning, context controls, structured advisory cards, source indicators, and current-session history.
+- Added provider abstraction, deterministic mock/fallback, server authentication and household authorization, prompt-injection defenses, timeouts, rate limits, safe observability, and schema validation.
+- Added human-reviewed proposed-action handoffs, recommendation feedback/reset, and cross-surface deduplication.
+- Added additive AI preference, recommendation, proposed-action audit, and feedback tables with RLS and explicit anonymous denial.
+- Added Calendar analysis and reused deterministic Pool calculation/context contracts; AI never invents dosage or changes records automatically.
+
 ## 3.1.0 - 2026-07-14
 
 - Added the Relationships module with durable profiles, editable prompts and activity ideas, birthdays, priorities, lifecycle status, quick logging, planned time together, and goals.

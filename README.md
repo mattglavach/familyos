@@ -1,6 +1,6 @@
 # FamilyOS
 
-Current version: 3.1.0
+Current version: 3.2.0
 
 FamilyOS is a mobile-first household and relationship operating system centered on two questions: “What should I do next?” and “Who should I connect with?” Home, Family Brief, Relationships, Habits and Routines, Calendar, Tasks, and global Quick Add form the daily operating loop.
 
@@ -111,7 +111,8 @@ Create `.env.local` from `.env.example` and set:
 | `GOOGLE_OAUTH_STATE_SECRET` | Server | Required only for signed server-side Calendar OAuth state. |
 | `GOOGLE_CALENDAR_ID` | Server | Optional server-side calendar ID; defaults to `primary` when omitted. |
 | `APP_BASE_URL` | Server | Public app URL used by server-side OAuth redirects. |
-| `ANTHROPIC_API_KEY` | Server | Used only by `api/brief.js`; do not expose it in frontend code. |
+| `AI_PROVIDER`, `AI_PROVIDER_MODEL` | Server | Provider-neutral Family Assistant selection. |
+| `AI_PROVIDER_API_KEY` or `ANTHROPIC_API_KEY` | Server | Used only by server APIs; never expose it in frontend code. |
 | `ALLOWED_ORIGINS` | Server | Optional comma-separated browser origins allowed to call `api/brief.js`. |
 
 ### Google Calendar Setup

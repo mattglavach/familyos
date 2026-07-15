@@ -25,6 +25,10 @@ Required Vercel variables:
 - GOOGLE_CALENDAR_ID, optional server-side Calendar ID
 - APP_BASE_URL, required only for server-side Calendar OAuth return links
 - ANTHROPIC_API_KEY
+- AI_PROVIDER
+- AI_PROVIDER_MODEL
+- AI_PROVIDER_API_KEY
+- AI_REQUEST_TIMEOUT_MS
 - ALLOWED_ORIGINS, when using a custom domain or non-Vercel production URL
 
 FamilyOS is a Create React App deployment, so browser-visible variables use the `REACT_APP_` prefix. It does not use `NEXT_PUBLIC_SITE_URL`, `VITE_SITE_URL`, or `REACT_APP_SITE_URL` for Supabase Auth redirects. Email/password sign-in is the primary auth path. Fallback email magic links use the current app origin and require matching Supabase Auth allowed redirect URLs.

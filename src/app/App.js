@@ -39,6 +39,7 @@ const NotificationCenter = lazy(() => import("../modules/notifications/Notificat
 const GlobalSearch = lazy(() => import("../modules/search/GlobalSearch").then(module => ({ default: module.GlobalSearch })));
 const Settings = lazy(() => import("../modules/settings/Settings").then(module => ({ default: module.Settings })));
 const AIWorkspace = lazy(() => import("../modules/ai-workspace/AIWorkspace").then(module => ({ default: module.AIWorkspace })));
+const BriefScheduler = lazy(() => import("../modules/ai-workspace/BriefScheduler").then(module => ({ default: module.BriefScheduler })));
 const Habits = lazy(() => import("../modules/habits/Habits").then(module => ({ default: module.Habits })));
 const HomeAssets = lazy(() => import("../modules/home-assets/HomeAssets").then(module => ({ default: module.HomeAssets })));
 const HouseholdTimeline = lazy(() => import("../modules/timeline/HouseholdTimeline").then(module => ({ default: module.HouseholdTimeline })));
@@ -441,7 +442,7 @@ function AuthenticatedApp({ auth }) {
       {tab==="more"&&<More onNavigate={switchTab}/>}
       {tab==="needs-attention"&&<NeedsAttention onNavigate={switchTab} calendarEvents={headerCalendar.events}/>}
       {tab==="settings"&&<Settings auth={auth} gc={gc} secureCalendar={secureCalendar}/>}
-      {tab==="ai-workspace"&&<AIWorkspace calendarEvents={headerCalendar.events} onNavigate={switchTab} initialView={navigationContext?.tab === "ai-workspace" ? navigationContext : null}/>}
+      {tab==="ai-workspace"&&<><BriefScheduler promptByType={{morning:"Summarize today's priorities and preparation.",evening:"Summarize wins and tomorrow preparation.",weekly:"Prioritize the next seven days."}} initialType={navigationContext?.briefType}/><AIWorkspace calendarEvents={headerCalendar.events} onNavigate={switchTab} initialView={navigationContext?.tab === "ai-workspace" ? navigationContext : null}/></>}
       {tab==="habits"&&<Habits initialView={navigationContext?.tab === "habits" ? navigationContext : null}/>}
       {tab==="home-assets"&&<HomeAssets initialView={navigationContext?.tab === "home-assets" ? navigationContext : null}/>}
       {tab==="timeline"&&<HouseholdTimeline calendarEvents={headerCalendar.events} onNavigate={switchTab}/>}

@@ -1,5 +1,13 @@
 # Architecture Decisions
 
+## 2026-07-14 - AI advisory is server-scoped, structured, and non-executing
+
+Decision: Family Assistant uses an environment-configured provider abstraction behind an authenticated server endpoint. The endpoint verifies active household membership, queries only selected RLS-scoped records with the caller token, redacts internal identifiers, treats every household string as untrusted data, and validates the provider output contract before client rendering. Deterministic FamilyOS logic remains authoritative for dates, status, Calendar conflicts, and Pool chemistry.
+
+Proposed actions never execute from a model response. Confirmation routes the editable proposal into the owning module's established form, where normal validation, permissions, and a separate save action remain the only write boundary. Minimal advisory status and feedback may be stored; prompts, full context, attachments, and conversation history are not stored.
+
+Why: this delivers cross-module planning value without creating an alternate system of record, bypassing RLS, exposing provider secrets, or coupling the application to one model provider.
+
 ## 2026-07-14 - Relationship OS remains module-owned and deterministically derived
 
 Decision: Relationships owns three additive household-scoped stores: profiles, goals, and activities. Prompts and reusable activity ideas are editable profile arrays. Planned and completed time share the activity lifecycle. Home, Search, and Timeline consume these records through existing handoff contracts and do not become alternate stores.

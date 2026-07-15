@@ -1,5 +1,13 @@
 # Release Notes
 
+## Release 3.2.0 - AI Planning and Advisory
+
+FamilyOS 3.2 adds Family Assistant and an AI-assisted Family Brief grounded in selected, permission-scoped household records. Responses use a validated contract for summaries, findings, recommendations, risks, evidence, source modules, and proposed actions. Weekly planning combines the next seven days of work with deterministic Calendar and Pool intelligence. Model output cannot directly change household records; proposed changes must be reviewed and continue through the owning FamilyOS form.
+
+The server verifies the authenticated user and active household membership before assembling minimal context. Internal identifiers are redacted before provider use, user-authored household text is explicitly treated as untrusted data, full prompts and responses are not logged, and provider credentials remain server-side. Rate limiting, timeouts, normalized errors, deterministic fallback, request cancellation, and safe observability keep core FamilyOS available when AI is disabled or unavailable.
+
+The additive migration creates `ai_preferences`, `ai_recommendations`, `ai_proposed_actions`, and `ai_feedback`. All are household-scoped and user-attributed, use RLS, allow owner/adult writes, and explicitly deny anonymous privileges. Full prompts, context payloads, attachments, and conversation history are not stored.
+
 ## Release 3.1.0 - Relationship OS
 
 FamilyOS 3.1.0 adds a lightweight Relationships workspace for important people, meaningful context, editable conversation and activity ideas, birthdays, relationship goals, quick activity logging, planned time together, and clear lifecycle status. Health remains deterministic: High, Medium, and Low priorities use visible 7-, 14-, and 30-day contact guides, supported by recent activities and completed goals. No AI scoring is used.

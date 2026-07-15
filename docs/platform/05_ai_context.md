@@ -1,5 +1,11 @@
 # Platform AI Context
 
+## Release 3.2 implementation
+
+Family Assistant is the active integrated advisory surface. `POST /api/advisory` authenticates the caller, verifies household membership, assembles minimum selected context through RLS, redacts internal identifiers, and calls the environment-configured provider. Responses use `familyos.advisory-response` 3.2 and are validated before rendering. Core FamilyOS uses deterministic fallback when the provider is disabled, unavailable, malformed, rate limited, or timed out.
+
+Proposed actions remain transient and approval-required. Confirmation hands off editable fields to the owning module's normal form; it does not execute a database write from the AI response. Current-session conversation is held only in memory. Full prompts, context payloads, and model responses are not persisted or logged.
+
 ## Release 2.0 implementation
 
 Release 2.0 implements the provider-neutral Context Engine and Prompt Builder described in `docs/architecture/CONTEXT_ENGINE.md`. The earlier Household Context Service remains the dashboard compatibility contract. New AI-facing work must use module contributors and `familyos.context-engine` version 2.0.

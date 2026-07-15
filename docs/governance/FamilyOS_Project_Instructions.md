@@ -40,7 +40,7 @@ The current app shell implements five primary module destinations:
 4. Tasks
 5. More
 
-Home currently serves as the dashboard. Quick Add is a single global top-bar action, and Settings is the far-right top-bar action. Pool and additional implemented workspaces, including AI Workspace, Life Lists, Meal Planning, Household, and Settings, are reached through app navigation and More as documented by the current code and release records. Shopping data is preserved but the Shopping module is inactive as of Release 1.8.4.
+Home currently serves as the dashboard. Quick Add is a single global top-bar action, and Settings is the far-right top-bar action. Pool and additional implemented workspaces, including Family Assistant, Life Lists, Meal Planning, Household, and Settings, are reached through app navigation and More as documented by the current code and release records. Shopping data is preserved but the Shopping module is inactive as of Release 1.8.4.
 
 ### Approved long-term product architecture
 

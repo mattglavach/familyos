@@ -62,6 +62,7 @@ This folder is the operating manual for Family OS.
 - docs/architecture/DEPLOYMENT.md
 - docs/architecture/MEAL_PLANNING.md
 - docs/architecture/ARCHITECTURE_DECISIONS.md
+- docs/architecture/AI_PLANNING_ADVISORY.md
 - docs/architecture/decisions/ADR_TEMPLATE.md
 
 ### Platform
@@ -135,7 +136,8 @@ This folder is the operating manual for Family OS.
 ### Modules
 - Relationships: `docs/modules/RELATIONSHIPS.md`
 - Habits: `docs/modules/HABITS.md`
-- AI Workspace: `docs/modules/AI_WORKSPACE.md`
+- Family Assistant: `docs/modules/FAMILY_ASSISTANT.md`
+- AI Workspace history: `docs/modules/AI_WORKSPACE.md`
 - Dashboard
 - Finance
 - Retirement

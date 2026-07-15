@@ -1,5 +1,7 @@
 # Context Engine Architecture
 
+Release 3.2 adds the `familyos.advisory-response` 3.2 consumer contract. Server context selection begins with the minimum requested modules and the authenticated user's RLS-scoped household access. User-selected controls may narrow or expand that set. Attachments, tokens, database metadata, and unnecessary sensitive fields are excluded. Provider output distinguishes confirmed facts, calculated observations, and suggestions; malformed actions are removed before rendering.
+
 Release 2.9 advances `familyos.context-engine` to version 2.9. The unified output adds household location/timezone, household-load classification, important-now evidence, today/upcoming/recent sections, module summaries, weather, recommendations, per-source freshness, and missing-critical-data signals. Providers remain pure and household scoped. JavaScript runtime contracts are paired with TypeScript declaration files for strong consumer typing while preserving the established CRA architecture.
 
 Release 2.0.0 adds `familyos.context-engine` version 2.0 as a deterministic, provider-neutral aggregation boundary. Module contributors emit only populated `summary`, `importantItems`, `upcomingItems`, `recommendations`, `metrics`, and `recentActivity` sections. Contributors do not create prompts and have no knowledge of ChatGPT or any other provider.
