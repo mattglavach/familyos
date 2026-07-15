@@ -14,7 +14,7 @@ Status: released to production on 2026-07-14.
 - [x] Complete the full 77-test authenticated desktop/mobile/tablet/dark regression matrix.
 - [x] Back up production and apply/verify both additive Relationship OS migrations with RLS and anonymous privilege hardening.
 - [x] Publish, deploy, and complete public production verification.
-- [ ] Create and verify the final `v3.1.0` release tag after documentation closeout.
+- [x] Create and verify the final `v3.1.0` release tag after documentation closeout.
 
 ## Release 3.0.0 - Daily Experience Polish
 
