@@ -44,6 +44,7 @@ async function insert(table, rows) {
 }
 
 const legacyHouseholdTables = [
+  "relationship_activities", "relationship_goals", "relationships",
   "notes", "tasks", "home_maintenance", "pool_readings", "pool_maintenance",
   "pool_treatments", "pool_schedule", "pool_settings", "college_schools",
   "college_test_plan", "college_essays", "college_deadlines", "sat_scores",
@@ -91,6 +92,19 @@ await insert("household_settings", { household_id: householdId, default_task_cat
 await query("update demo preferences", admin.from("user_preferences").upsert({ user_id: userId, default_household_id: householdId, default_person_id: people[0].id, default_task_category: "Home", default_task_priority: "medium" }));
 
 const base = { household_id: householdId, user_id: userId };
+const demoRelationships = await insert("relationships", [
+  { ...base, name: "Jordan", category: "Spouse", birthday: "1983-09-02", favorite_things: "Coffee, weekend trips, and live music", interests: ["Travel", "Music", "Family"], conversation_topics: ["Family", "Career", "Vacations", "Health", "Shared interests"], activity_ideas: ["Coffee", "Walk", "Date Night", "Road Trip"], notes: "Anniversary: 2008-06-21", last_conversation: iso(-1), last_one_on_one_activity: iso(-22), last_contact_date: iso(-1), priority: "High", status: "Active" },
+  { ...base, name: "Taylor", category: "Child", birthday: "2010-01-18", favorite_things: "Books and music", interests: ["Friends", "School", "College"], conversation_topics: ["Friends", "School", "College", "Driving", "Future goals", "Faith", "Stress"], activity_ideas: ["Ice Cream", "Shopping", "Walk", "Lunch"], notes: "", last_conversation: iso(-2), last_one_on_one_activity: iso(-9), last_contact_date: iso(-2), priority: "High", status: "Active" },
+  { ...base, name: "Morgan", category: "Mentor", favorite_things: "Local coffee shops", interests: ["Leadership", "Career"], conversation_topics: ["Career", "Family", "Shared interests"], activity_ideas: ["Coffee", "Lunch", "Phone Call"], notes: "Former manager and trusted mentor", last_conversation: iso(-20), last_contact_date: iso(-20), priority: "Medium", status: "Active" },
+]);
+await insert("relationship_goals", [
+  { ...base, relationship_id: demoRelationships[0].id, title: "Plan one date night each month", target_date: iso(21), status: "active" },
+  { ...base, relationship_id: demoRelationships[1].id, title: "Make time for one-on-one conversation", target_date: iso(7), status: "active" },
+]);
+await insert("relationship_activities", [
+  { ...base, relationship_id: demoRelationships[1].id, activity_type: "One-on-One", title: "Ice cream with Taylor", status: "completed", occurred_at: stamp(-9, 18) },
+  { ...base, relationship_id: demoRelationships[0].id, activity_type: "Date Night", title: "Dinner with Jordan", status: "planned", planned_for: stamp(5, 19) },
+]);
 await insert("tasks", [
   { ...base, title: "Schedule annual physical", category: "Health", priority: "high", due_date: iso(-3), status: "not_started", completed: false, assigned_person_id: people[0].id, is_important: true, notes: "Call primary care office", created_by_user_id: userId },
   { ...base, title: "Take recycling to curb", category: "Home", priority: "med", due_date: iso(0), recurring_interval_days: 7, last_completed: iso(-7), status: "not_started", completed: false, assigned_person_id: people[2].id, is_important: false, created_by_user_id: userId },
@@ -160,4 +174,4 @@ await insert("college_goal", [{ ...base, child_name: "Taylor", target_amount: 12
 await insert("pool_readings", [{ ...base, date: iso(-1), logged_at: stamp(-1, 18), ph: 7.6, free_chlorine: 4.5, salt: 3300, cya: 60, alkalinity: 80, water_temp: 84, test_source: "Taylor Kit", notes: "Clear water" }]);
 await insert("pool_schedule", [{ ...base, title: "Clean pool filter", last_completed: iso(-45), interval_days: 60, maintenance_type: "Filter" }, { ...base, title: "Test pool chemistry", last_completed: iso(-7), interval_days: 7, maintenance_type: "Water test" }]);
 
-console.log("[seed:demo] Complete. Dedicated demo identity, household, 5 people, and representative active-module data are ready.");
+console.log("[seed:demo] Complete. Dedicated demo identity, household, 5 people, Relationship OS profiles, and representative active-module data are ready.");

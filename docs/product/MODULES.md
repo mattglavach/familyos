@@ -47,6 +47,16 @@ Dependencies: Google Calendar connection, server-side event fetch, household con
 
 Future enhancements: household events, school calendars, shared reminders, conflict detection.
 
+## Relationships
+
+Purpose: Help household members intentionally strengthen important relationships through durable context, meaningful prompts, and lightweight activity history.
+
+Current status: Active in Release 3.1.0 through More, Home Relationship Focus, global Search, and Household Timeline.
+
+Dependencies: Active household context, Relationship OS tables and RLS, deterministic health rules, shared drawers/cards, Search and Timeline handoffs.
+
+Boundaries: Relationships is not a task manager, does not use AI scoring, does not autonomously contact people, and does not duplicate Calendar schedule ownership. Planned time remains relationship intent unless the user separately creates a Calendar event.
+
 ## Household
 Purpose: Members, invitations, roles, active household switching, household defaults, and collaboration context.
 

@@ -1,7 +1,7 @@
 # FamilyOS Version
 
-Current version: **2.10.1**
+Current version: **3.1.0**
 
-Release date: 2026-07-13
+Release date: 2026-07-14
 
-Release 2.9.0, Unified Context, connects household records through a typed deterministic Context Engine, a dedicated Timeline, explainable recommendation scoring, server-side weather, broader global search, Smart Quick Add, secure managed attachments, dashboard personalization, improved notifications, and organized location-aware settings. Shopping remains inactive and its historical data is preserved.
+Release 3.1.0, Relationship OS, adds relationship profiles, transparent health guidance, quick activity logging, planned time together, goals, birthdays, conversation and activity ideas, Home focus recommendations, Timeline integration, weekly summaries, and global search.

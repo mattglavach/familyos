@@ -1,11 +1,11 @@
-import { Bot, ChevronRight, Clock3, DollarSign, Home, ListChecks, NotebookTabs, Repeat2, Settings, Utensils, Waves } from "lucide-react";
+import { Bot, ChevronRight, Clock3, DollarSign, Heart, Home, ListChecks, NotebookTabs, Repeat2, Settings, Utensils, Waves } from "lucide-react";
 import { Badge } from "../../components/ui/badge";
 import { Card, CardContent } from "../../components/ui/card";
 import { SectionHeader } from "../../components/ui/section-header";
 import { S } from "../../theme";
 
 const platformGroups = [
-  { title: "Daily", items: [{id:"timeline",label:"Household Timeline",detail:"Review past, current, and upcoming household activity in one place.",icon:Clock3,badge:"New",enabled:true},{id:"habits",label:"Habits",detail:"Track personal and household consistency.",icon:Repeat2,badge:"Core",enabled:true},{id:"routines",label:"Routines",detail:"Run repeatable household checklists.",icon:Repeat2,badge:"New",enabled:true}] },
+  { title: "Daily", items: [{id:"relationships",label:"Relationships",detail:"Strengthen important connections with lightweight prompts, time together, and transparent health guidance.",icon:Heart,badge:"New",enabled:true},{id:"timeline",label:"Household Timeline",detail:"Review past, current, and upcoming household activity in one place.",icon:Clock3,badge:"New",enabled:true},{id:"habits",label:"Habits",detail:"Track personal and household consistency.",icon:Repeat2,badge:"Core",enabled:true},{id:"routines",label:"Routines",detail:"Run repeatable household checklists.",icon:Repeat2,badge:"New",enabled:true}] },
   { title: "AI", items: [{id:"ai-workspace",label:"AI Workspace",detail:"Build and review permission-aware prompts without automatic transmission or writes.",icon:Bot,badge:"New",enabled:true}] },
   {
     title: "Home",

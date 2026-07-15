@@ -23,5 +23,6 @@ export const TITLES = {
   routines: "Routines",
   "needs-attention": "Needs Attention",
   timeline: "Household Timeline",
+  relationships: "Relationships",
   tasks: "Tasks",
 };

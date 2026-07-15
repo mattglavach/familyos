@@ -1,5 +1,9 @@
 # Roadmap
 
+## Release 3.1.0 - Relationship OS
+
+Release 3.1.0 makes intentional relationships a first-class FamilyOS domain without creating another task manager. It delivers lightweight profiles, editable prompts and ideas, quick activity history, planned time, goals, birthdays, transparent health, Home focus, weekly brief, Search, and Timeline integration. Health remains deterministic and explainable; AI scoring and autonomous outreach are excluded.
+
 ## Release 3.0.0 - Daily Experience Polish
 
 Release 3.0.0 reduces friction in the highest-frequency daily surfaces. Family Brief removes a redundant task instruction, Habits and Routines use direct inline checklist completion with a separate editing path, mobile Habit editing keeps Save and Cancel above safe areas, and Pool status avoids repeating detailed dosage guidance. The release preserves module ownership, completion history, detailed Pool recommendations, schemas, permissions, and integrations.

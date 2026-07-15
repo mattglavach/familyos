@@ -4,6 +4,8 @@
 
 Mobile primary navigation is Home, Habits, Calendar, Tasks, and More. Pool remains available from More. Quick Add is a single global top-bar control; the duplicate floating add button was removed.
 
+Release 3.1 adds Relationships as a complete top-level destination reached through More and through Home, Search, and Timeline handoffs. It does not displace the five high-frequency bottom navigation destinations.
+
 ## Purpose
 Navigation should help household members move quickly between daily context, action capture, and management surfaces. Canonical current and target architecture is governed by `docs/governance/FamilyOS_Project_Instructions.md`. Engineering implementation details are in `docs/process/UI_GUIDELINES.md` and `docs/ui/DESIGN_SYSTEM.md`.
 
@@ -26,7 +28,7 @@ Navigation should help household members move quickly between daily context, act
 - Ensure fixed navigation never covers page actions or drawer buttons.
 
 ## Global Search
-Global search should search tasks, calendar events, people, documents, lists, modules, and household records according to permissions as those surfaces become implemented.
+Global search searches tasks, calendar events, relationships, people, documents, lists, modules, and household records according to permissions. Relationship matching includes name, category, interest, conversation topic, activity idea, and notes.
 
 Release 1.3 extends scoped global search to Recipes, Meal Plans, and Meal Assignments after their data and permission behavior is validated. Future modules should register searchable results only after their data and permission behavior are validated.
 

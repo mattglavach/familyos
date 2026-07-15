@@ -133,6 +133,7 @@ This folder is the operating manual for Family OS.
 - docs/ui/THEME.md
 
 ### Modules
+- Relationships: `docs/modules/RELATIONSHIPS.md`
 - Habits: `docs/modules/HABITS.md`
 - AI Workspace: `docs/modules/AI_WORKSPACE.md`
 - Dashboard

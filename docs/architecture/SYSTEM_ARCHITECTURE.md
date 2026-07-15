@@ -32,6 +32,10 @@ Each module should have:
 - Authentication and security
 - Deployment pipeline
 
+## Release 3.1 Relationship OS
+
+`src/modules/relationships/` owns relationship presentation and deterministic domain logic. `relationships`, `relationship_goals`, and `relationship_activities` are household-scoped Supabase records accessed through the established `useTable` layer. Dashboard, Global Search, and Household Timeline consume summaries and navigation handoffs while the Relationships module remains the source of truth. Health computation is pure application logic with explicit priority thresholds and no AI provider dependency.
+
 ## Key Architectural Principles
 - Keep modules independent where possible.
 - Share common components.

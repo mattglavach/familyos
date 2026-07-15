@@ -42,6 +42,7 @@ const AIWorkspace = lazy(() => import("../modules/ai-workspace/AIWorkspace").the
 const Habits = lazy(() => import("../modules/habits/Habits").then(module => ({ default: module.Habits })));
 const HomeAssets = lazy(() => import("../modules/home-assets/HomeAssets").then(module => ({ default: module.HomeAssets })));
 const HouseholdTimeline = lazy(() => import("../modules/timeline/HouseholdTimeline").then(module => ({ default: module.HouseholdTimeline })));
+const Relationships = lazy(() => import("../modules/relationships/Relationships").then(module => ({ default: module.Relationships })));
 function SetupRequired(){
   return(
     <div style={S.app} className="px-5 py-10">
@@ -445,6 +446,7 @@ function AuthenticatedApp({ auth }) {
       {tab==="home-assets"&&<HomeAssets initialView={navigationContext?.tab === "home-assets" ? navigationContext : null}/>}
       {tab==="timeline"&&<HouseholdTimeline calendarEvents={headerCalendar.events} onNavigate={switchTab}/>}
       {tab==="routines"&&<Routines/>}
+      {tab==="relationships"&&<Relationships initialView={navigationContext?.tab === "relationships" ? navigationContext : null}/>}
       </Suspense>
       </AppErrorBoundary>
 

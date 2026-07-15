@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.1.0 - 2026-07-14
+
+- Added the Relationships module with durable profiles, editable prompts and activity ideas, birthdays, priorities, lifecycle status, quick logging, planned time together, and goals.
+- Added transparent Excellent, Good, and Needs Attention health using visible 7-, 14-, and 30-day priority guides without AI scoring.
+- Added a compact Home Relationship Focus and weekly relationship summary with at most three deduplicated recommendations.
+- Added Relationship events to Household Timeline with domain/audit deduplication and added relationship fields to global search.
+- Added an additive, household-scoped, RLS-protected migration for relationship profiles, goals, and activities.
+- Explicitly revoked anonymous table privileges while preserving authenticated, household-isolated access.
+- Added unit, migration-safety, seeded browser, responsive, dark-mode, Timeline, search, and accessibility coverage.
+
 ## 3.0.0 - 2026-07-14
 
 - Removed the redundant overdue-task instruction from Family Brief recommendation cards.

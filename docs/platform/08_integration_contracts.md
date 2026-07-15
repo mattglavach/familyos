@@ -13,6 +13,7 @@ App-level navigation accepts either a tab id or a small payload:
 { tab: "tasks", search: "filter text", filter: "overdue" }
 { tab: "calendar", eventId: "provider-event-id" }
 { tab: "life-lists", listId: "list-id", search: "item title" }
+{ tab: "relationships", relationshipId: "relationship-id", action: "log" }
 ```
 
 Rules:
@@ -37,12 +38,14 @@ Fallback readiness:
 
 ## Search Result Contract
 Search results should include:
-- `type`: user-facing group such as `Tasks`, `Calendar`, `Life Lists`, `Shopping`, `Meal Planning`, `Pool`, `Household`, or `Navigation`.
+- `type`: user-facing group such as `Relationships`, `Tasks`, `Calendar`, `Life Lists`, `Meal Planning`, `Pool`, `Household`, or `Navigation`.
 - `label`: primary row text.
 - `detail`: short supporting text.
 - `nav`: tab id or navigation handoff payload.
 
 Search should refresh current data when opened and keep item-level handoffs best-effort until URL routing or a shared registry is introduced.
+
+Relationship results search name, category, interest, conversation topic, activity idea, and notes, then hand off to the owning profile. Relationship activities normalize into Timeline. When the same activity also has a `household_activity` audit row, the owning activity is rendered once and the audit is treated as duplicate evidence.
 
 ## Notification Contract
 Release 1.6 notifications remain generated client-side from current task, calendar, and household state.

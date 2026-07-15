@@ -1,0 +1,10 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+const sql = await readFile(new URL("../supabase/migrations/20260714010000_release_3_1_relationship_os.sql", import.meta.url), "utf8");
+const hardening = await readFile(new URL("../supabase/migrations/20260714020000_release_3_1_relationship_security_hardening.sql", import.meta.url), "utf8");
+for (const fragment of ["create table if not exists public.relationships", "create table if not exists public.relationship_goals", "create table if not exists public.relationship_activities", "alter table public.relationships enable row level security", "relationships_member_select", "relationships_manager_all", "familyos_is_household_member", "familyos_has_household_role", "last_contact_date", "conversation_topics text[]", "activity_ideas text[]", "status = 'planned'", "status = 'completed'"]) assert.ok(sql.toLowerCase().includes(fragment.toLowerCase()), `Missing Release 3.1 migration control: ${fragment}`);
+assert.ok(!/drop\s+table|truncate\s+|delete\s+from/i.test(sql), "Release 3.1 migration must remain additive and data preserving");
+assert.ok(!/disable\s+row\s+level\s+security/i.test(sql), "Release 3.1 must preserve RLS");
+for (const table of ["relationships", "relationship_goals", "relationship_activities"]) assert.ok(hardening.includes(`revoke all on table public.${table} from anon`), `Release 3.1 must revoke anonymous ${table} privileges`);
+assert.ok(!/drop\s+table|truncate\s+|delete\s+from/i.test(hardening), "Release 3.1 security hardening must remain additive and data preserving");
+console.log("Release 3.1 additive Relationship OS schema and RLS-preservation checks passed.");

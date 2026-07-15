@@ -1,5 +1,20 @@
 # Current Sprint
 
+## Release 3.1.0 - Relationship OS
+
+Status: implementation and non-production validation complete; production closeout in progress on 2026-07-14.
+
+- [x] Add household-scoped relationship profiles with requested context and lifecycle fields.
+- [x] Add transparent health, birthdays, attention, recent/planned activity, suggestions, and goals dashboard sections.
+- [x] Add one-tap completed and planned activity logging with automatic contact-date and Timeline updates.
+- [x] Add Home Relationship Focus and weekly relationship summary without duplicate recommendations.
+- [x] Add Relationship Search and Household Timeline integration.
+- [x] Add responsive, dark-theme, keyboard, screen-reader, and large-target behavior.
+- [x] Add unit, migration, seed, and authenticated Playwright coverage.
+- [x] Complete the full 77-test authenticated desktop/mobile/tablet/dark regression matrix.
+- [x] Back up production and apply/verify both additive Relationship OS migrations with RLS and anonymous privilege hardening.
+- [ ] Publish, tag, deploy, and complete public production verification.
+
 ## Release 3.0.0 - Daily Experience Polish
 
 Status: released to production on 2026-07-14.

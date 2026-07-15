@@ -381,3 +381,10 @@ begin
 end $$;
 -- Release 2.8 Family Intelligence additions are applied after the household
 -- foundation below. See the matching migration for RLS and upgrade behavior.
+
+-- Release 3.1 Relationship OS is applied after the household foundation by
+-- 20260714010000_release_3_1_relationship_os.sql. The additive migration owns
+-- relationships, relationship_goals, relationship_activities, indexes,
+-- triggers, grants, and household RLS policies.
+-- 20260714020000_release_3_1_relationship_security_hardening.sql then
+-- revokes project-default anonymous table privileges.

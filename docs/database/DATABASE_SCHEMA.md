@@ -1,5 +1,15 @@
 # Database Schema
 
+## Release 3.1.0 Relationship OS
+
+Migration `20260714010000_release_3_1_relationship_os.sql` adds:
+
+- `relationships`: household profiles, category, optional birthday, favorites, array-based interests/prompts/activity ideas, notes, automatic contact dates, priority, and lifecycle status.
+- `relationship_goals`: relationship outcomes with optional target date and active/completed/archived lifecycle.
+- `relationship_activities`: completed or planned relationship moments with explicit type, timestamp, title, and notes.
+
+All three tables use UUID keys, household cascade ownership, authenticated user attribution, update triggers, search/list indexes, RLS, active-member reads, and owner/adult writes. Child rows must reference a relationship in the same household. Follow-up migration `20260714020000_release_3_1_relationship_security_hardening.sql` explicitly revokes anonymous privileges from all three tables. The migrations are additive and require no backfill.
+
 ## Release 2.10.1 routine lifecycle
 
 Migration `20260714000000_release_2_10_1_routine_lifecycle.sql` adds `routines.status` with `active`, `paused`, and `archived` values. Existing archived routines are backfilled to `archived`; completion history, assignment, schedule, RLS, and household scoping are unchanged. The existing `archived` boolean remains for backward compatibility.

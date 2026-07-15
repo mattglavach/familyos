@@ -1,8 +1,8 @@
 # FamilyOS
 
-Current version: 3.0.0
+Current version: 3.1.0
 
-FamilyOS is a mobile-first household operating system centered on one question: “What should I do next?” Home, Family Brief, Habits and Routines, Calendar, Tasks, and global Quick Add form the mature daily operating loop.
+FamilyOS is a mobile-first household and relationship operating system centered on two questions: “What should I do next?” and “Who should I connect with?” Home, Family Brief, Relationships, Habits and Routines, Calendar, Tasks, and global Quick Add form the daily operating loop.
 
 FamilyOS is a mobile-first React app for household operations: calendar overview, tasks, pool care, college planning, and finance snapshots. The current Phase 1 app is a Create React App frontend with Vercel serverless API support and Supabase REST persistence.
 

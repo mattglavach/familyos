@@ -26,7 +26,7 @@ test("authenticated FamilyOS major-module smoke", async ({ page }, testInfo) => 
 
   await page.keyboard.press("Control+K");
   await expect(page.getByText("Search Family OS", { exact: true })).toBeVisible();
-  await page.getByPlaceholder("Search tasks, pool, lists, meals...").fill("annual physical");
+  await page.getByPlaceholder("Search people, interests, tasks, lists...").fill("annual physical");
   await expect(page.getByText("Schedule annual physical", { exact: true }).first()).toBeVisible();
   await page.getByRole("button", { name: "Close" }).last().click();
 
@@ -90,6 +90,8 @@ test("authenticated FamilyOS major-module smoke", async ({ page }, testInfo) => 
   await openMoreModule(page, "Household Timeline");
   await expect(page.getByRole("main", { name: "Household Timeline" })).toBeVisible();
   await expect(page.getByText(/Shopping is intentionally excluded/)).toBeVisible();
+  await openMoreModule(page, "Relationships");
+  await expect(page.getByRole("main", { name: "Relationships dashboard" })).toBeVisible();
   await navigateModule(page,"More");
   await expect(page.getByRole("button", { name: /^Shopping/ })).toHaveCount(0);
   await openMoreModule(page, "AI Workspace");

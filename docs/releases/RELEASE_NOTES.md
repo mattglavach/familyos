@@ -1,5 +1,13 @@
 # Release Notes
 
+## Release 3.1.0 - Relationship OS
+
+FamilyOS 3.1.0 adds a lightweight Relationships workspace for important people, meaningful context, editable conversation and activity ideas, birthdays, relationship goals, quick activity logging, planned time together, and clear lifecycle status. Health remains deterministic: High, Medium, and Low priorities use visible 7-, 14-, and 30-day contact guides, supported by recent activities and completed goals. No AI scoring is used.
+
+Home now includes a compact Relationship Focus with no more than three deduplicated recommendations plus weekly wins, reach-outs, birthdays, and one-on-one suggestions. Relationship activity appears once in Household Timeline, and global search covers names, categories, interests, conversation topics, activities, and notes.
+
+The additive migrations create three household-scoped, RLS-protected tables without changing existing records and explicitly revoke anonymous table privileges. Local validation passed with 37 unit suites and 148 tests plus all 77 authenticated Playwright tests across desktop, mobile, tablet, and dark mode. Production backup, 24-version migration alignment, RLS inspection, and anonymous-access hardening verification passed before frontend publication.
+
 ## Release 3.0.0 - Daily Experience Polish
 
 FamilyOS 3.0.0 reduces unnecessary clicks and repeated guidance in the daily operating loop. Family Brief no longer repeats the generic "Complete, delegate, or reschedule" instruction for overdue work. Checklist Habits and Routines now expand directly from their summary and expose only the associated completion checklist; editing remains a distinct action so expanding never opens the details screen.

@@ -1,5 +1,13 @@
 # Architecture Decisions
 
+## 2026-07-14 - Relationship OS remains module-owned and deterministically derived
+
+Decision: Relationships owns three additive household-scoped stores: profiles, goals, and activities. Prompts and reusable activity ideas are editable profile arrays. Planned and completed time share the activity lifecycle. Home, Search, and Timeline consume these records through existing handoff contracts and do not become alternate stores.
+
+Health uses visible priority contact guides of 7, 14, or 30 days plus recent activity and completed-goal evidence. AI scoring, autonomous outreach, and task conversion are excluded. A relationship activity may also emit a household audit event, but Timeline deduplicates that audit against the owning activity record.
+
+Why: this provides durable relationship context and cross-app awareness while preserving module ownership, explainability, household isolation, and the distinction between human connection and assigned work.
+
 ## 2026-07-13 - Unified context remains deterministic and module-owned
 
 Decision: derive one typed, evidence-backed household context and bounded Timeline from module-owned records; use an additive activity log only for transitions that source tables cannot reconstruct. Use one transparent recommendation scoring model for Family Brief and Notifications. Keep AI optional, advisory, and outside persistence.

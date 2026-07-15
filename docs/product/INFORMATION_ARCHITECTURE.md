@@ -36,6 +36,7 @@ Quick Add is a current primary action because capture must be fast and available
 More contains important modules that do not need constant one-tap access for every daily session or are not yet mature enough for primary navigation.
 
 Inside More:
+- Relationships
 - Household
 - Home
 - Finance

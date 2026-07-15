@@ -1,5 +1,15 @@
 // - SEED DATA -
 export const SEED={
+  relationships:[
+    {id:"relationship-aubrey",name:"Aubrey",category:"Child",birthday:"2010-07-20",favorite_things:"Ice cream and bookstores",interests:["Books","Friends","College"],conversation_topics:["Friends","School","College","Driving","Future goals","Faith","Stress"],activity_ideas:["Ice Cream","Walk","Shopping","Library"],notes:"",last_conversation:"2026-07-12",last_one_on_one_activity:"2026-07-05",last_contact_date:"2026-07-12",priority:"High",status:"Active",created_at:"2026-07-01T12:00:00Z",updated_at:"2026-07-12T12:00:00Z"},
+    {id:"relationship-mom",name:"Mom",category:"Parent",birthday:"1960-09-14",favorite_things:"Coffee and family photos",interests:["Family","Travel"],conversation_topics:["Family","Health","Vacations"],activity_ideas:["Coffee","Lunch","Phone Call"],notes:"",last_conversation:"2026-07-03",last_one_on_one_activity:"2026-06-20",last_contact_date:"2026-07-03",priority:"Medium",status:"Active",created_at:"2026-07-01T12:00:00Z",updated_at:"2026-07-03T12:00:00Z"},
+  ],
+  relationship_goals:[
+    {id:"relationship-goal-1",relationship_id:"relationship-aubrey",title:"Plan one one-on-one activity each month",target_date:"2026-07-31",status:"active",completed_at:null,created_at:"2026-07-01T12:00:00Z",updated_at:"2026-07-01T12:00:00Z"},
+  ],
+  relationship_activities:[
+    {id:"relationship-activity-1",relationship_id:"relationship-aubrey",activity_type:"One-on-One",title:"Ice cream with Aubrey",notes:"",status:"completed",occurred_at:"2026-07-05T18:00:00Z",planned_for:null,created_at:"2026-07-05T18:00:00Z",updated_at:"2026-07-05T18:00:00Z"},
+  ],
   pool_readings:[
     {id:"7",date:"2026-06-17",logged_at:"2026-06-17T18:30:00Z",test_source:"Taylor Kit",ph:8.0,free_chlorine:5.5,cc:0,salt:3350,cya:60,alkalinity:90,calcium_hardness:null,water_temp:86,swg_setting:54,filter_pressure:null,pump_hours:8,recent_weather_notes:"Hot sunny week",recent_heavy_usage:false,notes:"K-2006: 11 drops FC. Acid added 2 days prior. TA 90 ppm."},
     {id:"6",date:"2026-06-15",logged_at:"2026-06-15T17:00:00Z",ph:7.8,free_chlorine:3.0,cc:0,salt:3450,cya:60,alkalinity:null,calcium_hardness:null,water_temp:null,swg_setting:null,filter_pressure:null,pump_hours:null,notes:""},

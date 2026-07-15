@@ -12,5 +12,6 @@ test("Release 2.5 representative authenticated accessibility audit",async({page}
  await openMoreModule(page,"Routines"); await audit(page,"Routines"); await page.getByRole("button",{name:/Templates/}).click(); await audit(page,"Routine Templates");
  await page.keyboard.press("Control+K"); await audit(page,"Search"); await page.getByRole("button",{name:"Close"}).last().click();
  await openMoreModule(page,"AI Workspace"); await expect(page.getByText("Brief Scheduling")).toBeVisible(); await audit(page,"Brief configuration");
+ await openMoreModule(page,"Relationships"); await audit(page,"Relationships");
  await page.keyboard.press("Tab"); await expect(page.locator(":focus")).toBeVisible();
 });
