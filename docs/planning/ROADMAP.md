@@ -1,5 +1,9 @@
 # Roadmap
 
+## Release 3.0.0 - Daily Experience Polish
+
+Release 3.0.0 reduces friction in the highest-frequency daily surfaces. Family Brief removes a redundant task instruction, Habits and Routines use direct inline checklist completion with a separate editing path, mobile Habit editing keeps Save and Cancel above safe areas, and Pool status avoids repeating detailed dosage guidance. The release preserves module ownership, completion history, detailed Pool recommendations, schemas, permissions, and integrations.
+
 ## Release 2.10.1 - Usability Stabilization
 
 Release 2.10.1 keeps the current priority on core-experience maturity. It simplifies Home and Family Brief, groups the next three Calendar events by day, improves Habits and Routines completion and lifecycle visibility, removes duplicated Pool guidance, and clarifies first use of AI Workspace. No unrelated module expansion is included.

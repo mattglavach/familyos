@@ -46,23 +46,35 @@ test("authenticated FamilyOS major-module smoke", async ({ page }, testInfo) => 
   await expect(page.getByText("FamilyOS", { exact: false }).first()).toBeVisible();
 
   await navigateModule(page,"Habits");
-  await expect(page.getByText("Morning checklist",{exact:true})).toBeVisible();
-  const checklistSummary=page.getByText("Morning checklist",{exact:true}).locator("..");
+  const checklistSummary=page.getByRole("button",{name:"Expand Morning checklist"});
   await expect(checklistSummary).toBeVisible();
-  await page.getByRole("button",{name:"Expand Morning checklist"}).click();
+  await checklistSummary.click();
   await expect(page.getByRole("checkbox",{name:"Take vitamins"})).toBeVisible();
   const vitamins=page.getByRole("checkbox",{name:"Take vitamins"}),before=await vitamins.getAttribute("aria-checked");
   await vitamins.click();
   await expect(vitamins).toHaveAttribute("aria-checked",before==="true"?"false":"true");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("button",{name:/Add action/})).toHaveCount(0);
+  await page.getByRole("button",{name:"Edit Morning checklist"}).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  const cancelHabitEdit=page.getByRole("button",{name:"Cancel",exact:true}),saveHabitEdit=page.getByRole("button",{name:"Save details",exact:true});
+  await expect(cancelHabitEdit).toBeVisible();
+  await expect(saveHabitEdit).toBeVisible();
+  const footerIsAccessible=await page.evaluate(() => {
+    const cancel=[...document.querySelectorAll("button")].find(button=>button.textContent.trim()==="Cancel"&&button.closest('[role="dialog"]'));
+    const save=[...document.querySelectorAll("button")].find(button=>button.textContent.trim()==="Save details"&&button.closest('[role="dialog"]'));
+    const viewportBottom=window.innerHeight;
+    return [cancel,save].every(button=>{const box=button?.getBoundingClientRect();if(!box||box.top<0||box.bottom>viewportBottom)return false;const top=document.elementFromPoint(box.left+box.width/2,box.top+box.height/2);return top===button||button.contains(top);});
+  });
+  expect(footerIsAccessible).toBe(true);
   await page.getByRole("button",{name:/Add action/}).first().click();
   await page.getByLabel("New action for Morning checklist").fill(`Smoke ${testInfo.project.name}`);
-  await page.getByRole("main").getByRole("button",{name:"Add",exact:true}).click();
+  await page.getByRole("dialog").getByRole("button",{name:"Add",exact:true}).click();
   await expect(page.getByText(`Smoke ${testInfo.project.name}`,{exact:true}).first()).toBeVisible();
-  await checklistSummary.click();
-  await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByRole("button",{name:"Close"}).click();
-  await expect(page.getByText("Evening routine",{exact:true})).toBeVisible();
-  await page.getByRole("button",{name:"Expand Evening routine"}).click();
+  const eveningRoutine=page.getByRole("button",{name:"Expand Evening routine"});
+  await expect(eveningRoutine).toBeVisible();
+  await eveningRoutine.click();
   await expect(page.getByRole("checkbox",{name:"Prepare coffee"})).toBeVisible();
 
   await openMoreModule(page, "Life Lists");

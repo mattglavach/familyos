@@ -1,5 +1,7 @@
 # Pool
 
+Release 3.0.0 keeps the Pool Status card to the measured Attention indicator and moves all dosage or treatment guidance to Recommended Next Step. Detailed recommendations, explanations, safety guidance, and Log This Action remain unchanged.
+
 Release 2.10.1 keeps Needs Attention focused on the measured condition and Recommended Next Step focused on the action. Affected low-risk Pool actions reuse the shared accessible icon-action primitive; destructive history actions remain confirmation-protected.
 
 Release 2.1.1 stabilizes partial Pool Test saves. A valid date and at least one chemistry or water measurement are required; every other value is optional, numeric zero is valid, and blank optional values normalize to `null`. Invalid fields are identified directly, failed writes retain the form, duplicate submissions are blocked, successful writes refresh Pool data immediately, and Pool entry forms use the shared compact responsive grid pattern.

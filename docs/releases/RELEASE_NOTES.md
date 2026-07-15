@@ -1,5 +1,15 @@
 # Release Notes
 
+## Release 3.0.0 - Daily Experience Polish
+
+FamilyOS 3.0.0 reduces unnecessary clicks and repeated guidance in the daily operating loop. Family Brief no longer repeats the generic "Complete, delegate, or reschedule" instruction for overdue work. Checklist Habits and Routines now expand directly from their summary and expose only the associated completion checklist; editing remains a distinct action so expanding never opens the details screen.
+
+Habit editing now uses a sticky mobile action footer with safe-area padding so Save and Cancel remain visible and usable across supported mobile sizes. Pool Attention shows only the status indicator, while the complete dosage, application, retest, safety, and logging workflow remains in Recommended Next Step.
+
+This is an application and documentation release only. There are no database, migration, RLS, authentication, permission, dependency, provider, or integration changes.
+
+Local release validation passed: lint, declaration type checking, 36 unit suites and 141 tests, Release 2.9 through 2.10.1 database preservation checks, 18 seed-safety tests, production build, bundle-safety scan, and 73 authenticated Playwright tests across desktop, 390px mobile, tablet, and dark mode. Browser coverage confirms inline Habit and Routine completion, no expansion-to-edit navigation, fully visible and clickable Habit edit Save/Cancel actions, Pool workflows, accessibility, persistence, responsive containment, and existing major-module regression coverage.
+
 ## Release 2.10.1 - Usability Stabilization
 
 FamilyOS 2.10.1 reduces visual and instructional noise across the core daily loop. Home actions are compact and accessible, Family Brief shows only information needed to act, Upcoming Calendar is grouped by day, routines expand inline, lifecycle state is explicit and filterable, Pool uses the shared icon-action pattern where appropriate, and AI Workspace explains its safe proposal-and-approval model on first use.

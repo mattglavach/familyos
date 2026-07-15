@@ -1,6 +1,6 @@
 # FamilyOS
 
-Current version: 2.10.1
+Current version: 3.0.0
 
 FamilyOS is a mobile-first household operating system centered on one question: “What should I do next?” Home, Family Brief, Habits and Routines, Calendar, Tasks, and global Quick Add form the mature daily operating loop.
 

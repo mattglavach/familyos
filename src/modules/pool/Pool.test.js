@@ -17,6 +17,7 @@ jest.mock("../../hooks/useHouseholdCollaboration", () => ({
 }));
 
 const { Pool, buildRecommendationSummary } = require("./Pool");
+const { getPoolHealth } = require("./actionEngine");
 const { useHousehold } = require("../../context/HouseholdContext");
 const { useTable } = require("../../hooks/useTable");
 const { roleCanManage } = require("../../hooks/useHouseholdCollaboration");
@@ -155,4 +156,8 @@ describe("Pool Test persistence UI", () => {
 
 test("recommendation summary never invents a missing quantity",()=>{
   expect(buildRecommendationSummary({action:"Retest CYA before adding stabilizer.",amount:"",retest:"Repeat CYA with a reliable test."})).toBe("Retest CYA before adding stabilizer. Repeat CYA with a reliable test.");
+});
+
+test("attention status does not duplicate the detailed Pool recommendation",()=>{
+  expect(getPoolHealth({free_chlorine:1},[{priority:"high",action:"Add 76 oz 10% liquid chlorine"}])).toMatchObject({status:"Attention",summary:""});
 });

@@ -2,7 +2,7 @@
 
 ## Current Release
 
-FamilyOS 2.10.1 Usability Stabilization is the current production release. It stays focused on Home, Family Brief, Calendar scanability, Habits and Routines workflows, Pool clarity, AI Workspace onboarding, accessibility, and responsive quality. Microsoft To Do synchronization is deferred to Release 2.11.0, and no unrelated module expansion is included. Production migration history is aligned through all 22 migrations, the final Vercel deployment is READY at `familyos-pi-seven.vercel.app`, and desktop/mobile unauthenticated, weather, console, route, bundle-secret, schema, and migration-alignment checks passed.
+FamilyOS 3.0.0 Daily Experience Polish is the current validated local release candidate. It removes redundant Family Brief and Pool summary guidance, makes checklist Habit and Routine expansion a direct inline completion workflow, preserves editing through a separate action, and keeps Habit edit actions accessible above mobile safe areas. The combined local gate, 141 unit tests, production build and bundle scan, and 73 authenticated desktop, 390px mobile, tablet, and dark-mode browser tests pass. The release does not change schemas, migrations, authentication, permissions, dependencies, calculations, or integration contracts. FamilyOS 2.10.1 remains the current production release until Release 3.0.0 publication completes.
 
 ## Release 2.7.0 local release candidate
 

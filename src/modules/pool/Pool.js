@@ -592,7 +592,7 @@ export function Pool({ initialView }) {
           <div>
             <div style={{ fontSize: 12, color: COLORS.slate, fontWeight: 800, textTransform: "uppercase" }}>Pool Status</div>
             <div style={{ fontSize: 22, fontWeight: 900, color: health.color, marginTop: 2 }}>{health.status}</div>
-            <div style={{ fontSize: 13, color: COLORS.slateLight, lineHeight: 1.45, marginTop: 4 }}>{health.summary}</div>
+            {health.summary&&<div style={{ fontSize: 13, color: COLORS.slateLight, lineHeight: 1.45, marginTop: 4 }}>{health.summary}</div>}
           </div>
           <Droplets size={26} color={health.color} aria-hidden="true" />
         </div>

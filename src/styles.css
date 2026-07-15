@@ -2,6 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+section[aria-labelledby="habit-details-title"] {
+  padding-bottom: max(8rem, calc(7rem + env(safe-area-inset-bottom))) !important;
+}
+
+section[aria-labelledby="habit-details-title"] > div:last-child {
+  position: absolute !important;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+}
+
+@media (min-width: 640px) {
+  section[aria-labelledby="habit-details-title"] {
+    padding-bottom: 5.5rem !important;
+  }
+}
+
 :root {
   --background: 222 47% 11%;
   --foreground: 210 17% 97%;

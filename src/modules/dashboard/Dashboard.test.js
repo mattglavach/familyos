@@ -1,4 +1,4 @@
-import { groupUpcomingEvents, upcomingEventDateLabel, upcomingEventGroupLabel } from "./Dashboard";
+import { briefRecommendationAction, groupUpcomingEvents, upcomingEventDateLabel, upcomingEventGroupLabel } from "./Dashboard";
 
 test("upcoming events always include weekday and calendar date",()=>{
   expect(upcomingEventDateLabel({start:{dateTime:"2026-07-17T18:00:00-04:00"}},"2026-07-12")).toBe("Fri, Jul 17");
@@ -12,4 +12,9 @@ test("groups a maximum of three upcoming events without empty groups",()=>{
 
 test("tomorrow label retains weekday and date",()=>{
   expect(upcomingEventDateLabel({start:{date:"2026-07-13"}},"2026-07-12")).toBe("Tomorrow · Mon, Jul 13");
+});
+
+test("removes the redundant overdue-task instruction from Family Brief cards",()=>{
+  expect(briefRecommendationAction({recommendedAction:"Complete, delegate, or reschedule this overdue task."})).toBe("");
+  expect(briefRecommendationAction({recommendedAction:"Due today"})).toBe("Due today");
 });

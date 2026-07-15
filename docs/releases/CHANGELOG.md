@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.0.0 - 2026-07-14
+
+- Removed the redundant overdue-task instruction from Family Brief recommendation cards.
+- Made checklist Habit and Routine summaries expand inline without opening edit details.
+- Limited expanded content to directly completable checklist items and retained editing as a separate explicit action.
+- Added a sticky, safe-area-aware Habit edit footer so Save and Cancel remain accessible on mobile.
+- Removed duplicated dosage guidance from Pool Attention while retaining the full Recommended Next Step workflow.
+- Preserved schemas, migrations, dependencies, authentication, permissions, completion history, Pool calculations, and integrations.
+
 ## 2.10.1 - 2026-07-14
 
 - Simplified the Home greeting and replaced Personalize and AI Brief text actions with shared accessible icon controls.

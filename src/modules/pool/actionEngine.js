@@ -269,7 +269,7 @@ export function getPoolHealth(reading, recommendations = []) {
   const critical = recommendations.some(item => item.priority === "critical");
   const attention = recommendations.some(item => item.priority === "high" || item.priority === "medium");
   if (critical) return { status: "Critical", color: COLORS.red, summary: recommendations.find(item => item.priority === "critical")?.action || "Pool needs immediate attention." };
-  if (attention) return { status: "Attention", color: COLORS.amber, summary: recommendations[0]?.action || "Pool needs a small adjustment." };
+  if (attention) return { status: "Attention", color: COLORS.amber, summary: "" };
   return { status: "Good", color: COLORS.green, summary: "Pool looks good. Keep normal testing and maintenance on schedule." };
 }
 

@@ -1,5 +1,7 @@
 # Habits
 
+Release 3.0.0 makes each checklist Habit and Routine summary a true inline disclosure. Expanding stays on the Habits page and shows only associated checklist items with direct completion controls; editing remains available through a separate labeled action. The edit dialog uses a sticky, safe-area-aware action footer so Save and Cancel remain fully visible on supported mobile viewports.
+
 Release 2.10.1 makes Active the default lifecycle view, adds Paused, Archived, and All filters, and requires confirmation before archival. Paused and archived records keep history but do not create daily work or Home recommendations. Routine cards remain collapsed by default and expose keyboard-accessible inline step completion through a disclosure control. In-progress work sorts ahead of not-started and completed work.
 
 ## Release 2.10.0 core experience maturity
