@@ -8,6 +8,8 @@ Home now includes a compact Relationship Focus with no more than three deduplica
 
 The additive migrations create three household-scoped, RLS-protected tables without changing existing records and explicitly revoke anonymous table privileges. Local validation passed with 37 unit suites and 148 tests plus all 77 authenticated Playwright tests across desktop, mobile, tablet, and dark mode. Production backup, 24-version migration alignment, RLS inspection, and anonymous-access hardening verification passed before frontend publication.
 
+Production release: commit `96153c3` is deployed through `dpl_9LudwwSv6q4j4ovqvTY71YP5ZuFQ`, READY at `familyos-pi-seven.vercel.app` and immutable deployment `familyos-10rg10n3l-glavach.vercel.app`. Desktop/mobile sign-in, weather, console, and bundle-secret production checks passed. Observability shows only the existing non-blocking Node `url.parse()` deprecation warning.
+
 ## Release 3.0.0 - Daily Experience Polish
 
 FamilyOS 3.0.0 reduces unnecessary clicks and repeated guidance in the daily operating loop. Family Brief no longer repeats the generic "Complete, delegate, or reschedule" instruction for overdue work. Checklist Habits and Routines now expand directly from their summary and expose only the associated completion checklist; editing remains a distinct action so expanding never opens the details screen.

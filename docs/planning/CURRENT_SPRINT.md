@@ -2,7 +2,7 @@
 
 ## Release 3.1.0 - Relationship OS
 
-Status: implementation and non-production validation complete; production closeout in progress on 2026-07-14.
+Status: released to production on 2026-07-14.
 
 - [x] Add household-scoped relationship profiles with requested context and lifecycle fields.
 - [x] Add transparent health, birthdays, attention, recent/planned activity, suggestions, and goals dashboard sections.
@@ -13,7 +13,8 @@ Status: implementation and non-production validation complete; production closeo
 - [x] Add unit, migration, seed, and authenticated Playwright coverage.
 - [x] Complete the full 77-test authenticated desktop/mobile/tablet/dark regression matrix.
 - [x] Back up production and apply/verify both additive Relationship OS migrations with RLS and anonymous privilege hardening.
-- [ ] Publish, tag, deploy, and complete public production verification.
+- [x] Publish, deploy, and complete public production verification.
+- [ ] Create and verify the final `v3.1.0` release tag after documentation closeout.
 
 ## Release 3.0.0 - Daily Experience Polish
 

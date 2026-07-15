@@ -28,3 +28,7 @@ Application rollback can redeploy v3.0.0 while retaining the additive tables. Da
 Local release gates passed: lint; declaration type checking; 37 unit suites and 148 tests; Release 2.9 through 3.1 migration safety assertions; 18 seed-safety tests; production build; bundle-safety scanning; and all 77 authenticated Playwright tests across desktop, 390px mobile, tablet, and dark mode. The browser flow covers relationship create/edit/archive, quick logging, health refresh, Home integration, Timeline deduplication, global search, responsive containment, and critical WCAG A/AA checks.
 
 The dedicated non-production project passed all 24 migrations, authenticated Relationship OS CRUD, and explicit anonymous-access denial. Production schema and data backups were captured before applying both Release 3.1 migrations. Production then passed 24-version migration alignment, table/index/trigger/RLS policy inspection, and explicit anonymous-privilege revocation verification.
+
+## Production
+
+Commit `96153c3` was published from `main`. Vercel deployment `dpl_9LudwwSv6q4j4ovqvTY71YP5ZuFQ` reached READY and serves the production aliases from immutable deployment `familyos-10rg10n3l-glavach.vercel.app`. Desktop and 390px mobile sign-in, console monitoring, weather, and bundle-secret checks passed against the production alias and immutable deployment. Runtime observability shows only the existing non-blocking Node `url.parse()` deprecation warning on Calendar and Weather routes.

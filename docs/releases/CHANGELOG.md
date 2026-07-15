@@ -9,6 +9,7 @@
 - Added an additive, household-scoped, RLS-protected migration for relationship profiles, goals, and activities.
 - Explicitly revoked anonymous table privileges while preserving authenticated, household-isolated access.
 - Added unit, migration-safety, seeded browser, responsive, dark-mode, Timeline, search, and accessibility coverage.
+- Backed up and migrated production, published `main`, deployed READY on Vercel, and completed desktop/mobile public verification.
 
 ## 3.0.0 - 2026-07-14
 
