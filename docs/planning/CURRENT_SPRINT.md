@@ -2,7 +2,7 @@
 
 ## Release 3.2.0 - AI Planning and Advisory
 
-Status: implemented and in release validation on 2026-07-14.
+Status: released to production on 2026-07-14.
 
 - [x] Add provider-neutral structured completion, timeout, normalized errors, usage metadata, and deterministic mock/fallback behavior.
 - [x] Authenticate server advisory requests, enforce active-household membership, minimize selected context, redact identifiers, and treat household text as untrusted.
@@ -13,7 +13,9 @@ Status: implemented and in release validation on 2026-07-14.
 - [x] Add recommendation feedback, reminder suppression, cross-surface deduplication, and reset controls.
 - [x] Add additive household/user-scoped AI preference, recommendation, proposed-action audit, and feedback tables with RLS and anonymous denial.
 - [x] Add unit, migration-security, accessibility, responsive, dark-mode, and Playwright release coverage.
-- [ ] Capture production backups, apply the migration, deploy, run production-safe verification, tag, and synchronize Git.
+- [x] Capture production schema/data backups, apply and verify the migration, deploy, and run production-safe verification.
+- [x] Complete 157 unit tests, 18 seed-safety tests, and 81 authenticated Playwright tests across desktop, 390px mobile, tablet, and dark mode.
+- [x] Verify one authenticated production advisory request, privacy-safe observability, public fallback boundaries, and bundle-secret safety.
 
 ## Release 3.1.0 - Relationship OS
 

@@ -8,6 +8,10 @@ The server verifies the authenticated user and active household membership befor
 
 The additive migration creates `ai_preferences`, `ai_recommendations`, `ai_proposed_actions`, and `ai_feedback`. All are household-scoped and user-attributed, use RLS, allow owner/adult writes, and explicitly deny anonymous privileges. Full prompts, context payloads, attachments, and conversation history are not stored.
 
+Release validation passed: clean lint and declaration checks; 40 suites and 157 unit tests; Release 2.9 through 3.2 migration/security assertions; 18 seed-safety tests; production build and bundle scan; and 81 authenticated Playwright tests across desktop, 390px mobile, tablet, dark mode, accessibility, persistence, fallback, and proposed-action review. Production schema/data backups were captured before applying the additive migration. All 25 migrations are aligned and the post-migration schema dump confirms the four tables, indexes, RLS policies, authenticated grants, and no anonymous grants.
+
+Production application deployment `dpl_YXNjcd2uLmvQ17aKLVSXCmBnZwuC` is READY at `familyos-pi-seven.vercel.app` and immutable deployment `familyos-dds5nnk7e-glavach.vercel.app`. Desktop/mobile sign-in, weather, console, bundle-secret, unauthenticated advisory rejection, and one authenticated read-only Anthropic advisory request passed. Advisory logs contain request metadata, latency, and aggregate token usage only. The existing non-blocking Node `url.parse()` deprecation warning remains on Weather.
+
 ## Release 3.1.0 - Relationship OS
 
 FamilyOS 3.1.0 adds a lightweight Relationships workspace for important people, meaningful context, editable conversation and activity ideas, birthdays, relationship goals, quick activity logging, planned time together, and clear lifecycle status. Health remains deterministic: High, Medium, and Low priorities use visible 7-, 14-, and 30-day contact guides, supported by recent activities and completed goals. No AI scoring is used.
