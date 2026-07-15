@@ -8,7 +8,7 @@ It provides specialized environment and deployment detail under `docs/governance
 - Used for development, lint/build validation, and browser smoke tests.
 - `.env.local` is untracked.
 - Local Supabase or disposable databases should be used for migration/RLS validation.
-- `pnpm run test:db-bootstrap` rebuilds only the local Supabase database from the restored legacy baseline and every dated migration. It must pass before bootstrapping an empty hosted project.
+- `pnpm run test:db-bootstrap` is now the offline static reconciliation gate. It validates the manifest, baseline coverage, dependency order, history-only treatment, household migration replacement, and Release 3.2 SQL without contacting or resetting Supabase.
 - Do not connect local validation scripts to production unless production validation is required by the requested outcome and the target is verified.
 - Required browser config: `REACT_APP_SUPABASE_URL` and `REACT_APP_SUPABASE_ANON_KEY`.
 - Authenticated Playwright config belongs in `.env.test.local`; see `docs/setup/playwright-authentication.md`. The browser and seed must target the same explicitly approved non-production project.
@@ -22,7 +22,7 @@ It provides specialized environment and deployment detail under `docs/governance
 ## Staging
 - Used for production-like validation.
 - Should mirror production schema and auth configuration as closely as possible without using production data.
-- A brand-new project requires `20260626000000_baseline_schema.sql` before the dated upgrade chain. An existing legacy project with the preflight tables begins at `20260627000000_household_foundation.sql`. Demo data is added only afterward with the guarded `pnpm run seed:demo` workflow.
+- A brand-new project uses the manifest-driven process in `docs/setup/supabase-test-project-initialization.md`: apply `supabase/schema.sql`, skip the redundant `20260626000000` baseline SQL and superseded local-only `20260627000000` household draft, then execute the 23 approved migrations through Release 3.2.0. The two skipped versions are history-only ledger entries. Demo data is added only afterward with the guarded `pnpm run seed:demo` workflow.
 - Required for risky migrations, auth changes, RLS changes, OAuth changes, and integration changes when local validation is insufficient.
 - Must include the full migration chain, including the Release 0.9 household invitation migration, before invite/member smoke testing.
 - Should include Calendar server secrets when validating Google OAuth or server-side event sync.

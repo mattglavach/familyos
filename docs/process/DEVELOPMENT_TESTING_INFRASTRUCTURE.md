@@ -11,7 +11,7 @@ This is the permanent operating guide for FamilyOS demo data and automated brows
 
 ## Local Environment
 
-Put test secrets in ignored `.env.test.local`. `.env.local` may contain normal local-development settings, but `.env.test.local` overrides them for Playwright and seeding. Never commit populated values. See `docs/setup/playwright-authentication.md` for complete setup and verification SQL.
+Put test secrets in ignored `.env.test.local`. `.env.local` may contain normal local-development settings, but `.env.test.local` overrides them for Playwright and seeding. Never commit populated values. See `docs/setup/supabase-test-project-initialization.md` for blank-project schema initialization and `docs/setup/playwright-authentication.md` for browser authentication.
 
 ```text
 FAMILYOS_ENV=test
@@ -28,6 +28,8 @@ DEMO_SEED_ALLOW_REMOTE_TEST=true
 DEMO_SEED_EXPECTED_PROJECT_REF=<exact-non-production-project-ref>
 # Or for local Supabase: DEMO_SEED_EXPECTED_URL=http://127.0.0.1:54321
 REACT_APP_ENABLE_DEMO_AUTO_LOGIN=false
+TEST_SUPABASE_PROJECT_REF=<exact-20-character-test-project-ref>
+TEST_SUPABASE_DB_URL=<test-project-postgresql-connection-url>
 ```
 
 `SUPABASE_URL` may be set server-side; otherwise the seed reads `REACT_APP_SUPABASE_URL`. Both must be API origins, never Dashboard URLs. Seeding requires `FAMILYOS_ENV=test` plus an exact `DEMO_SEED_EXPECTED_PROJECT_REF` or `DEMO_SEED_EXPECTED_URL` match. Remote targets additionally require `DEMO_SEED_ALLOW_REMOTE_TEST=true`. Authorization alone never permits an arbitrary project, and target verification completes before the Supabase admin client is created.
@@ -40,7 +42,9 @@ The browser demo password is available only to the local development bundle. Web
 cd "C:\Users\Matt Glavach\Documents\Codex\familyos"
 pnpm run seed:demo
 pnpm run test:seed-guards
-pnpm run test:db-bootstrap
+pnpm run test:db-reconciliation
+pnpm run test:db-init-safety
+pnpm run db:test:init -- -ConfirmTestProject -ExpectedProjectRef <exact-test-project-ref> -DryRun
 pnpm exec playwright install chromium
 pnpm run test:smoke
 pnpm run test:regression

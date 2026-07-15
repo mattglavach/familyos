@@ -1,86 +1,85 @@
-import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import fs from "node:fs";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 
 const root = process.cwd();
-const source = path.join(root, "supabase");
-const workspace = path.join(tmpdir(), "familyos-bootstrap-validation");
-const migrations = path.join(workspace, "supabase", "migrations");
+const manifestPath = path.join(root, "supabase", "approved-migrations.json");
+const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 
-await rm(workspace, { recursive: true, force: true });
-await mkdir(migrations, { recursive: true });
-await cp(path.join(source, "config.toml"), path.join(workspace, "supabase", "config.toml"));
+assert.equal(manifest.expectedLatestRelease, "3.2.0");
+assert.equal(manifest.expectedMigrationCount, 25);
+assert.equal(manifest.expectedExecutionMigrationCount, 23);
+assert.equal(manifest.expectedHistoryOnlyCount, 2);
+assert.equal(manifest.approvedMigrations.length, 23);
+assert.equal(manifest.historyOnlyMigrations.length, 2);
+assert.equal(manifest.approvedMigrations.at(-1).file, manifest.expectedLatestMigrationFile);
+assert.equal(manifest.approvedMigrations.at(-1).version, "20260714030000");
 
-const names = (await import("node:fs/promises"))
-  .readdir(path.join(source, "migrations"));
-const ordered = (await names).filter((name) => name.endsWith(".sql")).sort();
+const baselineFile = path.join(root, manifest.baseline.file);
+assert.ok(fs.existsSync(baselineFile), "schema.sql baseline is missing");
+const baselineSql = fs.readFileSync(baselineFile, "utf8");
+const historicalBaselineSql = fs.readFileSync(path.join(root, manifest.baseline.historicalFile), "utf8");
+const tablePattern = /create\s+table\s+if\s+not\s+exists\s+public\.([a-z_][a-z0-9_]*)/gi;
+const tables = (sql) => new Set([...sql.matchAll(tablePattern)].map((match) => match[1]));
+const currentTables = tables(baselineSql);
+for (const table of tables(historicalBaselineSql)) assert.ok(currentTables.has(table), `schema.sql is missing historical table ${table}`);
+assert.match(baselineSql, /create extension if not exists "pgcrypto"/i);
+assert.match(baselineSql, /grant select, insert, update, delete on public\.%I to authenticated/i);
 
-for (const [index, name] of ordered.entries()) {
-  const date = name.slice(0, 8);
-  const suffix = name.slice(9);
-  const version = `${date}${String(index).padStart(6, "0")}`;
-  await cp(path.join(source, "migrations", name), path.join(migrations, `${version}_${suffix}`));
+const executableFiles = manifest.approvedMigrations.map(({ file }) => file);
+const historyOnlyFiles = manifest.historyOnlyMigrations.map(({ file }) => file);
+assert.ok(!executableFiles.includes("supabase/migrations/20260626000000_baseline_schema.sql"));
+assert.ok(!executableFiles.includes("supabase/migrations/20260627000000_household_foundation.sql"));
+assert.deepEqual(historyOnlyFiles, [
+  "supabase/migrations/20260626000000_baseline_schema.sql",
+  "supabase/migrations/20260627000000_household_foundation.sql",
+]);
+
+const allMigrations = [...manifest.approvedMigrations, ...manifest.historyOnlyMigrations];
+assert.equal(new Set(allMigrations.map(({ version }) => version)).size, 25);
+assert.equal(new Set(allMigrations.map(({ file }) => file)).size, 25);
+assert.deepEqual(
+  manifest.approvedMigrations.map(({ version }) => version),
+  manifest.approvedMigrations.map(({ version }) => version).toSorted(),
+);
+
+const hashes = new Set();
+for (const migration of manifest.approvedMigrations) {
+  const file = path.join(root, migration.file);
+  assert.ok(fs.existsSync(file), `approved migration is missing: ${migration.file}`);
+  const hash = createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+  assert.ok(!hashes.has(hash), `approved migration is a byte-identical duplicate: ${migration.file}`);
+  hashes.add(hash);
 }
 
-const reset = process.platform === "win32"
-  ? spawnSync(
-      "powershell.exe",
-      [
-        "-NoProfile",
-        "-Command",
-        "& pnpm.cmd dlx supabase@2.109.1 --workdir $env:FAMILYOS_BOOTSTRAP_WORKSPACE db reset --local --no-seed",
-      ],
-      {
-        cwd: root,
-        stdio: "inherit",
-        env: { ...process.env, FAMILYOS_BOOTSTRAP_WORKSPACE: workspace },
-      },
-    )
-  : spawnSync(
-      "pnpm",
-      ["dlx", "supabase@2.109.1", "--workdir", workspace, "db", "reset", "--local", "--no-seed"],
-      { cwd: root, stdio: "inherit" },
-    );
-if (reset.error) throw reset.error;
-if (reset.status !== 0) process.exit(reset.status ?? 1);
+const available = new Set([manifest.baseline.file, manifest.baseline.historyVersion]);
+for (const migration of manifest.approvedMigrations) {
+  for (const dependency of migration.dependencies) assert.ok(available.has(dependency), `${migration.file} has an unavailable dependency: ${dependency}`);
+  assert.ok(!migration.requiresEarlierMigration || available.has(migration.requiresEarlierMigration), `${migration.file} has an unavailable required predecessor`);
+  available.add(migration.version);
+  available.add(migration.file);
+}
 
-const verificationSql = `
-do $$
-declare
-  required_tables text[] := array[
-    'households','profiles','household_members','household_invitations',
-    'notes','tasks','home_maintenance','pool_readings','pool_action_audits',
-    'calendar_connections','life_lists','shopping_lists','recipes','meal_assignments',
-    'brief_schedules','brief_generation_history','notification_preferences','notification_states','routine_templates','routine_template_steps'
-  ];
-  missing text[];
-begin
-  select array_agg(name) into missing
-  from unnest(required_tables) name
-  where to_regclass('public.' || name) is null;
-  if missing is not null then raise exception 'Missing required tables: %', missing; end if;
-  if (select count(*) from supabase_migrations.schema_migrations) <> ${ordered.length} then
-    raise exception 'Migration history count mismatch';
-  end if;
-  if (select format_type(atttypid, atttypmod) from pg_attribute where attrelid='public.pool_action_audits'::regclass and attname='reading_id') <> 'text' then
-    raise exception 'pool_action_audits.reading_id must be text';
-  end if;
-  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='pool_readings' and column_name='water_appearance' and data_type='text' and is_nullable='YES') then raise exception 'pool_readings.water_appearance must be nullable text'; end if;
-  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='pool_readings' and column_name='recent_weather_notes' and is_nullable='YES') then raise exception 'pool_readings.recent_weather_notes must be nullable'; end if;
-  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='pool_readings' and column_name='test_context' and data_type='text' and is_nullable='NO') then raise exception 'pool_readings.test_context must be required text'; end if;
-  if (select count(*) from pg_policies where schemaname='public') = 0 then raise exception 'No public RLS policies found'; end if;
-  if not exists(select 1 from pg_indexes where schemaname='public' and indexname='brief_generation_scheduled_period_unique') then raise exception 'Brief idempotency index missing'; end if;
-  if exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname in ('brief_schedules','brief_generation_history','notification_preferences','routine_templates','routine_template_steps') and not c.relrowsecurity) then raise exception 'Release 2.5 RLS missing'; end if;
-end $$;`;
+const localHousehold = fs.readFileSync(path.join(root, "supabase/migrations/20260627000000_household_foundation.sql"), "utf8");
+const productionHousehold = fs.readFileSync(path.join(root, "supabase/migrations/20260701010000_release_0_6c_household_foundation.sql"), "utf8");
+for (const table of ["profiles", "households", "people", "household_members"]) {
+  assert.match(localHousehold, new RegExp(`create table if not exists public\\.${table}`));
+  assert.match(productionHousehold, new RegExp(`create table if not exists public\\.${table}`));
+}
+assert.match(productionHousehold, /familyos_bootstrap_auth_user_on_insert/);
+assert.match(productionHousehold, /public\.household_settings/);
+assert.match(productionHousehold, /public\.user_preferences/);
 
-const sqlPath = path.join(workspace, "verify.sql");
-await writeFile(sqlPath, verificationSql);
-const verify = spawnSync(
-  "docker",
-  ["exec", "-i", "supabase_db_familyos", "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1"],
-  { cwd: root, input: await readFile(sqlPath), stdio: ["pipe", "inherit", "inherit"] },
-);
-if (verify.status !== 0) process.exit(verify.status ?? 1);
+const aiMigration = fs.readFileSync(path.join(root, manifest.expectedLatestMigrationFile), "utf8");
+for (const table of ["ai_preferences", "ai_recommendations", "ai_proposed_actions", "ai_feedback"]) {
+  assert.match(aiMigration, new RegExp(`create table if not exists public\\.${table}`));
+  assert.match(aiMigration, new RegExp(`alter table public\\.${table} enable row level security`));
+}
+assert.match(aiMigration, /^\s*begin;[\s\S]*commit;\s*$/i);
+assert.doesNotMatch(aiMigration, /^\s*(?:insert\s+into|update\s+public\.|delete\s+from)/im);
+assert.match(aiMigration, /revoke all on[\s\S]+from anon,public/);
+assert.match(aiMigration, /grant select,insert,update,delete/);
 
-console.log(`FamilyOS empty-database bootstrap validated: ${ordered.length} migrations applied.`);
+console.log("FamilyOS blank-database reconciliation passed statically: schema.sql + 23 executable migrations, 2 history-only versions, 25-version Release 3.2.0 parity.");
+console.log("No SQL was executed. Run the guarded initializer only against an independently verified blank test project.");

@@ -4,20 +4,22 @@ This guide configures authenticated FamilyOS browser tests against a dedicated n
 
 ## One-time test project setup
 
+Use `docs/setup/supabase-test-project-initialization.md` as the authoritative blank-project procedure. It defines the Release 3.2.0 manifest, baseline/history-only treatment, guarded initialization, and post-schema verification.
+
 1. Confirm the target is a dedicated test project. The current approved reference is `lvxsbgrvpfcckqaanowf`.
-2. For an empty project, apply `20260626000000_baseline_schema.sql` first, then every remaining file in `supabase/migrations/` in ordinal filename order. The baseline is the restored authoritative legacy schema required by the household migration preflight. `20260703000000_bootstrap_pool_action_audits.sql` preserves the canonical text Pool reading relationship for fresh projects.
+2. For an empty project, run the guarded initializer. Do not apply every file in `supabase/migrations/` blindly; the historical baseline migration is redundant and the older household foundation is a superseded local-only draft.
 3. In Supabase Project Settings > API, copy the project URL and browser-safe anonymous/publishable key. Never put the service-role key in a `REACT_APP_*` variable.
 4. Put the variables below in gitignored `.env.test.local`.
 5. Run `pnpm run seed:demo`. The guarded seed verifies the exact target before creating an admin client, then creates a confirmed dedicated user and deterministic demo household.
 
-Before remote work, validate the same chain against an empty local Supabase database:
+Before remote work, run the offline reconciliation and safeguard gates:
 
 ```powershell
-pnpm dlx supabase@2.109.1 start
-pnpm run test:db-bootstrap
+pnpm run test:db-reconciliation
+pnpm run test:db-init-safety
 ```
 
-Repository migrations use unique 14-digit versions so Supabase CLI ordering is deterministic. Apply them in ordinal filename order and stop on the first error. Existing legacy environments start with `20260627000000_household_foundation.sql` only when the preflight tables already exist; they must not reapply the baseline.
+Repository migrations use unique 14-digit versions, but filename order alone is not the initialization contract. The guarded initializer consumes the manifest, applies `schema.sql`, skips the two history-only files, and stops on the first SQL error.
 
 ## Required `.env.test.local` variables
 

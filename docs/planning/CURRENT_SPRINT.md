@@ -1,5 +1,16 @@
 # Current Sprint
 
+## Post-release test database infrastructure
+
+Status: locally implemented and validated; no remote database action authorized or performed.
+
+- [x] Reconstruct and classify all 25 production history versions through Release 3.2.0.
+- [x] Add a guarded manifest-driven PowerShell initializer, independent verifier, dry-run, and offline safeguard tests.
+- [x] Include the blank-safe Release 3.2 migration and verify its AI tables, household/user scoping, indexes, RLS, grants, and anonymous denial.
+- [x] Exclude duplicate baseline SQL and the superseded local-only household draft from execution while preserving history alignment.
+- [x] Execute the full chain and verifier on a disposable loopback-only PostgreSQL 18.4 cluster, verify Auth bootstrap and empty data, and remove the cluster.
+- [ ] Manually initialize and verify a new dedicated test project in a separately authorized task.
+
 ## Release 3.2.0 - AI Planning and Advisory
 
 Status: released to production on 2026-07-14.

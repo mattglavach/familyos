@@ -107,6 +107,10 @@ This folder is the operating manual for Family OS.
 - docs/process/RELEASE_CHECKLIST.md
 - docs/process/PROMPT_LIBRARY.md
 
+### Setup
+- docs/setup/playwright-authentication.md
+- docs/setup/supabase-test-project-initialization.md
+
 ### Templates
 - docs/templates/RELEASE_SPEC.md
 - docs/templates/FEATURE_SPEC.md

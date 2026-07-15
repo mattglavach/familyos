@@ -119,59 +119,6 @@ create table if not exists public.pool_settings (
   filter_clean_baseline_psi numeric
 );
 
-create table if not exists public.pool_profiles (
-  id uuid primary key default gen_random_uuid(),
-  household_id uuid not null,
-  user_id uuid default auth.uid(),
-  name text not null default 'Pool',
-  volume_gallons integer not null check (volume_gallons > 0),
-  surface_type text not null,
-  sanitizer_type text not null,
-  saltwater boolean not null default false,
-  automation_system text not null default '', pump text not null default '', filter text not null default '', heater text not null default '', salt_cell text not null default '',
-  spa_relationship text not null default '', normal_pump_runtime_hours numeric, normal_pump_speed_rpm integer, minimum_salt_cell_rpm integer, swg_output_percent numeric,
-  preferred_products jsonb not null default '[]'::jsonb, chemical_concentrations jsonb not null default '{}'::jsonb, target_ranges jsonb not null default '{}'::jsonb,
-  seasonal_notes text not null default '', notes text not null default '', created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
-  unique (household_id, name)
-);
-
-create table if not exists public.pool_equipment (
-  id text primary key default gen_random_uuid()::text,
-  household_id uuid,
-  user_id uuid default auth.uid(),
-  type text not null,
-  name text not null,
-  brand text not null default '',
-  model text not null default '',
-  install_date date,
-  last_maintenance date,
-  next_maintenance date,
-  warranty_notes text not null default '',
-  manual_link text not null default '',
-  notes text not null default '',
-  active boolean not null default true,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create table if not exists public.pool_action_audits (
-  id text primary key default gen_random_uuid()::text,
-  household_id uuid,
-  user_id uuid default auth.uid(),
-  reading_id uuid references public.pool_readings(id) on delete set null,
-  recommendation_id text not null,
-  action text not null,
-  explanation text not null default '',
-  confidence text not null default 'Medium',
-  safety_note text not null default '',
-  status text not null default 'recommended',
-  confirmed_at timestamptz,
-  completed_at timestamptz,
-  notes text not null default '',
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
 create table if not exists public.college_schools (
   id text primary key default gen_random_uuid()::text,
   name text not null,
@@ -323,8 +270,7 @@ declare
 begin
   foreach table_name in array array[
     'notes','tasks','home_maintenance','pool_readings','pool_maintenance',
-    'pool_treatments','pool_schedule','pool_settings','pool_equipment',
-    'pool_action_audits','college_schools',
+    'pool_treatments','pool_schedule','pool_settings','college_schools',
     'college_test_plan','college_essays','college_deadlines','sat_scores',
     'college_savings','college_goal','retirement_accounts',
     'retirement_assumptions','mortgage','other_debt','net_worth_snapshots',
@@ -340,6 +286,7 @@ begin
       'create policy "familyos_user_all" on public.%I for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid())',
       table_name
     );
+    execute format('grant select, insert, update, delete on public.%I to authenticated', table_name);
   end loop;
 end $$;
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+- Added a manifest-driven, PowerShell-only blank test-project initializer and read-only verifier aligned to Release 3.2.0 and all 25 production history versions.
+- Added fail-closed project-reference, production-target, non-empty database, file completeness, migration-order, secret-output, and prohibited-command safeguards with offline tests.
+- Corrected the legacy baseline boundary so Pool profiles, equipment, and action audits are created by their approved migrations with canonical constraints and text-key relationships.
+- Reconciled the redundant historical baseline and superseded local-only household draft as history-only versions, leaving one executable `schema.sql` baseline plus 23 approved production migrations.
+- Documented the manual Supabase linkage, Auth/Storage setup, partial-failure recovery, separately guarded demo seed, and long-term CLI-native baseline recommendation.
+- Added `pnpm run db:test:validate-local`, which creates an isolated loopback-only PostgreSQL cluster, executes the complete blank-database chain and verifier, validates Auth bootstrap behavior transactionally, and removes the disposable environment.
+- Executed the Release 3.2 chain successfully on PostgreSQL 18.4 with 23 executable migrations, two history-only entries, 25-version parity, no demo/application data, and no hosted Supabase access.
+
 ## 3.2.0 - 2026-07-14
 - Added permission-scoped Family Assistant, AI Family Brief, weekly planning, context controls, structured advisory cards, source indicators, and current-session history.
 - Added provider abstraction, deterministic mock/fallback, server authentication and household authorization, prompt-injection defenses, timeouts, rate limits, safe observability, and schema validation.
