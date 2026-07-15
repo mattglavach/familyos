@@ -2,7 +2,7 @@
 
 ## Release 3.0.0 - Daily Experience Polish
 
-Status: validated local release candidate on 2026-07-14.
+Status: released to production on 2026-07-14.
 
 - [x] Remove the redundant "Complete, delegate, or reschedule" instruction from Family Brief cards.
 - [x] Make checklist habits and routines expand inline without opening the edit screen.
@@ -12,6 +12,7 @@ Status: validated local release candidate on 2026-07-14.
 - [x] Remove dosage guidance from the Pool Attention summary while preserving detailed recommendations below.
 - [x] Add focused automated coverage and update release documentation/versioning.
 - [x] Complete the full local and authenticated desktop/390px release validation matrix.
+- [x] Publish `main`, tag `v3.0.0`, deploy to Vercel production, and complete public production smoke.
 
 ## Release 2.10.1 - Usability Stabilization
 

@@ -8,6 +8,7 @@
 - Added a sticky, safe-area-aware Habit edit footer so Save and Cancel remain accessible on mobile.
 - Removed duplicated dosage guidance from Pool Attention while retaining the full Recommended Next Step workflow.
 - Preserved schemas, migrations, dependencies, authentication, permissions, completion history, Pool calculations, and integrations.
+- Published `main`, created the `v3.0.0` release tag, deployed to Vercel production, and completed desktop/mobile public production verification.
 
 ## 2.10.1 - 2026-07-14
 

@@ -25,6 +25,14 @@ Validation passed on 2026-07-14:
 - Targeted browser assertions confirm expansion stays inline, only checklist completion controls appear, edit remains explicit, and Habit edit Save/Cancel actions are fully visible and clickable.
 - `git diff --check` passed.
 
+## Production
+
+- Published from `main` and tagged `v3.0.0` on 2026-07-14.
+- Vercel application deployment `dpl_5UE9GJfH2fiX8yXcYtaBNueU5afo` reached `READY` for commit `4094567` at `familyos-pi-seven.vercel.app`.
+- Desktop and 390px mobile public checks passed against the production alias and immutable deployment, including sign-in rendering, browser console monitoring, Weather API response, and production bundle secret-marker scanning.
+- Vercel runtime review found only the known non-blocking Node `url.parse()` deprecation warning on Calendar and Weather routes.
+- Authenticated production mutation testing was not run; the approved non-production authenticated matrix passed.
+
 ## Rollback
 
 Revert the Release 3.0.0 application commit. No database rollback is required.

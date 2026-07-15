@@ -10,6 +10,8 @@ This is an application and documentation release only. There are no database, mi
 
 Local release validation passed: lint, declaration type checking, 36 unit suites and 141 tests, Release 2.9 through 2.10.1 database preservation checks, 18 seed-safety tests, production build, bundle-safety scan, and 73 authenticated Playwright tests across desktop, 390px mobile, tablet, and dark mode. Browser coverage confirms inline Habit and Routine completion, no expansion-to-edit navigation, fully visible and clickable Habit edit Save/Cancel actions, Pool workflows, accessibility, persistence, responsive containment, and existing major-module regression coverage.
 
+Production release: `main` was published and tagged `v3.0.0`; validated application deployment `dpl_5UE9GJfH2fiX8yXcYtaBNueU5afo` is `READY` at `familyos-pi-seven.vercel.app`. Desktop/mobile unauthenticated, weather, console, and bundle-secret checks passed against the production alias and immutable deployment. Runtime review found only the known non-blocking Node `url.parse()` deprecation warning. Authenticated production mutation testing was not run because no approved production browser session was available; the approved non-production authenticated matrix passed.
+
 ## Release 2.10.1 - Usability Stabilization
 
 FamilyOS 2.10.1 reduces visual and instructional noise across the core daily loop. Home actions are compact and accessible, Family Brief shows only information needed to act, Upcoming Calendar is grouped by day, routines expand inline, lifecycle state is explicit and filterable, Pool uses the shared icon-action pattern where appropriate, and AI Workspace explains its safe proposal-and-approval model on first use.

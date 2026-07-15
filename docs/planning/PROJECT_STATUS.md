@@ -2,7 +2,9 @@
 
 ## Current Release
 
-FamilyOS 3.0.0 Daily Experience Polish is the current validated local release candidate. It removes redundant Family Brief and Pool summary guidance, makes checklist Habit and Routine expansion a direct inline completion workflow, preserves editing through a separate action, and keeps Habit edit actions accessible above mobile safe areas. The combined local gate, 141 unit tests, production build and bundle scan, and 73 authenticated desktop, 390px mobile, tablet, and dark-mode browser tests pass. The release does not change schemas, migrations, authentication, permissions, dependencies, calculations, or integration contracts. FamilyOS 2.10.1 remains the current production release until Release 3.0.0 publication completes.
+FamilyOS 3.0.0 Daily Experience Polish is the current production release. It removes redundant Family Brief and Pool summary guidance, makes checklist Habit and Routine expansion a direct inline completion workflow, preserves editing through a separate action, and keeps Habit edit actions accessible above mobile safe areas. The combined local gate, 141 unit tests, production build and bundle scan, and 73 authenticated desktop, 390px mobile, tablet, and dark-mode browser tests pass. The release does not change schemas, migrations, authentication, permissions, dependencies, calculations, or integration contracts.
+
+Release 3.0.0 was published from `main`, tagged `v3.0.0`, and deployed through the Vercel Git integration on 2026-07-14. Validated application deployment `dpl_5UE9GJfH2fiX8yXcYtaBNueU5afo` reached `READY` at `familyos-pi-seven.vercel.app` for commit `4094567`. Desktop and 390px mobile unauthenticated checks passed against both the production alias and immutable deployment, including sign-in rendering, console monitoring, weather response, and production bundle secret-marker scanning. Runtime review found only the known non-blocking Node `url.parse()` deprecation warning on Calendar and Weather routes. Authenticated production mutation testing was not run; the approved non-production authenticated matrix passed.
 
 ## Release 2.7.0 local release candidate
 
