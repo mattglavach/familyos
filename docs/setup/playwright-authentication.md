@@ -6,7 +6,7 @@ This guide configures authenticated FamilyOS browser tests against a dedicated n
 
 Use `docs/setup/supabase-test-project-initialization.md` as the authoritative blank-project procedure. It defines the Release 3.2.0 manifest, baseline/history-only treatment, guarded initialization, and post-schema verification.
 
-1. Confirm the target is a dedicated test project. The current approved reference is `lvxsbgrvpfcckqaanowf`.
+1. Confirm the target is a dedicated test project. Pin its exact reference in `DEMO_SEED_EXPECTED_PROJECT_REF`; do not hard-code a rotating test-project reference in test code.
 2. For an empty project, run the guarded initializer. Do not apply every file in `supabase/migrations/` blindly; the historical baseline migration is redundant and the older household foundation is a superseded local-only draft.
 3. In Supabase Project Settings > API, copy the project URL and browser-safe anonymous/publishable key. Never put the service-role key in a `REACT_APP_*` variable.
 4. Put the variables below in gitignored `.env.test.local`.
@@ -27,15 +27,15 @@ Repository migrations use unique 14-digit versions, but filename order alone is 
 FAMILYOS_ENV=test
 PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000
 PLAYWRIGHT_SKIP_WEBSERVER=false
-REACT_APP_SUPABASE_URL=https://lvxsbgrvpfcckqaanowf.supabase.co
+REACT_APP_SUPABASE_URL=https://<test-project-ref>.supabase.co
 REACT_APP_SUPABASE_ANON_KEY=<test-project anonymous or publishable key>
 REACT_APP_APPROVED_HOUSEHOLD_EMAILS=test@familyos.app
 DEMO_USER_EMAIL=test@familyos.app
 DEMO_USER_PASSWORD=<strong test-only password>
-SUPABASE_URL=https://lvxsbgrvpfcckqaanowf.supabase.co
+SUPABASE_URL=https://<test-project-ref>.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<test-project service-role key>
 DEMO_SEED_ALLOW_REMOTE_TEST=true
-DEMO_SEED_EXPECTED_PROJECT_REF=lvxsbgrvpfcckqaanowf
+DEMO_SEED_EXPECTED_PROJECT_REF=<test-project-ref>
 ```
 
 `PLAYWRIGHT_BASE_URL` defaults to the loopback value shown. `PLAYWRIGHT_SKIP_WEBSERVER=true` is only for an already-running approved target. `REACT_APP_DEMO_*` variables are optional localhost auto-login settings; Playwright does not use them.

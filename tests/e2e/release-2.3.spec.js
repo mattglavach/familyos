@@ -1,11 +1,11 @@
 const { test, expect } = require("@playwright/test");
 const { createClient } = require("@supabase/supabase-js");
 const { loginDemoUser, navigateModule, openMoreModule } = require("./helpers/app");
+const { validateTestAdminEnvironment } = require("./helpers/environment");
 
 function adminClient() {
-  const url = process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
-  if (new URL(url).hostname.split(".")[0] !== "lvxsbgrvpfcckqaanowf") throw new Error("Release 2.3 tests require the approved non-production project.");
-  return createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+  const { url, serviceRoleKey } = validateTestAdminEnvironment();
+  return createClient(url, serviceRoleKey, { auth: { persistSession: false } });
 }
 
 async function activeHousehold(admin) {

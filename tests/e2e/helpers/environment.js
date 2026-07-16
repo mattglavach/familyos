@@ -87,4 +87,41 @@ function validatePlaywrightEnvironment() {
   return { baseURL: baseUrl.origin };
 }
 
-module.exports = { loadPlaywrightEnvironment, validatePlaywrightEnvironment };
+function validateTestAdminEnvironment() {
+  if ((process.env.FAMILYOS_ENV || "").toLowerCase() !== "test") {
+    throw new Error("[Playwright config] FAMILYOS_ENV must be exactly test.");
+  }
+
+  const serviceRoleKey = requireValue("SUPABASE_SERVICE_ROLE_KEY");
+  const adminUrl = parseOrigin("SUPABASE_URL", requireValue("SUPABASE_URL"));
+  const browserUrl = parseOrigin("REACT_APP_SUPABASE_URL", requireValue("REACT_APP_SUPABASE_URL"));
+  const expectedProjectRef = process.env.DEMO_SEED_EXPECTED_PROJECT_REF?.trim();
+  const expectedUrl = process.env.DEMO_SEED_EXPECTED_URL?.trim();
+
+  if (!expectedProjectRef && !expectedUrl) {
+    throw new Error("[Playwright config] Set DEMO_SEED_EXPECTED_PROJECT_REF or DEMO_SEED_EXPECTED_URL to the exact test target.");
+  }
+  if (adminUrl.origin !== browserUrl.origin) {
+    throw new Error("[Playwright config] SUPABASE_URL and REACT_APP_SUPABASE_URL must target the same test project.");
+  }
+
+  const targetHost = adminUrl.hostname.toLowerCase();
+  const remoteMatch = targetHost.match(/^([a-z0-9-]+)\.supabase\.co$/);
+  const localTarget = LOCAL_HOSTS.has(targetHost);
+  if (!localTarget && !remoteMatch) {
+    throw new Error("[Playwright config] SUPABASE_URL must target local Supabase or an exact *.supabase.co project origin.");
+  }
+  if (expectedProjectRef && remoteMatch?.[1] !== expectedProjectRef) {
+    throw new Error(`[Playwright config] Admin Supabase project mismatch: expected ${expectedProjectRef}, received ${remoteMatch?.[1] || "a local target"}.`);
+  }
+  if (expectedUrl && adminUrl.origin !== parseOrigin("DEMO_SEED_EXPECTED_URL", expectedUrl).origin) {
+    throw new Error("[Playwright config] SUPABASE_URL does not match DEMO_SEED_EXPECTED_URL.");
+  }
+  if (serviceRoleKey === process.env.REACT_APP_SUPABASE_ANON_KEY) {
+    throw new Error("[Playwright config] SUPABASE_SERVICE_ROLE_KEY must not reuse the browser anonymous key.");
+  }
+
+  return { url: adminUrl.origin, serviceRoleKey };
+}
+
+module.exports = { loadPlaywrightEnvironment, validatePlaywrightEnvironment, validateTestAdminEnvironment };

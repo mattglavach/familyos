@@ -8,6 +8,9 @@
 - Documented the manual Supabase linkage, Auth/Storage setup, partial-failure recovery, separately guarded demo seed, and long-term CLI-native baseline recommendation.
 - Added `pnpm run db:test:validate-local`, which creates an isolated loopback-only PostgreSQL cluster, executes the complete blank-database chain and verifier, validates Auth bootstrap behavior transactionally, and removes the disposable environment.
 - Executed the Release 3.2 chain successfully on PostgreSQL 18.4 with 23 executable migrations, two history-only entries, 25-version parity, no demo/application data, and no hosted Supabase access.
+- Initialized and independently verified a new dedicated hosted test project through Release 3.2.0, configured test-only Auth and private Storage, and validated repeatable deterministic demo seeding.
+- Replaced the Release 2.3 browser suite's retired hard-coded project reference with the shared fail-closed test-target validation, allowing safe test-project rotation without weakening production guards.
+- Passed the hosted credential-backed gate with 81 authenticated Playwright tests across desktop, 390px mobile, tablet, and dark mode, plus the complete static, database-safety, build, and bundle-safety checks.
 
 ## 3.2.0 - 2026-07-14
 - Added permission-scoped Family Assistant, AI Family Brief, weekly planning, context controls, structured advisory cards, source indicators, and current-session history.
