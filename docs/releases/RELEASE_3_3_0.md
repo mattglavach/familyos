@@ -27,4 +27,4 @@ Revert the application deployment first. The additive database objects can safel
 
 ## Validation record
 
-Local and hosted validation evidence is recorded in the completion report and release commit. Production verification must pass before the release tag is considered complete.
+Local, hosted, and production validation passed on 2026-07-15. The full repository check, 161 unit tests, disposable 26-version database proof, authenticated hosted desktop/390px/tablet/dark/accessibility matrix, production build and bundle scan, production database postflight, stable and immutable Vercel endpoint checks, weather and unauthenticated advisory boundaries, console checks, and deployed 3.3 bundle markers passed. Main JavaScript is 228.22 kB gzip, a 2.13 kB increase from the 3.2 baseline.

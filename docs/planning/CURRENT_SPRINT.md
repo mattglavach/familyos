@@ -2,7 +2,7 @@
 
 ## Release 3.3.0: Actionable Family Brief
 
-Status: implementation, local validation, hosted validation, and production migration complete; application deployment, production UI verification, and release tagging remain lifecycle gates.
+Status: Release 3.3.0 implemented, validated, migrated, deployed, and production-verified. Release tagging is the final closeout action.
 
 - Complete: recommendation model, priority reasons, deduplication, cross-module synthesis, lifecycle history, suppression, Morning Brief, Evening Review, weekly focus, meaningful changes, safe-to-wait guidance, accessibility, tests, and documentation.
 - Hosted gate passed: exact-target migration checks plus authenticated desktop, 390px mobile, tablet, dark-mode, and accessibility validation.

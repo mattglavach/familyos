@@ -2,7 +2,7 @@
 
 ## 2026-07-15: Release 3.3.0 implementation
 
-Actionable Family Brief is implemented on `main`. The release adds a canonical recommendation lifecycle and a concise Home operating view without creating a new module or changing domain ownership. Local gates, dedicated hosted-test validation, and the additive production migration passed. Application deployment, production UI verification, and release tagging remain required before declaring the release complete.
+Actionable Family Brief is deployed to production. The release adds a canonical recommendation lifecycle and a concise Home operating view without creating a new module or changing domain ownership. Local gates, dedicated hosted-test validation, additive production migration, Vercel production deployment, stable/immutable endpoint checks, database postflight, weather/API boundary, console, responsive, accessibility, and bundle-secret verification passed. Release tagging is the final closeout action.
 
 ## Current Release
 
