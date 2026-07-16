@@ -357,6 +357,17 @@ export function Settings({ auth, gc, secureCalendar }) {
       </Card>
 
       <Card>
+        <CardHeader className="p-4 pb-2"><CardTitle className="text-base">Recommendation Settings</CardTitle><CardDescription>Control transparent household-local learning, workload, confidence, sensitivity, and feedback.</CardDescription></CardHeader>
+        <CardContent className="space-y-2 px-4 pb-4 pt-0">
+          {[["recommendationLearning","Enable learning"],["showConfidence","Show confidence"],["showWorkload","Show workload"],["feedbackParticipation","Feedback participation"]].map(([key,label])=><div key={key} className="flex min-h-11 items-center justify-between gap-3 border-b border-border py-2"><Label htmlFor={`recommendation-${key}`}>{label}</Label><Switch id={`recommendation-${key}`} checked={Boolean(aiSettings[key])} onCheckedChange={value=>setAiSettings(previous=>({...previous,[key]:value}))}/></div>)}
+          <FormGroup><Label htmlFor="recommendation-sensitivity">Recommendation sensitivity</Label><Select id="recommendation-sensitivity" value={aiSettings.recommendationSensitivity||"balanced"} onChange={event=>setAiSettings(previous=>({...previous,recommendationSensitivity:event.target.value}))}><option value="minimal">Minimal</option><option value="balanced">Balanced</option><option value="proactive">Proactive</option></Select></FormGroup>
+          <Button type="button" className="w-full" onClick={()=>{writeAiSettings(aiSettings);refreshSnapshot();notify("Recommendation settings saved.");}}><Save className="h-4 w-4"/>Save Recommendation Settings</Button>
+          <Button type="button" variant="secondary" className="w-full" onClick={async()=>{if(household.householdId&&auth.session?.user?.id){await Promise.all(["recommendation_learning","recommendation_feedback","recommendation_effectiveness"].map(table=>supabase.from(table).delete().eq("household_id",household.householdId).eq("user_id",auth.session.user.id)));}notify("Recommendation learning reset.");}}>Reset Recommendation Learning</Button>
+          <Button type="button" variant="secondary" className="w-full" onClick={async()=>{const {data:history}=await supabase.from("recommendation_history").select("*").eq("household_id",household.householdId).eq("user_id",auth.session.user.id).order("created_at",{ascending:false}),payload=JSON.stringify({exportedAt:new Date().toISOString(),settings:aiSettings,history:history||[]},null,2),url=URL.createObjectURL(new Blob([payload],{type:"application/json"})),link=document.createElement("a");link.href=url;link.download="familyos-recommendation-history.json";link.click();URL.revokeObjectURL(url);}}>Export Recommendation History</Button>
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader className="p-4 pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <UserRound className="h-4 w-4 text-primary" aria-hidden="true" />

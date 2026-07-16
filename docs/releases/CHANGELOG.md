@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.4.0 - 2026-07-15
+
+- Added separate explainable confidence scoring, workload-aware surfacing, adaptive fatigue cooldowns, material-change bypass, grouping, dependencies, effectiveness metrics, trends, and feedback.
+- Added household-local recommendation settings for learning, confidence, workload, sensitivity, feedback, reset, and export.
+- Added additive RLS-protected recommendation feedback, effectiveness, learning, and dependency objects with no existing-data modification.
+
 ## 3.3.0 - 2026-07-15
 
 - Redesigned Family Brief around Today, Next Actions, This Week, wins, meaningful changes, weekly outcomes, and safe-to-wait guidance.

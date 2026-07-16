@@ -30,14 +30,14 @@ Assert-Throws { Assert-EmptyDatabaseResult -ExistingFamilyOsTableCount 1 -AllowN
 Assert-True ((Protect-SecretText -Text "before offline-secret after" -Secrets @('offline-secret')) -eq 'before [REDACTED] after') 'secret redaction'
 
 $manifest = Read-ApprovedMigrationManifest -ManifestPath $manifestPath -RepositoryRoot $repositoryRoot
-Assert-True ($manifest.expectedMigrationCount -eq 26 -and $manifest.approvedMigrations.Count -eq 24 -and $manifest.historyOnlyMigrations.Count -eq 2) 'production and execution migration counts reconcile'
-Assert-True ($manifest.expectedLatestRelease -eq '3.3.0' -and $manifest.approvedMigrations[-1].version -eq '20260715000000' -and $manifest.approvedMigrations[-1].file -eq $manifest.expectedLatestMigrationFile) 'latest migration aligns to 3.3.0'
+Assert-True ($manifest.expectedMigrationCount -eq 27 -and $manifest.approvedMigrations.Count -eq 25 -and $manifest.historyOnlyMigrations.Count -eq 2) 'production and execution migration counts reconcile'
+Assert-True ($manifest.expectedLatestRelease -eq '3.4.0' -and $manifest.approvedMigrations[-1].version -eq '20260715010000' -and $manifest.approvedMigrations[-1].file -eq $manifest.expectedLatestMigrationFile) 'latest migration aligns to 3.4.0'
 Assert-True ((@($manifest.approvedMigrations.version) -join ',') -eq ((@($manifest.approvedMigrations.version) | Sort-Object) -join ',')) 'approved migrations ordered'
 Assert-True (@($manifest.approvedMigrations.file) -notcontains 'supabase/migrations/20260626000000_baseline_schema.sql') 'historical baseline SQL is not executed twice'
 Assert-True (@($manifest.approvedMigrations.file) -notcontains 'supabase/migrations/20260627000000_household_foundation.sql') 'superseded household foundation is not executable'
 $allVersions = @($manifest.approvedMigrations.version) + @($manifest.historyOnlyMigrations.version)
 $allFiles = @($manifest.approvedMigrations.file) + @($manifest.historyOnlyMigrations.file)
-Assert-True (($allVersions | Select-Object -Unique).Count -eq 26 -and ($allFiles | Select-Object -Unique).Count -eq 26) 'no migration version or file appears twice'
+Assert-True (($allVersions | Select-Object -Unique).Count -eq 27 -and ($allFiles | Select-Object -Unique).Count -eq 27) 'no migration version or file appears twice'
 $approvedHashes = @($manifest.approvedMigrations.file | ForEach-Object {
   $sha256 = [Security.Cryptography.SHA256]::Create()
   try { [BitConverter]::ToString($sha256.ComputeHash([IO.File]::ReadAllBytes((Join-Path $repositoryRoot ($_ -replace '/', [IO.Path]::DirectorySeparatorChar))))).Replace('-', '') } finally { $sha256.Dispose() }
@@ -113,7 +113,7 @@ try {
   $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repositoryRoot 'scripts/initialize-test-database.ps1') -ConfirmTestProject -ExpectedProjectRef $testRef -DryRun 2>&1 | Out-String
   Assert-True ($LASTEXITCODE -eq 0) 'dry run succeeds offline'
   Assert-True ($output -notmatch 'offline-secret') 'dry run does not expose secrets'
-  Assert-True ($output -match '(?m)^Approved: .*20260715000000_release_3_3_actionable_family_brief.sql') 'dry run reaches 3.3.0'
+  Assert-True ($output -match '(?m)^Approved: .*20260715010000_release_3_4_intelligent_recommendations.sql') 'dry run reaches 3.4.0'
   Assert-True ($output -notmatch '(?m)^Approved: .*20260626000000_baseline_schema.sql' -and $output -notmatch '(?m)^Approved: .*20260627000000_household_foundation.sql') 'dry run excludes redundant and superseded SQL'
 } finally {
   $env:TEST_SUPABASE_DB_URL = $previousUrl

@@ -42,16 +42,16 @@ function Read-ApprovedMigrationManifest {
   param([Parameter(Mandatory)][string]$ManifestPath, [Parameter(Mandatory)][string]$RepositoryRoot)
   if (-not (Test-Path -LiteralPath $ManifestPath -PathType Leaf)) { throw "Migration manifest is missing: $ManifestPath" }
   try { $manifest = Get-Content -Raw -LiteralPath $ManifestPath | ConvertFrom-Json } catch { throw 'The approved migration manifest is not valid JSON.' }
-  if ($manifest.expectedLatestRelease -ne '3.3.0') { throw 'The approved manifest must target Release 3.3.0.' }
-  if ($manifest.expectedMigrationCount -ne 26) { throw 'The production migration-history count must be exactly 26.' }
-  if ($manifest.expectedExecutionMigrationCount -ne 24 -or $manifest.approvedMigrations.Count -ne 24) { throw 'The executable migration count must be exactly 24.' }
+  if ($manifest.expectedLatestRelease -ne '3.4.0') { throw 'The approved manifest must target Release 3.4.0.' }
+  if ($manifest.expectedMigrationCount -ne 27) { throw 'The production migration-history count must be exactly 27.' }
+  if ($manifest.expectedExecutionMigrationCount -ne 25 -or $manifest.approvedMigrations.Count -ne 25) { throw 'The executable migration count must be exactly 25.' }
   if ($manifest.expectedHistoryOnlyCount -ne 2 -or $manifest.historyOnlyMigrations.Count -ne 2) { throw 'The history-only migration count must be exactly 2.' }
   $executionVersions = @($manifest.approvedMigrations | ForEach-Object { $_.version })
   $historyOnlyVersions = @($manifest.historyOnlyMigrations | ForEach-Object { $_.version })
   $versions = @($executionVersions + $historyOnlyVersions | Sort-Object)
-  if (($versions | Select-Object -Unique).Count -ne 26) { throw 'Production migration versions must be unique.' }
+  if (($versions | Select-Object -Unique).Count -ne 27) { throw 'Production migration versions must be unique.' }
   if (($executionVersions -join ',') -ne ((@($executionVersions | Sort-Object)) -join ',')) { throw 'Executable migrations are not in ascending version order.' }
-  if ($manifest.approvedMigrations[-1].release -ne '3.3.0' -or $manifest.approvedMigrations[-1].version -ne '20260715000000' -or $manifest.approvedMigrations[-1].file -ne $manifest.expectedLatestMigrationFile) { throw 'The latest approved migration does not align with Release 3.3.0.' }
+  if ($manifest.approvedMigrations[-1].release -ne '3.4.0' -or $manifest.approvedMigrations[-1].version -ne '20260715010000' -or $manifest.approvedMigrations[-1].file -ne $manifest.expectedLatestMigrationFile) { throw 'The latest approved migration does not align with Release 3.4.0.' }
   $availableDependencies = @($manifest.baseline.file)
   foreach ($historyOnly in @($manifest.historyOnlyMigrations | Where-Object { $_.satisfiedBy -eq $manifest.baseline.file })) {
     $availableDependencies += $historyOnly.version

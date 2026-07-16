@@ -1,5 +1,11 @@
 # Current Sprint
 
+## Release 3.4.0: Intelligent Recommendation Engine
+
+Status: implementation and local validation complete. Production migration, deployment, verification, tag, and push are blocked by missing production Supabase and Vercel credentials in this environment.
+
+- Complete: confidence, effectiveness, learning inputs, fatigue, cooldown bypass, workload, grouping, dependencies, trends, feedback, settings, migration, tests, and documentation.
+
 ## Release 3.3.0: Actionable Family Brief
 
 Status: Release 3.3.0 implemented, validated, migrated, deployed, and production-verified. Release tagging is the final closeout action.

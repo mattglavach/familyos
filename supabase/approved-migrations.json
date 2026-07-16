@@ -8,10 +8,10 @@
     "historicalFile": "supabase/migrations/20260626000000_baseline_schema.sql",
     "historicalFileTreatment": "Fully redundant after schema.sql; retain for history but do not execute."
   },
-  "expectedLatestRelease": "3.3.0",
-  "expectedLatestMigrationFile": "supabase/migrations/20260715000000_release_3_3_actionable_family_brief.sql",
-  "expectedMigrationCount": 26,
-  "expectedExecutionMigrationCount": 24,
+  "expectedLatestRelease": "3.4.0",
+  "expectedLatestMigrationFile": "supabase/migrations/20260715010000_release_3_4_intelligent_recommendations.sql",
+  "expectedMigrationCount": 27,
+  "expectedExecutionMigrationCount": 25,
   "expectedHistoryOnlyCount": 2,
   "blockedProjectRefs": ["dsowansazqleudupnjug"],
   "approvedMigrations": [
@@ -38,7 +38,8 @@
     {"file":"supabase/migrations/20260714010000_release_3_1_relationship_os.sql","version":"20260714010000","release":"3.1.0","purpose":"Adds Relationship OS relationships, goals, activities, indexes, triggers, RLS, and household policies.","dependencies":["20260701010000"],"additive":true,"assumesExistingData":false,"safeOnBlankDatabase":true,"requiresEarlierMigration":"20260701010000","environmentSpecificValues":false,"blankDatabaseSafeguards":"Additive conditional tables/indexes with no data backfill."},
     {"file":"supabase/migrations/20260714020000_release_3_1_relationship_security_hardening.sql","version":"20260714020000","release":"3.1.0","purpose":"Revokes anonymous Relationship OS table access and grants authenticated CRUD.","dependencies":["20260714010000"],"additive":false,"assumesExistingData":false,"safeOnBlankDatabase":true,"requiresEarlierMigration":"20260714010000","environmentSpecificValues":false,"blankDatabaseSafeguards":"Privilege-only hardening against tables created by the preceding migration."},
     {"file":"supabase/migrations/20260714030000_release_3_2_ai_planning.sql","version":"20260714030000","release":"3.2.0","purpose":"Adds household/user-scoped AI preferences, recommendations, proposed-action audits, and feedback.","dependencies":["20260701010000","20260714020000"],"additive":true,"assumesExistingData":false,"safeOnBlankDatabase":true,"requiresEarlierMigration":"20260714020000","environmentSpecificValues":false,"blankDatabaseSafeguards":"Transactional additive DDL, no backfill, explicit RLS, authenticated grants, and anonymous/public revocation."},
-    {"file":"supabase/migrations/20260715000000_release_3_3_actionable_family_brief.sql","version":"20260715000000","release":"3.3.0","purpose":"Adds transparent recommendation metadata and household-scoped recommendation lifecycle history.","dependencies":["20260714030000"],"additive":true,"assumesExistingData":false,"safeOnBlankDatabase":true,"requiresEarlierMigration":"20260714030000","environmentSpecificValues":false,"blankDatabaseSafeguards":"Transactional additive columns and table, no backfill, explicit RLS, authenticated grants, and anonymous/public revocation."}
+    {"file":"supabase/migrations/20260715000000_release_3_3_actionable_family_brief.sql","version":"20260715000000","release":"3.3.0","purpose":"Adds transparent recommendation metadata and household-scoped recommendation lifecycle history.","dependencies":["20260714030000"],"additive":true,"assumesExistingData":false,"safeOnBlankDatabase":true,"requiresEarlierMigration":"20260714030000","environmentSpecificValues":false,"blankDatabaseSafeguards":"Transactional additive columns and table, no backfill, explicit RLS, authenticated grants, and anonymous/public revocation."},
+    {"file":"supabase/migrations/20260715010000_release_3_4_intelligent_recommendations.sql","version":"20260715010000","release":"3.4.0","purpose":"Adds household-local recommendation feedback, effectiveness, explainable learning, dependencies, and lifecycle states.","dependencies":["20260715000000"],"additive":true,"assumesExistingData":false,"safeOnBlankDatabase":true,"requiresEarlierMigration":"20260715000000","environmentSpecificValues":false,"blankDatabaseSafeguards":"Transactional additive tables and constraint extension, no backfill, explicit RLS, authenticated grants, and anonymous/public revocation."}
   ],
   "historyOnlyMigrations": [
     {"file":"supabase/migrations/20260626000000_baseline_schema.sql","version":"20260626000000","release":"Baseline","classification":"Fully redundant","satisfiedBy":"supabase/schema.sql","reason":"schema.sql contains the same extension, legacy tables, ownership indexes, authenticated grants, RLS enablement, and user policies, plus the later canonical Pool columns. Executing both would duplicate the baseline model."},

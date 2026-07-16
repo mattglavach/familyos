@@ -1,5 +1,9 @@
 # Project Status
 
+## 2026-07-15: Release 3.4.0 implementation
+
+The deterministic Family Brief now has an adaptive, transparent intelligence layer. Confidence remains separate from priority; household-local outcomes tune ordering and cooldowns; workload limits noise; grouping and dependency handling improve actionability. No autonomous schedule changes or external household analytics were added.
+
 ## 2026-07-15: Release 3.3.0 implementation
 
 Actionable Family Brief is deployed to production. The release adds a canonical recommendation lifecycle and a concise Home operating view without creating a new module or changing domain ownership. Local gates, dedicated hosted-test validation, additive production migration, Vercel production deployment, stable/immutable endpoint checks, database postflight, weather/API boundary, console, responsive, accessibility, and bundle-secret verification passed. Release tagging is the final closeout action.

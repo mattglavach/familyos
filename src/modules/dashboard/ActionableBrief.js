@@ -11,13 +11,13 @@ import { resolveRecommendationLink } from "../../services/recommendations/linkRe
 const priorityVariant = { critical: "destructive", high: "amber", medium: "blue", low: "secondary", info: "secondary" };
 const sourceLabel = item => (item.sourceModules || [item.category]).map(value => String(value).replace(/-/g, " ")).join(" + ");
 
-function RecommendationCard({ item, onRequest }) {
+function RecommendationCard({ item, onRequest, settings }) {
   const [expanded, setExpanded] = useState(false);
   return <Card className="overflow-hidden border-l-4 border-l-primary/70">
     <CardContent className="p-3">
       <div className="flex items-start gap-2">
         <button type="button" className="min-w-0 flex-1 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" onClick={() => setExpanded(value => !value)} aria-expanded={expanded}>
-          <span className="flex flex-wrap items-center gap-2"><Badge variant={priorityVariant[item.severity]}>{item.severity}</Badge><span className="text-xs capitalize text-muted-foreground">{sourceLabel(item)}</span></span>
+          <span className="flex flex-wrap items-center gap-2"><Badge variant={priorityVariant[item.severity]}>{item.severity} priority</Badge>{settings.showConfidence&&<Badge variant="blue">{item.confidenceScore}% confidence</Badge>}<span className="text-xs capitalize text-muted-foreground">{sourceLabel(item)}</span></span>
           <h3 className="mt-2 text-sm font-extrabold leading-5">{item.title}</h3>
           <p className="mt-1 text-sm text-muted-foreground"><b className="text-foreground">Next:</b> {item.recommendedAction}</p>
           <p className="mt-1 text-xs text-muted-foreground">{item.estimatedTime || "5 to 15 minutes"} · {item.dueTiming || "This week"}</p>
@@ -25,7 +25,13 @@ function RecommendationCard({ item, onRequest }) {
         <ChevronDown className={`mt-1 h-4 w-4 shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`} aria-hidden="true"/>
       </div>
       {expanded && <div className="mt-3 space-y-2 border-t border-border pt-3 text-xs leading-5" aria-label="Why am I seeing this?">
-        <p><b>Why it matters:</b> {item.rationale}</p>
+        <p><b>Why now:</b> {item.dueTiming||item.urgency}. {(item.triggerConditions||[]).join(" · ")||"Current household conditions match."}</p>
+        <p><b>Why this priority:</b> {item.priorityReason||item.rationale}</p>
+        <p><b>Why you:</b> This is scoped to your active household and signed-in profile.</p>
+        <p><b>Why not something else:</b> It ranked above alternatives using priority, confidence, dependencies, workload, and fatigue.</p>
+        {settings.showConfidence&&<p><b>Confidence:</b> {item.confidenceScore}% because of {item.confidenceReason}. Confidence affects ordering, not priority.</p>}
+        {item.subtasks?.length>0&&<div><b>Grouped items:</b><ul className="list-disc pl-5">{item.subtasks.map(subtask=><li key={subtask.id}>{subtask.title}</li>)}</ul></div>}
+        {item.dependencyReason&&<p><b>Dependency:</b> {item.dependencyReason}</p>}
         <p><b>Priority reason:</b> {item.priorityReason || item.rationale}</p>
         <p><b>Trigger:</b> {(item.triggerConditions || item.supportingData || []).join(" · ") || "Current household timing and status"}</p>
         <p><b>Last evaluated:</b> {new Date(item.lastEvaluation || Date.now()).toLocaleString()}</p>
@@ -39,12 +45,13 @@ function RecommendationCard({ item, onRequest }) {
         <Button type="button" size="xs" variant="ghost" onClick={() => onRequest(item, "create_calendar_event")}><CalendarPlus className="h-3.5 w-3.5"/>Calendar</Button>
         <Button type="button" size="xs" variant="ghost" onClick={() => onRequest(item, "convert_maintenance")}><Wrench className="h-3.5 w-3.5"/>Maintenance</Button>
         <Button type="button" size="xs" variant="ghost" onClick={() => onRequest(item, "reviewed")}><Eye className="h-3.5 w-3.5"/>Reviewed</Button>
+        {settings.feedbackParticipation&&<><Button type="button" size="xs" variant="ghost" onClick={()=>onRequest(item,"helpful")}>Helpful</Button><Button type="button" size="xs" variant="ghost" onClick={()=>onRequest(item,"not_helpful")}>Not Helpful</Button><Button type="button" size="xs" variant="ghost" onClick={()=>onRequest(item,"too_early")}>Too Early</Button><Button type="button" size="xs" variant="ghost" onClick={()=>onRequest(item,"too_late")}>Too Late</Button><Button type="button" size="xs" variant="ghost" onClick={()=>onRequest(item,"already_done")}>Already Done</Button></>}
       </div>
     </CardContent>
   </Card>;
 }
 
-export function ActionableBrief({ recommendations, data, historyTable, taskTable, today, onNavigate, onQuickAdd, aiBrief, aiEnabled }) {
+export function ActionableBrief({ recommendations, intelligence, settings, data, historyTable, taskTable, today, onNavigate, onQuickAdd, aiBrief, aiEnabled }) {
   const [mode, setMode] = useState(() => new Date().getHours() >= 17 ? "evening" : "morning");
   const [pending, setPending] = useState(null);
   const recordedGenerated = useRef(new Set());
@@ -76,10 +83,10 @@ export function ActionableBrief({ recommendations, data, historyTable, taskTable
   return <section aria-labelledby="family-brief-title" className="space-y-4">
     <div className="flex items-center justify-between gap-2"><SectionHeader title="Family Brief" count={brief.today.length + brief.nextActions.length} tone="amber"/><div className="flex rounded-lg border border-border p-1" aria-label="Brief period"><Button type="button" size="xs" variant={mode === "morning" ? "secondary" : "ghost"} aria-pressed={mode === "morning"} onClick={() => setMode("morning")}><Sun className="h-3.5 w-3.5"/>Morning</Button><Button type="button" size="xs" variant={mode === "evening" ? "secondary" : "ghost"} aria-pressed={mode === "evening"} onClick={() => setMode("evening")}><Moon className="h-3.5 w-3.5"/>Evening</Button></div></div>
     <h2 id="family-brief-title" className="sr-only">Actionable Family Brief</h2>
-    <Card className="border-primary/40 bg-primary/5"><CardContent className="p-4"><div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-primary">{mode === "morning" ? <Sun className="h-4 w-4"/> : <Moon className="h-4 w-4"/>}{mode === "morning" ? "30-second Morning Brief" : "Evening Review"}</div><p className="mt-2 text-sm leading-6">{aiEnabled ? aiBrief?.summary || "Deterministic brief is ready. AI summary is loading separately." : "AI summary is off. This brief uses current deterministic FamilyOS facts."}</p><div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3"><span>{data.events?.filter(event => String(event.start?.dateTime || event.start?.date || event.date || "").startsWith(today)).length || 0} events today</span><span>{primary.length} priorities</span><span>{brief.wins.length} wins</span></div></CardContent></Card>
-    <div><SectionHeader title={mode === "morning" ? "Today" : "Remaining Today"} count={primary.length} tone="red"/><div className="space-y-2">{primary.length ? primary.map(item => <RecommendationCard key={item.id} item={item} onRequest={request}/>) : <Card><CardContent className="p-4 text-sm text-muted-foreground">No immediate action is required.</CardContent></Card>}</div></div>
+    <Card className="border-primary/40 bg-primary/5"><CardContent className="p-4"><div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-primary">{mode === "morning" ? <Sun className="h-4 w-4"/> : <Moon className="h-4 w-4"/>}{mode === "morning" ? "30-second Morning Brief" : "Evening Review"}</div><p className="mt-2 text-sm leading-6">{aiEnabled ? aiBrief?.summary || "Deterministic brief is ready. AI summary is loading separately." : "AI summary is off. This brief uses current deterministic FamilyOS facts."}</p><div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4"><span>{data.events?.filter(event => String(event.start?.dateTime || event.start?.date || event.date || "").startsWith(today)).length || 0} events today</span><span>{primary.length} priorities</span><span>{brief.wins.length} wins</span>{settings.showWorkload&&<span><b className="capitalize">{intelligence.workload.level}</b> workload</span>}</div>{settings.showWorkload&&<p className="mt-2 text-xs text-muted-foreground">{intelligence.workload.explanation}</p>}<p className="mt-2 text-xs text-muted-foreground">{intelligence.trend}</p></CardContent></Card>
+    <div><SectionHeader title={mode === "morning" ? "Today" : "Remaining Today"} count={primary.length} tone="red"/><div className="space-y-2">{primary.length ? primary.map(item => <RecommendationCard key={item.id} item={item} onRequest={request} settings={settings}/>) : <Card><CardContent className="p-4 text-sm text-muted-foreground">No immediate action is required.</CardContent></Card>}</div></div>
     {mode === "morning" ? <>
-      <div><SectionHeader title="Next Actions" count={brief.nextActions.length} tone="blue"/><div className="space-y-2">{brief.nextActions.slice(0, 5).map(item => <RecommendationCard key={item.id} item={item} onRequest={request}/>)}</div></div>
+      <div><SectionHeader title="Next Actions" count={brief.nextActions.length} tone="blue"/><div className="space-y-2">{brief.nextActions.slice(0, 5).map(item => <RecommendationCard key={item.id} item={item} onRequest={request} settings={settings}/>)}</div></div>
       {brief.thisWeek.length > 0 && <div><SectionHeader title="This Week" count={brief.thisWeek.length} tone="purple"/><Card><CardContent className="divide-y divide-border p-2">{brief.thisWeek.map(item => <button key={item.id} type="button" className="flex min-h-12 w-full items-center justify-between gap-2 p-2 text-left" onClick={() => request(item, "view")}><span><b className="block text-sm">{item.title}</b><span className="text-xs text-muted-foreground">{item.recommendedAction}</span></span><ChevronRight className="h-4 w-4"/></button>)}</CardContent></Card></div>}
       <div className="grid gap-4 md:grid-cols-2"><div><SectionHeader title="Household Wins" count={brief.wins.length} tone="green"/><Card><CardContent className="p-4 text-sm">{brief.wins.length ? brief.wins.map(win => <p key={win} className="py-1">✓ {win}</p>) : <p className="text-muted-foreground">Wins will appear as work is completed.</p>}</CardContent></Card></div><div><SectionHeader title="Since Yesterday" count={brief.changes.length} tone="blue"/><Card><CardContent className="p-4 text-sm">{brief.changes.length ? brief.changes.map(change => <p key={change} className="py-1">{change}</p>) : <p className="text-muted-foreground">No meaningful change needs review.</p>}</CardContent></Card></div></div>
       <div className="grid gap-4 md:grid-cols-2"><div><SectionHeader title="Weekly Focus" count={brief.outcomes.length} tone="purple"/><Card><CardContent className="p-4">{brief.outcomes.map((outcome, index) => <p key={outcome} className="py-1 text-sm"><b>{index + 1}.</b> {outcome}</p>)}</CardContent></Card></div><div><SectionHeader title="What Can Wait" count={brief.canWait.length} tone="green"/><Card><CardContent className="p-4">{brief.canWait.length ? brief.canWait.map(item => <div key={item.id} className="py-1 text-sm"><b>{item.title}</b><p className="text-xs text-muted-foreground">{item.waitReason}</p></div>) : <p className="text-sm text-muted-foreground">Nothing has been explicitly deferred.</p>}</CardContent></Card></div></div>

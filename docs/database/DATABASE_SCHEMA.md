@@ -1,5 +1,9 @@
 # Database Schema
 
+## Release 3.4 recommendation intelligence
+
+`recommendation_feedback`, `recommendation_effectiveness`, `recommendation_learning`, and `recommendation_dependencies` store household-local feedback, lifecycle events, explainable learned patterns, and explicit recommendation relationships. The additive objects use household/user scoping, owner/adult writes, RLS, authenticated grants, and explicit anonymous/public denial. No existing records are changed.
+
 ## Release 3.3 recommendation lifecycle
 
 `recommendation_history` is an append-only household/user-scoped decision history for generated, accepted, dismissed, snoozed, completed, reviewed, never-remind, view, and owning-workflow routing events. It stores a canonical recommendation key, material trigger signature, source modules, related record identifiers, optional reminder time, and event time. RLS requires membership for reads and owner/adult role for writes. Anonymous and public access are denied.

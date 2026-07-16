@@ -1,5 +1,9 @@
 # Release Notes
 
+## Release 3.4.0: Intelligent Recommendation Engine
+
+Recommendations are smarter without becoming a black box. FamilyOS now shows separate priority and confidence, adapts the number of suggestions to household workload, combines related work, respects prerequisites, reduces repeated suggestions with adaptive cooldowns, and explains why each item appears now and ahead of alternatives. Optional household-local feedback improves future timing; no schedules are changed and no analytics leave the household.
+
 ## Release 3.3.0: Actionable Family Brief
 
 Family Brief now tells the household what needs attention, why it matters, and what to do next in under a minute. It includes Morning and Evening views, cross-module priorities, household wins, meaningful changes, weekly focus, and explicit items that are safe to postpone. Every recommendation explains its evidence and priority, and data-changing decisions require confirmation. Dismissals, snoozes, completions, reviews, and never-remind choices are retained securely per household member.

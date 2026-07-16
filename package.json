@@ -1,6 +1,6 @@
 {
   "name": "familyos",
-  "version": "3.3.0",
+  "version": "3.4.0",
   "private": true,
   "packageManager": "pnpm@11.7.0",
   "dependencies": {
@@ -40,6 +40,7 @@
     "test:db-3.1": "node scripts/validate-release-3.1.mjs",
     "test:db-3.2": "node scripts/validate-release-3.2.mjs",
     "test:db-3.3": "node scripts/validate-release-3.3.mjs",
+    "test:db-3.4": "node scripts/validate-release-3.4.mjs",
     "test:storage": "node scripts/validate-storage-flow.mjs",
     "test:production": "node scripts/verify-production.mjs",
     "typecheck": "tsc --noEmit --skipLibCheck src/services/contextEngine.d.ts src/services/timeline.d.ts src/services/advisoryContract.d.ts",
