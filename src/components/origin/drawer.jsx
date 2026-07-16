@@ -1,8 +1,29 @@
 import { X } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 
-export function OriginDrawer({ open, onOpenChange, title, description, children, footer, className }) {
+export function OriginDrawer({ open, onOpenChange, title, description, children, footer, className, restoreFocus }) {
+  const dialogRef = useRef(null);
+  const previousFocus = useRef(null);
+  const changeHandler = useRef(onOpenChange);
+  changeHandler.current = onOpenChange;
+  useEffect(() => {
+    if (!open) return undefined;
+    previousFocus.current = document.activeElement;
+    const focusable = () => Array.from(dialogRef.current?.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])') || []);
+    focusable()[0]?.focus();
+    function handleKeyDown(event) {
+      if (event.key === "Escape") { event.preventDefault(); changeHandler.current?.(false); return; }
+      if (event.key !== "Tab") return;
+      const items = focusable();
+      if (!items.length) return;
+      if (event.shiftKey && document.activeElement === items[0]) { event.preventDefault(); items.at(-1).focus(); }
+      else if (!event.shiftKey && document.activeElement === items.at(-1)) { event.preventDefault(); items[0].focus(); }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => { const target = previousFocus.current; document.removeEventListener("keydown", handleKeyDown); setTimeout(() => { const destination = restoreFocus?.() || target; if (destination?.isConnected) destination.focus?.(); }, 0); };
+  }, [open, restoreFocus]);
   if (!open) return null;
 
   return (
@@ -11,6 +32,7 @@ export function OriginDrawer({ open, onOpenChange, title, description, children,
       onClick={(event) => event.target === event.currentTarget && onOpenChange?.(false)}
     >
       <section
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? "origin-drawer-title" : undefined}

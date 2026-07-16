@@ -22,7 +22,7 @@ test("Release 2.3 Home, navigation, task views, Habits, and Routines", async ({ 
   const marker = `R23 ${Date.now()}`;
   await loginDemoUser(page);
   await expect(page.getByRole("button", { name: "Open AI Brief", exact: true })).toBeVisible();
-  await expect(page.getByText(/Family Brief/, { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Actionable Family Brief", exact: true })).toBeAttached();
   const nav = page.getByRole("navigation", { name: "Primary navigation" });
   await expect(nav.getByRole("button", { name: "Habits", exact: true })).toBeVisible();
   await expect(nav.getByRole("button", { name: "More", exact: true })).toBeVisible();
@@ -46,7 +46,9 @@ test("Release 2.3 Home, navigation, task views, Habits, and Routines", async ({ 
   await page.getByRole("button", { name: "Add household item", exact: true }).click();
   await page.getByRole("button", { name: "Habit Ready", exact: true }).click();
   await page.getByLabel("Name").fill(`${marker} habit`);
+  const habitCreate = page.waitForResponse(response => response.request().method() === "POST" && response.url().includes("/rest/v1/habits"));
   await page.getByRole("button", { name: "Add Habit", exact: true }).click();
+  expect((await habitCreate).ok()).toBe(true);
   await expect(page.getByText(`${marker} habit`, { exact: true })).toBeVisible();
   const habitCompletion = page.waitForResponse(response => response.request().method() === "POST" && response.url().includes("/rest/v1/habit_completions"));
   await page.getByRole("dialog").getByRole("button", { name: "Complete today", exact: true }).click();
@@ -60,7 +62,9 @@ test("Release 2.3 Home, navigation, task views, Habits, and Routines", async ({ 
   await page.getByRole("button", { name: "Routine Ready", exact: true }).click();
   await page.getByLabel("Name").fill(`${marker} routine`);
   await page.getByLabel("Checklist steps").fill("First step\nSecond step");
+  const routineCreate = page.waitForResponse(response => response.request().method() === "POST" && response.url().includes("/rest/v1/routines"));
   await page.getByRole("button", { name: "Add Routine", exact: true }).click();
+  expect((await routineCreate).ok()).toBe(true);
   await expect(page.getByText(`${marker} routine`, { exact: true })).toBeVisible();
   const firstStepSave = page.waitForResponse(response => response.request().method() === "POST" && response.url().includes("/rest/v1/routine_completions"));
   await page.getByText("First step", { exact: true }).click();

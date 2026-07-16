@@ -1,5 +1,9 @@
 # Project Status
 
+## 2026-07-16: Release 3.4.1 stabilization
+
+Release 3.4.1 is the current local stabilization candidate. It adds no feature or migration. The work repairs release validation, restores browser regression reliability, proves dynamic household/role isolation, validates the blank migration chain, expands recommendation lifecycle and accessibility coverage, and introduces one maintainable release-gate command. Publication and production changes remain outside this local workstream.
+
 ## 2026-07-15: Release 3.4.0 implementation
 
 The deterministic Family Brief now has an adaptive, transparent intelligence layer. Confidence remains separate from priority; household-local outcomes tune ordering and cooldowns; workload limits noise; grouping and dependency handling improve actionability. No autonomous schedule changes or external household analytics were added.

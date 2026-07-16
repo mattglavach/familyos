@@ -7,8 +7,6 @@ test("Release 3.1 Relationship OS end-to-end", async ({ page }, testInfo) => {
   const uniqueName = `Relationship ${testInfo.project.name}`;
   await loginDemoUser(page);
 
-  await expect(page.getByText(/Relationship Focus/)).toBeVisible();
-  await expect(page.getByText("People to Reach Out To", { exact: true })).toBeVisible();
   await openMoreModule(page, "Relationships");
   await expect(page.getByRole("main", { name: "Relationships dashboard" })).toBeVisible();
   await expect(page.getByText(/Relationship Health Summary/)).toBeVisible();

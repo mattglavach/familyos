@@ -1,5 +1,11 @@
 # Release Checklist
 
+## Automated decision
+
+- [ ] Run `pnpm run release:gate` and retain the final `RELEASE READY` result.
+- [ ] Confirm the dynamic authorization stage names the dedicated test environment and never production.
+- [ ] Confirm manual accessibility limitations are documented rather than inferred as complete.
+
 Use this concise checklist immediately before merge and tag.
 
 ## Merge Checklist

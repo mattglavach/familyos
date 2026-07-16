@@ -15,6 +15,7 @@ import { ChipGroup, SegmentedControl } from "../../components/ui/segmented-contr
 import { SectionHeader } from "../../components/ui/section-header";
 import { parseQuickAdd } from "../../services/quickAddParser";
 import { HABIT_CATEGORIES } from "../habits/habitConfig";
+const quickAddTrigger = () => document.querySelector('[aria-label="Add household item"]');
 // - QUICK ADD -
 export function QuickAdd({onNavigate, openSignal = 0, initialMode = null}){
   const [open,setOpen] = useState(false);
@@ -243,7 +244,7 @@ export function QuickAdd({onNavigate, openSignal = 0, initialMode = null}){
         </div>
       </div>
     )}
-    <OriginDrawer open={open} onOpenChange={(nextOpen)=>{ if(!nextOpen) close(); }} title={modeTitle}>
+    <OriginDrawer open={open} onOpenChange={(nextOpen)=>{ if(!nextOpen) close(); }} restoreFocus={quickAddTrigger} title={modeTitle}>
         {!mode&&<>
           <SectionHeader title="Smart Entry" className="mt-0"/>
           <div className="mb-5 space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-3"><Label htmlFor="smart-quick-add">Describe one household item</Label><Input id="smart-quick-add" autoFocus value={smartText} onChange={event=>{setSmartText(event.target.value);setParsed(null);}} onKeyDown={event=>{if(event.key==="Enter")analyzeSmart();}} placeholder="Replace HVAC filter next month"/><Button type="button" className="w-full" variant="secondary" disabled={!smartText.trim()} onClick={analyzeSmart}><Sparkles className="h-4 w-4"/>Review detected item</Button>{parsed&&<div className="rounded-md border border-border bg-card p-3 text-sm" role="status"><div className="font-bold">{parsed.valid?`${parsed.module} · ${parsed.title||"Untitled"}`:"Could not parse this item"}</div>{parsed.date&&<div className="mt-1 text-muted-foreground">Resolved date: {parsed.date}{parsed.time?` at ${parsed.time}`:""} · {parsed.timezone}</div>}{parsed.ambiguities?.map(message=><div key={message} className="mt-1 text-amber-300">{message}</div>)}{parsed.excluded&&<div className="mt-1 text-muted-foreground">Shopping is intentionally outside the active FamilyOS experience.</div>}{parsed.valid&&<Button type="button" size="xs" className="mt-3" onClick={confirmSmart}>Confirm and edit</Button>}</div>}</div>

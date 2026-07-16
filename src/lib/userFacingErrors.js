@@ -11,6 +11,17 @@ function rawMessage(error) {
   }
 }
 
+export function normalizeError(error, fallback = "An unexpected error occurred.", context = "") {
+  if (error instanceof Error) return error;
+  const message = rawMessage(error) || fallback;
+  const normalized = new Error(context ? `${context}: ${message}` : message);
+  normalized.name = "FamilyOSError";
+  if (error && typeof error === "object" && typeof error.code === "string") {
+    normalized.code = error.code;
+  }
+  return normalized;
+}
+
 function matches(message, patterns) {
   const value = message.toLowerCase();
   return patterns.some(pattern => value.includes(pattern));

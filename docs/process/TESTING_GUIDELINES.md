@@ -1,5 +1,11 @@
 # Testing Guidelines
 
+## Release gate
+
+Run `pnpm run release:gate` for a complete release decision. It validates release identity and documentation, whitespace, aggregate code/database checks, authenticated two-household authorization, the disposable blank database chain, deterministic seed reruns, and the complete Playwright regression/accessibility matrix. Each stage prints `START`, `PASS`, or `RELEASE BLOCKED`; a successful run ends with `RELEASE READY`.
+
+The gate requires the configured dedicated non-production Supabase environment. It must never point at production. Manual screen-reader and platform-specific assistive-technology review remain separate checks.
+
 This document is the active testing and validation guide. The older development baseline is archived under `docs/archive/development-baseline/`.
 
 It provides specialized validation detail under `docs/governance/FamilyOS_Project_Instructions.md`.

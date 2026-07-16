@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.4.1 - 2026-07-16
+
+- Restored Release 3.4 aggregate validation and added a permanent staged release gate.
+- Added dynamic two-household role/RLS, private Storage, recommendation lifecycle, blank-database, and deterministic seed validation.
+- Repaired stale Home-dependent Playwright workflows and expanded keyboard, dialog, responsive, and recommendation accessibility coverage.
+- Attributed the non-blocking `DEP0169` warning to Vercel tooling rather than FamilyOS application code.
+
 ## 3.4.0 - 2026-07-15
 
 - Added separate explainable confidence scoring, workload-aware surfacing, adaptive fatigue cooldowns, material-change bypass, grouping, dependencies, effectiveness metrics, trends, and feedback.

@@ -15,3 +15,23 @@ test("Release 2.5 representative authenticated accessibility audit",async({page}
  await openMoreModule(page,"Relationships"); await audit(page,"Relationships");
  await page.keyboard.press("Tab"); await expect(page.locator(":focus")).toBeVisible();
 });
+
+test("keyboard, dialog focus, responsive zoom-equivalent, and recommendation accessibility",async({page})=>{
+ await loginDemoUser(page);
+ await page.getByRole("button",{name:"Add household item",exact:true}).focus();
+ await expect(page.getByRole("button",{name:"Add household item",exact:true})).toBeFocused();
+ await page.keyboard.press("Enter");
+ const quickAdd=page.getByRole("dialog");
+ await expect(quickAdd).toBeVisible();
+ await expect(quickAdd.getByRole("button",{name:"Close",exact:true})).toBeFocused();
+ await page.keyboard.press("Escape");
+ await expect(quickAdd).toBeHidden();
+ await expect(page.getByRole("button",{name:"Add household item",exact:true})).toBeFocused();
+
+ for(const viewport of [{width:640,height:480},{width:1024,height:768},{width:1440,height:900}]){
+  await page.setViewportSize(viewport);
+  const layout=await page.evaluate(()=>({client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth}));
+  expect(layout.scroll).toBeLessThanOrEqual(layout.client);
+ }
+ await audit(page,"Responsive recommendation Home");
+});

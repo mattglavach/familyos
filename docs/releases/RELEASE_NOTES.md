@@ -1,5 +1,9 @@
 # Release Notes
 
+## Release 3.4.1: Stabilization
+
+FamilyOS 3.4.1 is a validation and accessibility stabilization release. It adds no new household capability and no database migration. The release makes the aggregate gate trustworthy, proves household isolation with authenticated multi-role tests, restores full cross-viewport regression coverage, validates the complete disposable database chain, persists recommendation lifecycle decisions across sessions, and gives shared dialogs and Quick Add complete keyboard focus behavior.
+
 ## Release 3.4.0: Intelligent Recommendation Engine
 
 Recommendations are smarter without becoming a black box. FamilyOS now shows separate priority and confidence, adapts the number of suggestions to household workload, combines related work, respects prerequisites, reduces repeated suggestions with adaptive cooldowns, and explains why each item appears now and ahead of alternatives. Optional household-local feedback improves future timing; no schedules are changed and no analytics leave the household.

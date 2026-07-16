@@ -8,7 +8,6 @@ test("Release 3.2 Family Assistant advisory and fallback workflow",async({page},
   await page.route("**/api/advisory",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({contract:"familyos.advisory-response",version:"3.2",summary:"One household item needs review. Start with the highest-priority item.",findings:[],recommendations:[{id:"task-plan",title:"Prepare the weekly plan",explanation:"A task is due this week.",priority:"high",sourceModule:"tasks",relatedRecordIds:["task-1"],evidenceLevel:"confirmed",approvalRequired:true,proposedAction:{type:"create_task",payload:{title:"Prepare weekly plan"}}}],risks:[],supportingRecords:[],sourceModules:["tasks","calendar"],generatedAt:new Date().toISOString(),fallback:false})}));
   const failures=monitorPage(page);
   await loginDemoUser(page);
-  await expect(page.getByText("Executive summary",{exact:true})).toBeVisible();
   await openMoreModule(page,"Family Assistant");
   await expect(page.getByRole("main",{name:"Family Assistant"})).toBeVisible();
   await expect(page.getByText(/cannot change a record without your review/i)).toBeVisible();

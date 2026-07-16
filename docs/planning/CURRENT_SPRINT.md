@@ -1,5 +1,12 @@
 # Current Sprint
 
+## Release 3.4.1: Stabilization
+
+Status: implementation and validation complete locally. No production mutation, publication, deployment, tag, push, or commit is included.
+
+- Complete: aggregate Release 3.4 gate repair, stale Playwright workflow repair, two-household role/RLS harness, hosted test upgrade, blank disposable chain, recommendation lifecycle persistence, shared dialog/drawer keyboard behavior, and DEP0169 attribution.
+- Final gate: `pnpm run release:gate`.
+
 ## Release 3.4.0: Intelligent Recommendation Engine
 
 Status: implementation and local validation complete. Production migration, deployment, verification, tag, and push are blocked by missing production Supabase and Vercel credentials in this environment.

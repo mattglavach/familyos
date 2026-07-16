@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useHousehold } from "../context/HouseholdContext";
 import { SEED } from "../data/seed";
 import { supabase } from "../lib/supabase";
+import { normalizeError } from "../lib/userFacingErrors";
 // - DATA HOOK -
 const DATA_CHANGED_EVENT = "familyos:data-changed";
 
@@ -59,8 +60,9 @@ export function useTable(table,orderCol,orderAsc=false,options={}){
     const nextRow=withOwnership(row);
     const{data:r,error}=await supabase.from(table).insert(nextRow).select().single();
     if(error){
-      console.error(`Insert failed on ${table}:`,error);
-      throw error;
+      const normalized=normalizeError(error,"Persistence request failed.",`Insert failed on ${table}`);
+      console.warn(normalized.message,normalized.code?{code:normalized.code}:undefined);
+      throw normalized;
     }
     await load({throwOnError:true});
     notifyTableChanged(table);
@@ -70,8 +72,9 @@ export function useTable(table,orderCol,orderAsc=false,options={}){
     const nextRow=withOwnership(row);
     const{error}=await supabase.from(table).update(nextRow).eq("id",id);
     if(error){
-      console.error(`Update failed on ${table}:`,error);
-      throw error;
+      const normalized=normalizeError(error,"Persistence request failed.",`Update failed on ${table}`);
+      console.warn(normalized.message,normalized.code?{code:normalized.code}:undefined);
+      throw normalized;
     }
     await load({throwOnError:true});
     notifyTableChanged(table);
@@ -79,8 +82,9 @@ export function useTable(table,orderCol,orderAsc=false,options={}){
   async function remove(id){
     const{error}=await supabase.from(table).delete().eq("id",id);
     if(error){
-      console.error(`Delete failed on ${table}:`,error);
-      throw error;
+      const normalized=normalizeError(error,"Persistence request failed.",`Delete failed on ${table}`);
+      console.warn(normalized.message,normalized.code?{code:normalized.code}:undefined);
+      throw normalized;
     }
     await load({throwOnError:true});
     notifyTableChanged(table);

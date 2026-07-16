@@ -4,6 +4,37 @@ import { cn } from "../../lib/utils";
 import { Button } from "./button";
 
 function Dialog({ open, onOpenChange, children }) {
+  const previousFocus = React.useRef(null);
+  const changeHandler = React.useRef(onOpenChange);
+  changeHandler.current = onOpenChange;
+  React.useEffect(() => {
+    if (!open) return undefined;
+    previousFocus.current = document.activeElement;
+    const dialog = document.querySelector('[role="dialog"][aria-modal="true"]');
+    const focusable = () => Array.from(dialog?.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])') || []);
+    const first = focusable()[0];
+    first?.focus();
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        changeHandler.current?.(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const items = focusable();
+      if (!items.length) return;
+      const firstItem = items[0];
+      const lastItem = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === firstItem) { event.preventDefault(); lastItem.focus(); }
+      else if (!event.shiftKey && document.activeElement === lastItem) { event.preventDefault(); firstItem.focus(); }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      const target = previousFocus.current;
+      setTimeout(() => target?.isConnected && target.focus?.(), 0);
+    };
+  }, [open]);
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={(event) => event.target === event.currentTarget && onOpenChange?.(false)}>

@@ -97,6 +97,22 @@ describe("useTable persistence", () => {
     }));
   });
 
+  test("normalizes plain persistence error objects before rejecting", async () => {
+    supabase.from.mockReturnValue(tableApi({
+      selectResults: [{ data: [], error: null }],
+      insertResult: { data: null, error: { message: "insert denied", code: "42501" } },
+      insertedRows,
+    }));
+
+    await act(async () => {
+      root.render(React.createElement(HookProbe, { onSnapshot: snapshot => snapshots.push(snapshot) }));
+    });
+
+    const rejection = snapshots[snapshots.length - 1].insert({ date: "2026-07-06", ph: 7.5, free_chlorine: 5.5 });
+    await expect(rejection).rejects.toBeInstanceOf(Error);
+    await expect(rejection).rejects.toMatchObject({ message: "Insert failed on pool_readings: insert denied", code: "42501" });
+  });
+
   test("reloads persisted rows after a successful insert", async () => {
     const selectRows = { value: [] };
     supabase.from.mockReturnValue(tableApi({

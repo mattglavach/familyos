@@ -14,6 +14,7 @@ import { formatCalendarEventTime, normalizeCalendarEvent } from "../../lib/calen
 import { dedupeNotifications, notificationIsEnabled } from "./notificationEngine";
 import { briefLabel, dueBriefs } from "../../services/briefScheduling";
 import { generateRecommendations } from "../../services/recommendations/engine";
+import { formatUserFacingError, normalizeError } from "../../lib/userFacingErrors";
 
 const STORAGE_KEY = "familyos_notification_read_ids_v1";
 const NOTIFICATION_VIEWS = [
@@ -117,6 +118,7 @@ export function NotificationCenter({ open, onOpenChange, calendarEvents, househo
   const preferences=useMemo(()=>notificationPreferences.data[0]||{},[notificationPreferences.data]);
   const smartNotifications=useMemo(()=>generateRecommendations({tasks:taskTable.data,events:calendarEvents,habits:habits.data,habitCompletions:habitCompletions.data,poolReadings:readings.data,poolSchedule:schedule.data,maintenance:homeAssets.data,gardenReminders:homeAssets.data.filter(item=>item.category==="garden")}).filter(item=>item.severity!=="info").map(item=>({id:`insight-${item.id}`,sourceKey:`insight-${item.id}`,category:item.category,priority:item.priorityScore,kind:item.category,tone:["critical","high"].includes(item.severity)?"urgent":"warning",title:item.title,detail:`${item.recommendedAction} · ${item.rationale}`,nav:item.nav})),[calendarEvents,habitCompletions.data,habits.data,homeAssets.data,readings.data,schedule.data,taskTable.data]);
   const [preferenceDraft,setPreferenceDraft]=useState({enabled_categories:DEFAULT_NOTIFICATION_CATEGORIES,quiet_hours_start:"21:00",quiet_hours_end:"07:00"});
+  const [preferenceSaveState,setPreferenceSaveState]=useState({saving:false,message:"",error:""});
   useEffect(()=>{if(notificationPreferences.data[0])setPreferenceDraft({...notificationPreferences.data[0],enabled_categories:{...DEFAULT_NOTIFICATION_CATEGORIES,...notificationPreferences.data[0].enabled_categories}});},[notificationPreferences.data]);
   const persistedRead=notificationStates.data.filter(s=>s.read_at).map(s=>s.source_key),dismissed=notificationStates.data.filter(s=>s.dismissed_at).map(s=>s.source_key);
   const notifications = useMemo(() => dedupeNotifications([...buildNotifications(taskTable.data, calendarEvents, household, calendar, poolContext,{habits:habits.data,routines:routines.data,dueBriefTypes:dueBriefs(scheduleMap,briefHistory.data)}),...smartNotifications]).filter(item=>notificationIsEnabled(item,preferences)&&!dismissed.includes(item.id)), [briefHistory.data, calendar, calendarEvents, dismissed, habits.data, household, poolContext, preferences, routines.data, scheduleMap, smartNotifications, taskTable.data]);
@@ -153,7 +155,18 @@ export function NotificationCenter({ open, onOpenChange, calendarEvents, househo
   }
 
   async function dismiss(event,item){event.stopPropagation();await persistState(item,{dismissed_at:new Date().toISOString()});}
-  async function savePreferences(){const existing=notificationPreferences.data[0],row={enabled_categories:preferenceDraft.enabled_categories,quiet_hours_start:preferenceDraft.quiet_hours_start,quiet_hours_end:preferenceDraft.quiet_hours_end,updated_at:new Date().toISOString()};if(existing)await notificationPreferences.update(existing.id,row);else await notificationPreferences.insert(row);}
+  async function savePreferences(){
+    if(preferenceSaveState.saving||notificationPreferences.loading)return;
+    setPreferenceSaveState({saving:true,message:"",error:""});
+    const existing=notificationPreferences.data[0],row={enabled_categories:preferenceDraft.enabled_categories,quiet_hours_start:preferenceDraft.quiet_hours_start,quiet_hours_end:preferenceDraft.quiet_hours_end,updated_at:new Date().toISOString()};
+    try{
+      if(existing)await notificationPreferences.update(existing.id,row);else await notificationPreferences.insert(row);
+      setPreferenceSaveState({saving:false,message:"Notification preferences saved.",error:""});
+    }catch(value){
+      const error=normalizeError(value,"Notification preferences could not be saved.","Notification preference save failed");
+      setPreferenceSaveState({saving:false,message:"",error:formatUserFacingError(error,"Notification preferences could not be saved right now. Try again.")});
+    }
+  }
 
   async function choose(item) {
     store(Array.from(new Set([...readIds, item.id])));
@@ -173,7 +186,7 @@ export function NotificationCenter({ open, onOpenChange, calendarEvents, househo
           <Button type="button" variant="secondary" size="xs" onClick={markAllRead}>Clear all</Button>
         </div>
         <ChipGroup value={view} options={NOTIFICATION_VIEWS} ariaLabel="Notification view" onValueChange={setView} />
-        <details className="rounded-lg border border-border p-3"><summary className="cursor-pointer text-sm font-bold">Notification preferences</summary><div className="mt-3 space-y-3"><div className="grid grid-cols-2 gap-2"><div><Label htmlFor="quiet-start">Quiet hours start</Label><Input id="quiet-start" type="time" value={String(preferenceDraft.quiet_hours_start).slice(0,5)} onChange={e=>setPreferenceDraft(p=>({...p,quiet_hours_start:e.target.value}))}/></div><div><Label htmlFor="quiet-end">Quiet hours end</Label><Input id="quiet-end" type="time" value={String(preferenceDraft.quiet_hours_end).slice(0,5)} onChange={e=>setPreferenceDraft(p=>({...p,quiet_hours_end:e.target.value}))}/></div></div><div className="grid grid-cols-2 gap-2">{Object.keys(DEFAULT_NOTIFICATION_CATEGORIES).map(category=><div key={category} className="flex min-h-11 items-center justify-between gap-2"><Label htmlFor={`notify-${category}`} className="capitalize">{category}</Label><Switch id={`notify-${category}`} checked={preferenceDraft.enabled_categories[category]!==false} onCheckedChange={enabled=>setPreferenceDraft(p=>({...p,enabled_categories:{...p.enabled_categories,[category]:enabled}}))}/></div>)}</div><Button type="button" size="xs" className="w-full" onClick={savePreferences}>Save notification preferences</Button></div></details>
+        <details className="rounded-lg border border-border p-3"><summary className="cursor-pointer text-sm font-bold">Notification preferences</summary><div className="mt-3 space-y-3"><div className="grid grid-cols-2 gap-2"><div><Label htmlFor="quiet-start">Quiet hours start</Label><Input id="quiet-start" type="time" value={String(preferenceDraft.quiet_hours_start).slice(0,5)} onChange={e=>setPreferenceDraft(p=>({...p,quiet_hours_start:e.target.value}))}/></div><div><Label htmlFor="quiet-end">Quiet hours end</Label><Input id="quiet-end" type="time" value={String(preferenceDraft.quiet_hours_end).slice(0,5)} onChange={e=>setPreferenceDraft(p=>({...p,quiet_hours_end:e.target.value}))}/></div></div><div className="grid grid-cols-2 gap-2">{Object.keys(DEFAULT_NOTIFICATION_CATEGORIES).map(category=><div key={category} className="flex min-h-11 items-center justify-between gap-2"><Label htmlFor={`notify-${category}`} className="capitalize">{category}</Label><Switch id={`notify-${category}`} checked={preferenceDraft.enabled_categories[category]!==false} onCheckedChange={enabled=>setPreferenceDraft(p=>({...p,enabled_categories:{...p.enabled_categories,[category]:enabled}}))}/></div>)}</div>{preferenceSaveState.message&&<div role="status" aria-live="polite" className="rounded-md border border-emerald-700 bg-emerald-950/30 p-2 text-sm">{preferenceSaveState.message}</div>}{preferenceSaveState.error&&<div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 p-2 text-sm text-destructive">{preferenceSaveState.error}</div>}<Button type="button" size="xs" className="w-full" onClick={savePreferences} disabled={notificationPreferences.loading||preferenceSaveState.saving}>{preferenceSaveState.saving?"Saving notification preferences...":"Save notification preferences"}</Button></div></details>
         {visibleNotifications.length ? (
           <div className="space-y-2">
             {visibleNotifications.map(item => {
