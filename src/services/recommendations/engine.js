@@ -1,3 +1,5 @@
+import { buildCrossModuleRecommendations } from "./brief";
+
 const DAY_MS = 86400000;
 
 export const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
@@ -40,11 +42,19 @@ export function insight(input) {
     createdAt: input.createdAt||null,
     expiresAt: input.expiresAt||null,
     deduplicationKey: input.deduplicationKey||input.id,
-    rationale: input.rationale||`${severity[0].toUpperCase()+severity.slice(1)} priority based on timing, impact, and available evidence.`,
+    rationale: input.rationale||`${severity[0].toUpperCase()+severity.slice(1)} priority based on timing, household impact, and deterministic evidence.`,
+    priorityReason: input.priorityReason || input.rationale || `${severity[0].toUpperCase()+severity.slice(1)} priority because the timing and household impact match the ${severity} threshold.`,
+    sourceModules: input.sourceModules || [input.category],
+    triggerConditions: input.triggerConditions || input.supportingData || [],
+    relatedRecords: input.relatedRecords || input.sourceIds || [],
+    lastEvaluation: input.lastEvaluation || new Date().toISOString(),
+    dueTiming: input.dueTiming || (urgency === "immediate" ? "Today" : urgency === "soon" ? "This week" : "Flexible"),
+    actionType: input.actionType || (input.completable === false ? "view" : "complete"),
+    triggerSignature: input.triggerSignature || JSON.stringify([input.id, input.sourceIds || [], input.supportingData || []]),
   };
 }
 
-export function priorityScore(item,context={}){const severity={critical:60,high:45,medium:30,low:15,info:5}[item.severity]||0;const urgency={immediate:20,soon:12,"when practical":4}[item.urgency]||0;const confidence={high:10,moderate:5,low:0}[item.confidence]||0;const effort={quick:6,moderate:3,significant:0}[item.estimatedEffort]||0;const load=context.householdLoad==="high"&&item.severity!=="critical"?-4:0;return Math.max(0,severity+urgency+confidence+effort+load);}
+export function priorityScore(item,context={}){const severity={critical:60,high:45,medium:30,low:15,info:5}[item.severity]||0;const urgency={immediate:20,soon:12,"when practical":4}[item.urgency]||0;const confidence={high:10,moderate:5,low:0}[item.confidence]||0;const effort={quick:6,moderate:3,significant:0}[item.estimatedEffort]||0;const factors=(item.priorityFactors||[]).reduce((sum,factor)=>sum+({safety:15,dueDate:10,calendarProximity:8,householdImpact:8,dependencies:6,weather:6,relationshipTiming:5,habitConsistency:4,maintenanceUrgency:10,poolChemistry:15,manualPriority:8}[factor]||0),0);const load=context.householdLoad==="high"&&item.severity!=="critical"?-4:0;return Math.max(0,severity+urgency+confidence+effort+factors+load);}
 
 export function CalendarProvider(data, context) {
   const events = (data.events || []).filter(event => { const days = distance(eventDate(event), context.today); return days !== null && days >= 0 && days <= 7; });
@@ -124,8 +134,7 @@ export const DEFAULT_PROVIDERS = [CalendarProvider, TaskProvider, HabitProvider,
 export function generateRecommendations(data = {}, options = {}) {
   const context = { today: options.today || new Date().toISOString().slice(0, 10) };
   const dismissed = new Set(options.dismissedIds || []);
-  const ranked=(options.providers || DEFAULT_PROVIDERS)
-    .flatMap(provider => provider(data, context) || [])
+  const ranked=[...(options.providers || DEFAULT_PROVIDERS).flatMap(provider => provider(data, context) || []), ...buildCrossModuleRecommendations(data, context.today)]
     .filter(item => item && !dismissed.has(item.id) && (!item.expiresAt||item.expiresAt>=context.today))
     .map(item=>({...item,priorityScore:priorityScore(item,options)}))
     .filter((item,index,list)=>list.findIndex(other=>other.deduplicationKey===item.deduplicationKey)===index)

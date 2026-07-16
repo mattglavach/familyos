@@ -1,5 +1,9 @@
 # Release Notes
 
+## Release 3.3.0: Actionable Family Brief
+
+Family Brief now tells the household what needs attention, why it matters, and what to do next in under a minute. It includes Morning and Evening views, cross-module priorities, household wins, meaningful changes, weekly focus, and explicit items that are safe to postpone. Every recommendation explains its evidence and priority, and data-changing decisions require confirmation. Dismissals, snoozes, completions, reviews, and never-remind choices are retained securely per household member.
+
 ## Release 3.2.0 - AI Planning and Advisory
 
 FamilyOS 3.2 adds Family Assistant and an AI-assisted Family Brief grounded in selected, permission-scoped household records. Responses use a validated contract for summaries, findings, recommendations, risks, evidence, source modules, and proposed actions. Weekly planning combines the next seven days of work with deterministic Calendar and Pool intelligence. Model output cannot directly change household records; proposed changes must be reviewed and continue through the owning FamilyOS form.

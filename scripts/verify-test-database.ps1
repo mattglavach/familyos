@@ -120,7 +120,7 @@ begin
   end loop;
   select count(*) into history_count from supabase_migrations.schema_migrations where version=any($versions);
   if history_count <> $expectedCount then raise exception 'Approved migration history count mismatch: %', history_count; end if;
-  if exists (select 1 from supabase_migrations.schema_migrations where version not in (select unnest($versions))) then raise exception 'Migration history contains versions outside the approved 3.2 chain.'; end if;
+  if exists (select 1 from supabase_migrations.schema_migrations where version not in (select unnest($versions))) then raise exception 'Migration history contains versions outside the approved 3.3 chain.'; end if;
 end
 `$familyos_verify`$;
 "@

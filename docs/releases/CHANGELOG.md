@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.3.0 - 2026-07-15
+
+- Redesigned Family Brief around Today, Next Actions, This Week, wins, meaningful changes, weekly outcomes, and safe-to-wait guidance.
+- Added condensed Morning Brief and Evening Review experiences.
+- Added transparent recommendation priority factors, cross-module context, explanations, deduplication, lifecycle history, snooze/dismiss/complete/review suppression, and confirmed actions.
+- Added the additive, RLS-protected `recommendation_history` migration and Release 3.3 validation gates.
+
 ## Unreleased
 - Added a manifest-driven, PowerShell-only blank test-project initializer and read-only verifier aligned to Release 3.2.0 and all 25 production history versions.
 - Added fail-closed project-reference, production-target, non-empty database, file completeness, migration-order, secret-output, and prohibited-command safeguards with offline tests.

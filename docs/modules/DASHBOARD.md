@@ -1,6 +1,8 @@
 # Dashboard
 
-Release 3.2 adds a progressive Family Brief executive summary. Deterministic recommendations render independently and remain available during provider delay or outage. The summary routes to Family Assistant and never mutates records inline.
+Release 3.3 makes Family Brief the daily operating center. Deterministic recommendations render independently and remain available during provider delay, provider outage, or when AI is disabled. Morning and Evening views organize concise actions, wins, changes, weekly outcomes, and safe-to-wait guidance. Recommendations show their source, trigger, priority reason, last evaluation, and related records. Confirmed lifecycle actions respect dismissals, snoozes, completed items, never-remind decisions, and material trigger changes.
+
+Home remains a synthesis and routing surface. Tasks, Calendar, Habits, Relationships, Pool, and Home Operations continue to own their records and deterministic calculations.
 
 Release 2.1.0 made Home a configurable daily briefing. It leads with explicit Top Priorities by default, gives Schedule and Family Snapshot useful empty states, and allows device-local ordering of those three sections. Home remains an awareness and routing surface with no inline record mutation.
 

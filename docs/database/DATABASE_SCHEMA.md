@@ -1,5 +1,11 @@
 # Database Schema
 
+## Release 3.3 recommendation lifecycle
+
+`recommendation_history` is an append-only household/user-scoped decision history for generated, accepted, dismissed, snoozed, completed, reviewed, never-remind, view, and owning-workflow routing events. It stores a canonical recommendation key, material trigger signature, source modules, related record identifiers, optional reminder time, and event time. RLS requires membership for reads and owner/adult role for writes. Anonymous and public access are denied.
+
+`ai_recommendations` gains transparent priority, suggested action, effort, due timing, trigger signature, source modules, last evaluation, reviewed time, and never-remind metadata.
+
 ## Release 3.2.0 AI Planning and Advisory
 
 Migration `20260714030000_release_3_2_ai_planning.sql` adds `ai_preferences`, `ai_recommendations`, `ai_proposed_actions`, and `ai_feedback`. Records are household-scoped and user-attributed. RLS limits each user to their own records in an active household and limits writes to owner/adult roles. Anonymous and public privileges are explicitly revoked. The migration is additive, performs no backfill, and stores no full prompts, context payloads, attachments, or conversation history.

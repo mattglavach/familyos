@@ -1,16 +1,16 @@
 # Blank Supabase test-project initialization
 
-This is the authoritative repository-controlled procedure for initializing a new dedicated non-production Supabase project to current FamilyOS production parity: Release 3.2.0 and 25 migration-history versions. It never seeds demo data automatically. Never use production credentials or a project containing real household data.
+This is the authoritative repository-controlled procedure for initializing a new dedicated non-production Supabase project to current FamilyOS release parity: Release 3.3.0 and 26 migration-history versions. It never seeds demo data automatically. Never use production credentials or a project containing real household data.
 
 ## Final baseline model
 
 The executable chain has three parts:
 
 1. Apply `supabase/schema.sql` once as the legacy baseline.
-2. Apply the 23 approved migrations from `20260701000000` through `20260714030000` in manifest order.
-3. Record the two non-executed historical versions only after their replacement condition is satisfied, producing the 25-version production-aligned ledger.
+2. Apply the 24 approved migrations from `20260701000000` through `20260715000000` in manifest order.
+3. Record the two non-executed historical versions only after their replacement condition is satisfied, producing the 26-version release-aligned ledger.
 
-`supabase/approved-migrations.json` is the machine-readable source of truth shared by the initializer and verifier. It distinguishes 23 executable migrations from two history-only files. The history-only entries are never executed.
+`supabase/approved-migrations.json` is the machine-readable source of truth shared by the initializer and verifier. It distinguishes 24 executable migrations from two history-only files. The history-only entries are never executed.
 
 ### Baseline comparison and decision
 
@@ -75,8 +75,9 @@ The preceding production migration `20260701000000_release_0_6c_auth_ownership_b
 | 23 | `20260714010000_release_3_1_relationship_os.sql` | 3.1.0 | Execute | Relationships, goals, activities, indexes, triggers, RLS | Additive; requires #4 | `20260714010000` |
 | 24 | `20260714020000_release_3_1_relationship_security_hardening.sql` | 3.1.0 | Execute | Anonymous denial and authenticated grants | Privilege-only; requires #23 | `20260714020000` |
 | 25 | `20260714030000_release_3_2_ai_planning.sql` | 3.2.0 | Execute | AI preferences, recommendations, proposed actions, feedback, indexes, RLS | Transactional, additive, no backfill; requires #4/#24 | `20260714030000` |
+| 26 | `20260715000000_release_3_3_actionable_family_brief.sql` | 3.3.0 | Execute | Recommendation explanation metadata, lifecycle history, suppression state, indexes, RLS | Transactional, additive, no backfill; requires #25 | `20260715000000` |
 
-The Release 3.2 migration is safe on a blank Supabase project after the earlier household migration. It is transactional, additive, performs no backfill, uses no environment-specific values, applies household/user foreign keys, enables RLS, grants authenticated CRUD, and revokes `anon` and `public`. It creates required `updated_at` columns but does not create updated-at triggers or database functions; callers update those timestamps under the existing application contract.
+The Release 3.3 migration is safe after Release 3.2. It is transactional and additive, performs no backfill, uses no environment-specific values, applies household/user foreign keys, enables RLS, grants authenticated CRUD, and revokes `anon` and `public`.
 
 ## Why `supabase db push` is not used
 
@@ -151,13 +152,13 @@ pnpm run seed:demo
 
 ## Verification and safeguards
 
-The verifier checks all 25 production history versions, all Release 3.2 tables, required household/user columns, updated-at columns, indexes, RLS, household-scoped policies, authenticated CRUD, anonymous denial, Auth bootstrap, private attachment Storage, earlier module structures, and absence of demo data. It queries only catalogs and existence, never household content.
+The verifier checks all 26 release history versions, all Release 3.3 tables, required household/user columns, updated-at columns, indexes, RLS, household-scoped policies, authenticated CRUD, anonymous denial, Auth bootstrap, private attachment Storage, earlier module structures, and absence of demo data. It queries only catalogs and existence, never household content.
 
 The initializer requires explicit confirmation, exact reference matching, a valid PostgreSQL Supabase URL, required files, `psql`, and an empty FamilyOS database unless an exceptional override is supplied. Each file runs separately with `ON_ERROR_STOP=1`. The demo seed and Supabase CLI are never invoked.
 
 ### Local executable validation
 
-The full chain was executed successfully on 2026-07-15 against a fresh isolated PostgreSQL 18.4 cluster. The baseline, all 23 executable migrations, both history-only ledger entries, 25-version verifier, empty-data assertions, private Storage-bucket compatibility checks, and transactional Auth bootstrap behavior passed. The temporary database and cluster were then removed.
+The Release 3.2 chain was executed successfully on 2026-07-15 against a fresh isolated PostgreSQL 18.4 cluster. Release 3.3 extends that chain with the actionable brief migration; current validation evidence is recorded in the Release 3.3 completion report.
 
 The local harness supplies only the minimal Auth and Storage catalog compatibility objects required by the SQL. It does not reproduce the complete hosted Supabase Auth, Storage API, Realtime, Edge Function, SMTP, OAuth, or dashboard configuration. Those hosted services still require the manual test-project configuration below.
 

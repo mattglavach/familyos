@@ -7,14 +7,14 @@ const root = process.cwd();
 const manifestPath = path.join(root, "supabase", "approved-migrations.json");
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 
-assert.equal(manifest.expectedLatestRelease, "3.2.0");
-assert.equal(manifest.expectedMigrationCount, 25);
-assert.equal(manifest.expectedExecutionMigrationCount, 23);
+assert.equal(manifest.expectedLatestRelease, "3.3.0");
+assert.equal(manifest.expectedMigrationCount, 26);
+assert.equal(manifest.expectedExecutionMigrationCount, 24);
 assert.equal(manifest.expectedHistoryOnlyCount, 2);
-assert.equal(manifest.approvedMigrations.length, 23);
+assert.equal(manifest.approvedMigrations.length, 24);
 assert.equal(manifest.historyOnlyMigrations.length, 2);
 assert.equal(manifest.approvedMigrations.at(-1).file, manifest.expectedLatestMigrationFile);
-assert.equal(manifest.approvedMigrations.at(-1).version, "20260714030000");
+assert.equal(manifest.approvedMigrations.at(-1).version, "20260715000000");
 
 const baselineFile = path.join(root, manifest.baseline.file);
 assert.ok(fs.existsSync(baselineFile), "schema.sql baseline is missing");
@@ -37,8 +37,8 @@ assert.deepEqual(historyOnlyFiles, [
 ]);
 
 const allMigrations = [...manifest.approvedMigrations, ...manifest.historyOnlyMigrations];
-assert.equal(new Set(allMigrations.map(({ version }) => version)).size, 25);
-assert.equal(new Set(allMigrations.map(({ file }) => file)).size, 25);
+assert.equal(new Set(allMigrations.map(({ version }) => version)).size, 26);
+assert.equal(new Set(allMigrations.map(({ file }) => file)).size, 26);
 assert.deepEqual(
   manifest.approvedMigrations.map(({ version }) => version),
   manifest.approvedMigrations.map(({ version }) => version).toSorted(),
@@ -71,7 +71,7 @@ assert.match(productionHousehold, /familyos_bootstrap_auth_user_on_insert/);
 assert.match(productionHousehold, /public\.household_settings/);
 assert.match(productionHousehold, /public\.user_preferences/);
 
-const aiMigration = fs.readFileSync(path.join(root, manifest.expectedLatestMigrationFile), "utf8");
+const aiMigration = fs.readFileSync(path.join(root, "supabase/migrations/20260714030000_release_3_2_ai_planning.sql"), "utf8");
 for (const table of ["ai_preferences", "ai_recommendations", "ai_proposed_actions", "ai_feedback"]) {
   assert.match(aiMigration, new RegExp(`create table if not exists public\\.${table}`));
   assert.match(aiMigration, new RegExp(`alter table public\\.${table} enable row level security`));
@@ -81,5 +81,10 @@ assert.doesNotMatch(aiMigration, /^\s*(?:insert\s+into|update\s+public\.|delete\
 assert.match(aiMigration, /revoke all on[\s\S]+from anon,public/);
 assert.match(aiMigration, /grant select,insert,update,delete/);
 
-console.log("FamilyOS blank-database reconciliation passed statically: schema.sql + 23 executable migrations, 2 history-only versions, 25-version Release 3.2.0 parity.");
+const briefMigration = fs.readFileSync(path.join(root, manifest.expectedLatestMigrationFile), "utf8");
+assert.match(briefMigration, /create table if not exists public\.recommendation_history/);
+assert.match(briefMigration, /alter table public\.recommendation_history enable row level security/);
+assert.match(briefMigration, /^\s*begin;[\s\S]*commit;\s*$/i);
+assert.doesNotMatch(briefMigration, /^\s*(?:insert\s+into|update\s+public\.|delete\s+from)/im);
+console.log("FamilyOS blank-database reconciliation passed statically: schema.sql + 24 executable migrations, 2 history-only versions, 26-version Release 3.3.0 parity.");
 console.log("No SQL was executed. Run the guarded initializer only against an independently verified blank test project.");

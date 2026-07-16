@@ -54,6 +54,7 @@ This folder is the operating manual for Family OS.
 - docs/product/PRD_TEMPLATE.md
 
 ### Architecture
+- `docs/architecture/ACTIONABLE_FAMILY_BRIEF.md`
 - docs/architecture/CONTEXT_ENGINE.md
 - docs/architecture/SYSTEM_ARCHITECTURE.md
 - docs/architecture/FOLDER_STRUCTURE.md
@@ -119,6 +120,7 @@ This folder is the operating manual for Family OS.
 - docs/templates/RETROSPECTIVE.md
 
 ### Releases
+- Release 3.3.0 Actionable Family Brief: `docs/releases/RELEASE_3_3_0.md`
 - docs/releases/CHANGELOG.md
 - docs/releases/RELEASE_NOTES.md
 - Release 3.2.0 AI Planning and Advisory: `docs/releases/RELEASE_3_2_0.md`

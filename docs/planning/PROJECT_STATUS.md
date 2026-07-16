@@ -1,5 +1,9 @@
 # Project Status
 
+## 2026-07-15: Release 3.3.0 implementation
+
+Actionable Family Brief is implemented on `main`. The release adds a canonical recommendation lifecycle and a concise Home operating view without creating a new module or changing domain ownership. Local gates, dedicated hosted-test validation, and the additive production migration passed. Application deployment, production UI verification, and release tagging remain required before declaring the release complete.
+
 ## Current Release
 
 Post-release development infrastructure now includes a repository-controlled blank Supabase test-project manifest, PowerShell initializer, verifier, offline guard tests, and `pnpm run db:test:validate-local` aligned to Release 3.2.0. The final model applies `schema.sql` once, executes 23 production-ready migrations through AI Planning, and records the redundant baseline plus superseded local household draft as history-only versions for 25-version production ledger parity. The complete chain and verifier pass on both a disposable loopback-only PostgreSQL 18.4 cluster and a newly created dedicated non-production Supabase project. Hosted verification confirmed Auth bootstrap, private Storage, RLS, grants, policies, 25-version history alignment, repeatable demo seeding, and 81 authenticated browser tests. Production was not accessed or modified.

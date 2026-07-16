@@ -1,5 +1,9 @@
 # Roadmap
 
+## Release 3.3.0: Actionable Family Brief
+
+Implemented: deterministic actionable brief, recommendation lifecycle and suppression, Morning Brief, Evening Review, cross-module context, weekly outcomes, meaningful changes, safe-to-wait guidance, accessibility, and responsive polish. Pending release closeout: hosted test validation, production migration/deployment, production verification, and tag.
+
 ## Release 3.2.0 - AI Planning and Advisory
 
 Release 3.2.0 turns the existing context and recommendation foundations into an integrated advisory workflow. Family Assistant and the AI Family Brief use permission-scoped server context, validated structured responses, deterministic Calendar and Pool logic, explicit source indicators, and human-reviewed proposed actions. Provider failure never blocks core FamilyOS. Autonomous agents, automatic scheduling, automatic dosing, general internet search, and unrestricted tools remain excluded.

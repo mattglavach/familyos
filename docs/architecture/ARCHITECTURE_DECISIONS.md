@@ -1,5 +1,11 @@
 # Architecture Decisions
 
+## 2026-07-15: Home synthesizes canonical recommendations but does not own domain actions
+
+Decision: Release 3.3 uses deterministic domain providers plus a canonical lifecycle history. Home ranks, groups, explains, suppresses, and routes recommendations. Owning modules retain record truth and mutation workflows. AI is an asynchronous optional summary only. This avoids duplicate cards and opaque scores while preserving established module boundaries and human confirmation.
+
+See `docs/architecture/ACTIONABLE_FAMILY_BRIEF.md`.
+
 ## 2026-07-14 - AI advisory is server-scoped, structured, and non-executing
 
 Decision: Family Assistant uses an environment-configured provider abstraction behind an authenticated server endpoint. The endpoint verifies active household membership, queries only selected RLS-scoped records with the caller token, redacts internal identifiers, treats every household string as untrusted data, and validates the provider output contract before client rendering. Deterministic FamilyOS logic remains authoritative for dates, status, Calendar conflicts, and Pool chemistry.

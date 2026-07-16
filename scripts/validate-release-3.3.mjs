@@ -1,0 +1,7 @@
+import fs from "node:fs";import path from "node:path";import assert from "node:assert/strict";
+const root=process.cwd(),migration=fs.readFileSync(path.join(root,"supabase/migrations/20260715000000_release_3_3_actionable_family_brief.sql"),"utf8"),engine=fs.readFileSync(path.join(root,"src/services/recommendations/engine.js"),"utf8"),brief=fs.readFileSync(path.join(root,"src/services/recommendations/brief.js"),"utf8");
+assert.match(migration,/create table if not exists public\.recommendation_history/);assert.match(migration,/alter table public\.recommendation_history enable row level security/);assert.match(migration,/revoke all on public\.recommendation_history from anon, public/);assert.match(migration,/familyos_is_household_member/);assert.match(migration,/familyos_has_household_role/);
+for(const action of ["generated","accepted","dismissed","snoozed","completed","reviewed","never_remind"])assert.match(migration,new RegExp(`'${action}'`));
+for(const factor of ["safety","dueDate","calendarProximity","householdImpact","dependencies","weather","relationshipTiming","habitConsistency","maintenanceUrgency","poolChemistry","manualPriority"])assert.match(engine,new RegExp(factor));
+assert.match(brief,/buildCrossModuleRecommendations/);assert.match(brief,/applySuppression/);assert.match(brief,/canWait/);
+console.log("Release 3.3 recommendation lifecycle, RLS, suppression, cross-module, priority-factor, and brief-model assertions passed.");
