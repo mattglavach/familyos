@@ -12,4 +12,6 @@
 
 ## Production gate
 
-Production migration, authenticated responsive/accessibility smoke, deployment, and production postflight remain blocked until production Supabase and Vercel credentials are available in this environment. The application must not be pushed through the auto-deploying `main` branch before the additive migration is backed up, applied, and verified.
+Production preflight and schema snapshot confirmed 26 versions through Release 3.3. The additive Release 3.4 migration was applied to verified project `dsowansazqleudupnjug`; postflight confirmed four new empty tables, unchanged existing recommendation counts, expected lifecycle constraints and indexes, RLS, owner/adult write checks, anonymous denial, and migration version `20260715010000`.
+
+Initial production smoke identified one pre-existing WCAG AA contrast failure on the public sign-in button. Release closeout includes the narrow sign-in contrast correction and requires a final Vercel deployment plus stable/immutable production revalidation before tagging.

@@ -94,7 +94,7 @@ function AuthGate({auth}){
               <Label>Password</Label>
               <Input type="password" value={password} placeholder="Password" onChange={e=>setPassword(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!auth.sending)auth.signInWithPassword(email,password);}}/>
             </FormGroup>
-            <Button type="button" className="w-full" disabled={auth.sending} onClick={()=>auth.signInWithPassword(email,password)}>{signInButtonText}</Button>
+            <Button type="button" className="w-full bg-blue-700 hover:bg-blue-800" disabled={auth.sending} onClick={()=>auth.signInWithPassword(email,password)}>{signInButtonText}</Button>
             <div className="border-t border-border pt-4">
               <FormHelp className="mb-3">Need a fallback? Send a one-time magic link to the same approved email.</FormHelp>
               {!hasSentLink&&<Button type="button" variant="secondary" className="w-full" disabled={!canSend} onClick={()=>auth.sendMagicLink(email)}>{magicLinkButtonText}</Button>}
