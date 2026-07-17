@@ -177,9 +177,59 @@ For meaningful work:
 
 Preserve existing functionality unless removal is explicitly approved. Do not require the non-developer product owner to perform routine technical implementation.
 
+## Approved Development Toolchain
+
+The following standard development and release tools are approved for FamilyOS when already installed and configured. This is an approval catalog, not a claim that every tool is installed in every environment; verify availability, authentication, linkage, and target scope before use.
+
+### Source control and repository operations
+
+- Git
+- GitHub CLI
+
+### Runtime and package management
+
+- Node.js
+- pnpm
+
+### Backend and infrastructure
+
+- Supabase CLI
+- Vercel CLI
+
+### Testing and validation
+
+- Playwright and its required browsers
+- Repository-provided validation tools already defined in `package.json` and the lockfile, including ESLint, the configured test runner, TypeScript checks, and repository validation scripts
+
+Codex may use these approved tools without separate authorization for routine inspection, validation, testing, and read-only release verification. Repository-provided tools must be used through the existing package manager, scripts, and lockfile. Listing one as approved does not authorize adding, removing, or upgrading that dependency. Codex is the operating agent, not a project dependency or executable to add to the repository.
+
+FamilyOS uses pnpm as its sole repository package manager. Do not use npm or yarn for repository dependency or script operations, and do not create npm or yarn lockfiles. A CLI invoked by an established pnpm script remains subject to the same target-verification and authorization requirements as direct CLI use.
+
+Codex must not install, upgrade, remove, authenticate, relink, or reconfigure a tool unless the requested outcome clearly authorizes that action or the tool-specific project instructions authorize it. Do not add a tool that is not already installed, configured, or part of the repository without that authorization. Installing or upgrading application packages remains governed by the project's dependency-change rules. Approval to use a development tool does not authorize changes to `package.json`, lockfiles, application dependencies, authentication, account or project linkage, global machine configuration, production configuration, environment variables, or secrets.
+
+### Read-only CLI preference
+
+When an approved CLI is already installed, authenticated, correctly linked, and appropriately scoped, Codex should generally prefer it over manual dashboard navigation for equivalent read-only inspection because CLI output is more deterministic, reproducible, and auditable. This preference applies only when the command is read-only, preserves the correct account and project context, does not expose secrets, is not prohibited by the task or release, and provides information equivalent to or better than the dashboard.
+
+This preference does not authorize installation, upgrades, new authentication, account or project relinking, secret or environment-variable access, deployment, promotion, aliasing, removal, rollback, reconfiguration, production changes, or bypassing release-specific restrictions. It also does not replace browser or authenticated integration checks required for visual, functional, responsive, accessibility, or end-to-end validation.
+
+Examples include GitHub CLI for read-only pull request and check inspection, Vercel CLI for linked-project and deployment inspection or log review, Supabase CLI for authorized project-state or schema inspection, and Playwright for browser-based verification. These examples are guidance, not a command allowlist.
+
+Vercel CLI use and the Git-triggered deployment standard are governed by `docs/architecture/DEPLOYMENT.md`. Release-specific restrictions on deployment, installation, dependency changes, production changes, or environment changes override this general tool approval.
+
+## Environment and Tooling Recommendations
+
+For release, environment-review, setup, deployment, or governance tasks, Codex must identify and report material development-environment or tooling improvements relevant to the task. Relevant conditions include missing or unusable approved tools, incorrect authentication or project context, security- or compatibility-significant version risk, deprecated workflows, inconsistent package-manager usage, missing validation coverage, weak safeguards or auditability, repeated manual effort, poor reproducibility, and material developer friction.
+
+Do not recommend an update merely because a newer version exists. Each recommendation must be tied to security, compatibility, supported behavior, release reliability, validation coverage, operational efficiency, reproducibility, auditability, material developer friction, or a clearly better approved workflow. Report the current condition, recommended change, why it matters, priority (`Required`, `Recommended`, or `Optional`), risk of no change, authorization requirement, timing, and impact scope (`documentation-only`, `repository-local`, `machine-level`, or `production-impacting`).
+
+This requirement authorizes reporting only. It does not authorize Codex to install, upgrade, remove, authenticate, relink, reconfigure, change dependencies, modify production, or alter external services. When no material recommendation exists, use exactly: `No material environment, installation, configuration, or tooling changes are recommended at this time.` Omit this section from trivial tasks where environment or tooling is unrelated.
+
 ## Autonomous Execution and Safety Boundaries
 
 A clear product-owner request authorizes Codex to complete the practical engineering and release lifecycle required by that outcome, including implementation, validation, commits, pushes, pull requests, merges, tags, migrations, deployments, production checks, and cleanup. Do not divide that lifecycle into routine approval checkpoints.
+
+This lifecycle authorization remains subject to the approved-tool boundaries above and the deployment controls in `docs/architecture/DEPLOYMENT.md`. In particular, the presence of an installed deployment CLI does not itself authorize a deployment or production change.
 
 For production, destructive, security-sensitive, dependency, authentication, authorization, migration, or other high-impact work, verify the exact target, preserve backups or rollback paths, limit scope, validate the result, and recover or revert when needed. Stop only for a genuine external blocker, missing credentials or authority, organization-managed policy, third-party outage, or irreversible ambiguity where every reasonable option risks substantial data loss.
 

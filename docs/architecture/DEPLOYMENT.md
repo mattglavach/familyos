@@ -42,6 +42,37 @@ Google Calendar sync is optional. The preferred path uses the server-side Calend
 - Create Matt and his wife's users manually in Supabase Authentication > Users and set their passwords there.
 
 ## Deployment Rules
-- Main branch deploys production.
+- Git-triggered deployment through the linked GitHub repository and Vercel Git integration is the standard FamilyOS deployment workflow. A push or merge to `main` triggers the production deployment; the repository does not use a separate GitHub Actions deployment workflow.
 - Feature branches should be tested before merge.
 - Database migrations must be reviewed before production.
+
+## Vercel CLI Policy
+
+The Vercel CLI is an approved standard development and release tool when already installed and configured. Codex may use it for:
+
+- Authentication verification.
+- Project-link verification.
+- Inspecting projects and deployments.
+- Reviewing deployment status.
+- Reviewing build and runtime logs.
+- Read-only production verification.
+- Local Vercel-compatible validation when specifically required.
+
+The presence of the Vercel CLI does not authorize Codex to deploy automatically. Codex must not run a command that creates, promotes, rolls back, aliases, removes, or otherwise changes a Vercel deployment unless the requested outcome clearly authorizes that action under the canonical lifecycle rules. This includes, but is not limited to:
+
+- `vercel` when used without an inspection subcommand because the bare command starts a deployment
+- `vercel deploy`
+- `vercel --prod`
+- `vercel deploy --prod`
+- `vercel promote`
+- `vercel rollback`
+- `vercel remove`
+- Commands that alter domains, aliases, project settings, or environment variables.
+
+Release-specific restrictions on deployment, installation, dependency changes, production changes, or environment changes override the general approval to use the Vercel CLI.
+
+## Secrets and Local Vercel Files
+
+Codex must never print, expose, copy into reports, or commit secret values. Commands that download, add, update, or remove Vercel environment variables require explicit authorization unless the current task already provides that authorization.
+
+Generated local Vercel metadata and environment files must remain excluded from Git where appropriate. Before creating them, verify that sensitive paths such as `.vercel/`, `.env.local`, and `.env.*.local` are covered by `.gitignore`.
