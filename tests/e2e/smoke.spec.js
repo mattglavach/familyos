@@ -21,11 +21,9 @@ test("authenticated FamilyOS major-module smoke", async ({ page }, testInfo) => 
   await page.getByRole("button", { name: "Cancel" }).click();
   await expect(page.getByRole("button", { name: "Open Calendar" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Open Tasks" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Actionable Family Brief" })).toBeAttached();
-  await expect(page.getByRole("button", { name: "Morning" })).toBeVisible();
-  await page.getByRole("button", { name: "Morning" }).click();
-  await expect(page.getByText(/Next Actions/).first()).toBeVisible();
-  await expect(page.getByText(/Schedule annual physical/).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Morning Command Center" })).toBeAttached();
+  await expect(page.getByText("Best Next Action", { exact: true })).toHaveCount(1);
+  await expect(page.getByText("Next 7 Days", { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 
   await page.keyboard.press("Control+K");

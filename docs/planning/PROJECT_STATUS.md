@@ -1,5 +1,9 @@
 # Project Status
 
+## 2026-07-16: Release 3.5.0 local implementation
+
+Release 3.5 narrows Home to a 30-second Morning Command Center and removes independent recommendation generation from Notification Center. Both surfaces now use one deterministic lifecycle-aware pipeline. The release adds no schema, dependency, navigation, AI decision-making, deployment, or production mutation.
+
 ## 2026-07-16: Release 3.4.1 stabilization
 
 Release 3.4.1 is the current local stabilization candidate. It adds no feature or migration. The work repairs release validation, restores browser regression reliability, proves dynamic household/role isolation, validates the blank migration chain, expands recommendation lifecycle and accessibility coverage, and introduces one maintainable release-gate command. Publication and production changes remain outside this local workstream.

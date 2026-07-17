@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.5.0 - Unreleased
+
+- Unified Home and Notification Center on one deterministic, lifecycle-aware recommendation pipeline.
+- Added a concise Morning Command Center with one Best Next Action, two supporting priorities, meaningful changes, safe deferrals, and a collapsed seven-day outlook.
+- Refactored ranking into named normalized factors with deterministic explanations and a critical-safety score floor.
+- Added no migration, dependency, navigation item, autonomous behavior, or production change.
+
 ## 3.4.1 - 2026-07-16
 
 - Restored Release 3.4 aggregate validation and added a permanent staged release gate.

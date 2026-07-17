@@ -33,10 +33,10 @@ test("Release 3.4 recommendation lifecycle persists through reload and reauthent
   expect(historyError).toBeNull();
   expect(history.remind_after).toBeTruthy();
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Actionable Family Brief" })).toBeAttached();
+  await expect(page.getByRole("heading", { name: "Morning Command Center" })).toBeAttached();
   await logoutDemoUser(page);
   await loginDemoUser(page);
-  await expect(page.getByRole("heading", { name: "Actionable Family Brief" })).toBeAttached();
+  await expect(page.getByRole("heading", { name: "Morning Command Center" })).toBeAttached();
   const persisted = await admin.from("recommendation_history").select("id").eq("recommendation_key", history.recommendation_key).eq("action", "snoozed");
   expect(persisted.error).toBeNull();
   expect(persisted.data.length).toBeGreaterThan(0);

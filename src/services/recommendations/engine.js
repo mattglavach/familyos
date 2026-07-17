@@ -54,7 +54,25 @@ export function insight(input) {
   };
 }
 
-export function priorityScore(item,context={}){const severity={critical:60,high:45,medium:30,low:15,info:5}[item.severity]||0;const urgency={immediate:20,soon:12,"when practical":4}[item.urgency]||0;const confidence={high:10,moderate:5,low:0}[item.confidence]||0;const effort={quick:6,moderate:3,significant:0}[item.estimatedEffort]||0;const factors=(item.priorityFactors||[]).reduce((sum,factor)=>sum+({safety:15,dueDate:10,calendarProximity:8,householdImpact:8,dependencies:6,weather:6,relationshipTiming:5,habitConsistency:4,maintenanceUrgency:10,poolChemistry:15,manualPriority:8}[factor]||0),0);const load=context.householdLoad==="high"&&item.severity!=="critical"?-4:0;return Math.max(0,severity+urgency+confidence+effort+factors+load);}
+export const clamp01 = value => Math.max(0, Math.min(1, Number(value) || 0));
+export const urgencyFactor = item => ({ immediate: 1, soon: 0.6, "when practical": 0.2 }[item.urgency] || 0.2);
+export const impactFactor = item => ({ critical: 1, high: 0.8, medium: 0.5, low: 0.2, info: 0.1 }[item.severity] || 0.1);
+export const dueProximityFactor = item => item.dueTiming === "Today" ? 1 : item.dueTiming === "Tomorrow" ? 0.8 : item.urgency === "soon" ? 0.5 : 0.2;
+export const memberRelevanceFactor = item => item.assignedToCurrentUser ? 1 : item.assignedPersonId ? 0.5 : 0.7;
+export const calendarPressureFactor = item => (item.priorityFactors || []).includes("calendarProximity") ? 1 : 0;
+export const weatherImpactFactor = item => (item.sourceModules || []).includes("weather") ? 1 : 0;
+export const opportunityWindowFactor = item => item.expiresAt || item.urgency === "immediate" ? 1 : 0.3;
+export const manualPriorityFactor = item => (item.priorityFactors || []).includes("manualPriority") ? 1 : 0;
+export const crossModuleFactor = item => clamp01(((item.sourceModules || []).length - 1) / 2);
+// Retained canonical factor vocabulary keeps Release 3.3 provider and audit contracts compatible.
+export const PRIORITY_FACTORS = ["safety", "dueDate", "calendarProximity", "householdImpact", "dependencies", "weather", "relationshipTiming", "habitConsistency", "maintenanceUrgency", "poolChemistry", "manualPriority"];
+
+export function priorityScore(item, context = {}) {
+  const positive = 24 * urgencyFactor(item) + 20 * impactFactor(item) + 10 * dueProximityFactor(item) + 8 * memberRelevanceFactor(item) + 8 * calendarPressureFactor(item) + 7 * weatherImpactFactor(item) + 5 * opportunityWindowFactor(item) + 4 * manualPriorityFactor(item) + 4 * crossModuleFactor(item);
+  const workloadMismatch = ["heavy", "overloaded", "high"].includes(context.householdLoad) && item.estimatedEffort === "significant" ? 8 : 0;
+  const score = Math.max(0, Math.min(100, Math.round(positive - workloadMismatch)));
+  return item.severity === "critical" ? Math.max(85, score) : score;
+}
 
 export function CalendarProvider(data, context) {
   const events = (data.events || []).filter(event => { const days = distance(eventDate(event), context.today); return days !== null && days >= 0 && days <= 7; });

@@ -3,8 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 
 const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
-const requiredVersion = "3.4.1";
-const docs = ["docs/releases/RELEASE_3_4_1.md", "docs/releases/RELEASE_3_4_1_VALIDATION.md"];
+const requiredVersion = "3.5.0";
+const docs = ["docs/releases/RELEASE_3_5_0.md", "docs/releases/RELEASE_3_5_0_VALIDATION.md"];
 const stages = [
   ["Aggregate code and database validation", ["run", "check"]],
   ["Deterministic seed first pass", ["run", "seed:demo"]],

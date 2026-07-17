@@ -1,5 +1,13 @@
 # Current Sprint
 
+## Release 3.5.0: Morning Command Center and Unified Recommendation Engine
+
+Status: implementation and local validation in progress. Publication and production changes are excluded.
+
+- Scope: one shared recommendation pipeline, one Best Next Action, two supporting priorities, meaningful changes, safe deferrals, and a collapsed seven-day Home outlook.
+- Deferred to 3.6: effectiveness reporting and advanced analytics.
+- Database: no migration.
+
 ## Release 3.4.1: Stabilization
 
 Status: implementation and validation complete locally. No production mutation, publication, deployment, tag, push, or commit is included.

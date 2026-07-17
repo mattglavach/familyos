@@ -13,7 +13,7 @@ import { buildPoolContext } from "../pool/domainService";
 import { formatCalendarEventTime, normalizeCalendarEvent } from "../../lib/calendarTime";
 import { dedupeNotifications, notificationIsEnabled } from "./notificationEngine";
 import { briefLabel, dueBriefs } from "../../services/briefScheduling";
-import { generateRecommendations } from "../../services/recommendations/engine";
+import { buildRecommendationPipeline, recommendationNotification } from "../../services/recommendations/pipeline";
 import { formatUserFacingError, normalizeError } from "../../lib/userFacingErrors";
 
 const STORAGE_KEY = "familyos_notification_read_ids_v1";
@@ -111,12 +111,14 @@ export function NotificationCenter({ open, onOpenChange, calendarEvents, househo
   const habitCompletions=useTable("habit_completions","completed_at"),homeAssets=useTable("home_assets","next_maintenance",true);
   const briefSchedules=useTable("brief_schedules","created_at",true),briefHistory=useTable("brief_generation_history","generated_at");
   const notificationStates=useTable("notification_states","updated_at"),notificationPreferences=useTable("notification_preferences","updated_at");
+  const recommendationHistory=useTable("recommendation_history","created_at");
   const poolContext = useMemo(() => buildPoolContext({ householdIdentifier: household.householdId, profile: profiles.data[0] || null, readings: readings.data, treatments: treatments.data, equipment: equipment.data, schedule: schedule.data, tasks: taskTable.data }), [equipment.data, household.householdId, profiles.data, readings.data, schedule.data, taskTable.data, treatments.data]);
   const [readIds, setReadIds] = useState(() => readStoredIds());
   const [view, setView] = useState("unread");
   const scheduleMap=useMemo(()=>Object.fromEntries(briefSchedules.data.map(item=>[item.brief_type,{enabled:item.enabled,time:String(item.preferred_time).slice(0,5),days:item.active_days||[]}])) ,[briefSchedules.data]);
   const preferences=useMemo(()=>notificationPreferences.data[0]||{},[notificationPreferences.data]);
-  const smartNotifications=useMemo(()=>generateRecommendations({tasks:taskTable.data,events:calendarEvents,habits:habits.data,habitCompletions:habitCompletions.data,poolReadings:readings.data,poolSchedule:schedule.data,maintenance:homeAssets.data,gardenReminders:homeAssets.data.filter(item=>item.category==="garden")}).filter(item=>item.severity!=="info").map(item=>({id:`insight-${item.id}`,sourceKey:`insight-${item.id}`,category:item.category,priority:item.priorityScore,kind:item.category,tone:["critical","high"].includes(item.severity)?"urgent":"warning",title:item.title,detail:`${item.recommendedAction} · ${item.rationale}`,nav:item.nav})),[calendarEvents,habitCompletions.data,habits.data,homeAssets.data,readings.data,schedule.data,taskTable.data]);
+  const recommendationData=useMemo(()=>({tasks:taskTable.data,events:calendarEvents,habits:habits.data,habitCompletions:habitCompletions.data,poolReadings:readings.data,poolSchedule:schedule.data,maintenance:homeAssets.data,gardenReminders:homeAssets.data.filter(item=>item.category==="garden")}),[calendarEvents,habitCompletions.data,habits.data,homeAssets.data,readings.data,schedule.data,taskTable.data]);
+  const smartNotifications=useMemo(()=>buildRecommendationPipeline(recommendationData,{history:recommendationHistory.data}).recommendations.filter(item=>item.severity!=="info").slice(0,5).map(recommendationNotification),[recommendationData,recommendationHistory.data]);
   const [preferenceDraft,setPreferenceDraft]=useState({enabled_categories:DEFAULT_NOTIFICATION_CATEGORIES,quiet_hours_start:"21:00",quiet_hours_end:"07:00"});
   const [preferenceSaveState,setPreferenceSaveState]=useState({saving:false,message:"",error:""});
   useEffect(()=>{if(notificationPreferences.data[0])setPreferenceDraft({...notificationPreferences.data[0],enabled_categories:{...DEFAULT_NOTIFICATION_CATEGORIES,...notificationPreferences.data[0].enabled_categories}});},[notificationPreferences.data]);

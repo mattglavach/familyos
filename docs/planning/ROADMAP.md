@@ -1,5 +1,9 @@
 # Roadmap
 
+## Release 3.5.0: Morning Command Center and Unified Recommendation Engine
+
+Refine Home around one Best Next Action, two supporting priorities, meaningful changes, safe deferrals, and a concise seven-day outlook. Unify recommendation identity, ranking, lifecycle suppression, and Notification Center consumption without adding a module, navigation destination, migration, dependency, or AI ranking. Effectiveness reporting and advanced analytics are deferred to Release 3.6.
+
 ## Release 3.3.0: Actionable Family Brief
 
 Implemented: deterministic actionable brief, recommendation lifecycle and suppression, Morning Brief, Evening Review, cross-module context, weekly outcomes, meaningful changes, safe-to-wait guidance, accessibility, and responsive polish. Pending release closeout: hosted test validation, production migration/deployment, production verification, and tag.

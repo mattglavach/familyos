@@ -48,6 +48,8 @@ Search should refresh current data when opened and keep item-level handoffs best
 Relationship results search name, category, interest, conversation topic, activity idea, and notes, then hand off to the owning profile. Relationship activities normalize into Timeline. When the same activity also has a `household_activity` audit row, the owning activity is rendered once and the audit is treated as duplicate evidence.
 
 ## Notification Contract
+
+Recommendation-derived notifications use the canonical `recommendation:<deduplicationKey>` source identity and consume the shared recommendation pipeline. Home lifecycle suppression therefore applies before a recommendation reaches Notification Center. Domain notifications may remain independently generated when they are reminders rather than recommendation duplicates.
 Release 1.6 notifications remain generated client-side from current task, calendar, and household state.
 
 Notification rows should include:

@@ -88,7 +88,7 @@ test("responsive navigation remains usable", async ({ page }) => {
 
 test("Home and Family Assistant retain accessible names, focus, and responsive containment", async ({ page }) => {
   await loginDemoUser(page);
-  await expect(page.getByText(/Family Brief/i).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Morning Command Center" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
   await page.keyboard.press("Tab");
   expect(await page.evaluate(() => document.activeElement !== document.body)).toBe(true);
